@@ -177,11 +177,11 @@ if ( $strict_certification ) {
 
 	$status_output = array();
 	$status_exit   = 1;
-	exec( 'git status --porcelain --untracked-files=no', $status_output, $status_exit );
+	exec( 'git status --porcelain --untracked-files=all', $status_output, $status_exit );
 	$record(
 		'tracked_working_tree_is_clean',
 		0 === $status_exit && empty( $status_output ),
-		'Strict certification requires a clean tracked working tree. Commit or discard tracked changes before generating evidence.'
+		'Strict certification requires a clean working tree (including non-ignored untracked files). Commit or discard tracked changes before generating evidence.'
 	);
 
 	$record(
