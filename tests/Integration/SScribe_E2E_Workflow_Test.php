@@ -31,19 +31,24 @@ final class SScribe_E2E_Workflow_Test extends TestCase {
 		$this->assertLessThan($prefix, $install, 'Composer dev dependencies, including Strauss, must be installed before vendor:prefix executes.');
 	}
 
-	public function test_e2e_runs_locked_composer_and_high_severity_npm_audits_before_build(): void {
+	public function test_e2e_runs_locked_composer_and_fail_closed_npm_audits_before_build(): void {
 		$workflow = $this->workflow();
 		$this->assertStringContainsString('composer audit --locked --format=plain --abandoned=fail', $workflow);
-		$this->assertStringContainsString('npm audit --audit-level=high', $workflow);
+		$this->assertStringContainsString('npm run test:audit-helper', $workflow);
+		$this->assertStringContainsString('npm run audit:js', $workflow);
 
 		$composer_audit = strpos($workflow, 'composer audit --locked --format=plain --abandoned=fail');
-		$npm_audit      = strpos($workflow, 'npm audit --audit-level=high');
+		$npm_audit_test = strpos($workflow, 'npm run test:audit-helper');
+		$npm_audit      = strpos($workflow, 'npm run audit:js');
 		$prefix         = strpos($workflow, 'composer vendor:prefix');
 		$this->assertIsInt($composer_audit);
+		$this->assertIsInt($npm_audit_test);
 		$this->assertIsInt($npm_audit);
 		$this->assertIsInt($prefix);
 		$this->assertLessThan($prefix, $composer_audit);
+		$this->assertLessThan($prefix, $npm_audit_test);
 		$this->assertLessThan($prefix, $npm_audit);
+		$this->assertLessThan($npm_audit, $npm_audit_test);
 	}
 
 	public function test_e2e_requires_full_playwright_suite_on_pull_requests(): void {
