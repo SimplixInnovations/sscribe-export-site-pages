@@ -66,8 +66,10 @@ Run the official WordPress Plugin Check against the exact resulting
 clean-install/runtime checks in `docs/WP_ORG_CLEAN_INSTALL_SMOKE.md` and
 `docs/MANUAL_RUNTIME_TESTS_v2.0.0.md`.
 
-After the evidence documents are populated for that same SHA/artifact, the
-strict final gates are:
+After all tracked release changes are committed, rerun the required signals on
+that immutable SHA, create the gitignored `dist/final-execution-evidence.json`
+and `dist/release-certification-evidence.json` inputs, and then run the strict
+final gates:
 
 ```bash
 SSCRIBE_RELEASE_CERTIFICATION=1 composer test:release-blockers
@@ -115,12 +117,22 @@ merged SHA only:
 - clean-install/runtime evidence
 - required execution signal statuses (GitHub SUCCESS or documented LOCAL_PASS)
 
-The authoritative schemas live in:
+The tracked schemas live in:
 
 - `docs/RELEASE_BLOCKERS_v2.0.0.md`
 - `docs/FINAL_CI_STATE_v2.0.0.md`
 - `docs/EXACT_ARTIFACT_EVIDENCE_v2.0.0.md`
 - `docs/DEFINITION_OF_DONE_v2.0.0.md`
+
+Final exact-SHA proof is intentionally untracked and generated under `dist/`:
+
+- `dist/final-execution-evidence.json`
+- `dist/final-ci-state-manifest.json`
+- `dist/release-certification-evidence.json`
+- `dist/exact-artifact-evidence-manifest.json`
+
+Do not commit final SHA/checksum/status values into tracked evidence Markdown;
+that would change the SHA being certified.
 
 ## Historical evidence
 
