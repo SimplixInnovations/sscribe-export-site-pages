@@ -80,13 +80,13 @@ echo "== Manual runtime tests acceptance (Phase 69) =="
 run_gate "Manual-Runtime-Tests" composer test:manual-runtime-tests >/tmp/release-audit-manual-runtime-tests.log 2>&1
 
 echo "== Release blockers acceptance (Phase 70) =="
-run_gate "Release-Blockers" composer test:release-blockers >/tmp/release-audit-release-blockers.log 2>&1
+run_gate "Release-Blockers" env SSCRIBE_RELEASE_CERTIFICATION=1 composer test:release-blockers >/tmp/release-audit-release-blockers.log 2>&1
 
 echo "== Final CI state acceptance (Phase 71) =="
-run_gate "Final-CI-State" composer test:final-ci-state >/tmp/release-audit-final-ci-state.log 2>&1
+run_gate "Final-CI-State" env SSCRIBE_RELEASE_CERTIFICATION=1 composer test:final-ci-state >/tmp/release-audit-final-ci-state.log 2>&1
 
 echo "== Exact artifact evidence acceptance (Phase 72) =="
-run_gate "Exact-Artifact-Evidence" composer test:exact-artifact-evidence >/tmp/release-audit-exact-artifact-evidence.log 2>&1
+run_gate "Exact-Artifact-Evidence" env SSCRIBE_RELEASE_CERTIFICATION=1 composer test:exact-artifact-evidence >/tmp/release-audit-exact-artifact-evidence.log 2>&1
 
 echo "== Agent final report acceptance (Phase 73) =="
 run_gate "Agent-Final-Report" composer test:agent-final-report >/tmp/release-audit-agent-final-report.log 2>&1
