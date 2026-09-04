@@ -1032,7 +1032,7 @@ class SScribe_Admin_Debug {
 
 		header( 'Content-Type: application/json' );
 		header( 'Content-Disposition: attachment; filename="' . $safe_filename . '"' );
-		header( 'Content-Length: ' . SScribe_Helpers::mb_strlen( $content ) );
+		header( 'Content-Length: ' . strlen( $content ) );
 		header( 'Cache-Control: no-store, no-cache, must-revalidate' );
 		header( 'Pragma: no-cache' );
 		header( 'X-Content-Type-Options: nosniff' );
