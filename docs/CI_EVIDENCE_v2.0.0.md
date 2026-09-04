@@ -1,3 +1,5 @@
+> **Historical evidence only.** This document records an earlier audited SHA and is retained for traceability. It does **not** certify the final v2.0.0 merged SHA. Final execution evidence must be recorded in `docs/FINAL_CI_STATE_v2.0.0.md` and pass strict certification on the exact release SHA.
+
 # SScribe v2.0.0 — CI Evidence (audited SHA)
 
 Captured 2026-09-02 on commit `a5c093ca5672171f932a5d458755acd3649b3594`
