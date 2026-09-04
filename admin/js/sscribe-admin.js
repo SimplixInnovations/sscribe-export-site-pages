@@ -108,8 +108,10 @@
 		 * @returns {string} Human-readable language label.
 		 */
 		getLanguageLabel: function (code) {
-			if (code === '' || code === null || code === undefined) {
-				return 'All';
+			if (code === '__all__' || code === '' || code === null || code === undefined) {
+				return (
+					(sscribe_data.strings && sscribe_data.strings.all_languages) || 'All Languages'
+				);
 			}
 			const labels = {
 				en: 'English',
@@ -1284,11 +1286,24 @@
 				},
 				success: function (response) {
 					if (response.success) {
-						const diagnostics = response.data;
-						if (diagnostics.status === 'error') {
-							self.showPreflightWarnings(diagnostics, function () {
-								self.proceedWithExport(language, postStatus, postType, formats);
-							});
+						const diagnostics = response.data || {};
+						const canProceed = diagnostics.can_proceed !== false;
+						if (!canProceed || diagnostics.status === 'error') {
+							self.isPreparing = false;
+							$('#sscribe-export-btn, #sscribe-preview-btn')
+								.prop('disabled', false)
+								.removeAttr('aria-busy')
+								.removeClass('sscribe-btn-busy');
+							self.updateExportButton();
+							self.showPreflightWarnings(diagnostics, null, false);
+						} else if (diagnostics.status === 'warning') {
+							self.showPreflightWarnings(
+								diagnostics,
+								function () {
+									self.proceedWithExport(language, postStatus, postType, formats);
+								},
+								true
+							);
 						} else {
 							self.proceedWithExport(language, postStatus, postType, formats);
 						}
@@ -1362,7 +1377,7 @@
 				})
 			);
 		},
-		showPreflightWarnings: function (diagnostics, onProceed) {
+		showPreflightWarnings: function (diagnostics, onProceed, allowProceed) {
 			const checks = diagnostics.checks || {};
 			const errors = [];
 			const warnings = [];
@@ -1433,10 +1448,12 @@
 			}
 			bannerHtml += '</div>';
 			bannerHtml += '<div class="sscribe-preflight-actions">';
-			bannerHtml +=
-				'<button type="button" class="sscribe-button sscribe-button-primary sscribe-preflight-proceed">' +
-				this.escapeHtml(sscribe_data.strings.preflight_continue || 'Continue Anyway') +
-				'</button>';
+			if (allowProceed === true && typeof onProceed === 'function') {
+				bannerHtml +=
+					'<button type="button" class="sscribe-button sscribe-button-primary sscribe-preflight-proceed">' +
+					this.escapeHtml(sscribe_data.strings.preflight_continue || 'Continue Anyway') +
+					'</button>';
+			}
 			bannerHtml +=
 				'<button type="button" class="sscribe-button sscribe-button-ghost sscribe-preflight-cancel">' +
 				this.escapeHtml(sscribe_data.strings.preflight_cancel || 'Cancel Export') +
@@ -1452,17 +1469,24 @@
 					$firstFocusable[0].focus();
 				}, 100);
 			}
-			$banner.on('click.sscribe-preflight', '.sscribe-preflight-proceed', function () {
-				$banner.fadeOut(200, function () {
-					$banner.remove();
+			if (allowProceed === true && typeof onProceed === 'function') {
+				$banner.on('click.sscribe-preflight', '.sscribe-preflight-proceed', function () {
+					$banner.fadeOut(200, function () {
+						$banner.remove();
+					});
+					onProceed();
 				});
-				onProceed();
-			});
+			}
 			$banner.on('click.sscribe-preflight', '.sscribe-preflight-cancel', function () {
 				$banner.fadeOut(200, function () {
 					$banner.remove();
 				});
+				SScribe.isPreparing = false;
 				SScribe.isProcessing = false;
+				$('#sscribe-export-btn, #sscribe-preview-btn')
+					.prop('disabled', false)
+					.removeAttr('aria-busy')
+					.removeClass('sscribe-btn-busy');
 				SScribe.resetUI();
 				SScribe.updateExportButton();
 				SScribe.refreshStatusAndLanguageCounts(
@@ -1474,7 +1498,12 @@
 				$banner.fadeOut(200, function () {
 					$banner.remove();
 				});
+				SScribe.isPreparing = false;
 				SScribe.isProcessing = false;
+				$('#sscribe-export-btn, #sscribe-preview-btn')
+					.prop('disabled', false)
+					.removeAttr('aria-busy')
+					.removeClass('sscribe-btn-busy');
 				SScribe.resetUI();
 				SScribe.updateExportButton();
 				SScribe.refreshStatusAndLanguageCounts(
