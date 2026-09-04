@@ -27,7 +27,7 @@ GitHub plan/account permits it. Until then, the release process uses pull
 requests, exact-artifact certification, immutable GitHub Action pins, and the
 local release audit as compensating controls.
 
-## Desired required status checks
+## Required status checks (desired server-side policy)
 
 The following release signals map to the repository workflows and should be
 configured as required checks when branch protection/rulesets are available:
