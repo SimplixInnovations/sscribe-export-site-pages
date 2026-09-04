@@ -930,7 +930,20 @@ if ( ! function_exists( 'get_current_user_id' ) ) {
 
 if ( ! function_exists( 'get_user_by' ) ) {
 	function get_user_by( $field, $value ) {
-		return (object) array( 'ID' => 1, 'user_login' => 'testuser' );
+		// Real get_user_by() returns false when no user matches the
+		// (field, value) pair. The previous stub always returned the
+		// fixture user, which made the SScribe_Privacy fast path
+		// untestable and let a previous test's archive entries leak
+		// into SScribe_Privacy_Test::test_export_personal_data_*
+		// under --order-by=random. Only honor explicit fixture IDs.
+		$value_string = is_scalar( $value ) ? (string) $value : '';
+		if ( 'id' === $field && 1 === (int) $value_string ) {
+			return (object) array( 'ID' => 1, 'user_login' => 'testuser' );
+		}
+		if ( 'email' === $field && 0 === strpos( $value_string, 'known-user@example.test' ) ) {
+			return (object) array( 'ID' => 1, 'user_login' => 'testuser' );
+		}
+		return false;
 	}
 }
 
