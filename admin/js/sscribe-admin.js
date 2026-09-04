@@ -2006,8 +2006,10 @@
 			if (!$toggle.length) {
 				return;
 			}
-			const siteDefault = !!(sscribe_data && sscribe_data.auto_download);
-			$toggle.prop('checked', siteDefault);
+			// Auto-download is deliberately session-local and opt-in. A fresh
+			// page load always begins OFF; only the checkbox the admin can see
+			// may enable an automatic download for this page load.
+			$toggle.prop('checked', false);
 		},
 		onAutoDownloadToggle: function () {
 			// Visible checkbox is the sole source of truth. No persistent
@@ -2017,10 +2019,7 @@
 		},
 		shouldAutoDownload: function () {
 			const $toggle = $('#sscribe-auto-download-toggle');
-			if ($toggle.length) {
-				return $toggle.is(':checked');
-			}
-			return !!(sscribe_data && sscribe_data.auto_download);
+			return $toggle.length > 0 && $toggle.is(':checked');
 		},
 		exportComplete: function (data, isAutoDownload) {
 			if (this._exportCompleteFired) {
