@@ -227,27 +227,60 @@ class SScribe_Security {
 			}
 		}
 
+		$resolved_bases = array();
 		foreach ( $base_dirs as $base_dir ) {
 			$real_base_dir = realpath( $base_dir );
-			if ( false === $real_base_dir ) {
-				continue;
+			if ( false !== $real_base_dir ) {
+				$resolved_bases[] = $real_base_dir;
 			}
-			$real_path = realpath( $path );
-			if ( false !== $real_path && self::path_starts_with( $real_path, $real_base_dir, true ) ) {
-				return true;
-			}
+		}
 
-			$parent = dirname( $path );
-			while ( ! file_exists( $parent ) && dirname( $parent ) !== $parent ) {
-				$parent = dirname( $parent );
+		// Existing paths, including symlinks, are judged solely by their
+		// resolved target. Never fall back to literal-parent containment after
+		// realpath() has proved that an existing symlink points elsewhere.
+		$real_path = realpath( $path );
+		if ( false !== $real_path ) {
+			foreach ( $resolved_bases as $real_base_dir ) {
+				if ( self::path_starts_with( $real_path, $real_base_dir, true ) ) {
+					return true;
+				}
 			}
-			$real_parent = realpath( $parent );
-			if ( false === $real_parent || ! self::path_starts_with( $real_parent, $real_base_dir, true ) ) {
+			return false;
+		}
+
+		// A dangling symlink cannot be safely protected: its future target may
+		// appear outside plugin-owned storage after this validation completes.
+		if ( is_link( $path ) ) {
+			return false;
+		}
+
+		// For a path that genuinely does not exist yet, resolve the nearest
+		// existing ancestor (stopping at any intermediate symlink) and require
+		// both the ancestor and the canonical literal path to remain in scope.
+		$parent = dirname( $path );
+		while (
+			! file_exists( $parent )
+			&& ! is_link( $parent )
+			&& dirname( $parent ) !== $parent
+		) {
+			$parent = dirname( $parent );
+		}
+		$real_parent = realpath( $parent );
+		if ( false === $real_parent ) {
+			return false;
+		}
+
+		$canonical = self::canonicalize_path( $path );
+		if ( '' === $canonical ) {
+			return false;
+		}
+
+		foreach ( $resolved_bases as $real_base_dir ) {
+			if ( ! self::path_starts_with( $real_parent, $real_base_dir, true ) ) {
 				continue;
 			}
-			$canonical = self::canonicalize_path( $path );
 			$canonical_base = rtrim( self::canonicalize_path( $real_base_dir ), '/' );
-			if ( '' !== $canonical && ( $canonical === $canonical_base || str_starts_with( $canonical, $canonical_base . '/' ) ) ) {
+			if ( $canonical === $canonical_base || str_starts_with( $canonical, $canonical_base . '/' ) ) {
 				return true;
 			}
 		}
