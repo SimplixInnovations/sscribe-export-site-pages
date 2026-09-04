@@ -4,7 +4,8 @@
  *
  * A single (PHP 8.4, latest-WP, SQLite) real-WP run is a smoke
  * test. The contract this test pins is a real MATRIX: PHP 8.2 +
- * 8.3 + 8.4 × WP latest + previous, fail-fast off, per-leg log
+ * 8.3 + 8.4 × WP latest + previous, plus the declared WP 6.1 /
+ * PHP 8.2 floor, fail-fast off, per-leg log
  * artifacts, with the install script honoring the version arg.
  *
  * A regression that drops 8.2 from the matrix, removes per-leg
@@ -88,6 +89,15 @@ final class SScribe_Real_WP_Matrix_Test extends TestCase {
 			'/php-version:\s*\[[^\]]*8\.2[^\]]*\]/m',
 			$source,
 			'Real-WP matrix php-version list must include 8.2 (the plugin floor).'
+		);
+	}
+
+	public function test_matrix_includes_declared_wp61_php82_floor_leg(): void {
+		$source = (string) file_get_contents( self::plugin_root() . '/' . self::CI_PATH );
+		$this::assertMatchesRegularExpression(
+			"/include:[\\s\\S]{0,800}?php-version:\\s*['\"]8\\.2['\"][\\s\\S]{0,160}?wp-version:\\s*['\"]6\\.1['\"]/",
+			$source,
+			'Real-WP matrix must explicitly exercise the declared WordPress 6.1 / PHP 8.2 minimum pair.'
 		);
 	}
 
