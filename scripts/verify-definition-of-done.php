@@ -53,8 +53,8 @@ $record(
 $canonical_criteria = array(
 	'All Phases 16-77 are complete',
 	'SSCRIBE_VERSION equals mainfile',
-	'Every required CI job on ci.yml is SUCCESS',
-	'Every Phase 70 blocker is RESOLVED or DEFERRED',
+	'Every required execution signal is SUCCESS or documented LOCAL_PASS',
+	'Every Phase 70 blocker is RESOLVED',
 	'dist/sscribe-export-site-pages-{VERSION}.zip exists',
 	'Plugin Check on the exact ZIP is PASS',
 	'Real-WordPress matrix is green',
@@ -79,12 +79,13 @@ $canonical_criteria = array(
 	'Manual runtime tests runbook covers',
 	'Release blockers checklist complete',
 	'Final CI state holds',
-	'Exact artifact evidence recorded',
+	'Strict exact-artifact evidence matches the actual ZIP',
 	'Agent final report produced',
 	'Auditor handoff protocol holds',
 	'Release invariants declared',
 	'Tag is cut on origin/main HEAD',
 	'WP.org submission is made',
+	'Public maintained exact source/build inputs are available',
 );
 
 if ( is_file( $dod_doc ) ) {
