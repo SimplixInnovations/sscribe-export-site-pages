@@ -157,3 +157,13 @@ if ( ! defined( 'SSCRIBE_PRIVATE_STORAGE_DIR' ) ) {
 	 */
 	define( 'SSCRIBE_PRIVATE_STORAGE_DIR', '' );
 }
+
+if ( ! defined( 'SSCRIBE_PLUGIN_DIR' ) ) {
+	/**
+	 * Plugin directory stub for PHPStan.
+	 * The real value is defined in sscribe-export-site-pages.php at
+	 * runtime; PHPStan cannot resolve it through file analysis alone
+	 * because it depends on WordPress's `plugin_dir_path()`.
+	 */
+	define( 'SSCRIBE_PLUGIN_DIR', __DIR__ . '/' );
+}
