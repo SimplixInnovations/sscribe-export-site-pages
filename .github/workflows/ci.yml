@@ -21,6 +21,9 @@ jobs:
               uses: actions/checkout@v6
               with:
                   persist-credentials: false
+                  # Historical-diff gates compare HEAD with recorded baselines.
+                  # A shallow PR checkout makes those commits unresolvable.
+                  fetch-depth: 0
 
             - name: Setup PHP
               uses: shivammathur/setup-php@v2
