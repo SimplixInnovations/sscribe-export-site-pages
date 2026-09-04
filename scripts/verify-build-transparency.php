@@ -6,10 +6,10 @@
  * autoloader), Strauss (namespace prefixing), and a custom build script
  * (comment stripping, dev-path pruning, font subsetting, AI-artifact
  * sanitization). WordPress.org reviewers must be able to understand
- * and reproduce the build from the public source repository. This
+ * and reproduce the build from the canonical source repository. This
  * verifier enforces the contract end-to-end:
  *
- *  1. The public source repository is referenced from readme.txt.
+ *  1. The canonical source repository is referenced from readme.txt.
  *  2. readme.txt carries a Development section that lists every
  *     required tool (PHP, Composer, Node, Git) with a version floor.
  *  3. readme.txt lists the exact build commands a reviewer would run
@@ -25,7 +25,7 @@
  *     headings (Excluded paths, In-place file transformations,
  *     Vendor-specific rewrites) so a reviewer can audit every
  *     transformation the build applies.
- *  9. The mainfile Author URI is set to a real URL (the public author
+ *  9. The mainfile Author URI is set to a real URL (the author
  *     page), not left blank.
  * 10. The WP.org Developer Guidelines reference is reachable from
  *     readme.txt (link to the canonical guidelines URL).
@@ -69,8 +69,9 @@ $file_contains = static function ( string $path, string $needle ): bool {
 };
 
 // 1. readme.txt carries a `== Development ==` section that names the
-//    public source repository. WP.org reviewers will not trust a
-//    submission whose only source pointer is a closed/private repo.
+//    canonical source repository. Repository visibility is an external
+//    launch policy; this source-level verifier checks the reproducibility
+//    contract and avoids making unverifiable visibility claims.
 $readme_path = $root_dir . '/readme.txt';
 if ( ! $must_exist( $readme_path, 'readme.txt' ) ) {
 	// All later readme.txt checks short-circuit on absence.
@@ -81,7 +82,7 @@ if ( ! $must_exist( $readme_path, 'readme.txt' ) ) {
 	if ( ! preg_match( '/^==\s*Development\s*==\s*$/m', $readme ) ) {
 		$errors[] = 'readme.txt must contain a `== Development ==` section so reviewers can find the source pointer without reading the changelog.';
 	}
-	// 1b. The section names a public source repository URL.
+	// 1b. The section names a canonical source repository URL.
 	//     We accept any common host (github.com, gitlab.com, codeberg.org,
 	//     bitbucket.org) so the rule is portable across hosts.
 	$source_url_hosts = array( 'github.com', 'gitlab.com', 'codeberg.org', 'bitbucket.org' );
@@ -93,7 +94,13 @@ if ( ! $must_exist( $readme_path, 'readme.txt' ) ) {
 		}
 	}
 	if ( ! $source_url_found ) {
-		$errors[] = 'readme.txt Development section must reference a public source repository (github.com / gitlab.com / codeberg.org / bitbucket.org).';
+		$errors[] = 'readme.txt Development section must reference the canonical source repository (github.com / gitlab.com / codeberg.org / bitbucket.org).';
+	}
+	if ( false === stripos( $readme, 'accessible to reviewers' ) ) {
+		$errors[] = 'readme.txt Development section must state that the exact tagged source used for a public WordPress.org submission is accessible to reviewers.';
+	}
+	if ( false !== stripos( $readme, 'The repository is public' ) ) {
+		$errors[] = 'readme.txt must not assert repository visibility as a build fact; visibility is an external launch policy and must be verified in repository settings.';
 	}
 	// 1c. The section lists the exact build commands. A reviewer who
 	//     wants to reproduce the ZIP needs `composer install` (or
@@ -185,7 +192,7 @@ if ( ! $must_exist( $mainfile_path, 'sscribe-export-site-pages.php' ) ) {
 }
 
 if ( empty( $errors ) ) {
-	echo "✓ Build transparency holds. readme.txt names the source repo, lists the build commands and tool versions; composer.json pins PHP; composer.lock is committed; package.json pins Node; scripts/build-release.php is the build script; docs/BUILD_TRANSFORMATIONS.md documents every transformation.\n";
+	echo "✓ Build transparency holds. readme.txt names the canonical source repo and reviewer-access requirement, lists the build commands and tool versions; composer.json pins PHP; composer.lock is committed; package.json pins Node; scripts/build-release.php is the build script; docs/BUILD_TRANSFORMATIONS.md documents every transformation.\n";
 	exit( 0 );
 }
 
