@@ -41,6 +41,36 @@ final class SScribe_Format_Matrix_Test extends TestCase {
 		return dirname( __DIR__, 2 );
 	}
 
+	public static function setUpBeforeClass(): void {
+		// The format-matrix manifest is a derived artifact of the
+		// verifier script. A sibling test or `composer release` may have
+		// deleted it between runs, and test_manifest_records_audit_state
+		// asserts the manifest exists on disk. Regenerating it here makes
+		// the suite order-independent instead of relying on whichever
+		// sibling test happened to call the verifier last.
+		$root        = self::plugin_root();
+		$descriptors = array(
+			0 => array( 'pipe', 'r' ),
+			1 => array( 'pipe', 'w' ),
+			2 => array( 'pipe', 'w' ),
+		);
+		$process = proc_open(
+			array( PHP_BINARY, $root . '/' . self::VERIFIER_PATH ),
+			$descriptors,
+			$pipes
+		);
+		if ( ! is_resource( $process ) ) {
+			throw new \RuntimeException( 'Could not spawn format-matrix verifier in setUpBeforeClass.' );
+		}
+		fclose( $pipes[0] );
+		$stdout = (string) stream_get_contents( $pipes[1] );
+		$stderr = (string) stream_get_contents( $pipes[2] );
+		$code   = proc_close( $process );
+		if ( 0 !== $code ) {
+			throw new \RuntimeException( 'Format-matrix verifier must exit 0 to seed manifest. Output: ' . $stdout . $stderr );
+		}
+	}
+
 	private function run_verifier(): array {
 		$root        = self::plugin_root();
 		$descriptors = array(

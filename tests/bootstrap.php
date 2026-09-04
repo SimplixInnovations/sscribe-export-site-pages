@@ -1931,3 +1931,22 @@ if ( ! function_exists( 'wp_timezone' ) ) {
 		return new \DateTimeZone( sprintf( '%+03d:%02d', -$hours, -$mins ) );
 	}
 }
+
+// Phase 78 — self-heal the test suite's dist/*-manifest.json
+// dependencies. The composer release pipeline wipes dist/ between
+// runs, which makes test classes that read dist manifests order-
+// dependent: whichever sibling test happens to call its verifier
+// first seeds the manifest. Regenerating any missing manifest at
+// PHPUnit bootstrap time makes the suite deterministic regardless
+// of what came before it.
+if ( 'cli' === php_sapi_name() && ! defined( 'SSCRIBE_TEST_BOOTSTRAP_QUIET' ) ) {
+	$regen_script = SSCRIBE_PLUGIN_DIR . 'scripts/regenerate-test-manifests.php';
+	if ( is_file( $regen_script ) ) {
+		$cmd = escapeshellcmd( PHP_BINARY ) . ' ' . escapeshellarg( $regen_script );
+		// Silent: PHPUnit captures STDERR during tests and treats any
+		// captured output as a test-level exception.
+		@shell_exec( $cmd . ' >NUL 2>&1' );
+		unset( $cmd, $regen_script );
+	}
+}
+
