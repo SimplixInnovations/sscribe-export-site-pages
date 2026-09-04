@@ -113,6 +113,22 @@ final class SScribe_Build_Order_Test extends TestCase {
 		$this::assertSame( 0, $payload['errors_count'] );
 	}
 
+	public function test_version_check_generates_and_certifies_prefixed_vendor_before_zip_build(): void {
+		$ci  = (string) file_get_contents( self::plugin_root() . '/' . self::CI_PATH );
+		$job = self::extract_job_block( $ci, 'version-check:' );
+		$this::assertNotNull( $job, 'version-check job block not found in ci.yml.' );
+
+		$prefix_pos = strpos( $job, 'composer vendor:prefix' );
+		$verify_pos = strpos( $job, 'verify-strauss-config.php --built' );
+		$build_pos  = strpos( $job, 'php scripts/build-release.php --skip-validation' );
+
+		$this::assertNotFalse( $prefix_pos, 'version-check must generate vendor-prefixed before building the ZIP.' );
+		$this::assertNotFalse( $verify_pos, 'version-check must certify the generated vendor-prefixed tree before building the ZIP.' );
+		$this::assertNotFalse( $build_pos, 'version-check must build the submission ZIP.' );
+		$this::assertLessThan( $verify_pos, $prefix_pos, 'vendor:prefix must run before generated-tree certification.' );
+		$this::assertLessThan( $build_pos, $verify_pos, 'generated-tree certification must run before build-release.php.' );
+	}
+
 	public function test_ci_plugin_check_depends_on_test(): void {
 		$ci = (string) file_get_contents( self::plugin_root() . '/' . self::CI_PATH );
 		// The plugin-check job must list `test` in its `needs:`.
