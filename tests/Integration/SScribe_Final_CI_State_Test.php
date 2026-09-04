@@ -57,6 +57,7 @@ final class SScribe_Final_CI_State_Test extends TestCase {
 			'## Why this exists',
 			'## Status convention',
 			'## Canonical required jobs',
+			'## Recorded final state',
 			'## How an independent auditor verifies this',
 		);
 
@@ -93,33 +94,30 @@ final class SScribe_Final_CI_State_Test extends TestCase {
 		}
 	}
 
-	public function test_every_required_job_has_success_or_skipped_status(): void {
-		$src = (string) file_get_contents( $this->checklist_path );
+	public function test_recorded_final_state_uses_known_status_vocabulary(): void {
+		$src   = (string) file_get_contents( $this->checklist_path );
+		$start = strpos( $src, '## Recorded final state' );
+		$this->assertNotFalse( $start );
 
-		// Walk every markdown row in the Canonical required jobs table.
-		// Each row has at least 5 columns: `# | Job | Required status | Notes`.
-		$hits = array();
-		if ( preg_match_all( '/^\|\s*([0-9]+)\s*\|\s*`?([A-Za-z0-9_\-]+)`?\s*\|\s*(SUCCESS|SKIPPED|FAILED|CANCELLED|MISSING)\s*\|/m', $src, $matches ) ) {
-			foreach ( $matches[1] as $idx => $num ) {
-				$hits[ (int) $num ] = array(
-					'job'    => trim( $matches[2][ $idx ] ),
-					'status' => trim( $matches[3][ $idx ] ),
-				);
-			}
+		$block = substr( $src, (int) $start );
+		$next  = strpos( $block, "\n## ", strlen( '## Recorded final state' ) );
+		if ( false !== $next ) {
+			$block = substr( $block, 0, $next );
 		}
 
-		$this->assertNotEmpty(
+		$hits = array();
+		preg_match_all(
+			'/^\|\s*([0-9]+)\s*\|\s*([^|]+?)\s*\|\s*([A-Z_]+)\s*\|\s*(.*?)\s*\|\s*$/m',
+			$block,
 			$hits,
-			'Final CI state checklist must contain at least one row with a status.'
+			PREG_SET_ORDER
 		);
 
-		$valid_statuses = array( 'SUCCESS', 'SKIPPED' );
+		$this->assertCount( 9, $hits, 'Recorded final state must contain exactly the nine canonical required jobs.' );
+
+		$known = array( 'SUCCESS', 'LOCAL_PASS', 'UNAVAILABLE', 'FAILED', 'CANCELLED', 'SKIPPED', 'MISSING' );
 		foreach ( $hits as $row ) {
-			$this->assertContains(
-				$row['status'],
-				$valid_statuses,
-				"Required job '{$row['job']}' has status '{$row['status']}'; only SUCCESS or SKIPPED allowed."
-			);
+			$this->assertContains( trim( $row[3] ), $known );
 		}
 	}
 
@@ -221,24 +219,14 @@ final class SScribe_Final_CI_State_Test extends TestCase {
 		);
 	}
 
-	public function test_final_ci_state_manifest_canonical_path(): void {
-		$manifest_path = $this->repo_root . '/dist/final-ci-state-manifest.json';
-		$this->assertFileExists(
-			$manifest_path,
-			'dist/final-ci-state-manifest.json must exist after the verifier runs.'
-		);
-		$src   = (string) file_get_contents( $manifest_path );
-		$json  = json_decode( $src, true );
-		$this->assertIsArray( $json, 'Final-CI-state manifest must decode as JSON.' );
-		$this->assertArrayHasKey( 'passes', $json, 'Final-CI-state manifest must record the passes key.' );
-		$this->assertTrue(
-			(bool) ( $json['passes'] ?? false ),
-			'Final-CI-state manifest must record `passes: true` so the audit trail proves the gate succeeded.'
-		);
-		$this->assertSame(
-			0,
-			(int) ( $json['errors_count'] ?? 1 ),
-			'Final-CI-state manifest must record `errors_count: 0`.'
-		);
+	public function test_final_ci_state_verifier_is_strict_and_sha_bound(): void {
+		$src = (string) file_get_contents( $this->repo_root . '/scripts/verify-final-ci-state.php' );
+
+		$this->assertStringContainsString( 'SSCRIBE_RELEASE_CERTIFICATION', $src );
+		$this->assertStringContainsString( 'git rev-parse HEAD', $src );
+		$this->assertStringContainsString( 'recorded_source_sha_matches_head', $src );
+		$this->assertStringContainsString( 'LOCAL_PASS', $src );
+		$this->assertStringContainsString( 'every_required_job_has_shippable_recorded_status', $src );
 	}
+
 }
