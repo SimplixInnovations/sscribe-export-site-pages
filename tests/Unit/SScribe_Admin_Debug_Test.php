@@ -201,4 +201,24 @@ class SScribe_Admin_Debug_Test extends TestCase {
 		$this->assertCount( 1, $entries );
 		$this->assertSame( 'a', $entries[0]['message'] );
 	}
+	/**
+	 * Regression: HTTP Content-Length is measured in bytes, not Unicode
+	 * characters. Using mb_strlen() advertises a shorter body whenever
+	 * exported debug JSON contains Arabic or other multibyte text.
+	 */
+	public function test_debug_json_download_content_length_uses_bytes(): void {
+		$source = (string) file_get_contents(
+			dirname( __DIR__, 2 ) . '/admin/class-sscribe-admin-debug.php'
+		);
+
+		$this->assertStringContainsString(
+			"header( 'Content-Length: ' . strlen( \$content ) );",
+			$source
+		);
+		$this->assertStringNotContainsString(
+			"Content-Length: ' . SScribe_Helpers::mb_strlen( \$content )",
+			$source
+		);
+	}
+
 }
