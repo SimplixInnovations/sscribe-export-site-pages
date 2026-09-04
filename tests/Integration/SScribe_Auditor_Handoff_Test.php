@@ -102,6 +102,23 @@ final class SScribe_Auditor_Handoff_Test extends TestCase {
 		}
 	}
 
+	public function test_auditor_handoff_documents_generated_exact_sha_evidence(): void {
+		$src = (string) file_get_contents( $this->handoff_doc_path );
+
+		foreach ( array(
+			'dist/final-execution-evidence.json',
+			'dist/final-ci-state-manifest.json',
+			'dist/release-certification-evidence.json',
+			'dist/exact-artifact-evidence-manifest.json',
+		) as $expected ) {
+			$this->assertStringContainsString(
+				$expected,
+				$src,
+				"Auditor handoff must document generated exact-SHA evidence: {$expected}"
+			);
+		}
+	}
+
 	public function test_auditor_handoff_every_listed_artifact_exists_and_nonempty(): void {
 		// Mirror the verifier's on-disk check at the PHPUnit boundary.
 		// A handoff table that lists artifacts but ships empty
