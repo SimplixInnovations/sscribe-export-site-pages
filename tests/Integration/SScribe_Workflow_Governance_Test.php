@@ -78,11 +78,12 @@ final class SScribe_Workflow_Governance_Test extends TestCase {
 
 		$required = $payload['required_workflows'];
 		$this::assertContains( 'ci.yml', $required, 'ci.yml is the main release gate and must be classified as required.' );
+		$this::assertContains( 'e2e.yml', $required, 'e2e.yml certifies the exact ZIP in a browser runtime and must be release-required.' );
 		$this::assertContains( 'release.yml', $required, 'release.yml drives WP.org releases and must be required.' );
-		$this::assertContains( 'release-audit.yml', $required, 'release-audit.yml is the release-branch gate and must be required.' );
+		$this::assertContains( 'release-audit.yml', $required, 'release-audit.yml is the release-promotion gate and must be required.' );
 
 		$optional = $payload['optional_workflows'];
-		$this::assertContains( 'e2e.yml', $optional, 'e2e.yml is browser diagnostics and must be classified as optional.' );
+		$this::assertNotContains( 'e2e.yml', $optional, 'A release-required browser gate cannot also be optional.' );
 
 		// No workflow may be in BOTH lists — the contract demands a
 		// unambiguous classification.
@@ -123,7 +124,7 @@ final class SScribe_Workflow_Governance_Test extends TestCase {
 		$root = self::plugin_root() . '/' . self::WORKFLOWS_DIR;
 		$this::assertDirectoryExists( $root );
 
-		$required = array( 'ci.yml', 'release.yml', 'release-audit.yml' );
+		$required = array( 'ci.yml', 'e2e.yml', 'release.yml', 'release-audit.yml' );
 		foreach ( $required as $wf ) {
 			$path   = $root . '/' . $wf;
 			$this::assertFileExists( $path, "required workflow {$wf} must exist" );
@@ -133,6 +134,25 @@ final class SScribe_Workflow_Governance_Test extends TestCase {
 				$source,
 				"Phase 52 forbids `continue-on-error: true` in {$wf}. Required workflows are release gates."
 			);
+		}
+	}
+
+	public function test_every_external_action_is_pinned_to_a_full_commit_sha(): void {
+		$root = self::plugin_root() . '/' . self::WORKFLOWS_DIR;
+		foreach ( glob( $root . '/*.yml' ) ?: array() as $path ) {
+			$source = (string) file_get_contents( $path );
+			preg_match_all( '/uses:\s*([^\s#]+)/', $source, $matches );
+			foreach ( $matches[1] ?? array() as $uses_ref ) {
+				$uses_ref = trim( $uses_ref );
+				if ( '' === $uses_ref || str_starts_with( $uses_ref, './' ) ) {
+					continue;
+				}
+				$this::assertMatchesRegularExpression(
+					'/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+(?:\/[A-Za-z0-9_.-]+)*@[0-9a-f]{40}$/i',
+					$uses_ref,
+					basename( $path ) . ' uses a mutable or unpinned external action: ' . $uses_ref
+				);
+			}
 		}
 	}
 
