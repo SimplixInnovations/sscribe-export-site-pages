@@ -187,6 +187,12 @@ jobs:
             # PHPStan / PHPCS pass (already enforced by the `test` and
             # `lint` jobs) so the build only produces the dist tree
             # this verifier certifies.
+            - name: Generate prefixed vendor tree for ZIP certification
+              run: composer vendor:prefix
+
+            - name: Certify generated vendor-prefix tree
+              run: php scripts/verify-strauss-config.php --built
+
             - name: Build the submission ZIP
               run: php scripts/build-release.php --skip-validation
 
