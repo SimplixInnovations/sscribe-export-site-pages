@@ -1,26 +1,11 @@
 <?php
 /**
- * Phase 72 — Required exact artifact evidence contract.
+ * Phase 72 - Exact artifact evidence contract.
  *
- * Asserts the canonical artifact-evidence checklist
- * (docs/EXACT_ARTIFACT_EVIDENCE_v2.0.0.md) is complete and every
- * required field has a recorded value (not blank). The ZIP
- * artifact + SHA-256 + byte size + file count + source SHA
- * + builder identity form the bit-level audit trail.
- *
- * Rules:
- *
- *   1. Evidence doc exists.
- *   2. Evidence doc declares canonical sections (Why this exists,
- *      Canonical evidence fields, Recorded evidence, How an
- *      independent auditor verifies this).
- *   3. Every canonical evidence field is listed.
- *   4. Every canonical evidence field has a recorded value
- *      (non-blank cell in the "Recorded evidence" table — so
- *      a doc that defines fields but never records values
- *      fails the gate).
- *   5. The dist/ ZIP artifact exists and has a SHA-256 sidecar.
- *   6. Integration test exists.
+ * Normal source CI validates the evidence schema. Strict release
+ * certification is enabled with SSCRIBE_RELEASE_CERTIFICATION=1 and then
+ * recomputes the exact ZIP identity, checksum sidecar, source SHA, and
+ * recorded evidence instead of trusting non-empty documentation fields.
  *
  * @package SScribe_Export_Site_Pages
  */
@@ -31,10 +16,12 @@ if ( 'cli' !== php_sapi_name() ) {
 	exit( 'This script must be run from the command line.' );
 }
 
-$root_dir      = dirname( __DIR__ );
-$evidence_doc  = $root_dir . '/docs/EXACT_ARTIFACT_EVIDENCE_v2.0.0.md';
-$manifest_path = $root_dir . '/dist/exact-artifact-evidence-manifest.json';
-$dist_dir      = $root_dir . '/dist';
+$root_dir             = dirname( __DIR__ );
+$evidence_doc         = $root_dir . '/docs/EXACT_ARTIFACT_EVIDENCE_v2.0.0.md';
+$main_file            = $root_dir . '/sscribe-export-site-pages.php';
+$manifest_path        = $root_dir . '/dist/exact-artifact-evidence-manifest.json';
+$dist_dir             = $root_dir . '/dist';
+$strict_certification = '1' === (string) getenv( 'SSCRIBE_RELEASE_CERTIFICATION' );
 
 $matrix = array();
 $errors = array();
@@ -53,7 +40,7 @@ $record = static function ( string $rule, bool $passes, string $detail ) use ( &
 $record(
 	'evidence_doc_exists',
 	is_file( $evidence_doc ),
-	'docs/EXACT_ARTIFACT_EVIDENCE_v2.0.0.md must exist so the Phase 72 artifact evidence is auditable.'
+	'docs/EXACT_ARTIFACT_EVIDENCE_v2.0.0.md must exist so exact artifact evidence is auditable.'
 );
 
 $canonical_fields = array(
@@ -71,6 +58,11 @@ $canonical_fields = array(
 	'build_timestamp',
 );
 
+$recorded_values = array();
+$current_version = '';
+$current_sha     = '';
+$actual          = array();
+
 if ( is_file( $evidence_doc ) ) {
 	$doc_src = (string) file_get_contents( $evidence_doc );
 
@@ -78,9 +70,10 @@ if ( is_file( $evidence_doc ) ) {
 		'## Why this exists',
 		'## Canonical evidence fields',
 		'## Recorded evidence',
+		'## Strict certification rules',
 		'## How an independent auditor verifies this',
 	);
-	$missing_sections   = array();
+	$missing_sections = array();
 	foreach ( $canonical_sections as $section ) {
 		if ( false === strpos( $doc_src, $section ) ) {
 			$missing_sections[] = $section;
@@ -92,7 +85,6 @@ if ( is_file( $evidence_doc ) ) {
 		'Artifact evidence doc is missing canonical sections: ' . implode( ', ', $missing_sections )
 	);
 
-	// Every canonical field must appear (case-insensitive substring match).
 	$missing_fields = array();
 	foreach ( $canonical_fields as $expected ) {
 		if ( false === stripos( $doc_src, $expected ) ) {
@@ -105,119 +97,236 @@ if ( is_file( $evidence_doc ) ) {
 		'Every canonical evidence field must appear in the doc. Missing: ' . implode( ', ', $missing_fields )
 	);
 
-	// Rule 4 (new): every canonical field must have a NON-BLANK
-	// recorded value in the "Recorded evidence" table. This stops
-	// shipping an empty placeholder doc that lists field names
-	// but never actually records the artifact state.
-	//
-	// The canonical recorded-value table format is:
-	//
-	//   | #  | Field       | Recorded value |
-	//   |----|-------------|----------------|
-	//   | 1  | version     | 2.0.0          |
-	//
-	// The earlier field-definition table (field name + source +
-	// purpose) is NOT the recorded evidence — we explicitly look
-	// for the "Recorded value" header column so we don't mistake
-	// the definition-table purpose column for a recorded value.
-	$blank_fields = array();
-	$recorded_values = array();
-	$recorded_table_found = false;
-	$lines = explode( "\n", $doc_src );
-	foreach ( $lines as $line ) {
-		// Detect the start of the recorded evidence table.
-		if ( false !== strpos( $line, 'Recorded value' ) || false !== strpos( $line, 'Recorded Value' ) ) {
-			$recorded_table_found = true;
-			continue;
-		}
-		if ( ! $recorded_table_found ) {
-			continue;
-		}
-		// Skip the separator row (e.g. "|----|---|").
-		if ( preg_match( '/^\s*\|[\s:|]+\|\s*$/', $line ) ) {
-			continue;
-		}
-		// Skip the header row itself (it was already matched above).
-		if ( preg_match( '/^\s*\|\s*#\s*\|\s*Field\s*\|/i', $line ) ) {
-			continue;
-		}
-		// Data rows: `| 12 | build_timestamp | <value> | ...`.
-		if ( preg_match( '/^\s*\|\s*\d+\s*\|\s*([a-z_][a-z0-9_]*)\s*\|\s*(.+?)\s*\|/i', $line, $m ) ) {
-			$fname = trim( $m[1] );
-			$fval  = trim( $m[2] );
-			// Strip surrounding emphasis + drop placeholders.
-			$fval_clean = trim( preg_replace( '/^_+(.+)_+$/', '$1', $fval ) );
-			$recorded_values[ $fname ] = $fval_clean;
+	$recorded_start = strpos( $doc_src, '## Recorded evidence' );
+	$recorded_block = '';
+	if ( false !== $recorded_start ) {
+		$recorded_block = substr( $doc_src, $recorded_start );
+		$next_section    = strpos( $recorded_block, "\n## ", strlen( '## Recorded evidence' ) );
+		if ( false !== $next_section ) {
+			$recorded_block = substr( $recorded_block, 0, $next_section );
 		}
 	}
+
+	if ( preg_match_all(
+		'/^\\|\\s*([0-9]+)\\s*\\|\\s*([a-z_][a-z0-9_]*)\\s*\\|\\s*(.*?)\\s*\\|\\s*$/mi',
+		$recorded_block,
+		$rows,
+		PREG_SET_ORDER
+	) ) {
+		foreach ( $rows as $row ) {
+			$field = trim( (string) $row[2] );
+			if ( 'field' === strtolower( $field ) ) {
+				continue;
+			}
+			$recorded_values[ $field ] = trim( (string) $row[3] );
+		}
+	}
+
+	$missing_recorded_fields = array();
 	foreach ( $canonical_fields as $field ) {
-		$val = isset( $recorded_values[ $field ] ) ? $recorded_values[ $field ] : '';
-		if ( '' === $val || '_filled at certify_' === $val || '_filled at certify' === $val ) {
-			$blank_fields[] = $field;
+		if ( ! array_key_exists( $field, $recorded_values ) ) {
+			$missing_recorded_fields[] = $field;
 		}
 	}
 	$record(
-		'every_canonical_evidence_field_has_recorded_value',
-		0 === count( $blank_fields ),
-		'Every canonical evidence field must have a non-blank recorded value in the "Recorded evidence" table. Blank: ' . implode( ', ', $blank_fields )
+		'every_canonical_field_has_recorded_row',
+		0 === count( $missing_recorded_fields ),
+		'Every canonical evidence field must have a Recorded evidence row. Missing: ' . implode( ', ', $missing_recorded_fields )
 	);
 }
-
-// Locate the exact artifact ZIP in dist/.
-$zip_files = array();
-if ( is_dir( $dist_dir ) ) {
-	foreach ( glob( $dist_dir . '/sscribe-export-site-pages-*.zip' ) as $candidate ) {
-		if ( is_file( $candidate ) ) {
-			$zip_files[] = $candidate;
-		}
-	}
-}
-$record(
-	'dist_zip_artifact_exists',
-	count( $zip_files ) > 0,
-	'dist/ must contain the exact release ZIP (sscribe-export-site-pages-{VERSION}.zip) for the Phase 72 gate.'
-);
-
-// Locate the SHA-256 sidecar. The build emits the sidecar as
-// a sibling of the ZIP (e.g. dist/sscribe-export-site-pages-2.0.0.sha256),
-// not as ZIP.sha256 — check both forms.
-$sha_sidecar_present = false;
-foreach ( $zip_files as $zip ) {
-	$base = preg_replace( '/\.zip$/', '', $zip );
-	if ( is_file( $base . '.sha256' ) || is_file( $zip . '.sha256' ) ) {
-		$sha_sidecar_present = true;
-		break;
-	}
-}
-$record(
-	'sha256_sidecar_present',
-	$sha_sidecar_present,
-	'dist/ must contain a .sha256 sidecar next to the exact release ZIP so the artifact is bit-level reproducible.'
-);
 
 $test_path = $root_dir . '/tests/Integration/SScribe_Exact_Artifact_Evidence_Test.php';
 $record(
 	'integration_test_exists',
 	is_file( $test_path ),
-	'tests/Integration/SScribe_Exact_Artifact_Evidence_Test.php must exist so the artifact evidence contract is pinned at the PHPUnit boundary.'
+	'tests/Integration/SScribe_Exact_Artifact_Evidence_Test.php must exist so the Phase 72 contract is pinned at the PHPUnit boundary.'
 );
 
-// Persist manifest.
+if ( $strict_certification ) {
+	$placeholder_fields = array();
+	foreach ( $canonical_fields as $field ) {
+		$value = trim( (string) ( $recorded_values[ $field ] ?? '' ) );
+		if (
+			'' === $value
+			|| 0 === stripos( $value, 'PENDING' )
+			|| 0 === stripos( $value, 'TBD' )
+			|| 0 === stripos( $value, 'N/A' )
+			|| false !== stripos( $value, 'filled at certify' )
+		) {
+			$placeholder_fields[] = $field;
+		}
+	}
+	$record(
+		'no_placeholder_evidence_values',
+		0 === count( $placeholder_fields ),
+		'Strict certification requires concrete evidence values. Placeholder/blank: ' . implode( ', ', $placeholder_fields )
+	);
+
+	if ( is_file( $main_file ) ) {
+		$main_src = (string) file_get_contents( $main_file );
+		if ( preg_match( "/define\\(\\s*'SSCRIBE_VERSION'\\s*,\\s*'([^']+)'\\s*\\)/", $main_src, $version_match ) ) {
+			$current_version = trim( (string) $version_match[1] );
+		}
+	}
+	$record(
+		'current_plugin_version_resolved',
+		(bool) preg_match( '/^[0-9]+\\.[0-9]+\\.[0-9]+(?:[-+][A-Za-z0-9.\\-]+)?$/', $current_version ),
+		'Strict certification must resolve SSCRIBE_VERSION from the main plugin file.'
+	);
+	$record(
+		'recorded_version_matches_source',
+		$current_version === (string) ( $recorded_values['version'] ?? '' ),
+		'Recorded version must exactly match SSCRIBE_VERSION.'
+	);
+
+	$expected_relative_zip = 'dist/sscribe-export-site-pages-' . $current_version . '.zip';
+	$expected_zip          = $root_dir . '/' . $expected_relative_zip;
+	$expected_sidecar      = $dist_dir . '/sscribe-export-site-pages-' . $current_version . '.sha256';
+
+	$versioned_zips = array();
+	if ( is_dir( $dist_dir ) ) {
+		foreach ( glob( $dist_dir . '/sscribe-export-site-pages-*.zip' ) as $candidate ) {
+			if ( is_file( $candidate ) ) {
+				$versioned_zips[] = realpath( $candidate ) ?: $candidate;
+			}
+		}
+	}
+
+	$record(
+		'exact_current_version_zip_exists',
+		is_file( $expected_zip ),
+		'Strict certification requires the exact current-version ZIP: ' . $expected_relative_zip
+	);
+	$record(
+		'only_one_versioned_release_zip_present',
+		1 === count( $versioned_zips ) && is_file( $expected_zip ),
+		'dist/ must contain exactly one versioned SScribe release ZIP during final certification.'
+	);
+	$record(
+		'recorded_zip_filename_matches_expected',
+		$expected_relative_zip === (string) ( $recorded_values['zip_filename'] ?? '' ),
+		'Recorded zip_filename must equal the exact current-version artifact path.'
+	);
+
+	if ( is_file( $expected_zip ) ) {
+		$actual_sha  = hash_file( 'sha256', $expected_zip );
+		$actual_size = filesize( $expected_zip );
+		$actual_count = null;
+
+		if ( class_exists( 'ZipArchive' ) ) {
+			$zip = new ZipArchive();
+			if ( true === $zip->open( $expected_zip ) ) {
+				$actual_count = $zip->numFiles;
+				$zip->close();
+			}
+		}
+
+		$actual['zip_sha256']     = is_string( $actual_sha ) ? $actual_sha : '';
+		$actual['zip_byte_size']  = false === $actual_size ? null : (int) $actual_size;
+		$actual['zip_file_count'] = $actual_count;
+
+		$record(
+			'recorded_zip_sha256_matches_actual',
+			is_string( $actual_sha )
+				&& preg_match( '/^[a-f0-9]{64}$/', (string) ( $recorded_values['zip_sha256'] ?? '' ) )
+				&& hash_equals( $actual_sha, strtolower( (string) $recorded_values['zip_sha256'] ) ),
+			'Recorded zip_sha256 must equal a fresh SHA-256 of the exact ZIP.'
+		);
+		$record(
+			'recorded_zip_byte_size_matches_actual',
+			false !== $actual_size
+				&& ctype_digit( (string) ( $recorded_values['zip_byte_size'] ?? '' ) )
+				&& (int) $recorded_values['zip_byte_size'] === (int) $actual_size,
+			'Recorded zip_byte_size must equal filesize() for the exact ZIP.'
+		);
+		$record(
+			'recorded_zip_file_count_matches_actual',
+			is_int( $actual_count )
+				&& ctype_digit( (string) ( $recorded_values['zip_file_count'] ?? '' ) )
+				&& (int) $recorded_values['zip_file_count'] === $actual_count,
+			'Recorded zip_file_count must equal ZipArchive::numFiles for the exact ZIP.'
+		);
+
+		$sidecar_value = is_file( $expected_sidecar )
+			? strtolower( trim( (string) file_get_contents( $expected_sidecar ) ) )
+			: '';
+		$record(
+			'sha256_sidecar_matches_actual_zip',
+			is_string( $actual_sha )
+				&& preg_match( '/^[a-f0-9]{64}$/', $sidecar_value )
+				&& hash_equals( $actual_sha, $sidecar_value ),
+			'The current-version .sha256 sidecar must exist and equal the actual ZIP digest.'
+		);
+	}
+
+	$git_output = array();
+	$git_exit   = 1;
+	exec( 'git rev-parse HEAD', $git_output, $git_exit );
+	if ( 0 === $git_exit && ! empty( $git_output ) ) {
+		$current_sha = strtolower( trim( (string) end( $git_output ) ) );
+	}
+	$record(
+		'current_source_sha_resolved',
+		(bool) preg_match( '/^[a-f0-9]{40}$/', $current_sha ),
+		'Strict certification must resolve the current 40-hex git HEAD.'
+	);
+	$record(
+		'recorded_source_sha_matches_head',
+		(bool) preg_match( '/^[a-f0-9]{40}$/i', (string) ( $recorded_values['source_sha'] ?? '' ) )
+			&& strtolower( (string) $recorded_values['source_sha'] ) === $current_sha,
+		'Recorded source_sha must exactly match git HEAD.'
+	);
+	$record(
+		'recorded_short_sha_matches_head',
+		'' !== $current_sha
+			&& strtolower( (string) ( $recorded_values['source_short_sha'] ?? '' ) ) === substr( $current_sha, 0, 8 ),
+		'Recorded source_short_sha must equal the first eight characters of git HEAD.'
+	);
+
+	$clean_install_doc = (string) ( $recorded_values['clean_install_doc'] ?? '' );
+	$clean_install_abs = $root_dir . '/' . ltrim( str_replace( '\\\\', '/', $clean_install_doc ), '/' );
+	$record(
+		'clean_install_evidence_doc_exists',
+		'' !== $clean_install_doc && is_file( $clean_install_abs ),
+		'Recorded clean_install_doc must point to an existing repository file.'
+	);
+
+	$timestamp = (string) ( $recorded_values['build_timestamp'] ?? '' );
+	$parsed_ts = strtotime( $timestamp );
+	$record(
+		'build_timestamp_is_valid_iso8601',
+		false !== $parsed_ts && (bool) preg_match( '/^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:Z|[+\\-]\\d{2}:\\d{2})$/', $timestamp ),
+		'Recorded build_timestamp must be an ISO 8601 timestamp with timezone.'
+	);
+} else {
+	$record(
+		'release_artifact_identity_enforced_only_in_strict_certification',
+		true,
+		'Normal source CI validates artifact-evidence schema only. Strict mode recomputes ZIP/source identity and rejects stale evidence.'
+	);
+}
+
 $manifest_dir = dirname( $manifest_path );
 if ( ! is_dir( $manifest_dir ) ) {
 	mkdir( $manifest_dir, 0755, true );
 }
+
 $manifest = array(
-	'generated_at'  => gmdate( 'c' ),
-	'zip_files'     => array_map( 'basename', $zip_files ),
-	'sha_sidecar'   => $sha_sidecar_present,
-	'rule_count'    => count( $matrix ),
-	'passed_count'  => count( array_filter( $matrix, static fn( $r ) => $r['passes'] ) ),
-	'errors_count'  => count( $errors ),
-	'passes'        => 0 === count( $errors ),
-	'errors'        => $errors,
-	'matrix'        => $matrix,
+	'generated_at'         => gmdate( 'c' ),
+	'strict_certification' => $strict_certification,
+	'current_version'      => $current_version,
+	'current_source_sha'   => $current_sha,
+	'recorded_values'      => $recorded_values,
+	'actual'               => $actual,
+	'rule_count'           => count( $matrix ),
+	'passed_count'         => count( array_filter( $matrix, static fn( $row ) => $row['passes'] ) ),
+	'errors_count'         => count( $errors ),
+	'release_ready'        => $strict_certification && 0 === count( $errors ),
+	'passes'               => 0 === count( $errors ),
+	'errors'               => $errors,
+	'matrix'               => $matrix,
 );
+
 file_put_contents(
 	$manifest_path,
 	json_encode( $manifest, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES )
@@ -225,17 +334,23 @@ file_put_contents(
 
 echo "=== SScribe Exact Artifact Evidence Acceptance ===\n\n";
 foreach ( $matrix as $row ) {
-	$status = $row['passes'] ? '✓' : '✗';
+	$status = $row['passes'] ? 'PASS' : 'FAIL';
 	echo sprintf( "  %s  %s\n      %s\n", $status, $row['rule'], $row['detail'] );
 }
+
 echo "\nErrors: " . count( $errors ) . "\n";
 foreach ( $errors as $error ) {
-	echo "  ✗ {$error}\n";
+	echo "  FAIL: {$error}\n";
 }
 echo "\nManifest persisted to: {$manifest_path}\n";
 
 if ( ! empty( $errors ) ) {
 	exit( 1 );
 }
-echo "✓ Exact artifact evidence contract valid.\n";
+
+if ( $strict_certification ) {
+	echo "PASS: Exact artifact evidence matches the current ZIP and source checkout.\n";
+} else {
+	echo "PASS: Exact artifact evidence contract structure is valid. Strict artifact comparison was not requested.\n";
+}
 exit( 0 );
