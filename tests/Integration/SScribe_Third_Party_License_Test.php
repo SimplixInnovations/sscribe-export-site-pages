@@ -24,6 +24,7 @@ namespace SScribe\Tests\Integration;
 
 use PHPUnit\Framework\TestCase;
 
+#[\PHPUnit\Framework\Attributes\Group('release-contract')]
 final class SScribe_Third_Party_License_Test extends TestCase {
 
 	private const SCRIPT_PATH    = 'scripts/verify-third-party-license.php';
