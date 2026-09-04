@@ -96,9 +96,11 @@ these by filename.
 ## 2. In-place file transformations
 
 Every shipped PHP, CSS, or JS file is rewritten by one of the
-strip functions before it is written to `dist/`. Non-code files
-(non-PHP/CSS/JS, e.g. `.pot`, `.txt`, `.json`) also pass through
-the AI-artifact sanitizer as a backstop.
+strip functions before it is written to `dist/`. Known non-code text
+files (for example `.pot`, `.txt`, `.json`, `.xml`, `.svg`) also pass
+through the AI-artifact sanitizer as a backstop. Binary assets such as
+fonts, images, and compiled translations are copied byte-for-byte and are
+never passed through string replacement.
 
 ### PHP — `strip_php_comments( $source )`
 
@@ -127,10 +129,10 @@ lines. No license-banner preservation.
   intact).
 - License banners and jsdoc survive.
 
-### All files — `sanitize_ai_artifacts( $source )`
+### Text files — `sanitize_ai_artifacts( $source )`
 
-Applied AFTER the strip pass to all PHP, CSS, JS, and other text
-files. Replaces AI-artifact Unicode characters with ASCII
+Applied AFTER the strip pass to PHP, CSS, JS, and the builder's explicit
+text-extension allowlist. Binary files are copied verbatim. Replaces AI-artifact Unicode characters with ASCII
 equivalents:
 
 | Char | Code | Replacement | Reason |
