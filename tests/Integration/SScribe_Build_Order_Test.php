@@ -129,6 +129,16 @@ final class SScribe_Build_Order_Test extends TestCase {
 		$this::assertLessThan( $build_pos, $verify_pos, 'generated-tree certification must run before build-release.php.' );
 	}
 
+	public function test_local_builder_preflight_excludes_post_build_release_contracts(): void {
+		$builder = (string) file_get_contents( self::plugin_root() . '/scripts/build-release.php' );
+
+		$this->assertStringContainsString(
+			'--exclude-group=release-contract',
+			$builder,
+			'build-release.php pre-build PHPUnit must exclude release-contract tests because those require artifacts/manifests created after the build.'
+		);
+	}
+
 	public function test_ci_plugin_check_depends_on_test(): void {
 		$ci = (string) file_get_contents( self::plugin_root() . '/' . self::CI_PATH );
 		// The plugin-check job must list `test` in its `needs:`.
