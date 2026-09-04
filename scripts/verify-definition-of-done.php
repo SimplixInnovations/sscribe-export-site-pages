@@ -78,7 +78,7 @@ $canonical_criteria = array(
 	'Phase 68 test coverage holds',
 	'Manual runtime tests runbook covers',
 	'Release blockers checklist complete',
-	'Final CI state holds',
+	'Final execution state holds',
 	'Strict exact-artifact evidence matches the actual ZIP',
 	'Agent final report produced',
 	'Auditor handoff protocol holds',

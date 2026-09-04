@@ -51,8 +51,9 @@ The release pipeline MUST obey every invariant below:
 | 31 | Every Phase 71 required execution signal is SUCCESS or documented LOCAL_PASS on the final SHA.| Phase 71 final execution state. |
 | 32 | Phase 72 evidence matches the actual ZIP, checksum sidecar, and current source SHA.| Phase 72 exact artifact evidence. |
 | 33 | Branch topology policy holds (exactly `main` and `develop` long-lived; same SHA; no local-only refs).| Phase 77 branch topology policy. |
+| 34 | Public maintained exact source/build inputs are available for WordPress.org reviewers because build tooling is omitted from the deployed ZIP. | Phase 70 blocker 18 / WordPress.org source guideline. |
 
-The verifier asserts all 32 invariants are declared and each
+The verifier asserts all 34 invariants are declared and each
 declares the enforcing Phase in its row.
 
 ## How an independent auditor verifies this
