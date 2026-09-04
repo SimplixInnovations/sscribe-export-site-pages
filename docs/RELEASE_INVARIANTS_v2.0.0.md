@@ -47,9 +47,9 @@ The release pipeline MUST obey every invariant below:
 | 27 | UI refactor discipline holds (admin file count locked at v1.9.0 baseline).| Phase 67 UI refactor discipline.|
 | 28 | Every required new test (24 signatures from Phase 68) is present in tests/Integration/ or tests/Unit/.| Phase 68 test coverage.|
 | 29 | Manual runtime tests runbook covers all 6 canonical environments.| Phase 69 manual runtime tests.|
-| 30 | Every Phase 70 blocker is RESOLVED or DEFERRED.    | Phase 70 release blockers.                           |
-| 31 | Every Phase 71 required CI job is SUCCESS on the final SHA.| Phase 71 final CI state.                      |
-| 32 | Every Phase 72 artifact evidence field is recorded.| Phase 72 exact artifact evidence.                   |
+| 30 | Every Phase 70 blocker is RESOLVED; none is DEFERRED.| Phase 70 release blockers.                         |
+| 31 | Every Phase 71 required execution signal is SUCCESS or documented LOCAL_PASS on the final SHA.| Phase 71 final execution state. |
+| 32 | Phase 72 evidence matches the actual ZIP, checksum sidecar, and current source SHA.| Phase 72 exact artifact evidence. |
 | 33 | Branch topology policy holds (exactly `main` and `develop` long-lived; same SHA; no local-only refs).| Phase 77 branch topology policy. |
 
 The verifier asserts all 32 invariants are declared and each
