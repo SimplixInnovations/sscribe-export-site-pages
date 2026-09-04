@@ -94,6 +94,26 @@ final class SScribe_Branch_Policy_Test extends TestCase {
 		);
 	}
 
+	public function test_ci_branch_policy_uses_authenticated_checkout_refs_not_late_ls_remote(): void {
+		$src = (string) file_get_contents( $this->repo_root . '/scripts/verify-branch-policy.php' );
+
+		$this->assertStringContainsString(
+			'refs/remotes/origin/',
+			$src,
+			'CI branch verification must consume remote-tracking refs fetched by actions/checkout.'
+		);
+		$this->assertStringContainsString(
+			'show-ref --verify --hash',
+			$src,
+			'Branch existence must use an exit-status-safe ref lookup rather than rev-parse of an arbitrary token.'
+		);
+		$this->assertStringContainsString(
+			'if ( $is_ci )',
+			$src,
+			'Private-repository CI must have an explicit offline branch-verification path after checkout removes credentials.'
+		);
+	}
+
 	public function test_branch_policy_verifier_executes_clean(): void {
 		$verifier = $this->repo_root . '/scripts/verify-branch-policy.php';
 		$this->assertFileExists( $verifier );
@@ -214,7 +234,7 @@ final class SScribe_Branch_Policy_Test extends TestCase {
 		// long-lived branch checked out locally. Run git from the
 		// repo root via subprocess so PHPUnit does not need a
 		// working-tree-relative shell.
-		$cmd    = 'git -C ' . escapeshellarg( $this->repo_root ) . ' branch --format="%(refname:short)"';
+		$cmd    = 'git -C ' . escapeshellarg( $this->repo_root ) . ' for-each-ref --format="%(refname:short)" refs/heads/';
 		$output = array();
 		exec( $cmd . ' 2>&1', $output );
 
