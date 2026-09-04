@@ -263,7 +263,6 @@ class SScribe_Admin {
 			'nonce'           => wp_create_nonce( 'sscribe_export_nonce' ),
 			'download_nonce'  => $this->get_download_nonce(),
 			'health_nonce'    => current_user_can( SScribe_Capabilities::get_health_required() ) ? wp_create_nonce( 'sscribe_health_nonce' ) : '',
-			'auto_download'   => (bool) apply_filters( 'sscribe_auto_download_on_complete', false ),
 
 			'refresh_interval' => min( 300000, max( 5000, (int) apply_filters( 'sscribe_debug_refresh_interval_ms', 10000 ) ) ),
 			'strings'        => array(
@@ -352,6 +351,7 @@ class SScribe_Admin {
 				'support_refresh'        => __( 'Refresh', 'sscribe-export-site-pages' ),
 				'support_generated'      => __( 'Generated', 'sscribe-export-site-pages' ),
 				'support_debug'          => __( 'Debug mode may expose extra detail intended for administrators only.', 'sscribe-export-site-pages' ),
+				'all_languages'          => __( 'All Languages', 'sscribe-export-site-pages' ),
 				'preflight_title'        => __( 'Export Readiness Check', 'sscribe-export-site-pages' ),
 				'preflight_errors'       => __( 'Critical Issues', 'sscribe-export-site-pages' ),
 				'preflight_warnings'     => __( 'Recommendations', 'sscribe-export-site-pages' ),

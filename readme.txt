@@ -1,7 +1,7 @@
 === SScribe Export Site Pages ===
 Contributors: simplixinnovations
 Tags: export, docx, pdf, html, markdown
-Requires at least: 6.0
+Requires at least: 6.1
 Tested up to: 7.1
 Stable tag: 2.0.0
 Requires PHP: 8.2
@@ -35,7 +35,7 @@ SScribe turns WordPress pages into portable documents for content handovers, aud
 
 = Requirements =
 
-* WordPress 6.0 or newer
+* WordPress 6.1 or newer
 * PHP 8.2 or newer
 * 256 MB of PHP memory is recommended for large PDF exports
 
@@ -101,9 +101,9 @@ The bundled mPDF library uses GPL-2.0-only. Required notices for bundled depende
 
 == Development ==
 
-Source repository: https://github.com/SimplixInnovations/sscribe-export-site-pages
+Canonical source repository: https://github.com/SimplixInnovations/sscribe-export-site-pages
 
-The repository is public so WordPress.org reviewers can inspect every transformation that produces the shipped archive. The released ZIP is built from the same source that lives in the public repository; no private pre-built blobs are substituted at submission time.
+The released ZIP is built from this repository with the documented, deterministic build commands below; no private pre-built runtime blobs are substituted into the submission package. For a public WordPress.org submission, the exact tagged source used for the ZIP must be accessible to reviewers through the repository or another reviewer-approved source channel.
 
 Required tools and versions:
 

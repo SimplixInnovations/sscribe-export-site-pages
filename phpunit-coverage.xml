@@ -31,4 +31,12 @@
             <file>includes/class-sscribe-deactivator.php</file>
         </exclude>
     </source>
+
+    <coverage>
+        <report>
+            <clover outputFile="clover.xml"/>
+            <html outputDirectory="coverage"/>
+            <text outputFile="php://stdout" showOnlySummary="true"/>
+        </report>
+    </coverage>
 </phpunit>

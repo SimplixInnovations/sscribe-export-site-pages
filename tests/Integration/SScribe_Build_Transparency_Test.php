@@ -3,7 +3,7 @@
  * Phase 36 — source / build transparency integration test.
  *
  * The verifier (scripts/verify-build-transparency.php) enforces the
- * public-source + build-docs + pinned-tool-versions contract that WP.org
+ * canonical-source + build-docs + pinned-tool-versions contract that WP.org
  * reviewers need in order to understand and reproduce the shipped ZIP.
  * This PHPUnit class backs every rule in the verifier with a regression
  * test: each test mutates one well-formed payload and confirms the
@@ -158,7 +158,20 @@ final class SScribe_Build_Transparency_Test extends TestCase {
 		$this::assertNotSame( $live, $strip, 'Failed to replace source URLs' );
 		list( $code, $output ) = $this->run_with_override( array( 'readme.txt' => $strip ) );
 		$this::assertSame( 1, $code );
-		$this::assertStringContainsString( 'public source repository', $output );
+		$this::assertStringContainsString( 'canonical source repository', $output );
+	}
+
+	public function test_unverifiable_public_visibility_claim_fails(): void {
+		$live = $this->read_live( 'readme.txt' );
+		$mutated = str_replace(
+			'Canonical source repository: https://github.com/SimplixInnovations/sscribe-export-site-pages',
+			"Canonical source repository: https://github.com/SimplixInnovations/sscribe-export-site-pages\n\nThe repository is public.",
+			$live
+		);
+		$this::assertNotSame( $live, $mutated );
+		list( $code, $output ) = $this->run_with_override( array( 'readme.txt' => $mutated ) );
+		$this::assertSame( 1, $code );
+		$this::assertStringContainsString( 'must not assert repository visibility', $output );
 	}
 
 	public function test_missing_build_command_fails(): void {

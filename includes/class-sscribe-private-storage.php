@@ -417,9 +417,63 @@ final class SScribe_Private_Storage {
 	 * @return bool True when contained.
 	 */
 	private static function path_is_within( string $path, string $root, bool $allow_equal ): bool {
-		$path = self::normalize_path( (string) ( realpath( $path ) ?: $path ) );
-		$root = rtrim( self::normalize_path( (string) ( realpath( $root ) ?: $root ) ), '/' );
+		$path = self::resolve_path_for_comparison( $path );
+		$root = rtrim( self::resolve_path_for_comparison( $root ), '/' );
+		if ( '' === $path || '' === $root ) {
+			return false;
+		}
 		return ( $allow_equal && $path === $root ) || str_starts_with( $path, $root . '/' );
+	}
+
+	/**
+	 * Resolve a path canonically even when its final segments do not exist yet.
+	 *
+	 * realpath() returns false for a not-yet-created child. For containment
+	 * checks that can hide an intermediate symlink: '/tmp/link/new' must resolve
+	 * through '/tmp/link' before comparison with its real target. Walk upward to
+	 * the nearest existing ancestor, resolve that ancestor, then append the
+	 * missing tail without following any nonexistent component.
+	 *
+	 * @param string $path Path to resolve.
+	 * @return string Normalized canonical comparison path, or an empty string
+	 *                when no existing ancestor can be resolved safely.
+	 */
+	private static function resolve_path_for_comparison( string $path ): string {
+		$path = trim( $path );
+		if ( '' === $path || str_contains( $path, "\0" ) ) {
+			return '';
+		}
+
+		$resolved = realpath( $path );
+		if ( false !== $resolved ) {
+			return self::normalize_path( $resolved );
+		}
+
+		$missing = array();
+		$cursor  = rtrim( $path, '/\\' );
+		while ( '' !== $cursor && ! file_exists( $cursor ) && ! is_link( $cursor ) ) {
+			$parent = dirname( $cursor );
+			if ( $parent === $cursor ) {
+				return '';
+			}
+			$missing[] = basename( $cursor );
+			$cursor    = $parent;
+		}
+
+		$ancestor = realpath( $cursor );
+		if ( false === $ancestor ) {
+			return '';
+		}
+
+		$canonical = rtrim( self::normalize_path( $ancestor ), '/' );
+		foreach ( array_reverse( $missing ) as $segment ) {
+			if ( '' === $segment || '.' === $segment || '..' === $segment ) {
+				return '';
+			}
+			$canonical .= '/' . $segment;
+		}
+
+		return self::normalize_path( $canonical );
 	}
 
 	/**

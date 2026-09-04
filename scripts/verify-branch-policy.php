@@ -136,7 +136,7 @@ if ( is_file( $policy_doc ) ) {
  *  origin-side enforcement (Rules 4-5 below) is the real
  *  contract.
  * ------------------------------------------------------------------ */
-$local_branches_raw = git_run( $repo_root, 'branch --format="%(refname:short)"' );
+$local_branches_raw = git_run( $repo_root, 'for-each-ref --format="%(refname:short)" refs/heads/' );
 $local_branches     = array_values(
 	array_filter(
 		array_map( 'trim', explode( "\n", $local_branches_raw ) ),
@@ -163,12 +163,15 @@ if ( ! empty( $forbidden_locals ) ) {
  * ------------------------------------------------------------------ */
 $shas = array();
 foreach ( $canonical_branches as $b ) {
-	$local_sha           = git_run( $repo_root, 'rev-parse ' . escapeshellarg( $b ) );
+	// show-ref --verify is exit-status-safe: unlike rev-parse, it does not
+	// echo an unresolved token such as "main" and accidentally look like a SHA.
+	$local_ref             = 'refs/heads/' . $b;
+	$local_sha             = git_run( $repo_root, 'show-ref --verify --hash ' . escapeshellarg( $local_ref ) );
 	$shas[ $b . '_local' ] = $local_sha;
 
 	if ( '' === $local_sha ) {
 		if ( $is_ci ) {
-			record_rule( $manifest, $failures, $warnings, $notes, "canonical_branch_{$b}_exists_locally", 'WARN', "local branch '{$b}' not present (CI single-branch checkout — origin-side enforced instead)" );
+			record_rule( $manifest, $failures, $warnings, $notes, "canonical_branch_{$b}_exists_locally", 'WARN', "local branch '{$b}' not present (detached CI checkout — origin-side enforced instead)" );
 		} else {
 			record_rule( $manifest, $failures, $warnings, $notes, "canonical_branch_{$b}_exists_locally", 'FAIL', "local branch '{$b}' does not exist." );
 		}
@@ -176,14 +179,21 @@ foreach ( $canonical_branches as $b ) {
 		record_rule( $manifest, $failures, $warnings, $notes, "canonical_branch_{$b}_exists_locally", 'PASS', substr( $local_sha, 0, 8 ) );
 	}
 
-	$remote_sha             = git_run( $repo_root, "ls-remote origin refs/heads/{$b}" );
-	// ls-remote output is "<sha>\trefs/heads/<name>" — split on
-	// any whitespace, take the first token.
-	$remote_sha_clean       = '' === $remote_sha ? '' : trim( (string) preg_split( '/\s+/', $remote_sha )[0] );
-	$shas[ $b . '_remote' ]  = $remote_sha_clean;
+	if ( $is_ci ) {
+		// actions/checkout fetched all heads before removing its credentials.
+		// Private-repository CI must therefore verify the authenticated
+		// remote-tracking ref rather than performing a later unauthenticated
+		// ls-remote call, which returns an empty result for a private origin.
+		$remote_ref       = 'refs/remotes/origin/' . $b;
+		$remote_sha_clean = git_run( $repo_root, 'show-ref --verify --hash ' . escapeshellarg( $remote_ref ) );
+	} else {
+		$remote_sha       = git_run( $repo_root, 'ls-remote origin ' . escapeshellarg( 'refs/heads/' . $b ) );
+		$remote_sha_clean = '' === $remote_sha ? '' : trim( (string) preg_split( '/\s+/', $remote_sha )[0] );
+	}
+	$shas[ $b . '_remote' ] = $remote_sha_clean;
 
 	if ( '' === $remote_sha_clean ) {
-		record_rule( $manifest, $failures, $warnings, $notes, "canonical_branch_{$b}_exists_on_origin", 'FAIL', "origin branch 'refs/heads/{$b}' does not exist." );
+		record_rule( $manifest, $failures, $warnings, $notes, "canonical_branch_{$b}_exists_on_origin", 'FAIL', "origin branch 'refs/heads/{$b}' does not exist in the authenticated checkout evidence." );
 	} else {
 		record_rule( $manifest, $failures, $warnings, $notes, "canonical_branch_{$b}_exists_on_origin", 'PASS', substr( $remote_sha_clean, 0, 8 ) );
 	}
@@ -229,7 +239,7 @@ if ( '' !== $develop_local && '' !== $develop_remote && $develop_local !== $deve
  *  local branches + tags (one round-trip), then compare
  *  in-memory — not one subprocess per ref.
  * ------------------------------------------------------------------ */
-$local_refs_raw = git_run( $repo_root, "for-each-ref --format='%(refname)'" );
+$local_refs_raw = git_run( $repo_root, "for-each-ref --format='%(refname)' refs/heads/ refs/tags/" );
 $local_refs     = array_values(
 	array_filter(
 		array_map(
@@ -240,21 +250,38 @@ $local_refs     = array_values(
 	)
 );
 
-// Batched single ls-remote — collects every remote ref in one call.
-$remote_refs_raw = git_run( $repo_root, 'ls-remote' );
 $remote_refs_set = array();
-foreach ( explode( "\n", $remote_refs_raw ) as $line ) {
-	$parts = preg_split( '/\s+/', trim( $line ), 2 );
-	if ( is_array( $parts ) && count( $parts ) >= 2 ) {
-		$remote_refs_set[ $parts[1] ] = true;
+if ( $is_ci ) {
+	// Reconstruct the origin namespace from the authenticated full checkout.
+	// Remote-tracking branch refs map back to refs/heads/*; fetched tags already
+	// use their canonical refs/tags/* names.
+	$checkout_refs_raw = git_run(
+		$repo_root,
+		"for-each-ref --format='%(refname)' refs/remotes/origin/ refs/tags/"
+	);
+	foreach ( explode( "\n", $checkout_refs_raw ) as $line ) {
+		$ref = trim( $line, " \t\n\r\0\x0B'\"" );
+		if ( '' === $ref || 'refs/remotes/origin/HEAD' === $ref ) {
+			continue;
+		}
+		if ( str_starts_with( $ref, 'refs/remotes/origin/' ) ) {
+			$ref = 'refs/heads/' . substr( $ref, strlen( 'refs/remotes/origin/' ) );
+		}
+		$remote_refs_set[ $ref ] = true;
+	}
+} else {
+	// Local auditor runs retain credentials and can query the origin directly.
+	$remote_refs_raw = git_run( $repo_root, 'ls-remote' );
+	foreach ( explode( "\n", $remote_refs_raw ) as $line ) {
+		$parts = preg_split( '/\s+/', trim( $line ), 2 );
+		if ( is_array( $parts ) && count( $parts ) >= 2 ) {
+			$remote_refs_set[ $parts[1] ] = true;
+		}
 	}
 }
 
 $local_only = array();
 foreach ( $local_refs as $ref ) {
-	if ( 0 === strpos( $ref, 'refs/remotes/' ) ) {
-		continue; // remote-tracking refs are expected.
-	}
 	if ( ! isset( $remote_refs_set[ $ref ] ) ) {
 		$local_only[] = $ref;
 	}

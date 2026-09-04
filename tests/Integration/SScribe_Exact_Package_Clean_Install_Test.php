@@ -34,6 +34,7 @@ namespace SScribe\Tests\Integration;
 
 use PHPUnit\Framework\TestCase;
 
+#[\PHPUnit\Framework\Attributes\Group('release-contract')]
 final class SScribe_Exact_Package_Clean_Install_Test extends TestCase {
 
 	private const VERIFIER_PATH = 'scripts/verify-exact-package-clean-install.php';

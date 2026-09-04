@@ -58,6 +58,7 @@ $canonical_required_jobs = array(
 	'real-wp-tests',
 	'coverage',
 	'plugin-check',
+	'e2e',
 );
 $valid_statuses = array( 'SUCCESS', 'SKIPPED' );
 

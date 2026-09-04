@@ -34,8 +34,8 @@
  *   - The runtime version_compare() guard uses the same version string
  *     as the PHP minimum.
  *   - The PHP minimum is at least 8.2 (current LTS contract).
- *   - The WP minimum is at least 6.0 (last minimum that ships with the
- *     PHP 8.2 baseline).
+ *   - The WP minimum is at least 6.1, the first WordPress release whose
+ *     official compatibility matrix supports PHP 8.2.
  *
  * @package SScribe_Export_Site_Pages
  */
@@ -120,7 +120,7 @@ if ( '' !== $mainfile_php_min ) {
 
 // 4. Minimum floors (canonical contract).
 $PHP_FLOOR = '8.2';
-$WP_FLOOR  = '6.0';
+$WP_FLOOR  = '6.1';
 if ( '' !== $mainfile_php_min && version_compare( $mainfile_php_min, $PHP_FLOOR, '<' ) ) {
 	$errors[] = sprintf(
 		'PHP minimum %s is below the canonical floor %s. Update the header and the runtime guard together.',

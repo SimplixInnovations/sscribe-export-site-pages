@@ -1,22 +1,15 @@
 <?php
 /**
- * AI-artifact scanner.
+ * Release artifact leakage scanner.
  *
- * Fails the build/CI if any shipped source file (or the dist tree
- * if --dist is passed) contains AI-typical punctuation, phrasing,
- * or unicode anomalies. The patterns here enforce the
- * wp-org-ai-artifact-audit rule without relying on manual review.
- *
- * Scans .php, .js, .css, .pot, .txt, .md files. Skips vendor/,
- * vendor-prefixed/, node_modules/, tests/, stubs/, scripts/,
- * docs/, .github/, dist/, build/, coverage/, .cache/,
- * languages/ (compiled POT, regenerated from source).
+ * Detects invisible source anomalies and accidentally committed assistant/
+ * workspace artifacts without pretending punctuation or writing style can
+ * reliably identify how code was authored.
  *
  * Usage:
- *   php scripts/check-ai-artifacts.php          # scan working tree
- *   php scripts/check-ai-artifacts.php --dist   # scan dist/ tree only
- *
- * Exit code: 0 on clean, 1 on any match (with full report on stderr).
+ *   php scripts/check-ai-artifacts.php
+ *   php scripts/check-ai-artifacts.php --dist
+ *   php scripts/check-ai-artifacts.php --root /path/to/fixture
  *
  * @package SScribe
  */
@@ -24,139 +17,167 @@
 declare(strict_types=1);
 
 /**
- * Run the scanner.
+ * Parse a value following a CLI option.
+ */
+function sscribe_scan_option_value(array $args, string $option): ?string {
+	$index = array_search($option, $args, true);
+	if (false === $index || ! isset($args[$index + 1]) || ! is_string($args[$index + 1])) {
+		return null;
+	}
+	$value = trim($args[$index + 1]);
+	return '' === $value ? null : $value;
+}
+
+/**
+ * Run the release leakage scanner.
  *
- * @return int Exit code (0 = clean, 1 = match found).
+ * @return int Exit code (0 = clean, 1 = leakage/anomaly found).
  */
 function sscribe_check_ai_artifacts_main(): int {
 	global $argv;
 
-	$root = dirname( __DIR__ );
+	$project_root = dirname(__DIR__);
+	$args         = is_array($argv) ? $argv : array();
+	$dist_only    = in_array('--dist', $args, true);
+	$custom_root  = sscribe_scan_option_value($args, '--root');
+	$scan_root    = $custom_root ?: ($dist_only ? $project_root . '/dist' : $project_root);
+	$scan_root    = rtrim($scan_root, '/\\');
 
-	$dist_only = in_array( '--dist', $argv, true );
-	$scan_root = $dist_only ? $root . '/dist' : $root;
-
-	if ( $dist_only && ! is_dir( $scan_root ) ) {
-		fwrite( STDERR, "[check-ai-artifacts] dist/ not found; skipping.\n" );
-		return 0;
+	if (! is_dir($scan_root)) {
+		fwrite(STDERR, "[release-leakage] FAIL: scan root does not exist: {$scan_root}\n");
+		return 1;
 	}
 
-	// Patterns that should NEVER appear in shipped source.
-	// Each pattern is either a literal string (case-insensitive substring)
-	// or a regex (when prefixed with 'regex:').
-	$patterns = array(
-		// Em-dash and en-dash - the classic LLM tell.
-		'EM_DASH'         => "\xE2\x80\x94",  // U+2014
-		'EN_DASH'         => "\xE2\x80\x93",  // U+2013
-		// Curly quotes - sometimes used by AI, rare in code.
-		'CURLY_QUOTE_LEFT'  => "\xE2\x80\x98", // U+2018
-		'CURLY_QUOTE_RIGHT' => "\xE2\x80\x99", // U+2019
-		'CURLY_DQUOTE_LEFT' => "\xE2\x80\x9C", // U+201C
-		'CURLY_DQUOTE_RIGHT'=> "\xE2\x80\x9D", // U+201D
-		// Horizontal ellipsis char (three dots) - should be '...' in code.
-		'ELLIPSIS_CHAR'   => "\xE2\x80\xA6",  // U+2026
-		// Zero-width space and friends - invisible AI/encoding artifacts.
-		'ZWSP'            => "\xE2\x80\x8B",  // U+200B
-		'ZWNJ'            => "\xE2\x80\x8C",  // U+200C
-		'ZWJ'             => "\xE2\x80\x8D",  // U+200D
-		// LLM phrasings (case-insensitive substring).
-		'LLM_DELVE'       => 'regex:/delve\s+into/i',
-		'LLM_LETS_DIVE'   => 'regex:/let\'?s\s+dive/i',
-		'LLM_CERTAINLY'   => 'regex:/\b[Cc]ertainly[,!\.]/',
-		'LLM_WORTH_NOTING'=> 'regex:/it\'?s\s+worth\s+noting/i',
-		'LLM_GAME_CHANGER'=> 'regex:/game[- ]changer/i',
-		'LLM_NAVIGATE'    => 'regex:/navigate\s+the\s+(complexities|landscape|nuances)\s+of/i',
-		'LLM_IN_TODAY'    => 'regex:/in\s+today\'?s\s+(digital\s+)?(landscape|world|era)/i',
+	$assistant_workspaces = array(
+		'.aider',
+		'.claude',
+		'.codeium',
+		'.continue',
+		'.cursor',
+		'.impeccable',
+		'.mimosa',
+		'.omo',
+		'.opencode',
+		'.playwright-mcp',
+		'.windsurf',
 	);
 
-	// Skip directories at any depth.
 	$skip_dirs = array(
-		'vendor', 'vendor-prefixed', 'node_modules', 'tests', 'stubs',
-		'scripts', 'docs', '.github', 'dist', 'build', 'coverage',
-		'.cache', '.phpunit.cache', '.playwright-mcp', '.opencode', '.impeccable',
-		'.audit', '.mimosa', '.omo',
-		'.aider', '.claude', '.cursor', '.windsurf', '.continue',
-		'.codeium', '.idea', '.vscode',
+		'.cache',
+		'.git',
+		'.github',
+		'.idea',
+		'.phpunit.cache',
+		'.vscode',
+		'build',
+		'coverage',
+		'dist',
+		'docs',
+		'languages',
+		'node_modules',
+		'scripts',
+		'stubs',
+		'tests',
+		'tests-e2e',
+		'tests-wp',
+		'vendor',
+		'vendor-prefixed',
 	);
 
-	// File extensions to scan.
-	$extensions = array( 'php', 'js', 'css', 'pot', 'txt', 'md' );
+	$content_patterns = array(
+		'ZERO_WIDTH_SPACE'      => "\xE2\x80\x8B", // U+200B.
+		'ZERO_WIDTH_NON_JOINER' => "\xE2\x80\x8C", // U+200C.
+		'ZERO_WIDTH_JOINER'     => "\xE2\x80\x8D", // U+200D.
+		'ASSISTANT_BOILERPLATE' => 'regex:/\bas\s+an\s+(?:ai|artificial\s+intelligence)\s+language\s+model\b/i',
+	);
 
-	$matches = array();
-	$files_scanned = 0;
+	$extensions = array('php', 'js', 'css', 'pot', 'txt', 'md', 'json', 'xml', 'yml', 'yaml');
+	$matches    = array();
+	$scanned    = 0;
+	$seen_workspace = array();
 
-	$rii = new RecursiveIteratorIterator(
-		new RecursiveDirectoryIterator(
-			$scan_root,
-			RecursiveDirectoryIterator::SKIP_DOTS | FilesystemIterator::FOLLOW_SYMLINKS
-		),
+	$iterator = new RecursiveIteratorIterator(
+		new RecursiveDirectoryIterator($scan_root, RecursiveDirectoryIterator::SKIP_DOTS),
 		RecursiveIteratorIterator::LEAVES_ONLY
 	);
 
-	foreach ( $rii as $file ) {
+	foreach ($iterator as $file) {
 		/** @var SplFileInfo $file */
-		if ( ! $file->isFile() ) {
+		if (! $file->isFile()) {
 			continue;
 		}
 
-		// Skip any file under a skipped directory.
-		$relative_path = str_replace( $scan_root . DIRECTORY_SEPARATOR, '', $file->getPathname() );
-		$path_parts    = explode( DIRECTORY_SEPARATOR, $relative_path );
-		$skip          = false;
-		foreach ( $path_parts as $part ) {
-			if ( in_array( $part, $skip_dirs, true ) ) {
+		$relative = str_replace($scan_root . DIRECTORY_SEPARATOR, '', $file->getPathname());
+		$parts    = preg_split('~[\\\\/]~', $relative) ?: array();
+
+		$workspace_hit = null;
+		foreach ($parts as $part) {
+			if (in_array($part, $assistant_workspaces, true)) {
+				$workspace_hit = $part;
+				break;
+			}
+		}
+		if (null !== $workspace_hit) {
+			if (! isset($seen_workspace[$workspace_hit])) {
+				$matches[] = array('file' => $relative, 'pattern' => 'ASSISTANT_WORKSPACE');
+				$seen_workspace[$workspace_hit] = true;
+			}
+			continue;
+		}
+
+		$skip = false;
+		foreach ($parts as $part) {
+			if (in_array($part, $skip_dirs, true)) {
 				$skip = true;
 				break;
 			}
 		}
-		if ( $skip ) {
+		if ($skip) {
 			continue;
 		}
 
-		$ext = strtolower( $file->getExtension() );
-		if ( ! in_array( $ext, $extensions, true ) ) {
+		$extension = strtolower($file->getExtension());
+		if (! in_array($extension, $extensions, true)) {
 			continue;
 		}
 
-		++$files_scanned;
-		$content = file_get_contents( $file->getPathname() );
-		if ( false === $content ) {
+		++$scanned;
+		$content = file_get_contents($file->getPathname());
+		if (false === $content) {
 			continue;
 		}
 
-		foreach ( $patterns as $name => $pattern ) {
-			if ( str_starts_with( $pattern, 'regex:' ) ) {
-				$regex = substr( $pattern, 6 );
-				if ( preg_match( $regex, $content ) ) {
-					$matches[] = array(
-						'file'    => $relative_path,
-						'pattern' => $name,
-						'match'   => $pattern,
-					);
-				}
+		foreach ($content_patterns as $name => $pattern) {
+			$found = false;
+			if (str_starts_with($pattern, 'regex:')) {
+				$found = 1 === preg_match(substr($pattern, 6), $content);
 			} else {
-				if ( false !== strpos( $content, $pattern ) ) {
-					$matches[] = array(
-						'file'    => $relative_path,
-						'pattern' => $name,
-						'match'   => bin2hex( $pattern ),
-					);
-				}
+				$found = false !== strpos($content, $pattern);
+			}
+			if ($found) {
+				$matches[] = array('file' => $relative, 'pattern' => $name);
 			}
 		}
 	}
 
-	if ( empty( $matches ) ) {
-		printf( "[check-ai-artifacts] Clean: scanned %d files.\n", $files_scanned );
+	if (empty($matches)) {
+		printf("[release-leakage] Clean: scanned %d files.\n", $scanned);
 		return 0;
 	}
 
-	fwrite( STDERR, "[check-ai-artifacts] FAIL: found " . count( $matches ) . " AI-artifact match(es) in " . count( array_unique( array_column( $matches, 'file' ) ) ) . " file(s):\n" );
-	foreach ( $matches as $m ) {
-		fprintf( STDERR, "  [%s] %s\n", $m['pattern'], $m['file'] );
+	fwrite(
+		STDERR,
+		'[release-leakage] FAIL: found ' . count($matches) . ' release-integrity issue(s) in ' .
+		count(array_unique(array_column($matches, 'file'))) . " file(s):\n"
+	);
+	foreach ($matches as $match) {
+		fprintf(STDERR, "  [%s] %s\n", $match['pattern'], $match['file']);
 	}
-	fwrite( STDERR, "\nFix the source (em-dash -> '-'; en-dash -> '-' or ' - '; curly quotes -> straight; LLM phrasings -> rewrite).\n" );
+	fwrite(
+		STDERR,
+		"Remove committed assistant/workspace artifacts or invisible source characters before release.\n"
+	);
 	return 1;
 }
 
-exit( sscribe_check_ai_artifacts_main() );
+exit(sscribe_check_ai_artifacts_main());

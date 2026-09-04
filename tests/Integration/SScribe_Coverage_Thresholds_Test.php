@@ -175,9 +175,9 @@ final class SScribe_Coverage_Thresholds_Test extends TestCase {
 	// phpunit.xml wiring
 	// -----------------------------------------------------------------
 
-	public function test_phpunit_xml_has_coverage_configuration(): void {
+	public function test_phpunit_coverage_xml_has_coverage_configuration(): void {
 		$root   = self::plugin_root();
-		$config = (string) file_get_contents( $root . '/phpunit.xml' );
+		$config = (string) file_get_contents( $root . '/phpunit-coverage.xml' );
 		$this::assertStringContainsString( '<coverage', $config );
 		$this::assertStringContainsString( '<clover', $config );
 		$this::assertStringContainsString( 'outputFile="clover.xml"', $config );
@@ -191,8 +191,9 @@ final class SScribe_Coverage_Thresholds_Test extends TestCase {
 		$config = (string) file_get_contents( $root . '/composer.json' );
 		$this::assertStringContainsString( 'test:coverage:check', $config );
 		$this::assertStringContainsString( 'verify-coverage-thresholds.php', $config );
-		// test:coverage must write clover.xml in addition to the HTML report.
-		$this::assertStringContainsString( '--coverage-clover', $config );
+		// test:coverage must select the dedicated coverage config, which writes
+		// both clover.xml and the HTML report without slowing normal test runs.
+		$this::assertStringContainsString( 'phpunit -c phpunit-coverage.xml', $config );
 	}
 
 	// -----------------------------------------------------------------

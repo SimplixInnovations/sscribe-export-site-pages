@@ -66,24 +66,24 @@ final class SScribe_Branch_Protection_Test extends TestCase {
 		$this::assertNotEmpty( $payload['matrix'] );
 	}
 
-	public function test_doc_declares_protected_branch_and_audit_sha(): void {
+	public function test_doc_declares_canonical_branches_and_observed_live_state(): void {
 		$source = (string) file_get_contents( self::plugin_root() . '/' . self::DOC_PATH );
 		$this::assertMatchesRegularExpression(
-			'/^Branch:\s*[`"]?(release\/|main\b)/m',
+			'/^Branches:\s*main,\s*develop\s*$/mi',
 			$source,
-			'Branch-protection doc must declare which branch is under protection.'
-		);
-		// The audited-SHA pin closes the loop: future maintainers see which
-		// commit the doc was pinned against, so a stale doc is detectable.
-		$this::assertMatchesRegularExpression(
-			'/(?:Base SHA|Audited SHA)\s*:?/i',
-			$source,
-			'Branch-protection doc must pin an audited SHA + audited date.'
+			'Branch-protection doc must declare the canonical long-lived branches.'
 		);
 		$this::assertMatchesRegularExpression(
 			'/Audited Date\s*:?/i',
 			$source,
-			'Branch-protection doc must pin an audited date.'
+			'Branch-protection doc must record an audited date.'
+		);
+		$this::assertMatchesRegularExpression( '/main:\s*UNPROTECTED/i', $source );
+		$this::assertMatchesRegularExpression( '/develop:\s*UNPROTECTED/i', $source );
+		$this::assertStringContainsString(
+			'not a WordPress.org submission requirement',
+			$source,
+			'The document must distinguish repository governance from WordPress plugin submission compliance.'
 		);
 	}
 

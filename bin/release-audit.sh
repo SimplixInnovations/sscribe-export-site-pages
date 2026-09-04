@@ -41,7 +41,7 @@ run_gate () {
 }
 
 echo "== PHPUnit (full suite) =="
-run_gate "PHPUnit"       vendor/bin/phpunit >/tmp/release-audit-phpunit.log 2>&1
+run_gate "PHPUnit"       composer test >/tmp/release-audit-phpunit.log 2>&1
 
 echo "== Acceptance matrix (Phase 58) =="
 run_gate "Acceptance-Matrix" composer test:acceptance-matrix >/tmp/release-audit-acceptance-matrix.log 2>&1
@@ -91,6 +91,9 @@ run_gate "Exact-Artifact-Evidence" composer test:exact-artifact-evidence >/tmp/r
 echo "== Agent final report acceptance (Phase 73) =="
 run_gate "Agent-Final-Report" composer test:agent-final-report >/tmp/release-audit-agent-final-report.log 2>&1
 
+echo "== Branch Policy acceptance (Phase 77) =="
+run_gate "Branch-Policy" composer test:branch-policy >/tmp/release-audit-branch-policy.log 2>&1
+
 echo "== Auditor handoff acceptance (Phase 74) =="
 run_gate "Auditor-Handoff" composer test:auditor-handoff >/tmp/release-audit-auditor-handoff.log 2>&1
 
@@ -99,9 +102,6 @@ run_gate "Release-Invariants" composer test:release-invariants >/tmp/release-aud
 
 echo "== Definition of Done acceptance (Phase 76) =="
 run_gate "Definition-Of-Done" composer test:definition-of-done >/tmp/release-audit-definition-of-done.log 2>&1
-
-echo "== Branch Policy acceptance (Phase 77) =="
-run_gate "Branch-Policy" composer test:branch-policy >/tmp/release-audit-branch-policy.log 2>&1
 
 echo "== PHPStan =="
 run_gate "PHPStan-level-7" vendor/bin/phpstan analyse --memory-limit=1G --no-progress >/tmp/release-audit-phpstan.log 2>&1
@@ -116,11 +116,12 @@ echo "== ZIP artifact certification =="
 run_gate "Artifact-Cert"  bash -c "vendor/bin/phpunit --filter=SScribe_Artifact_Certification_Test --testsuite=Unit >/dev/null 2>&1"
 
 echo "== Plugin-Check (full WP instance) =="
-if [ -d /c/tmp/wp-a11y/wp-content/plugins/plugin-check ]; then
-  run_gate "Plugin-Check" bash -c "cd /c/tmp/wp-a11y && WP_CLI_PHP_ARGS='-d extension=pdo_sqlite -d extension=sqlite3' /c/Users/Ahmed/AppData/Roaming/Composer/vendor/bin/wp plugin check sscribe-export-site-pages --allow-root >/tmp/release-audit-plugincheck.log 2>&1"
+SSCRIBE_WP_ROOT="${SSCRIBE_WP_ROOT:-}"
+SSCRIBE_WP_BIN="${SSCRIBE_WP_BIN:-$(command -v wp 2>/dev/null || true)}"
+if [ -n "$SSCRIBE_WP_ROOT" ] && [ -d "$SSCRIBE_WP_ROOT/wp-content/plugins/plugin-check" ] && [ -n "$SSCRIBE_WP_BIN" ]; then
+  run_gate "Plugin-Check" bash -c "\"$SSCRIBE_WP_BIN\" --path=\"$SSCRIBE_WP_ROOT\" plugin check sscribe-export-site-pages --allow-root >/tmp/release-audit-plugincheck.log 2>&1"
 else
-  GATES+=("SKIP       plugin-check testbench missing")
-  echo "SKIP plugin-check testbench missing"
+  run_gate "Plugin-Check" bash -c "echo 'Plugin Check testbench unavailable. Set SSCRIBE_WP_ROOT to a WordPress install containing the official Plugin Check plugin and optionally SSCRIBE_WP_BIN to the wp-cli executable. Release audit is fail-closed.' >&2; exit 1"
 fi
 
 echo

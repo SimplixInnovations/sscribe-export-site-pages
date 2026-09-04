@@ -49,8 +49,8 @@
         "post-update-cmd": [
             "@php scripts/fix-phpword-style-deprecation.php"
         ],
-        "test": "phpunit --order-by=random",
-        "test:coverage": "phpunit --coverage-html coverage/ --coverage-clover clover.xml",
+        "test": "phpunit --order-by=random --exclude-group=release-contract",
+        "test:coverage": "phpunit -c phpunit-coverage.xml --exclude-group=release-contract",
         "test:coverage:check": "php scripts/verify-coverage-thresholds.php",
         "test:a11y": "php scripts/verify-accessibility.php",
         "test:perf": "php scripts/verify-performance-budget.php",
@@ -105,7 +105,7 @@
         "release:commit": "php scripts/release-commit.php",
         "release:full": "composer release:prepare && composer release:commit",
         "release:audit": "bash bin/release-audit.sh",
-        "audit:npm": "npm audit --audit-level=high",
+        "audit:npm": "node scripts/npm-audit-high.mjs",
         "release": "php scripts/build-release.php",
         "full": "composer ci:full && composer release"
     },
@@ -114,7 +114,7 @@
             "target_directory": "vendor-prefixed",
             "namespace_prefix": "SScribeVendor\\",
             "classmap_prefix": "SScribeVendor_",
-	            "packages": [
+            "packages": [
                 "mpdf/mpdf",
                 "phpoffice/phpword",
                 "psr/container"

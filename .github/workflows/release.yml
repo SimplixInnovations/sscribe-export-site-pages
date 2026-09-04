@@ -39,10 +39,10 @@ jobs:
         runs-on: ubuntu-latest
         steps:
             - name: Checkout code
-              uses: actions/checkout@v6
+              uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
 
             - name: Setup PHP
-              uses: shivammathur/setup-php@v2
+              uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # v2
               with:
                   php-version: '8.4'
                   coverage: none
@@ -88,10 +88,10 @@ jobs:
         needs: verify
         steps:
             - name: Checkout code
-              uses: actions/checkout@v6
+              uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
 
             - name: Setup PHP
-              uses: shivammathur/setup-php@v2
+              uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # v2
               with:
                   php-version: '8.4'
                   coverage: none
@@ -109,17 +109,17 @@ jobs:
         needs: audit
         steps:
             - name: Checkout code
-              uses: actions/checkout@v6
+              uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
 
             - name: Setup PHP
-              uses: shivammathur/setup-php@v2
+              uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # v2
               with:
                   php-version: '8.4'
                   coverage: none
                   extensions: fileinfo, zip
 
             - name: Cache Composer dependencies
-              uses: actions/cache@v6
+              uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
               with:
                   path: vendor
                   key: ${{ runner.os }}-php-8.4-release-${{ hashFiles('composer.lock') }}
@@ -146,17 +146,17 @@ jobs:
         needs: test
         steps:
             - name: Checkout code
-              uses: actions/checkout@v6
+              uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
 
             - name: Setup PHP
-              uses: shivammathur/setup-php@v2
+              uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # v2
               with:
                   php-version: '8.4'
                   coverage: none
                   extensions: fileinfo, zip
 
             - name: Cache Composer dependencies
-              uses: actions/cache@v6
+              uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
               with:
                   path: vendor
                   key: ${{ runner.os }}-php-8.4-certify-${{ hashFiles('composer.lock') }}
@@ -218,7 +218,7 @@ jobs:
                   cat "dist/sscribe-export-site-pages-${VERSION}.build.json"
 
             - name: Run official WordPress Plugin Check
-              uses: wordpress/plugin-check-action@v1
+              uses: wordpress/plugin-check-action@10857da14b6c2246d15402b3e69f777edcf8c12e # v1
               with:
                   build-dir: ./dist/sscribe-export-site-pages
                   strict: true
@@ -227,21 +227,21 @@ jobs:
             # Phase 53: the certified artifact is uploaded as a single
             # artifact so the publish job consumes it without rebuilding.
             - name: Upload certified ZIP
-              uses: actions/upload-artifact@v6
+              uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
               with:
                   name: sscribe-release-zip
                   path: dist/sscribe-export-site-pages-*.zip
                   if-no-files-found: error
 
             - name: Upload SHA-256 sidecar
-              uses: actions/upload-artifact@v6
+              uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
               with:
                   name: sscribe-release-sha
                   path: dist/sscribe-export-site-pages-*.sha256
                   if-no-files-found: error
 
             - name: Upload build metadata
-              uses: actions/upload-artifact@v6
+              uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
               with:
                   name: sscribe-release-build-json
                   path: dist/sscribe-export-site-pages-*.build.json
@@ -256,19 +256,19 @@ jobs:
             # Crucially this job does NOT run composer install or
             # vendor:prefix — those are certify's responsibility.
             - name: Download certified ZIP
-              uses: actions/download-artifact@v6
+              uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6
               with:
                   name: sscribe-release-zip
                   path: dist/certified
 
             - name: Download SHA-256 sidecar
-              uses: actions/download-artifact@v6
+              uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6
               with:
                   name: sscribe-release-sha
                   path: dist/certified
 
             - name: Download build metadata
-              uses: actions/download-artifact@v6
+              uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6
               with:
                   name: sscribe-release-build-json
                   path: dist/certified
