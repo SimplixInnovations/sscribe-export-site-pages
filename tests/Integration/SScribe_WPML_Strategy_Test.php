@@ -28,6 +28,8 @@ declare( strict_types=1 );
 
 namespace SScribe\Tests\Integration;
 
+use PHPUnit\Framework\Attributes\PreserveGlobalState;
+use PHPUnit\Framework\Attributes\RunInSeparateProcess;
 use PHPUnit\Framework\TestCase;
 
 final class SScribe_WPML_Strategy_Test extends TestCase {
@@ -127,9 +129,13 @@ final class SScribe_WPML_Strategy_Test extends TestCase {
 	}
 
 	/**
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
+	 * Run in a separate PHP process so the absence assertions see a
+	 * truly clean global state. PHPUnit 12 no longer accepts
+	 * `@runInSeparateProcess` in doc-comments, so the metadata is
+	 * also exposed as attributes (PHPUnit 11 honours both).
 	 */
+	#[RunInSeparateProcess]
+	#[PreserveGlobalState( false )]
 	public function test_page_collector_is_wpml_active_returns_false_when_wpml_absent(): void {
 		// PHP constants cannot be undefined, and classes cannot be
 		// unloaded — so when the sibling "present" test runs first
