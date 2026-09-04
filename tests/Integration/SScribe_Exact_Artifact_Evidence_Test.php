@@ -57,6 +57,7 @@ final class SScribe_Exact_Artifact_Evidence_Test extends TestCase {
 			'## Why this exists',
 			'## Canonical evidence fields',
 			'## Recorded evidence',
+			'## Strict evidence file',
 			'## Strict certification rules',
 			'## How an independent auditor verifies this',
 		);
@@ -204,7 +205,10 @@ final class SScribe_Exact_Artifact_Evidence_Test extends TestCase {
 		$this->assertStringContainsString( 'ZipArchive', $src );
 		$this->assertStringContainsString( 'git rev-parse HEAD', $src );
 		$this->assertStringContainsString( 'sha256_sidecar_matches_actual_zip', $src );
-		$this->assertStringContainsString( 'recorded_source_sha_matches_head', $src );
+		$this->assertStringContainsString( 'dist/release-certification-evidence.json', $src );
+		$this->assertStringContainsString( 'metadata_source_sha_matches_head', $src );
+		$this->assertStringContainsString( 'tracked_working_tree_is_clean', $src );
+		$this->assertStringContainsString( 'plugin_check_evidence_is_verifiable', $src );
 	}
 
 	public function test_exact_artifact_evidence_doc_resets_stale_candidate_values(): void {
@@ -212,7 +216,8 @@ final class SScribe_Exact_Artifact_Evidence_Test extends TestCase {
 
 		$this->assertStringContainsString( 'PENDING_FINAL_CERTIFICATION', $src );
 		$this->assertStringContainsString( 'Strict certification rules', $src );
-		$this->assertStringContainsString( 'recomputes the artifact identity', $src );
+		$this->assertStringContainsString( 'dist/release-certification-evidence.json', $src );
+		$this->assertStringContainsString( 'self-referential', $src );
 	}
 
 }
