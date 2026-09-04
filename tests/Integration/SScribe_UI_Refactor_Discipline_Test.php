@@ -91,6 +91,19 @@ final class SScribe_UI_Refactor_Discipline_Test extends TestCase {
 		}
 	}
 
+	public function test_version_check_ci_fetches_history_for_baseline_diff(): void {
+		$ci = (string) file_get_contents( self::plugin_root() . '/.github/workflows/ci.yml' );
+		$job_pos = strpos( $ci, "    version-check:\n" );
+		$this::assertNotFalse( $job_pos, 'CI must declare the version-check job.' );
+		$next_job = strpos( $ci, "\n    ", $job_pos + 5 );
+		$job = false === $next_job ? substr( $ci, $job_pos ) : substr( $ci, $job_pos, $next_job - $job_pos );
+		$this::assertStringContainsString(
+			'fetch-depth: 0',
+			$job,
+			'version-check must fetch full history because the UI discipline gate diffs against a historical BASELINE_SHA.'
+		);
+	}
+
 	public function test_baseline_sha_is_recorded_and_resolves(): void {
 		$src = (string) file_get_contents( self::plugin_root() . '/' . self::DISCIPLINE_DOC );
 		$this::assertMatchesRegularExpression(
