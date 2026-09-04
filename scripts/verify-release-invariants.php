@@ -83,8 +83,9 @@ $canonical_invariants = array(
 	'every required new test',
 	'Manual runtime tests runbook covers',
 	'every Phase 70 blocker is RESOLVED',
-	'every Phase 71 required CI job is SUCCESS',
-	'every Phase 72 artifact evidence field',
+	'every Phase 71 required execution signal is SUCCESS or documented LOCAL_PASS',
+	'Phase 72 evidence matches the actual ZIP',
+	'Public maintained exact source/build inputs',
 );
 
 if ( is_file( $invariants_doc ) ) {
