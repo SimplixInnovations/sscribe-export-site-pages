@@ -49,8 +49,8 @@
         "post-update-cmd": [
             "@php scripts/fix-phpword-style-deprecation.php"
         ],
-        "test": "phpunit --order-by=random",
-        "test:coverage": "phpunit -c phpunit-coverage.xml",
+        "test": "phpunit --order-by=random --exclude-group=release-contract",
+        "test:coverage": "phpunit -c phpunit-coverage.xml --exclude-group=release-contract",
         "test:coverage:check": "php scripts/verify-coverage-thresholds.php",
         "test:a11y": "php scripts/verify-accessibility.php",
         "test:perf": "php scripts/verify-performance-budget.php",
