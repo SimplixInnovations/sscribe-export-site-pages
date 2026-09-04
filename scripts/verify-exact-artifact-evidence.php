@@ -230,6 +230,7 @@ if ( $strict_certification ) {
 		'Untracked release metadata source_sha must exactly match git HEAD.'
 	);
 
+	$builder_run_ref  = trim( (string) ( $metadata['builder_run_id'] ?? '' ) );
 	$plugin_check_ref = trim( (string) ( $metadata['plugin_check_url'] ?? '' ) );
 	$plugin_check_ok  = false;
 	if ( preg_match( '#^https://#i', $plugin_check_ref ) ) {
@@ -274,6 +275,24 @@ if ( $strict_certification ) {
 		'current_plugin_version_resolved',
 		(bool) preg_match( '/^[0-9]+\\.[0-9]+\\.[0-9]+(?:[-+][A-Za-z0-9.\\-]+)?$/', $current_version ),
 		'Strict certification must resolve SSCRIBE_VERSION from the main plugin file.'
+	);
+
+	$builder_evidence_ok = false;
+	if ( preg_match( '#^https://#i', $builder_run_ref ) ) {
+		$builder_evidence_ok = true;
+	} elseif ( 0 === stripos( $builder_run_ref, 'local:' ) ) {
+		$builder_relative = ltrim( str_replace( '\\', '/', substr( $builder_run_ref, strlen( 'local:' ) ) ), '/' );
+		$builder_absolute = $root_dir . '/' . $builder_relative;
+		if ( '' !== $builder_relative && is_file( $builder_absolute ) && 0 < filesize( $builder_absolute ) ) {
+			$builder_log = (string) file_get_contents( $builder_absolute );
+			$builder_evidence_ok = false !== strpos( $builder_log, 'BUILD COMPLETE' )
+				&& false !== strpos( $builder_log, 'dist/sscribe-export-site-pages-' . $current_version . '.zip' );
+		}
+	}
+	$record(
+		'builder_execution_evidence_is_verifiable',
+		$builder_evidence_ok,
+		'builder_run_id must be an https:// execution URL or local:<build log> containing BUILD COMPLETE and the exact versioned ZIP path.'
 	);
 
 	$expected_relative_zip = 'dist/sscribe-export-site-pages-' . $current_version . '.zip';
@@ -351,7 +370,7 @@ if ( $strict_certification ) {
 		'zip_file_count'   => $actual_count,
 		'source_sha'       => $current_sha,
 		'source_short_sha' => '' !== $current_sha ? substr( $current_sha, 0, 8 ) : '',
-		'builder_run_id'   => trim( (string) ( $metadata['builder_run_id'] ?? '' ) ),
+		'builder_run_id'   => $builder_run_ref,
 		'builder_workflow' => trim( (string) ( $metadata['builder_workflow'] ?? '' ) ),
 		'plugin_check_url' => $plugin_check_ref,
 		'clean_install_doc' => $clean_install_rel,
