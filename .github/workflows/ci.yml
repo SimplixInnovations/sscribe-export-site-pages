@@ -913,6 +913,9 @@ jobs:
             - name: Verify formatting
               run: npm run format:check
 
+            - name: Test JavaScript audit helper
+              run: npm run test:audit-helper
+
             - name: Audit JavaScript dependencies
               run: npm audit --audit-level=high
 
