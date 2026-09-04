@@ -95,8 +95,10 @@ final class SScribe_UI_Refactor_Discipline_Test extends TestCase {
 		$ci = (string) file_get_contents( self::plugin_root() . '/.github/workflows/ci.yml' );
 		$job_pos = strpos( $ci, "    version-check:\n" );
 		$this::assertNotFalse( $job_pos, 'CI must declare the version-check job.' );
-		$next_job = strpos( $ci, "\n    ", $job_pos + 5 );
-		$job = false === $next_job ? substr( $ci, $job_pos ) : substr( $ci, $job_pos, $next_job - $job_pos );
+		// The job is first in ci.yml and its checkout block is near the top.
+		// Slice a bounded window instead of searching for "\n    ", which also
+		// matches every 8-space-indented property inside the same YAML job.
+		$job = substr( $ci, $job_pos, 1800 );
 		$this::assertStringContainsString(
 			'fetch-depth: 0',
 			$job,
