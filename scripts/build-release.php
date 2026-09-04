@@ -650,14 +650,29 @@ foreach ( $iterator as $file ) {
 				$src = file_get_contents( $file->getPathname() );
 				file_put_contents( $dest, sanitize_ai_artifacts( strip_js_comments( $src ) ) );
 			} else {
-				// Non-code files still need AI-artifact sanitization
-				// (e.g. .pot/.txt files were checked separately, but other
-				// text files in shipped paths are caught here as a backstop).
-				$src = file_get_contents( $file->getPathname() );
-				if ( false === $src ) {
-					throw new RuntimeException( 'Unable to read release file: ' . $relative );
+				// Only sanitize known text assets. Binary files (fonts,
+				// images, compiled translations, etc.) must be copied
+				// byte-for-byte; running string replacement across binary
+				// payloads can corrupt otherwise valid assets.
+				$text_extensions = array(
+					'txt', 'md', 'pot', 'po', 'json', 'xml', 'html', 'htm',
+					'svg', 'ini', 'csv', 'yml', 'yaml', 'map',
+				);
+				$basename = $file->getBasename();
+				$is_extensionless_text = in_array(
+					$basename,
+					array( 'LICENSE', 'COPYING', 'NOTICE' ),
+					true
+				);
+				if ( in_array( $ext, $text_extensions, true ) || $is_extensionless_text ) {
+					$src = file_get_contents( $file->getPathname() );
+					if ( false === $src ) {
+						throw new RuntimeException( 'Unable to read release text file: ' . $relative );
+					}
+					file_put_contents( $dest, sanitize_ai_artifacts( $src ) );
+				} elseif ( ! copy( $file->getPathname(), $dest ) ) {
+					throw new RuntimeException( 'Unable to copy binary release file: ' . $relative );
 				}
-				file_put_contents( $dest, sanitize_ai_artifacts( $src ) );
 			}
 		} else {
 			if ( ! copy( $file->getPathname(), $dest ) ) {
@@ -983,8 +998,9 @@ echo "      which replaces em-dash (U+2014), en-dash (U+2013), ellipsis\n";
 echo "      (U+2026), and curly quotes (U+201C/D, U+2018/9) with their\n";
 echo "      ASCII equivalents. Required because the comment-strip pass\n";
 echo "      preserves jsdoc / docblock content, which historically\n";
-echo "      leaked Unicode into the ZIP. Non-code files also pass\n";
-echo "      through the sanitizer as a backstop.\n\n";
+echo "      leaked Unicode into the ZIP. Known text assets also pass\n";
+echo "      through the sanitizer as a backstop; binary assets (fonts,\n";
+echo "      images, compiled translations) are copied byte-for-byte.\n\n";
 
 echo "  Vendor-specific rewrites:\n";
 echo "    - vendor-prefixed/phpoffice/phpword/COPYING.LESSER renamed to\n";
