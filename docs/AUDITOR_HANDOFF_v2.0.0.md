@@ -33,8 +33,8 @@ Every release handoff MUST include, at minimum, these artifacts:
 | #  | Artifact                                 | Path                                                                                | Phase reference                |
 |----|------------------------------------------|-------------------------------------------------------------------------------------|--------------------------------|
 | 1  | Release blockers checklist               | docs/RELEASE_BLOCKERS_v2.0.0.md                                                     | Phase 70                       |
-| 2  | Final CI state checklist                 | docs/FINAL_CI_STATE_v2.0.0.md                                                       | Phase 71                       |
-| 3  | Exact artifact evidence                  | docs/EXACT_ARTIFACT_EVIDENCE_v2.0.0.md                                              | Phase 72                       |
+| 2  | Final CI execution evidence              | docs/FINAL_CI_STATE_v2.0.0.md + dist/final-execution-evidence.json + dist/final-ci-state-manifest.json | Phase 71 |
+| 3  | Exact artifact evidence                  | docs/EXACT_ARTIFACT_EVIDENCE_v2.0.0.md + dist/release-certification-evidence.json + dist/exact-artifact-evidence-manifest.json | Phase 72 |
 | 4  | Agent final report                       | docs/RELEASE_REPORT_v2.0.0.md                                                       | Phase 73                       |
 | 5  | Branch protection contract               | docs/BRANCH_PROTECTION_v2.0.0.md                                                    | Phase 55                       |
 | 6  | Tag policy contract                      | docs/TAG_POLICY_v2.0.0.md                                                           | Phase 54                       |
@@ -58,9 +58,10 @@ to verify the claim. The canonical recipes:
 1. **Release blockers** — `SSCRIBE_RELEASE_CERTIFICATION=1 composer test:release-blockers`
    + assert every blocker row is RESOLVED.
 2. **Final execution state** — `SSCRIBE_RELEASE_CERTIFICATION=1 composer test:final-ci-state`
-   + assert every required signal is SUCCESS or LOCAL_PASS on the exact final SHA; inspect concrete evidence for every LOCAL_PASS.
+   + assert every required signal is SUCCESS or LOCAL_PASS on the exact final SHA; inspect `dist/final-execution-evidence.json`, `dist/final-ci-state-manifest.json`, and every referenced proof.
 3. **Exact artifact evidence** — `SSCRIBE_RELEASE_CERTIFICATION=1 composer test:exact-artifact-evidence`
-   + `sha256sum dist/sscribe-export-site-pages-{VERSION}.zip`.
+   + inspect `dist/release-certification-evidence.json` and `dist/exact-artifact-evidence-manifest.json`
+   + independently run `sha256sum dist/sscribe-export-site-pages-{VERSION}.zip`.
 4. **Agent final report** — read the report, verify SHA-256
    + commit SHA + version matches every other artifact.
 5. **Branch protection** — `composer test:branch-protection`.
