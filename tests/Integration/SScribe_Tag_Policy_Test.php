@@ -1,14 +1,23 @@
 <?php
 /**
- * Phase 54 — Tag policy integration test.
+ * Phase 54 — Tag policy integration test (refactored).
  *
  * Pin the rule that a release tag is cut ONLY when:
  *
  *   - the tag's version matches SSCRIBE_VERSION
- *   - the tag SHA equals origin/main HEAD (the commit just past ci.yml)
+ *   - the tag points at the certified source SHA recorded in the
+ *     build evidence
+ *   - the tag SHA equals origin/main HEAD (the commit just past
+ *     ci.yml)
  *   - the certified release evidence (build.json) records
  *     source_sha, tag, and zip_sha256
- *   - `gh release create` uses `--verify-tag` (SHA-binding)
+ *   - `gh release create` uses `--verify-tag` (SHA-binding via
+ *     GitHub's signed-tag store)
+ *
+ * Cryptographic signing (`git tag -s`) is recommended when the
+ * maintainer has signing configured, NOT required. WP.org submission
+ * does not require it. The verifier records signing status as
+ * advisory.
  *
  * A regression that drops the verify job or lets CI cut tags
  * silently lets a stale or unsigned release ship.
@@ -27,6 +36,7 @@ final class SScribe_Tag_Policy_Test extends TestCase {
 	private const VERIFIER_PATH   = 'scripts/verify-tag-policy.php';
 	private const MANIFEST_PATH   = 'dist/tag-policy-manifest.json';
 	private const RELEASE_WORKFLOW = '.github/workflows/release.yml';
+	private const POLICY_DOC      = 'docs/TAG_POLICY_v2.0.0.md';
 	private const PLUGIN_FILE     = 'sscribe-export-site-pages.php';
 
 	private static function plugin_root(): string {
@@ -56,22 +66,21 @@ final class SScribe_Tag_Policy_Test extends TestCase {
 		$this::assertStringContainsString( 'Tag policy contract valid', $output );
 	}
 
-	public function test_manifest_records_eleven_passing_rules(): void {
+	public function test_manifest_records_at_least_sixteen_passing_rules(): void {
 		list( $code ) = $this->run_verifier();
 		$this::assertSame( 0, $code );
 
 		$payload = json_decode( (string) file_get_contents( self::plugin_root() . '/' . self::MANIFEST_PATH ), true );
 		$this::assertIsArray( $payload );
 		$this::assertTrue( $payload['passes'] );
-		$this::assertGreaterThanOrEqual( 11, $payload['rule_count'] );
+		// The refactored verifier declares ≥ 16 rules (8 canonical +
+		// workflow constraints + crypto advisory + SHA-binding clarifications).
+		$this::assertGreaterThanOrEqual( 16, $payload['rule_count'] );
 		$this::assertSame( $payload['rule_count'], $payload['passed_count'] );
 		$this::assertSame( 0, $payload['errors_count'] );
 	}
 
 	public function test_release_yml_does_not_cut_tags_in_ci(): void {
-		// CI MUST NOT cut tags. A regression that adds `git tag` or
-		// `gh release create` makes CI the cutting action, which
-		// bypasses Phase 55 branch protection.
 		$source = (string) file_get_contents( self::plugin_root() . '/' . self::RELEASE_WORKFLOW );
 		$this::assertDoesNotMatchRegularExpression(
 			'/^\s*(?:-\s*)?run:.*\bgit\s+tag\b/m',
@@ -81,10 +90,6 @@ final class SScribe_Tag_Policy_Test extends TestCase {
 	}
 
 	public function test_release_yml_uses_verify_tag_on_release_create(): void {
-		// `--verify-tag` makes the GitHub Release the SHA-binding
-		// signature. The absence of this flag lets an attacker who
-		// controls the tag ship a release that points at a moved
-		// tag, not the SHA the maintainer intended.
 		$source = (string) file_get_contents( self::plugin_root() . '/' . self::RELEASE_WORKFLOW );
 		$this::assertMatchesRegularExpression(
 			'/\bgh release create\b/',
@@ -94,17 +99,28 @@ final class SScribe_Tag_Policy_Test extends TestCase {
 		$this::assertMatchesRegularExpression(
 			'/--verify-tag\b/',
 			$source,
-			'`gh release create` must use `--verify-tag` to bind the release to a signed tag.'
+			'`gh release create` must use `--verify-tag` (SHA-binding via GitHub\'s signed-tag store).'
+		);
+	}
+
+	public function test_release_yml_does_not_force_move_tags(): void {
+		// Rule 6: a release tag, once cut, must not be re-cut. The
+		// workflow must not pass --force / --force-with-lease to
+		// `git tag`.
+		$source = (string) file_get_contents( self::plugin_root() . '/' . self::RELEASE_WORKFLOW );
+		$this::assertDoesNotMatchRegularExpression(
+			'/git\s+tag[^\n]*--force(?:-with-lease)?/i',
+			$source,
+			'release.yml must not pass `--force` to `git tag` (rule 6: no tag re-cut).'
 		);
 	}
 
 	public function test_build_evidence_records_source_sha_tag_and_zip_sha256(): void {
 		$source = (string) file_get_contents( self::plugin_root() . '/' . self::RELEASE_WORKFLOW );
-		// The build.json evidence template must declare all three keys.
 		$this::assertMatchesRegularExpression(
 			'/"source_sha"\s*:\s*"\$\{SOURCE_SHA\}"/',
 			$source,
-			'build.json evidence must record source_sha.'
+			'build.json evidence must record source_sha (rule 4: certified source SHA).'
 		);
 		$this::assertMatchesRegularExpression(
 			'/"tag"\s*:\s*"\$\{REF_NAME\}"/',
@@ -116,9 +132,6 @@ final class SScribe_Tag_Policy_Test extends TestCase {
 			$source,
 			'build.json evidence must record zip_sha256.'
 		);
-		// The zip_sha256 must come from extracting the SHA sidecar via
-		// `awk '{print $1}'` so the field is not a hardcoded empty
-		// string.
 		$this::assertMatchesRegularExpression(
 			"/id:[[:space:]]+zip-sha/",
 			$source,
@@ -133,7 +146,6 @@ final class SScribe_Tag_Policy_Test extends TestCase {
 
 	public function test_release_evidence_is_uploaded_and_downloaded_across_jobs(): void {
 		$source = (string) file_get_contents( self::plugin_root() . '/' . self::RELEASE_WORKFLOW );
-		// certify uploads build.json artifact, publish downloads it.
 		$this::assertMatchesRegularExpression(
 			'#path:\s*dist/sscribe-export-site-pages-[^[:space:]\n]*\.build\.json#',
 			$source,
@@ -148,6 +160,34 @@ final class SScribe_Tag_Policy_Test extends TestCase {
 			'/^on:\s*\n\s+push:\s*\n\s+tags:\s*\n\s+-\s*[\'"]?v\*[\'"]?\s*$/m',
 			$source,
 			'release.yml must trigger on `v*` tags only.'
+		);
+	}
+
+	public function test_policy_doc_declares_eight_canonical_rules(): void {
+		$policy = (string) file_get_contents( self::plugin_root() . '/' . self::POLICY_DOC );
+		for ( $i = 1; $i <= 8; $i++ ) {
+			$this::assertMatchesRegularExpression(
+				"/\\|\\s*{$i}\\s*\\|/",
+				$policy,
+				"docs/TAG_POLICY_v2.0.0.md must declare rule #{$i} in its canonical rules table."
+			);
+		}
+	}
+
+	public function test_policy_doc_clarifies_verify_tag_is_sha_binding_not_crypto_signing(): void {
+		// The v2.0.0 closeout identified a conflation between
+		// `gh release create --verify-tag` (SHA-binding) and
+		// `git tag -s` (cryptographic signing). The policy must
+		// explicitly distinguish the two.
+		$policy = (string) file_get_contents( self::plugin_root() . '/' . self::POLICY_DOC );
+		$this::assertStringContainsString( 'SHA-binding', $policy );
+		$this::assertStringContainsString( 'signed-tag store', $policy );
+		$this::assertStringContainsString( '--verify-tag', $policy );
+		// And must say crypto signing is recommended (not required).
+		$this::assertMatchesRegularExpression(
+			'/cryptographic.*recommend|recommend.*cryptographic|signing.*recommend|recommend.*signing/si',
+			$policy,
+			'docs/TAG_POLICY_v2.0.0.md must state that cryptographic tag signing is recommended (not required).'
 		);
 	}
 }

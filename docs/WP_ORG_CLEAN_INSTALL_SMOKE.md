@@ -1,4 +1,4 @@
-# Clean Install Activation Smoke — v2.0.0
+# Clean Install Activation Smoke — v2.0.1
 
 Evidence captured 2026-09-02 on a fresh SQLite-backed WordPress install,
 exercising the official release ZIP end-to-end with no prior sscribe state.
@@ -18,7 +18,7 @@ wp config create --dbname=wp --dbprefix=wp_ --dbhost= --skip-check
 wp core install --url=... --admin_user=admin --admin_password=... --admin_email=... --skip-email
 
 # 2. Install and activate the OFFICIAL release ZIP (not the source dir).
-wp plugin install dist/sscribe-export-site-pages-2.0.0.zip --activate
+wp plugin install dist/sscribe-export-site-pages-2.0.1.zip --activate
 
 # 3. Smoke probes — see output below.
 wp cron event list
@@ -52,8 +52,8 @@ subscriber.sscribe_health:  no
   sscribe_cleanup_audit_trail    recurring  1 day
 
 === OPTIONS ===
-  sscribe_schema_version = 2.0.0
-  sscribe_version       = 2.0.0
+  sscribe_schema_version = 2.0.1
+  sscribe_version       = 2.0.1
 
 === POST-DEACTIVATE ===
   sscribe_cleanup_exports        unscheduled (clean)

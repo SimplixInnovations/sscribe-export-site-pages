@@ -4,7 +4,7 @@
  * Handles AJAX batch processing with animated progress tracking.
  *
  * @package SScribe
- * @version 2.0.0
+ * @version 2.0.1
  */
 (function ($) {
 	'use strict';
@@ -109,9 +109,7 @@
 		 */
 		getLanguageLabel: function (code) {
 			if (code === '__all__' || code === '' || code === null || code === undefined) {
-				return (
-					(sscribe_data.strings && sscribe_data.strings.all_languages) || 'All Languages'
-				);
+				return (sscribe_data.strings && sscribe_data.strings.all_languages) || 'All Languages';
 			}
 			const labels = {
 				en: 'English',
@@ -1255,7 +1253,7 @@
 			const postStatus = $('input[name="sscribe_post_status"]:checked').val() || 'publish';
 			const postType = $('input[name="sscribe_post_type"]:checked').val() || 'page';
 			const format = $('input[name="sscribe_format"]:checked').val() || 'docx';
-			const formats = (format === 'all') ? ['docx', 'pdf', 'html', 'markdown'] : [format];
+			const formats = format === 'all' ? ['docx', 'pdf', 'html', 'markdown'] : [format];
 			// Phase 8: preflight is a named operation so retry/refresh_nonce
 			// paths can safely re-enter it without recursion hazards.
 			this.runPreflightCheck(language, postStatus, postType, formats);

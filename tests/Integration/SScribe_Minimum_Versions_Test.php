@@ -97,7 +97,7 @@ final class SScribe_Minimum_Versions_Test extends TestCase {
 		return "<?php\n/**\n"
 			. " * Plugin Name:       SScribe Export Site Pages\n"
 			. " * Description:       Test fixture.\n"
-			. " * Version:           2.0.0\n"
+			. " * Version:           2.0.1\n"
 			. " * Requires at least: 6.1\n"
 			. " * Requires PHP:      8.2\n"
 			. " * Author:            Simplix Innovations\n"
@@ -105,7 +105,7 @@ final class SScribe_Minimum_Versions_Test extends TestCase {
 			. " */\n"
 			. "declare(strict_types=1);\n"
 			. "if ( ! defined( 'ABSPATH' ) ) { exit; }\n"
-			. "if ( ! defined( 'SSCRIBE_VERSION' ) ) { define( 'SSCRIBE_VERSION', '2.0.0' ); }\n"
+			. "if ( ! defined( 'SSCRIBE_VERSION' ) ) { define( 'SSCRIBE_VERSION', '2.0.1' ); }\n"
 			. "if ( version_compare( PHP_VERSION, '8.2', '<' ) ) {\n"
 			. "    add_action( 'admin_notices', function () {\n"
 			. "        echo '<div class=\"notice notice-error\"><p>SScribe requires PHP 8.2+.</p></div>';\n"
@@ -119,7 +119,7 @@ final class SScribe_Minimum_Versions_Test extends TestCase {
 			. "Requires at least: {$wp_min}\n"
 			. "Tested up to: 7.1\n"
 			. "Requires PHP: {$php_min}\n"
-			. "Stable tag: 2.0.0\n"
+			. "Stable tag: 2.0.1\n"
 			. "License: GPL-2.0-or-later\n";
 	}
 

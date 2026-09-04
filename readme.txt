@@ -3,7 +3,7 @@ Contributors: simplixinnovations
 Tags: export, docx, pdf, html, markdown
 Requires at least: 6.1
 Tested up to: 7.1
-Stable tag: 2.0.0
+Stable tag: 2.0.1
 Requires PHP: 8.2
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -129,6 +129,13 @@ A detailed description of every build transformation (paths excluded, comments s
 
 == Changelog ==
 
+= 2.0.1 =
+* Refactored the release-blocker registry (Phase 70) so dynamic blockers resolve at certification time from ignored `dist/` evidence instead of requiring a tracked commit to flip `DEFERRED → RESOLVED` — eliminating the SHA circularity the v2.0.0 closeout identified.
+* Corrected the tag policy (Phase 54) so `gh release create --verify-tag` is correctly identified as SHA-binding via GitHub's signed-tag store rather than cryptographic signing; cryptographic tag signing is now recorded as recommended (when the maintainer has signing configured), not required.
+* Bumped the public release target from 2.0.0 to 2.0.1. The historical `v2.0.0` tag is preserved as a documented artifact (`docs/RELEASE_REPORT_v2.0.0.md`); the live public release target is `v2.0.1`.
+* Removed live source SHA / ZIP SHA-256 / build-timestamp values from any tracked release report; authoritative final identities now live in ignored, regenerated `dist/*.json` evidence files.
+* Same shipped runtime as 2.0.0 — no behavioural, security, or compatibility changes for end users.
+
 = 2.0.0 =
 * Moved archives, logs, and working files from public uploads to site-isolated private storage, with verified migration of legacy data.
 * Persisted complete page-ID queues in non-autoloaded expiring options so exports with hundreds of pages can resume reliably.
@@ -148,6 +155,9 @@ A detailed description of every build transformation (paths excluded, comments s
 * Initial public release with DOCX, PDF, HTML, Markdown, WPML, RTL, batch processing, and secure downloads.
 
 == Upgrade Notice ==
+
+= 2.0.1 =
+Release-system corrections only. No behavioural, security, or compatibility changes for end users. Historical v2.0.0 release was not publicly shipped; v2.0.1 is the public release target.
 
 = 2.0.0 =
 Moves export data to private storage with verified legacy migration, makes large multilingual exports durable, and fixes shared-host activation when the temp directory is root-owned but world-writable.
