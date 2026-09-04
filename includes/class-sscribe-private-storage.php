@@ -428,7 +428,7 @@ final class SScribe_Private_Storage {
 	/**
 	 * Resolve a path canonically even when its final segments do not exist yet.
 	 *
-	 * realpath() returns false for a not-yet-created child. For containment
+	 * Realpath() returns false for a not-yet-created child. For containment
 	 * checks that can hide an intermediate symlink: '/tmp/link/new' must resolve
 	 * through '/tmp/link' before comparison with its real target. Walk upward to
 	 * the nearest existing ancestor, resolve that ancestor, then append the

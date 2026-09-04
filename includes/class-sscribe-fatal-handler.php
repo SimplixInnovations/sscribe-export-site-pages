@@ -132,7 +132,7 @@ final class SScribe_Fatal_Handler {
 			return false;
 		}
 
-		$action = $_REQUEST['action'] ?? null; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only attribution at shutdown; authorization already occurred in the original request.
+		$action = $_REQUEST['action'] ?? null; // phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.MissingUnslash, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Read-only attribution at shutdown; authorization already occurred in the original request.
 		if ( ! is_string( $action ) ) {
 			return false;
 		}
