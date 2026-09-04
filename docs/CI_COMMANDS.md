@@ -385,54 +385,39 @@ failure looks like**, **how to debug**, **what manifest it writes**.
 ### `composer test:release-blockers`
 
 - **Script:** `php scripts/verify-release-blockers.php`
-- **Gates:** `docs/RELEASE_BLOCKERS_v2.0.0.md` declares the
-  canonical sections (Why this exists, Status convention,
-  Canonical blockers, How an independent auditor verifies
-  this), the doc lists all 20 canonical blocker rows, every
-  blocker has a status in {RESOLVED, DEFERRED} (zero OPEN or
-  BLOCKED allowed), and the companion integration test exists
-  at `tests/Integration/SScribe_Release_Blockers_Test.php`.
-  This is the canonical "are we ready to tag?" gate.
-- **Failure:** "Every blocker status must be RESOLVED or
-  DEFERRED. Invalid: Some Blocker (OPEN)".
-- **Debug:** `dist/release-blockers-manifest.json`.
-- **Manifest:** `dist/release-blockers-manifest.json`.
+- **Normal mode:** validates the Phase 70 checklist structure, all 20 canonical
+  rows, and status vocabulary. `DEFERRED` is allowed in normal source CI so
+  development commits do not have to falsify final-release evidence.
+- **Strict release mode:** run
+  `SSCRIBE_RELEASE_CERTIFICATION=1 composer test:release-blockers`.
+  Every blocker must then be `RESOLVED`; any `DEFERRED` row fails closed.
+- **Debug/manifest:** `dist/release-blockers-manifest.json`.
 
 ### `composer test:final-ci-state`
 
 - **Script:** `php scripts/verify-final-ci-state.php`
-- **Gates:** `docs/FINAL_CI_STATE_v2.0.0.md` declares the
-  canonical sections (Why this exists, Status convention,
-  Canonical required jobs, How an independent auditor
-  verifies this), lists all 8 canonical required CI jobs
-  (version-check, lint, test, audit, frontend-quality,
-  real-wp-tests, coverage, plugin-check), and every job has
-  a status in {SUCCESS, SKIPPED} (zero FAILED / CANCELLED /
-  MISSING allowed). This is the canonical "is CI green on
-  the final SHA?" gate.
-- **Failure:** "Every required job status must be SUCCESS
-  or SKIPPED. Invalid: real-wp-tests (FAILED)".
-- **Debug:** `dist/final-ci-state-manifest.json`.
-- **Manifest:** `dist/final-ci-state-manifest.json`.
+- **Normal mode:** validates the Phase 71 policy plus the separate
+  `Recorded final state` schema for all 9 required execution signals.
+- **Strict release mode:** run
+  `SSCRIBE_RELEASE_CERTIFICATION=1 composer test:final-ci-state`.
+  The recorded final source SHA must equal `git HEAD`, and every required
+  signal must be `SUCCESS` or `LOCAL_PASS`. `LOCAL_PASS` is permitted
+  only when GitHub did not start the corresponding job and concrete equivalent
+  local evidence is recorded.
+- **Debug/manifest:** `dist/final-ci-state-manifest.json`.
 
 ### `composer test:exact-artifact-evidence`
 
 - **Script:** `php scripts/verify-exact-artifact-evidence.php`
-- **Gates:** `docs/EXACT_ARTIFACT_EVIDENCE_v2.0.0.md` declares
-  the canonical sections (Why this exists, Canonical
-  evidence fields, How an independent auditor verifies
-  this), lists all 12 canonical evidence fields (version,
-  zip_filename, zip_sha256, zip_byte_size, zip_file_count,
-  source_sha, source_short_sha, builder_run_id,
-  builder_workflow, plugin_check_url, clean_install_doc,
-  build_timestamp), the exact release ZIP exists in dist/,
-  and the `.sha256` sidecar is present. This is the
-  canonical "is the bit-level audit trail recorded?" gate.
-- **Failure:** "dist/ must contain the exact release ZIP
-  (sscribe-export-site-pages-{VERSION}.zip) for the
-  Phase 72 gate."
-- **Debug:** `dist/exact-artifact-evidence-manifest.json`.
-- **Manifest:** `dist/exact-artifact-evidence-manifest.json`.
+- **Normal mode:** validates the Phase 72 evidence schema and all 12 canonical
+  evidence rows without pretending an old candidate ZIP is the final artifact.
+- **Strict release mode:** run
+  `SSCRIBE_RELEASE_CERTIFICATION=1 composer test:exact-artifact-evidence`.
+  The verifier resolves `SSCRIBE_VERSION`, requires exactly the expected
+  versioned ZIP, recomputes SHA-256, byte size, ZipArchive entry count, checks
+  the checksum sidecar, binds `source_sha` to `git HEAD`, rejects
+  placeholders, verifies the short SHA, clean-install doc, and build timestamp.
+- **Debug/manifest:** `dist/exact-artifact-evidence-manifest.json`.
 
 ### `composer test:agent-final-report`
 
