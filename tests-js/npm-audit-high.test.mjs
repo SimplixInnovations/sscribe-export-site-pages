@@ -35,7 +35,7 @@ test('high or critical findings fail immediately', async () => {
 
   await assert.rejects(
     () => runAuditWithRetry({ exec, attempts: 3, sleep: async () => {} }),
-    /high/critical/i
+    /high\/critical/i
   );
   assert.equal(calls, 1, 'real vulnerability findings must never be retried away');
 });
