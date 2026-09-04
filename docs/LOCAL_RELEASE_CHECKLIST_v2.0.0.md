@@ -128,13 +128,15 @@ sufficient for this release.
 After the checks above pass, update
 `docs/RELEASE_BLOCKERS_v2.0.0.md` so every DEFERRED row is RESOLVED with the
 actual local evidence (final SHA, command/result, ZIP SHA-256, and runtime
-environment). Then run:
+environment). Then run the strict state gates (the full release audit already invokes these in strict mode):
 
 ```bash
-composer test:release-blockers
+SSCRIBE_RELEASE_CERTIFICATION=1 composer test:release-blockers
+SSCRIBE_RELEASE_CERTIFICATION=1 composer test:final-ci-state
+SSCRIBE_RELEASE_CERTIFICATION=1 composer test:exact-artifact-evidence
 ```
 
-It must exit 0 before creating `v2.0.0` or uploading to WordPress.org.
+All three must exit 0 before creating `v2.0.0` or uploading to WordPress.org.
 
 ## Release rule
 
