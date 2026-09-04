@@ -115,10 +115,13 @@ Manually verify on the production-like site as well:
 
 ## 8. WordPress.org reviewer source access
 
-Before uploading the ZIP, make the exact v2.0.0 source/build inputs accessible
-to WordPress.org reviewers. The working repository may remain private, but the
-reviewer-accessible source snapshot/mirror must include the exact corresponding
-source plus build tooling/documentation used to produce the ZIP.
+Before uploading the ZIP, make the exact v2.0.0 source and build inputs
+publicly accessible and maintained, as required by the WordPress.org plugin
+guidelines when build tooling is omitted from the deployed ZIP. The canonical
+repository may be made public, or an equivalent public source mirror may be used,
+but it must contain the exact corresponding tagged source plus the build tooling
+and documentation used to produce the ZIP. Private/reviewer-only access is not
+sufficient for this release.
 
 ## 9. Close release blockers
 
