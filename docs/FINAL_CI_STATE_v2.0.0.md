@@ -32,7 +32,7 @@ GitHub-hosted execution and local execution are treated separately:
 
 The normal source/CI verifier checks this tracked contract structure. Strict
 release certification is enabled with `SSCRIBE_RELEASE_CERTIFICATION=1`; in
-strict mode the verifier requires a clean tracked working tree, binds the
+strict mode the verifier requires a clean working tree (including non-ignored untracked files), binds the
 untracked evidence `source_sha` to `git HEAD`, and requires every canonical
 signal to be `SUCCESS` or `LOCAL_PASS` with independently inspectable
 proof.
