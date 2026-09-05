@@ -17,6 +17,7 @@
 /dist/
 /build/
 /coverage/
+/clover.xml
 
 # Agent/Skills (embedded git repo)
 .agent/
