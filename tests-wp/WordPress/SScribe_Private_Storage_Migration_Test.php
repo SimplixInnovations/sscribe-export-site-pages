@@ -201,7 +201,8 @@ final class SScribe_Private_Storage_Migration_Test extends SScribe_WP_TestCase {
 
 	/**
 	 * A world-writable + sticky-bit base (the canonical shared-host
-	 * /tmp case that produced the v2.0.1 fix) must be accepted.
+	 * /tmp case that produced the v2.0.0 fix, carried into v2.0.2
+	 * unchanged) must be accepted.
 	 *
 	 * `chmod 01777` requires POSIX mode-bit support. On Windows the
 	 * permissions model is ACL-based; chmod is a no-op and the test

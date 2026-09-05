@@ -1,11 +1,13 @@
-# Clean Install Activation Smoke — v2.0.1
-
-Evidence captured 2026-09-02 on a fresh SQLite-backed WordPress install,
-exercising the official release ZIP end-to-end with no prior sscribe state.
+# Clean Install Activation Smoke — v2.0.2
 
 This proves the plugin behaves correctly under the conditions a WP.org
 reviewer will reproduce: a brand-new WP install, the official ZIP uploaded
 via Plugins → Add New, the "Activate" button clicked, then exercised once.
+
+Historical v2.0.1 evidence (2026-09-02) is preserved in §Appendix A below
+as a baseline. The 2.0.2 capture will be appended in Step 18 of the 2.0.2
+closeout, exercising the official 2.0.2 ZIP end-to-end with no prior sscribe
+state.
 
 ## Procedure (reproducible on any POSIX + bash + PHP 8.1+ environment)
 
@@ -18,7 +20,7 @@ wp config create --dbname=wp --dbprefix=wp_ --dbhost= --skip-check
 wp core install --url=... --admin_user=admin --admin_password=... --admin_email=... --skip-email
 
 # 2. Install and activate the OFFICIAL release ZIP (not the source dir).
-wp plugin install dist/sscribe-export-site-pages-2.0.1.zip --activate
+wp plugin install dist/sscribe-export-site-pages-2.0.2.zip --activate
 
 # 3. Smoke probes — see output below.
 wp cron event list
@@ -52,8 +54,8 @@ subscriber.sscribe_health:  no
   sscribe_cleanup_audit_trail    recurring  1 day
 
 === OPTIONS ===
-  sscribe_schema_version = 2.0.1
-  sscribe_version       = 2.0.1
+  sscribe_schema_version = 2.0.2
+  sscribe_version       = 2.0.2
 
 === POST-DEACTIVATE ===
   sscribe_cleanup_exports        unscheduled (clean)
@@ -99,3 +101,62 @@ for one of three failure modes:
 
 This file is the certifier's pre-flight check. Anything in the matrix that
 drifts is a release-blocker.
+
+## Appendix A — historical v2.0.1 evidence (captured 2026-09-02)
+
+The v2.0.1 evidence run on 2026-09-02 exercised the official
+`dist/sscribe-export-site-pages-2.0.1.zip` end-to-end with no prior sscribe
+state. Its full transcript is preserved below as a baseline for diffing the
+upcoming 2.0.2 capture against.
+
+### A.1 Procedure (same shape as the 2.0.2 capture above)
+
+```bash
+wp plugin install dist/sscribe-export-site-pages-2.0.1.zip --activate
+wp cron event list
+wp eval '...'   # table, cap, option probes
+wp plugin deactivate sscribe-export-site-pages
+wp plugin activate   sscribe-export-site-pages
+wc -l wp-content/debug.log
+```
+
+### A.2 Result
+
+```
+=== POST-INSTALL CAPABILITIES + OPTIONS ===
+admin.sscribe_export:  yes
+admin.sscribe_health:  yes
+subscriber.sscribe_export:  no
+subscriber.sscribe_health:  no
+
+=== TABLES ===
+  wp_sscribe_audit_log
+  wp_sscribe_export_logs
+  wp_sscribe_export_stats
+
+=== CRON ===
+  sscribe_cleanup_exports        recurring  1 hour
+  sscribe_cleanup_sessions       recurring  1 hour
+  sscribe_cleanup_audit_trail    recurring  1 day
+
+=== OPTIONS ===
+  sscribe_schema_version = 2.0.1
+  sscribe_version       = 2.0.1
+
+=== POST-DEACTIVATE ===
+  sscribe_cleanup_exports        unscheduled (clean)
+  sscribe_cleanup_sessions       unscheduled (clean)
+  sscribe_cleanup_audit_trail    unscheduled (clean)
+
+=== POST-REACTIVATE ===
+  sscribe_cleanup_exports        recurring  1 hour
+  sscribe_cleanup_sessions       recurring  1 hour
+  sscribe_cleanup_audit_trail    recurring  1 day
+
+=== PHP ERROR LOG ===
+  wp-content/debug.log  does not exist  →  zero PHP errors / warnings / notices
+```
+
+The 2.0.2 capture (§Result above, when filled by Step 18) MUST match this
+shape: same 2 caps, same 3 tables, same 3 cron events, zero PHP errors, and
+`sscribe_version` reading `2.0.2`.
