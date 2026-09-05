@@ -5,8 +5,8 @@
     bootstrap="tests-wp/bootstrap.php"
     colors="true"
     cacheDirectory=".phpunit.cache"
-    failOnRisky="false"
-    failOnWarning="false"
+    failOnRisky="true"
+    failOnWarning="true"
 >
     <testsuites>
         <testsuite name="WordPress">
@@ -28,7 +28,7 @@
     <php>
         <env name="WP_TESTS_DIR" value="tests-wp/_wordpress-tests-lib"/>
         <env name="WP_CORE_DIR" value="tests-wp/_wordpress"/>
-        <env name="WP_PHP_BINARY" value="php -d extension=sqlite3 -d extension=pdo_sqlite"/>
+        <env name="WP_PHP_BINARY" value="php tests-wp/wp-php-wrapper.php"/>
         <ini name="memory_limit" value="1024M"/>
     </php>
 </phpunit>

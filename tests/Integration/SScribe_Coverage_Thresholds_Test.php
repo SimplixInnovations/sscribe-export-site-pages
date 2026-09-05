@@ -395,6 +395,225 @@ final class SScribe_Coverage_Thresholds_Test extends TestCase {
 		}
 	}
 
+	/**
+	 * Build a Clover fixture that records file paths as absolute
+	 * Windows paths. The verifier must strip the repo-root prefix
+	 * and resolve every critical file regardless of slash direction.
+	 *
+	 * Mirrors the real `clover.xml` produced by PHPUnit on Windows
+	 * (the project's primary local environment).
+	 *
+	 * @param array<string,int> $file_statements Map of file path → total statements.
+	 * @param array<string,int> $file_covered    Map of file path → covered statements.
+	 * @param array<string,int> $extra_statements Optional extra statements that should not
+	 *                                            count toward the project ratio.
+	 */
+	private static function build_clover_xml_with_paths(
+		array $file_statements,
+		array $file_covered,
+		array $extra_statements = array()
+	): string {
+		$total_statements = array_sum( $file_statements ) + array_sum( $extra_statements );
+		$total_covered    = array_sum( $file_covered ) + array_sum( $extra_statements );
+
+		$files_xml = '';
+		foreach ( $file_statements as $path => $statements ) {
+			$covered = $file_covered[ $path ] ?? 0;
+			$files_xml .= sprintf(
+				'    <file name="%s">%s<metrics statements="%d" coveredstatements="%d"/></file>%s',
+				$path,
+				'',
+				$statements,
+				$covered,
+				"\n"
+			);
+		}
+
+		return sprintf(
+			"<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+			. "<coverage generated=\"%d\" clover=\"3.2.0\">\n"
+			. "  <project name=\"SScribe\">\n"
+			. "%s"
+			. "    <metrics files=\"%d\" statements=\"%d\" coveredstatements=\"%d\" />\n"
+			. "  </project>\n"
+			. "</coverage>\n",
+			time(),
+			$files_xml,
+			count( $file_statements ),
+			$total_statements,
+			$total_covered
+		);
+	}
+
+	/**
+	 * Build a Clover fixture whose `<file>` names use an absolute
+	 * path rooted at the project root, normalised to forward slashes
+	 * (the Windows shape PHPUnit actually emits on this project).
+	 */
+	public function test_absolute_windows_forward_slash_paths_resolve_critical_files(): void {
+		$root = self::plugin_root();
+		// Forward-slash absolute paths — what PHPUnit on Windows actually emits.
+		$statements = array();
+		$covered    = array();
+		foreach ( self::CRITICAL_FILES as $critical ) {
+			$statements[ $root . '/' . $critical ] = 100;
+			$covered[ $root . '/' . $critical ]    = 100;
+		}
+		// Padding so the project gate would otherwise pass.
+		$statements[ $root . '/includes/class-sscribe-exporter.php' ] = 500;
+		$covered[ $root . '/includes/class-sscribe-exporter.php' ]    = 500;
+
+		$clover   = self::fixture_path( 'abs-win-fwd' );
+		$manifest = self::manifest_path( 'abs-win-fwd' );
+		self::write_fixture( $clover, self::build_clover_xml_with_paths( $statements, $covered ) );
+
+		$snapshot = self::snapshot_live_clover();
+		try {
+			list( $code, $output ) = $this->run_verifier( $clover, $manifest );
+			$this::assertSame(
+				0,
+				$code,
+				'Forward-slash Windows absolute paths must resolve. Output:' . "\n" . $output
+			);
+			$this::assertStringContainsString( 'Coverage threshold gate passed', $output );
+			$payload = json_decode( (string) file_get_contents( $manifest ), true );
+			$this::assertIsArray( $payload );
+			$this::assertTrue( $payload['passes'] );
+			foreach ( self::CRITICAL_FILES as $critical ) {
+				$this::assertTrue(
+					$payload['critical_files'][ $critical ]['passes'],
+					'Critical file must pass under absolute-path fixture: ' . $critical
+				);
+			}
+		} finally {
+			self::restore_live_clover( $snapshot );
+			@unlink( $clover );
+			@unlink( $manifest );
+		}
+	}
+
+	/**
+	 * Build a Clover fixture whose `<file>` names use backslash
+	 * absolute paths — the second Windows shape PHPUnit emits.
+	 */
+	public function test_absolute_windows_backslash_paths_resolve_critical_files(): void {
+		$root = self::plugin_root();
+		// Backslash absolute paths.
+		$statements = array();
+		$covered    = array();
+		foreach ( self::CRITICAL_FILES as $critical ) {
+			$win_path   = str_replace( '/', '\\', $root . '/' . $critical );
+			$statements[ $win_path ] = 100;
+			$covered[ $win_path ]    = 100;
+		}
+		$win_pad = str_replace( '/', '\\', $root . '/includes/class-sscribe-exporter.php' );
+		$statements[ $win_pad ] = 500;
+		$covered[ $win_pad ]    = 500;
+
+		$clover   = self::fixture_path( 'abs-win-back' );
+		$manifest = self::manifest_path( 'abs-win-back' );
+		self::write_fixture( $clover, self::build_clover_xml_with_paths( $statements, $covered ) );
+
+		$snapshot = self::snapshot_live_clover();
+		try {
+			list( $code, $output ) = $this->run_verifier( $clover, $manifest );
+			$this::assertSame(
+				0,
+				$code,
+				'Backslash Windows absolute paths must resolve. Output:' . "\n" . $output
+			);
+			$this::assertStringContainsString( 'Coverage threshold gate passed', $output );
+			$payload = json_decode( (string) file_get_contents( $manifest ), true );
+			$this::assertTrue( $payload['passes'] );
+			foreach ( self::CRITICAL_FILES as $critical ) {
+				$this::assertTrue(
+					$payload['critical_files'][ $critical ]['passes'],
+					'Critical file must pass under backslash absolute-path fixture: ' . $critical
+				);
+			}
+		} finally {
+			self::restore_live_clover( $snapshot );
+			@unlink( $clover );
+			@unlink( $manifest );
+		}
+	}
+
+	/**
+	 * Build a Clover fixture whose `<file>` names use a Linux absolute
+	 * path. Critical files must still resolve under `/repo/...`.
+	 */
+	public function test_absolute_linux_paths_resolve_critical_files(): void {
+		$root = self::plugin_root();
+		$statements = array();
+		$covered    = array();
+		foreach ( self::CRITICAL_FILES as $critical ) {
+			$statements[ $root . '/' . $critical ] = 100;
+			$covered[ $root . '/' . $critical ]    = 100;
+		}
+		$statements[ $root . '/includes/class-sscribe-exporter.php' ] = 500;
+		$covered[ $root . '/includes/class-sscribe-exporter.php' ]    = 500;
+
+		$clover   = self::fixture_path( 'abs-linux' );
+		$manifest = self::manifest_path( 'abs-linux' );
+		self::write_fixture( $clover, self::build_clover_xml_with_paths( $statements, $covered ) );
+
+		$snapshot = self::snapshot_live_clover();
+		try {
+			list( $code, $output ) = $this->run_verifier( $clover, $manifest );
+			$this::assertSame(
+				0,
+				$code,
+				'Linux absolute paths must resolve. Output:' . "\n" . $output
+			);
+			$this::assertStringContainsString( 'Coverage threshold gate passed', $output );
+		} finally {
+			self::restore_live_clover( $snapshot );
+			@unlink( $clover );
+			@unlink( $manifest );
+		}
+	}
+
+	/**
+	 * A Clover fixture whose critical-file path lies outside the
+	 * repository must NOT silently normalise to a matching key. The
+	 * gate must report the file as missing and fail.
+	 */
+	public function test_absolute_path_outside_repository_is_refused(): void {
+		// Pick a clearly-fake path that has no chance of matching the
+		// real repo root.
+		$foreign_root = '/var/some-other-project-that-is-not-sscribe';
+		$statements   = array();
+		$covered      = array();
+		foreach ( self::CRITICAL_FILES as $critical ) {
+			$statements[ $foreign_root . '/' . $critical ] = 100;
+			$covered[ $foreign_root . '/' . $critical ]    = 100;
+		}
+		// Pad project coverage using an in-repo path so the only
+		// failure source is the rejected foreign-root critical files.
+		$root                                          = self::plugin_root();
+		$statements[ $root . '/includes/exporter.php' ] = 500;
+		$covered[ $root . '/includes/exporter.php' ]    = 500;
+
+		$clover   = self::fixture_path( 'abs-foreign' );
+		$manifest = self::manifest_path( 'abs-foreign' );
+		self::write_fixture( $clover, self::build_clover_xml_with_paths( $statements, $covered ) );
+
+		$snapshot = self::snapshot_live_clover();
+		try {
+			list( $code, $output ) = $this->run_verifier( $clover, $manifest );
+			$this::assertSame(
+				1,
+				$code,
+				'A foreign-root path must NOT silently match a critical file. Output:' . "\n" . $output
+			);
+			$this::assertStringContainsString( 'missing from', $output );
+		} finally {
+			self::restore_live_clover( $snapshot );
+			@unlink( $clover );
+			@unlink( $manifest );
+		}
+	}
+
 	public function test_phpunit_source_includes_critical_files(): void {
 		// Defense in depth: even if a future refactor removes a file
 		// from the critical list, the phpunit.xml `<source>` block

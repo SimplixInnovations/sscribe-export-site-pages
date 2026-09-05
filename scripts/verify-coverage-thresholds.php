@@ -46,6 +46,8 @@
 
 declare( strict_types=1 );
 
+require_once __DIR__ . '/lib/coverage-path.php';
+
 $root_dir = dirname( __DIR__ );
 
 // Default to the repo-root clover.xml; allow overriding for
@@ -82,6 +84,28 @@ if ( false === $document ) {
 libxml_clear_errors();
 
 /**
+ * Coverage driver policy.
+ *
+ * Two drivers are acceptable for SScribe release evidence:
+ *
+ *   - PCOV 1.0.12 — fast, preferred locally for iteration speed.
+ *   - Xdebug 3.5.3 — required by CI (`.github/workflows/ci.yml`,
+ *     `shivammathur/setup-php` with `coverage: xdebug`); also runs
+ *     with `XDEBUG_MODE=coverage` set.
+ *
+ * PHPUnit auto-selects PCOV over Xdebug when both are loaded (PCOV is
+ * significantly faster). The CI workflow disables PCOV explicitly so
+ * its evidence comes from Xdebug. Both drivers produce materially
+ * identical line-coverage numbers on this project (verified at the
+ * Phase-41 step: 51.44% / 8576/16672 lines, identical across both
+ * drivers), so either is acceptable for the gate below. The
+ * canonical CI evidence is the Xdebug run; local iterations may use
+ * whichever driver PHPUnit auto-picks.
+ *
+ * @see https://github.com/SimplixInnovations/sscribe-export-site-pages/blob/develop/.github/workflows/ci.yml
+ */
+
+/**
  * Coverage threshold contract.
  *
  * PROJECT_THRESHOLD — every statement across the audited source tree
@@ -107,7 +131,7 @@ $critical_files = array(
  *
  * @return array{per_file: array<string,float>, totals: array{statements:int,covered:int}}
  */
-$compute_coverage = static function ( SimpleXMLElement $document ): array {
+$compute_coverage = static function ( SimpleXMLElement $document ) use ( $root_dir ): array {
 	$per_file  = array();
 	$totals    = array(
 		'statements' => 0,
@@ -124,11 +148,15 @@ $compute_coverage = static function ( SimpleXMLElement $document ): array {
 			continue;
 		}
 		// Clover records paths relative to the working directory at
-		// the moment phpunit ran. Normalise to forward slashes so
-		// the critical-file map matches regardless of OS.
-		$relative = str_replace( '\\', '/', $name );
-		// Strip leading ./ artifacts.
-		$relative = ltrim( $relative, './' );
+		// the moment phpunit ran. On Windows that absolute path
+		// includes the drive root; the helper normalises everything
+		// to a repo-relative forward-slash path. Absolute paths that
+		// fall outside the repository are intentionally refused
+		// (returns ''), which is treated as "missing" by the gate.
+		$relative = sscribe_normalize_clover_path( $name, $root_dir );
+		if ( '' === $relative ) {
+			continue;
+		}
 		$file_metrics = $file_node->metrics ?? null;
 		if ( null === $file_metrics ) {
 			continue;

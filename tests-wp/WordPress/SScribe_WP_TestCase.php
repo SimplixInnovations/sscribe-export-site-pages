@@ -47,4 +47,8 @@ abstract class SScribe_WP_TestCase extends WP_UnitTestCase {
 		}
 		return '' === $ds ? $method : $method . $ds;
 	}
+
+	protected function checkRequirements(): void {
+		\PHPUnit\Framework\TestCase::checkRequirements();
+	}
 }

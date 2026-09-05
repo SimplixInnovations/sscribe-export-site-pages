@@ -202,10 +202,21 @@ if ( file_exists( $autoload ) ) {
 	require_once $autoload;
 }
 
-if ( ! defined( 'WP_PHP_BINARY' ) ) {
-	// The SQLite Database Integration plugin needs the pdo_sqlite extension
-	// (in addition to the sqlite3 ext that PHPUnit's smoke-test requires).
-	// Pass both -d flags so the install.php subprocess picks them up too.
+$wp_php_binary_env = getenv( 'WP_PHP_BINARY' );
+if ( false !== $wp_php_binary_env && '' !== $wp_php_binary_env ) {
+	// WP_PHP_BINARY is supplied as an environment variable from
+	// phpunit-wp.xml (<env name="WP_PHP_BINARY" value="…"/>). On Windows
+	// / XAMPP / shared-host dev boxes where sqlite3 + pdo_sqlite are
+	// already loaded by php.ini, the wrapper pointed at by the env
+	// value skips the redundant `-d extension=…` flags; on a clean
+	// system it appends them. See tests-wp/wp-php-wrapper.php.
+	define( 'WP_PHP_BINARY', $wp_php_binary_env );
+} elseif ( ! defined( 'WP_PHP_BINARY' ) ) {
+	// Fallback for ad-hoc `php install.php` invocations outside
+	// phpunit-wp.xml (e.g. running install.php directly to re-seed
+	// the WP test database). Forces both extensions so the SQLite
+	// drop-in works; on systems where they're already loaded the
+	// subprocess will warn "Module already loaded" and continue.
 	define( 'WP_PHP_BINARY', PHP_BINARY . ' -d extension=sqlite3 -d extension=pdo_sqlite' );
 }
 

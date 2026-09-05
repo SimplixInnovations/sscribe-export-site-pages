@@ -239,8 +239,29 @@ class SScribe_Logger implements SScribe_Logger_Interface {
 		}
 
 		if ( empty( self::$protected_log_dirs[ $this->log_dir ] ) ) {
-			SScribe_Security::protect_directory( $this->log_dir );
-			self::$protected_log_dirs[ $this->log_dir ] = true;
+			// protect_directory() validates the path against
+			// `wp_upload_dir()` + a constant SSCRIBE_PRIVATE_STORAGE_DIR.
+			// Both can be torn down or redirected by the time this
+			// destructor fires (e.g. per-test scratch storage that the
+			// testbench has already removed, or a long-lived process
+			// that reached WP shutdown after global state was cleared).
+			// The path validation IS the safety property for normal
+			// calls — but during teardown the only sensible response
+			// is to skip the write. Throwing here means the destructor
+			// chain bubbles InvalidArgumentException into a fatal,
+			// which is strictly worse than missing one log line that
+			// was already lost when its target dir disappeared.
+			//
+			// We deliberately do NOT mutate $this->storage_available
+			// here: it's a `readonly` property that can only be set
+			// in the constructor. Returning '' is enough — flush()
+			// treats it as "no file, drop the buffer contents".
+			try {
+				SScribe_Security::protect_directory( $this->log_dir );
+				self::$protected_log_dirs[ $this->log_dir ] = true;
+			} catch ( \Throwable $e ) {
+				return '';
+			}
 		}
 		if ( ! is_dir( $this->log_dir ) || is_link( $this->log_dir ) ) {
 			return '';

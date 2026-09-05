@@ -21,6 +21,8 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/SScribe_WP_Ajax_TestCase.php';
 
+use PHPUnit\Framework\Attributes\DataProvider;
+
 final class SScribe_AJAX_Endpoints_Test extends SScribe_WP_Ajax_TestCase {
 
 	/**
@@ -58,9 +60,8 @@ final class SScribe_AJAX_Endpoints_Test extends SScribe_WP_Ajax_TestCase {
 	/**
 	 * Drive every endpoint with a bad nonce and assert the JSON response
 	 * is `success: false` with `data.code === 'invalid_nonce'`.
-	 *
-	 * @dataProvider endpoint_provider
 	 */
+	#[DataProvider( 'endpoint_provider' )]
 	public function test_endpoint_rejects_invalid_nonce( string $action ): void {
 		// Switch to an admin so we exercise the nonce path, not the cap path.
 		$this->_setRole( 'administrator' );
@@ -80,9 +81,8 @@ final class SScribe_AJAX_Endpoints_Test extends SScribe_WP_Ajax_TestCase {
 	 * Drive every endpoint as a subscriber (no caps) with a valid nonce,
 	 * and assert the JSON response is `success: false` with
 	 * `data.code === 'permission_denied'`.
-	 *
-	 * @dataProvider endpoint_provider
 	 */
+	#[DataProvider( 'endpoint_provider' )]
 	public function test_endpoint_rejects_insufficient_capability( string $action ): void {
 		list( , $nonce_name ) = self::ENDPOINTS[ $action ];
 		$_POST['nonce'] = wp_create_nonce( $nonce_name );
@@ -104,9 +104,8 @@ final class SScribe_AJAX_Endpoints_Test extends SScribe_WP_Ajax_TestCase {
 	 * reject — i.e. the response code is never `invalid_nonce` or
 	 * `permission_denied`. Higher-level response shapes are exercised by
 	 * the dedicated happy-path tests below.
-	 *
-	 * @dataProvider endpoint_provider
 	 */
+	#[DataProvider( 'endpoint_provider' )]
 	public function test_endpoint_passes_guard_as_admin( string $action ): void {
 		$this->_setRole( 'administrator' );
 		list( , $nonce_name ) = self::ENDPOINTS[ $action ];
