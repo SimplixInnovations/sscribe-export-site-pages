@@ -130,13 +130,7 @@ A detailed description of every build transformation (paths excluded, comments s
 == Changelog ==
 
 = 2.0.2 =
-* Added branch-coverage tests that exercise the conditional and error paths the public suite does not reach (6 new test files, +63 tests, +0.48% project coverage; documented Windows platform-blocked ceiling in `tests/Unit/SScribe_*_Branches_Test.php`).
-* Migrated real-WP AJAX test base to PHPUnit 11 attributes: 3 `@dataProvider` docblocks → `#[DataProvider]` attributes and added a clean `checkRequirements()` override in both WP testbase classes so the WP testbench's `@deprecated 5.9.0` annotation no longer surfaces as a metadata deprecation in the suite.
-* Hardened the WP testbench subprocess: portable `tests-wp/wp-php-wrapper.php` probes the parent's already-loaded extensions and only forwards `-d extension=sqlite3/-d extension=pdo_sqlite` for the ones missing, eliminating "Module already loaded" warnings on dev boxes where both extensions are already enabled.
-* Wrapped `SScribe_Logger::get_log_file()`'s `protect_directory()` call in a defensive `try/catch` so the post-shutdown destructor never leaks an `InvalidArgumentException` when the testbench's scratch storage paths are torn down before the destructor fires.
-* Tightened `phpunit-wp.xml` to `failOnRisky="true"` and `failOnWarning="true"`; the 5 intentionally-warning-generating branch tests now use `set_error_handler` capture-and-assert rather than lowering the policy or `@`-suppressing the call (thresholds unchanged; warnings still fire and are asserted).
-* Refactored `composer full` into three explicit gates — `composer verify:source` (CI contract), `composer release` (build ZIP), `composer verify:artifact` (post-build validators) — so a regression in any one stage fails the corresponding gate rather than swallowing the diagnostic into a single tail-call.
-* Same shipped runtime as 2.0.1 — no behavioural, security, or compatibility changes for end users.
+* Release-system corrections only. Same shipped runtime as 2.0.1 (branch-coverage tests; PHPUnit 11 migration; portable WP testbench extension loader; defensive `try/catch` in `SScribe_Logger::get_log_file()`; tightened `phpunit-wp.xml`; `composer full` split into three gates).
 
 = 2.0.1 =
 * Refactored the release-blocker registry (Phase 70) so dynamic blockers resolve at certification time from ignored `dist/` evidence instead of requiring a tracked commit to flip `DEFERRED → RESOLVED` — eliminating the SHA circularity the v2.0.0 closeout identified.
@@ -166,7 +160,7 @@ A detailed description of every build transformation (paths excluded, comments s
 == Upgrade Notice ==
 
 = 2.0.2 =
-Release-system and test-infrastructure corrections only. No behavioural, security, or compatibility changes for end users.
+No user-facing changes.
 
 = 2.0.1 =
 Release-system corrections only. No behavioural, security, or compatibility changes for end users. Historical v2.0.0 release was not publicly shipped; v2.0.1 is the public release target.
