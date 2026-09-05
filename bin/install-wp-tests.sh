@@ -104,7 +104,14 @@ if [ ! -f "${WP_TARBALL}" ]; then
 fi
 
 log "Extracting WordPress into ${WP_CORE_DIR}..."
-tar -xzf "${WP_TARBALL}" -C "${CACHE_DIR}"
+# Use Python's tarfile instead of GNU tar. Git-Bash on Windows converts
+# "/c/..." to "C:/..." before handing the path to native tar, and tar's
+# gzip child then interprets "C:" as an rsync-style remote host
+# ("Cannot connect to C: resolve failed"). Even with MSYS_NO_PATHCONV=1
+# exported in the calling shell, the conversion still happens at the
+# native-tar handoff in this script's invocation context. Python's
+# tarfile module is MSYS-agnostic: it opens paths verbatim.
+python -c 'import sys, tarfile; tarfile.open(sys.argv[1]).extractall(sys.argv[2])' "${WP_TARBALL}" "${CACHE_DIR}"
 SRC_DIR="${CACHE_DIR}/wordpress"
 if [ ! -d "${SRC_DIR}" ]; then
 	echo "ERROR: extracted archive does not contain 'wordpress' directory" >&2
