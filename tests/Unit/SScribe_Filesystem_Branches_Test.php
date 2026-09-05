@@ -106,6 +106,55 @@ final class SScribe_Filesystem_Branches_Test extends TestCase {
 		return $instance;
 	}
 
+	/**
+	 * Run an action that intentionally triggers a PHP E_WARNING and
+	 * capture it for assertion. Returning true from the handler stops
+	 * PHPUnit's escalation layer from promoting the warning to a test
+	 * error, but the warning still fires — we observe it, assert on it,
+	 * and restore the previous handler in finally. This is the pattern
+	 * for tests that exercise error-generating code without lowering
+	 * failOnWarning or @-suppressing the call.
+	 *
+	 * @param callable $action The code under test.
+	 * @param string   $needle Substring that must appear in the captured
+	 *                         warning message (proves the right branch
+	 *                         was reached).
+	 * @return mixed  The action's return value.
+	 */
+	private function expect_warning( callable $action, string $needle ) {
+		$captured = null;
+		set_error_handler(
+			static function ( int $errno, string $errstr, string $errfile, int $errline ) use ( &$captured ) {
+				$captured = array(
+					'errno'   => $errno,
+					'errstr'  => $errstr,
+					'errfile' => $errfile,
+					'errline' => $errline,
+				);
+				// Returning true prevents PHP from propagating the
+				// warning to PHPUnit's error handler (which would
+				// otherwise promote it to a test error under
+				// failOnWarning="true").
+				return true;
+			},
+			E_WARNING
+		);
+		try {
+			$result = $action();
+		} finally {
+			restore_error_handler();
+		}
+		if ( null === $captured ) {
+			$this::fail( "Expected a PHP warning containing '{$needle}', but none was raised." );
+		}
+		if ( false === strpos( $captured['errstr'], $needle ) ) {
+			$this::fail(
+				"Expected warning containing '{$needle}', got: {$captured['errstr']}"
+			);
+		}
+		return $result;
+	}
+
 	// ==================================================================
 	// sanitize_path() branches.
 	// ==================================================================
@@ -691,11 +740,16 @@ final class SScribe_Filesystem_Branches_Test extends TestCase {
 		// file_put_contents() reliably returns false when the target is
 		// a directory on both Windows and Linux — the OS reports
 		// "Permission denied" on the open-for-write. Either platform
-		// takes the same error branch on line 253.
+		// takes the same error branch on line 253. The expected warning
+		// is captured and asserted (proves the branch was actually reached)
+		// without suppressing it.
 		$as_dir = $export . '/put-fails-' . uniqid();
 		wp_mkdir_p( $as_dir );
 
-		$result = $fs->put_contents( $as_dir, 'data' );
+		$result = $this->expect_warning(
+			fn () => $fs->put_contents( $as_dir, 'data' ),
+			'file_put_contents'
+		);
 
 		$this::assertFalse( $result );
 		$this::assertSame( 'file_put_contents failed', $fs->get_last_error() );
@@ -843,11 +897,17 @@ final class SScribe_Filesystem_Branches_Test extends TestCase {
 		$export = \SScribe_Private_Storage::get_export_dir();
 		wp_mkdir_p( $export );
 		// Plant a regular file at the location mkdir_under_private_root
-		// would try to descend through; wp_mkdir_p cannot create a
-		// directory beneath a file.
+		// would try to descend through; the bootstrap stub of wp_mkdir_p
+		// forwards to PHP's mkdir() which then warns, and the harden-
+		// directory chmod() afterwards also raises a "No such file or
+		// directory" warning because the target was not actually created.
+		// Capture that expected warning and assert.
 		file_put_contents( $export . '/blocker', 'x' );
 
-		$result = $fs->mkdir_under_private_root( 'blocker/inside' );
+		$result = $this->expect_warning(
+			fn () => $fs->mkdir_under_private_root( 'blocker/inside' ),
+			'chmod'
+		);
 		$this::assertSame( '', $result );
 		// The bootstrap stub wp_mkdir_p() always returns true, so the
 		// post-create resolve check picks up that the target does not
@@ -1063,13 +1123,18 @@ final class SScribe_Filesystem_Branches_Test extends TestCase {
 		if ( 'Windows' === \PHP_OS_FAMILY ) {
 			// Windows honors the read-only attribute via attrib — PHP's
 			// unlink() returns false on a read-only file because the OS
-			// refuses the delete request.
+			// refuses the delete request. The expected unlink() warning
+			// is captured and asserted (proves the branch was reached)
+			// without suppressing it.
 			exec( 'attrib +R ' . escapeshellarg( $target ) );
 		} else {
 			chmod( $target, 0400 );
 		}
 
-		$result = $fs->delete( $target );
+		$result = $this->expect_warning(
+			fn () => $fs->delete( $target ),
+			'unlink'
+		);
 
 		$this::assertFalse( $result );
 		$this::assertSame( 'Failed to delete file', $fs->get_last_error() );

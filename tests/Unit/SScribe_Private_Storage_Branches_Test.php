@@ -53,6 +53,55 @@ final class SScribe_Private_Storage_Branches_Test extends TestCase {
 		return $this->reflection->getMethod( $name )->invoke( null, ...$args );
 	}
 
+	/**
+	 * Run an action that intentionally triggers a PHP E_WARNING and
+	 * capture it for assertion. Returning true from the handler stops
+	 * PHPUnit's escalation layer from promoting the warning to a test
+	 * error, but the warning still fires — we observe it, assert on it,
+	 * and restore the previous handler in finally. This is the pattern
+	 * for tests that exercise error-generating code without lowering
+	 * failOnWarning or @-suppressing the call.
+	 *
+	 * @param callable $action The code under test.
+	 * @param string   $needle Substring that must appear in the captured
+	 *                         warning message (proves the right branch
+	 *                         was reached).
+	 * @return mixed  The action's return value.
+	 */
+	private function expect_warning( callable $action, string $needle ) {
+		$captured = null;
+		set_error_handler(
+			static function ( int $errno, string $errstr, string $errfile, int $errline ) use ( &$captured ) {
+				$captured = array(
+					'errno'   => $errno,
+					'errstr'  => $errstr,
+					'errfile' => $errfile,
+					'errline' => $errline,
+				);
+				// Returning true prevents PHP from propagating the
+				// warning to PHPUnit's error handler (which would
+				// otherwise promote it to a test error under
+				// failOnWarning="true").
+				return true;
+			},
+			E_WARNING
+		);
+		try {
+			$result = $action();
+		} finally {
+			restore_error_handler();
+		}
+		if ( null === $captured ) {
+			$this::fail( "Expected a PHP warning containing '{$needle}', but none was raised." );
+		}
+		if ( false === strpos( $captured['errstr'], $needle ) ) {
+			$this::fail(
+				"Expected warning containing '{$needle}', got: {$captured['errstr']}"
+			);
+		}
+		return $result;
+	}
+
 	// ------------------------------------------------------------------
 	// get_directory_name() filter-return-type branch (line 41).
 	// ------------------------------------------------------------------
@@ -502,11 +551,15 @@ final class SScribe_Private_Storage_Branches_Test extends TestCase {
 		// scandir() raise a warning and return false; lines 515-517 then
 		// early-return false. On some Windows builds scandir() returns an
 		// empty array for a missing path — both outcomes prove the function
-		// ran. We accept either and assert the call did not throw.
-		$result = $this->call_private(
-			'move_directory_contents',
-			sys_get_temp_dir() . '/never-was-source-' . uniqid(),
-			\SScribe_Private_Storage::get_export_dir()
+		// ran. The expected scandir() warning is captured and asserted
+		// (proves the branch was actually reached) without suppressing it.
+		$result = $this->expect_warning(
+			fn () => $this->call_private(
+				'move_directory_contents',
+				sys_get_temp_dir() . '/never-was-source-' . uniqid(),
+				\SScribe_Private_Storage::get_export_dir()
+			),
+			'scandir'
 		);
 		$this::assertIsBool( $result );
 	}
@@ -634,14 +687,18 @@ final class SScribe_Private_Storage_Branches_Test extends TestCase {
 		// tempnam() on Windows silently falls back to %TEMP% when the
 		// supplied directory is read-only, so the attrib +R trick does
 		// not reach the tempnam() call. Instead, point tempnam() at a
-		// non-existent parent: the migration fails at line 599-602.
+		// non-existent parent: the migration fails at line 599-602 with
+		// a rename() warning on the staging file.
 		$source = tempnam( sys_get_temp_dir(), 'sscribe-migrate-src-' );
 		file_put_contents( $source, 'data' );
 
-		$result = $this->call_private(
-			'migrate_file',
-			$source,
-			sys_get_temp_dir() . '/never-was-' . uniqid() . '/dest.bin'
+		$result = $this->expect_warning(
+			fn () => $this->call_private(
+				'migrate_file',
+				$source,
+				sys_get_temp_dir() . '/never-was-' . uniqid() . '/dest.bin'
+			),
+			'rename'
 		);
 
 		@unlink( $source );
