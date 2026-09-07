@@ -433,3 +433,87 @@ if ( function_exists( 'add_filter' ) ) {
 		return 5;
 	} );
 }
+
+// Test-only session reset endpoint. The batch-retry-policy spec runs
+// 4 tests in sequence. Test #1 (429 quota) runs a FULL export to
+// completion, which leaves a session row + `sscribe_active_sid_*`
+// transient in the DB. When test #2 (503) loads the admin page, the
+// startup AJAX `sscribe_check_active_session` finds that session and
+// disables the export button (admin/js/sscribe-admin.js:914). Without
+// a reset, every test after the first 429 quota test inherits the
+// "session in progress" state and the export button never enables.
+//
+// The reset endpoint lives on a non-default URL (`?ssb_test_reset=1`)
+// and is gated to the testbed by checking `WP_DEBUG` + the existence of
+// the bootstrap mu-plugin. Production never sets `?ssb_test_reset=1`
+// on a real user-facing request, but the WP_DEBUG gate is the
+// belt-and-suspenders against accidental exposure. The reset is
+// idempotent and runs once per call (cheap).
+if ( function_exists( 'add_action' ) ) {
+	add_action(
+		'init',
+		function () {
+			if ( ! isset( $_GET['ssb_test_reset'] ) ) {
+				return;
+			}
+			if ( ! defined( 'WP_DEBUG' ) || ! WP_DEBUG ) {
+				return;
+			}
+			global $wpdb;
+			// 1. Delete all sscribe_active_sid_* transients.
+			$active_keys = $wpdb->get_col(
+				$wpdb->prepare(
+					"SELECT option_name FROM {$wpdb->options} WHERE option_name LIKE %s OR option_name LIKE %s",
+					$wpdb->esc_like( '_transient_sscribe_active_sid_' ) . '%',
+					$wpdb->esc_like( '_transient_timeout_sscribe_active_sid_' ) . '%'
+				)
+			);
+			foreach ( (array) $active_keys as $opt ) {
+				delete_option( $opt );
+			}
+			// 2. Delete all sscribe_session_* options (the per-session blob).
+			$session_keys = $wpdb->get_col(
+				$wpdb->prepare(
+					"SELECT option_name FROM {$wpdb->options} WHERE option_name LIKE %s",
+					$wpdb->esc_like( 'sscribe_session_' ) . '%'
+				)
+			);
+			foreach ( (array) $session_keys as $opt ) {
+				delete_option( $opt );
+			}
+			// 3. Clear sscribe_export_session transient (used by sscribe_check_active_session).
+			$wpdb->query(
+				$wpdb->prepare(
+					"DELETE FROM {$wpdb->options} WHERE option_name LIKE %s",
+					$wpdb->esc_like( '_transient_sscribe_export_session' ) . '%'
+				)
+			);
+			$wpdb->query(
+				$wpdb->prepare(
+					"DELETE FROM {$wpdb->options} WHERE option_name LIKE %s",
+					$wpdb->esc_like( '_transient_timeout_sscribe_export_session' ) . '%'
+				)
+			);
+			// 4. Best-effort flush the in-process object cache so the
+			// next read goes to the database and sees the cleared state.
+			if ( function_exists( 'wp_cache_flush_runtime' ) ) {
+				wp_cache_flush_runtime();
+			} else {
+				wp_cache_flush();
+			}
+			// 5. Tell the client we did the work. JSON-only, no auth
+			// check beyond WP_DEBUG; this is mu-plugins/ testbed code
+			// that's never installed in production.
+			header( 'Content-Type: application/json; charset=UTF-8' );
+			echo wp_json_encode(
+				array(
+					'success'           => true,
+					'active_keys_cleared' => count( (array) $active_keys ),
+					'session_keys_cleared' => count( (array) $session_keys ),
+				)
+			);
+			exit;
+		},
+		0
+	);
+}

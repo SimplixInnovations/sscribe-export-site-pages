@@ -85,7 +85,14 @@ async function raceFloor(
   return { fired, elapsedMs: resolvedAt };
 }
 
-async function bootExport(adminPage: import('@playwright/test').Page): Promise<string> {
+async function bootExport(
+  adminPage: import('@playwright/test').Page
+): Promise<string> {
+  // Clear any in-flight session from a prior test before this page loads.
+  // Without this, test #2+ inherits the "session in progress" state from
+  // test #1 (429) and the export button stays disabled.
+  await adminPage.context().request.get('/?ssb_test_reset=1');
+
   await adminPage.goto('/wp-admin/admin.php?page=sscribe-export');
 
   // Wait for counts AJAX so the export button enables.
@@ -283,9 +290,11 @@ test.describe('e2e / export / batch-retry-policy', () => {
 
     // Error UI must surface. The directive's contract: 500 must NOT
     // auto-retry. We poll for the error element appearing (event-driven)
-    // rather than sleeping 6 seconds.
+    // rather than sleeping 6 seconds. The error area is rendered at
+    // `#sscribe-error-area` in admin/partials/sscribe-admin-display.php:798
+    // with classes `sscribe-status-alert sscribe-status-error`.
     await expect(
-      adminPage.locator('#sscribe-error, .sscribe-error, .sscribe-notice-error').first()
+      adminPage.locator('#sscribe-error-area, .sscribe-status-error').first()
     ).toBeVisible({ timeout: 15_000 });
 
     // Confirm no retry: monitor for additional calls during a bounded
