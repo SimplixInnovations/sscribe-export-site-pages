@@ -567,9 +567,9 @@
 				if (isActive) {
 					$panel
 						.addClass('sscribe-tab-active')
-						.removeAttr('aria-hidden')
+						.attr('aria-hidden', 'false')
 						.attr('tabindex', '0')
-						.removeAttr('hidden');
+						.prop('hidden', false);
 				} else {
 					$panel
 						.removeClass('sscribe-tab-active')
@@ -2383,9 +2383,7 @@
 				this.escapeHtml(strings.history_col_actions || 'Actions') +
 				'</span></th>' +
 				'</tr></thead>' +
-				'<tbody aria-rowcount="' +
-				visibleCount +
-				'">';
+				'<tbody>';
 			for (let i = 0; i < visibleCount; i++) {
 				const exp = exports[i] && typeof exports[i] === 'object' ? exports[i] : {};
 				const filename = typeof exp.filename === 'string' ? exp.filename : '';

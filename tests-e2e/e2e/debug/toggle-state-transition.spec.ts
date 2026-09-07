@@ -63,8 +63,10 @@ test.describe('e2e / debug / toggle-state-transition', () => {
 
 		// Flip the toggle (visually). The handler fires saveSettings →
 		// server returns success=false → rollbackDebugControls snaps the
-		// checkbox back to the captured pre-toggle state.
-		await toggle.click();
+		// checkbox back to the captured pre-toggle state. Use `force: true`
+		// to bypass the `.sscribe-toggle-slider` span that overlays the
+		// hidden checkbox input and intercepts pointer events.
+		await toggle.click({ force: true });
 
 		// Wait for the rollback to take effect. The toggle's aria-checked
 		// must equal the initial state (rollback target).
@@ -97,7 +99,7 @@ test.describe('e2e / debug / toggle-state-transition', () => {
 			);
 		});
 
-		await toggle.click();
+		await toggle.click({ force: true });
 
 		// Rollback path: checkbox back to initial state, error feedback
 		// visible with HTTP 500 code.

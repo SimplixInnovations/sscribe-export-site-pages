@@ -30,17 +30,57 @@ test.describe('e2e / export / download-token-auth', () => {
   test('download token is single-use: replay returns 403', async ({ adminPage }) => {
     await adminPage.goto('/wp-admin/admin.php?page=sscribe-export');
 
+    // Wait for counts AJAX to complete first — the export button is
+    // disabled until `sscribe_get_status_counts` returns.
+    await adminPage.waitForResponse(
+      async (r) => {
+        if (!r.url().includes('admin-ajax.php')) return false;
+        try {
+          const pd = r.request().postData() || '';
+          return pd.includes('action=sscribe_get_status_counts');
+        } catch {
+          return false;
+        }
+      },
+      { timeout: 60_000 }
+    );
+    await expect(adminPage.locator('#sscribe-export-btn')).toBeEnabled({ timeout: 30_000 });
+
     // Step 1: trigger a fresh export so we get a token-bearing URL.
-    await adminPage.locator('input[name="sscribe_format"][value="docx"]').check();
-    const startResp = adminPage.waitForResponse((r) =>
-      r.url().includes('action=sscribe_start_export')
+    // `check({ force: true })` bypasses the `.sscribe-format-card-inner`
+    // overlay that intercepts pointer events on the hidden radio
+    // (admin/partials/sscribe-admin-display.php:441-442) and dispatches
+    // the click directly on the input — same result as a real user.
+    await adminPage.locator('input[name="sscribe_format"][value="docx"]').check({ force: true });
+    // jQuery $.ajax puts the action name in the POST body, not the URL —
+    // match against postData() like the counts handler above.
+    const startResp = adminPage.waitForResponse(
+      async (r) => {
+        if (!r.url().includes('admin-ajax.php')) return false;
+        try {
+          const pd = r.request().postData() || '';
+          return pd.includes('action=sscribe_start_export');
+        } catch {
+          return false;
+        }
+      },
+      { timeout: 60_000 }
     );
     await adminPage.locator('#sscribe-export-btn').click();
     await startResp;
 
-    // Wait for the download area to surface (UI signal that export is
-    // complete and the download URL was written to #sscribe-download-btn).
+    // Wait for the download area to surface AND for the production JS to
+    // set the token-bearing href. The fadeIn callback in exportComplete()
+    // (admin/js/sscribe-admin.js:2050) is what writes the href — so we
+    // poll the href attribute itself rather than waiting only for visibility
+    // (the area becomes visible at the START of the 400ms fadeIn, before
+    // the callback runs).
     await expect(adminPage.locator('#sscribe-download-area')).toBeVisible({ timeout: 240_000 });
+    await expect(adminPage.locator('#sscribe-download-btn')).toHaveAttribute(
+      'href',
+      /[?&]token=[a-f0-9]{32}/,
+      { timeout: 30_000 }
+    );
 
     // Capture the token-bearing URL the JS wrote into the link.
     const downloadHref = await adminPage
@@ -65,10 +105,11 @@ test.describe('e2e / export / download-token-auth', () => {
 
     // Step 3: replay the same token. Production rotates the stored value on
     // the first consume, so the second request must be rejected.
+    // `consume_dl_token()` rotates under the per-row lock and returns false;
+    // the handler then issues `wp_die( $msg, '', [ 'response' => 403 ] )`,
+    // which sends the audit message as text/html with HTTP 403.
     const secondStatus = await adminPage.evaluate(async (href) => {
       const r = await fetch(href, { redirect: 'manual', credentials: 'same-origin' });
-      // `wp_die` writes a 403 then echoes the message as text/html — the body
-      // contains "already been used or has expired".
       const body = await r.text();
       return { status: r.status, body };
     }, downloadHref);

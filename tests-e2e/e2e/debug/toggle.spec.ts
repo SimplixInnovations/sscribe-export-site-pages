@@ -16,9 +16,11 @@ import { loginAsAdmin } from '../../helpers/login';
  *   - The toggle (`#sscribe-debug-enabled`) reads/writes the option via AJAX;
  *     it never re-evaluates whether to inject assets.
  *
- * This spec exercises BOTH directions of the toggle to prove the contract
- * holds regardless of the underlying option state. After flipping the toggle
- * OFF (and confirming via AJAX), the assets MUST still be present on the page.
+ * This spec exercises BOTH directions of the toggle (flip via slider, then
+ * save via the Save Settings button — that's the production AJAX path,
+ * see admin/js/sscribe-debug-console.js:712-718: the AJAX action is
+ * `sscribe_debug_save_settings` and is fired only on Save, not on toggle).
+ * After saving, the assets MUST still be present on the page.
  */
 test.describe('e2e / debug / toggle-ui-assets-gating', () => {
   test('debug console assets are enqueued for manage_options users regardless of sscribe_debug_enabled', async ({ browser }) => {
@@ -33,6 +35,15 @@ test.describe('e2e / debug / toggle-ui-assets-gating', () => {
     await debugTab.click();
     const toggle = page.locator('#sscribe-debug-enabled[role="switch"]');
     await expect(toggle).toBeAttached();
+
+    // The toggle's <span class="sscribe-toggle-slider"> is a visual overlay
+    // that sits on top of the hidden <input>. Real users click the slider;
+    // Playwright must click the slider too, otherwise it sees the span
+    // covering the input and refuses to click.
+    const slider = page.locator(
+      'label.sscribe-debug-toggle-label:has(#sscribe-debug-enabled) .sscribe-toggle-slider'
+    );
+    const saveButton = page.locator('#sscribe-debug-save-settings');
 
     const findAssets = () =>
       page.evaluate(() => {
@@ -52,21 +63,36 @@ test.describe('e2e / debug / toggle-ui-assets-gating', () => {
     expect(before.cssLoaded, 'assets must be enqueued in initial state').toBe(true);
     expect(before.jsLoaded, 'assets must be enqueued in initial state').toBe(true);
 
-    // Step 2: flip the toggle via the AJAX path (the same one production
-    // uses). The handler POSTs to sscribe_save_debug_settings, which writes
-    // sscribe_debug_enabled. We wait for the response to confirm the write
-    // happened, then verify the assets are STILL present on the page (the
-    // page is not reloaded; only the option was flipped).
+    // Step 2: flip the toggle. The production flow is:
+    //   1) click slider → input flips + change handler marks Save button dirty
+    //      (admin/js/sscribe-debug-console.js:207-216).
+    //   2) click Save → AJAX POST action=sscribe_debug_save_settings writes
+    //      sscribe_debug_enabled + log_level + auto_refresh
+    //      (admin/js/sscribe-debug-console.js:712-718).
+    // No AJAX fires on the toggle click itself. We wait for the AJAX that
+    // fires on Save.
     const updatedToggleState = await toggle.getAttribute('aria-checked');
     const targetState = updatedToggleState === 'true' ? 'false' : 'true';
 
+    await slider.click();
+    // The save button should now be marked dirty.
+    await expect(saveButton).toHaveClass(/sscribe-button-dirty/);
+
+    // jQuery $.post sends the data as the request body, not in the URL.
+    // The URL is just admin-ajax.php. We must read postData() to check
+    // action=sscribe_debug_save_settings.
     const ajaxResponse = page.waitForResponse(
-      (r) =>
-        r.url().includes('/wp-admin/admin-ajax.php') &&
-        (r.url().includes('sscribe_save_debug_settings') ||
-          r.url().includes('sscribe_toggle_debug'))
+      async (r) => {
+        if (!r.url().includes('/wp-admin/admin-ajax.php')) return false;
+        try {
+          const post = r.request().postData() || '';
+          return post.includes('action=sscribe_debug_save_settings');
+        } catch {
+          return false;
+        }
+      }
     );
-    await toggle.click();
+    await saveButton.click();
     await ajaxResponse;
 
     // Step 3: the toggle's aria-checked must reflect the new state and the

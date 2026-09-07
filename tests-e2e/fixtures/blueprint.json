@@ -3,9 +3,14 @@
   "landingPage": "/wp-admin/admin.php?page=sscribe-export",
   "phpExtensionBundles": ["kitchen-sink"],
   "steps": [
-    { "step": "installPlugin", "pluginZipFile": "/sscribe-build/sscribe-export-site-pages.zip" },
     { "step": "mkdir", "path": "/wordpress/wp-content/mu-plugins" },
     { "step": "writeFile", "path": "/wordpress/wp-content/mu-plugins/sscribe-perf-sink.php", "data": "@@MU_PLUGIN_PERF_SINK@@" },
-    { "step": "wp-cli", "command": "wp rewrite structure '/%postname%/' --hard" }
+    { "step": "mkdir", "path": "/wordpress/wp-content/uploads" },
+    { "step": "writeFile", "path": "/wordpress/wp-content/mu-plugins/00-sscribe-test-bootstrap.php", "data": "@@MU_PLUGIN_SSCRIBE_BOOTSTRAP@@" },
+    { "step": "writeFile", "path": "/wordpress/wp-content/uploads/probe.txt", "data": "PROBE_OK" },
+    { "step": "wp-cli", "command": "wp rewrite structure '/%postname%/' --hard" },
+    { "step": "wp-cli", "command": "wp eval '$f = WP_CONTENT_DIR . \"/uploads/canary.txt\"; file_put_contents($f, \"m=\" . (file_exists(WP_CONTENT_DIR . \"/mu-plugins/00-sscribe-test-bootstrap.php\")?\"Y\":\"N\") . \" p=\" . (file_exists(WP_CONTENT_DIR . \"/uploads/probe.txt\")?\"Y\":\"N\") . \" mu_loaded=\" . (function_exists(\"wp_get_mu_plugins\")?\"Y\":\"N\") . \" active=\" . json_encode(get_option(\"active_plugins\")));'" },
+    { "step": "wp-cli", "command": "wp plugin path --allow-root" },
+    { "step": "wp-cli", "command": "wp plugin list --allow-root --format=json" }
   ]
 }

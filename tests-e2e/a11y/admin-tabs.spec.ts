@@ -30,11 +30,10 @@ test.describe('a11y / admin-tabs', () => {
     const formatDesc = adminPage.locator('.sscribe-format-desc').first();
     await expect(formatDesc).toBeVisible();
 
-    const { color, background, ratio } = await formatDesc.evaluate((el) => {
-      // Resolve the actual drawn colors by walking the parents until we hit a
-      // non-transparent background. format-desc has var(--ss-text-secondary)
-      // on its own bg, but if the cascade ever leaves it transparent the
-      // parent's bg is what the user sees.
+    // Helpers must live inside the page-evaluate closure because Playwright
+    // serialises args across the bridge and function-via-object does not
+    // survive the round trip.
+    const ratio = await formatDesc.evaluate((el) => {
       const cs = window.getComputedStyle(el);
       const fg = parseRGB(cs.color);
       let node: Element | null = el as Element;
@@ -48,8 +47,36 @@ test.describe('a11y / admin-tabs', () => {
         }
         node = node.parentElement;
       }
-      const ratio = contrastRatio(fg, bg);
-      return { color: cs.color, background: `rgb(${bg.r}, ${bg.g}, ${bg.b})`, ratio };
+      return contrastRatio(fg, bg);
+
+      type RGB = { r: number; g: number; b: number; a: number };
+      function parseRGB(value: string): RGB {
+        const m = value.match(/rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)(?:\s*,\s*([0-9.]+))?\s*\)/);
+        if (!m) return { r: 0, g: 0, b: 0, a: 1 };
+        return {
+          r: parseInt(m[1], 10),
+          g: parseInt(m[2], 10),
+          b: parseInt(m[3], 10),
+          a: m[4] !== undefined ? parseFloat(m[4]) : 1,
+        };
+      }
+      function relativeLuminance(c: { r: number; g: number; b: number }): number {
+        const channel = (v: number) => {
+          const s = v / 255;
+          return s <= 0.03928 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4);
+        };
+        return 0.2126 * channel(c.r) + 0.7152 * channel(c.g) + 0.0722 * channel(c.b);
+      }
+      function contrastRatio(
+        fg: { r: number; g: number; b: number },
+        bg: { r: number; g: number; b: number }
+      ): number {
+        const L1 = relativeLuminance(fg);
+        const L2 = relativeLuminance(bg);
+        const lighter = Math.max(L1, L2);
+        const darker = Math.min(L1, L2);
+        return (lighter + 0.05) / (darker + 0.05);
+      }
     });
 
     // WCAG AA normal text requires ≥ 4.5:1. The shipped token
@@ -73,11 +100,11 @@ test.describe('a11y / admin-tabs', () => {
     }
     await expect(langName).toBeVisible();
 
-    const { ratio } = await langName.evaluate((el) => {
+    const ratio = await langName.evaluate((el) => {
       const cs = window.getComputedStyle(el);
       const fg = parseRGB(cs.color);
       let node: Element | null = el as Element;
-      let bg = { r: 255, g: 255, b: 255 };
+      let bg: { r: number; g: number; b: number } = { r: 255, g: 255, b: 255 };
       while (node) {
         const ncs = window.getComputedStyle(node);
         const parsed = parseRGB(ncs.backgroundColor);
@@ -87,7 +114,36 @@ test.describe('a11y / admin-tabs', () => {
         }
         node = node.parentElement;
       }
-      return { ratio: contrastRatio(fg, bg) };
+      return contrastRatio(fg, bg);
+
+      type RGB = { r: number; g: number; b: number; a: number };
+      function parseRGB(value: string): RGB {
+        const m = value.match(/rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)(?:\s*,\s*([0-9.]+))?\s*\)/);
+        if (!m) return { r: 0, g: 0, b: 0, a: 1 };
+        return {
+          r: parseInt(m[1], 10),
+          g: parseInt(m[2], 10),
+          b: parseInt(m[3], 10),
+          a: m[4] !== undefined ? parseFloat(m[4]) : 1,
+        };
+      }
+      function relativeLuminance(c: { r: number; g: number; b: number }): number {
+        const channel = (v: number) => {
+          const s = v / 255;
+          return s <= 0.03928 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4);
+        };
+        return 0.2126 * channel(c.r) + 0.7152 * channel(c.g) + 0.0722 * channel(c.b);
+      }
+      function contrastRatio(
+        fg: { r: number; g: number; b: number },
+        bg: { r: number; g: number; b: number }
+      ): number {
+        const L1 = relativeLuminance(fg);
+        const L2 = relativeLuminance(bg);
+        const lighter = Math.max(L1, L2);
+        const darker = Math.min(L1, L2);
+        return (lighter + 0.05) / (darker + 0.05);
+      }
     });
 
     expect(ratio, `lang-name contrast ${ratio.toFixed(2)}:1 must clear WCAG AA (4.5:1)`).toBeGreaterThanOrEqual(4.5);
@@ -137,36 +193,3 @@ test.describe('a11y / admin-tabs', () => {
     await expect(adminPage.locator('#sscribe-tab-btn-export')).toHaveAttribute('aria-selected', 'false');
   });
 });
-
-// WCAG 2.x relative-luminance helpers — minimal, no external deps.
-type RGB = { r: number; g: number; b: number; a: number };
-
-function parseRGB(value: string): RGB & { r: number; g: number; b: number } {
-  const m = value.match(/rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)(?:\s*,\s*([0-9.]+))?\s*\)/);
-  if (!m) return { r: 0, g: 0, b: 0, a: 1 };
-  return {
-    r: parseInt(m[1], 10),
-    g: parseInt(m[2], 10),
-    b: parseInt(m[3], 10),
-    a: m[4] !== undefined ? parseFloat(m[4]) : 1,
-  };
-}
-
-function relativeLuminance(c: { r: number; g: number; b: number }): number {
-  const channel = (v: number) => {
-    const s = v / 255;
-    return s <= 0.03928 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4);
-  };
-  return 0.2126 * channel(c.r) + 0.7152 * channel(c.g) + 0.0722 * channel(c.b);
-}
-
-function contrastRatio(
-  fg: { r: number; g: number; b: number },
-  bg: { r: number; g: number; b: number }
-): number {
-  const L1 = relativeLuminance(fg);
-  const L2 = relativeLuminance(bg);
-  const lighter = Math.max(L1, L2);
-  const darker = Math.min(L1, L2);
-  return (lighter + 0.05) / (darker + 0.05);
-}

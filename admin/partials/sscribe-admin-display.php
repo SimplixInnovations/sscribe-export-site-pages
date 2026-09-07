@@ -895,7 +895,7 @@ if ( ! function_exists( 'sscribe_humanize_export_filename' ) ) {
 										<th scope="col" class="sscribe-history-col-actions"><span class="screen-reader-text"><?php esc_html_e( 'Actions', 'sscribe-export-site-pages' ); ?></span></th>
 									</tr>
 								</thead>
-								<tbody aria-rowcount="<?php echo count( $sscribe_recent_exports ); ?>">
+								<tbody>
 							<?php foreach ( $sscribe_recent_exports as $sscribe_export_row_index => $sscribe_export ) : ?>
 								<?php
 								$sscribe_date_fmt = sanitize_text_field( (string) get_option( 'date_format', 'Y-m-d' ) );

@@ -5,19 +5,52 @@ test.describe('e2e / export / wizard-happy-path', () => {
   test('full export wizard happy path: select → start → batch → finalize → download', async ({ adminPage }) => {
     await adminPage.goto('/wp-admin/admin.php?page=sscribe-export');
 
-    // Select docx + html format radios. The phantom
-    // `.sscribe-format-card[data-format="…"]` selector is corrected to the
-    // radio inputs cataloged at SELECTORS.md §3.
-    await adminPage.locator('input[name="sscribe_format"][value="docx"]').check();
-    await adminPage.locator('input[name="sscribe_format"][value="html"]').check();
+    // Wait for counts AJAX to complete — the export button is disabled
+    // until `sscribe_get_status_counts` returns. jQuery $.post puts the
+    // data in the request body, so check postData() for the action.
+    await adminPage.waitForResponse(
+      async (r) => {
+        if (!r.url().includes('admin-ajax.php')) return false;
+        try {
+          const pd = r.request().postData() || '';
+          return pd.includes('action=sscribe_get_status_counts');
+        } catch {
+          return false;
+        }
+      },
+      { timeout: 60_000 }
+    );
+    // Wait until the export button reports enabled. The button enables
+    // only after the counts success handler runs (admin/js/sscribe-admin.js:
+    // 679-682), which depends on the language-roundtrip shim succeeding.
+    await expect(adminPage.locator('#sscribe-export-btn')).toBeEnabled({ timeout: 60_000 });
+
+    // Select the docx format. Use `force: true` to bypass the
+    // `.sscribe-format-card-inner` overlay that intercepts pointer events
+    // on the hidden radio input (admin/partials/sscribe-admin-display.php:
+    // 441-442). `check({ force: true })` dispatches the click directly on
+    // the input — same behavior as a real user with keyboard / AT, and
+    // same result (radio becomes :checked, change event fires).
+    await adminPage.locator('input[name="sscribe_format"][value="docx"]').check({ force: true });
 
     // Click Start Export (primary CTA). Phantom `.sscribe-start-export-btn`
-    // is corrected to `#sscribe-export-btn` per SELECTORS.md §22.
-    const startResp = adminPage.waitForResponse((r) =>
-      r.url().includes('/wp-admin/admin-ajax.php') && r.url().includes('action=sscribe_start_export')
+    // is corrected to `#sscribe-export-btn` per SELECTORS.md §22. The
+    // AJAX action name lives in the POST body (jQuery $.ajax pattern),
+    // not the URL — match against postData() like the counts handler.
+    const startResp = adminPage.waitForResponse(
+      async (r) => {
+        if (!r.url().includes('admin-ajax.php')) return false;
+        try {
+          const pd = r.request().postData() || '';
+          return pd.includes('action=sscribe_start_export');
+        } catch {
+          return false;
+        }
+      },
+      { timeout: 60_000 }
     );
     await adminPage.locator('#sscribe-export-btn').click();
-    const start = JSON.parse((await startResp).text());
+    const start = JSON.parse(await (await startResp).text());
     assertJSONOK(start as { success: boolean; [k: string]: unknown });
     const sessionId = (start as { data: { session_id: string } }).data.session_id;
     expect(sessionId).toMatch(/^[a-f0-9]{16}$/);
@@ -35,6 +68,19 @@ test.describe('e2e / export / wizard-happy-path', () => {
     // sees in production.
     await expect(adminPage.locator('#sscribe-download-area')).toBeVisible({ timeout: 240_000 });
 
+    // The fadeIn callback (admin/js/sscribe-admin.js:2050-2053) is what
+    // writes the download URL into `#sscribe-download-btn`; it runs AFTER
+    // the 400ms fadeIn completes. Visibility flips at the START of the
+    // fadeIn, so we additionally wait for the href to be the live ZIP URL
+    // (token-bearing) before clicking. Otherwise the click fires with
+    // `href="#"` and Playwright captures the wrong navigation as a
+    // download with a non-ZIP suggestedFilename.
+    await expect(adminPage.locator('#sscribe-download-btn')).toHaveAttribute(
+      'href',
+      /[?&]token=[a-f0-9]{32}/,
+      { timeout: 30_000 }
+    );
+
     // Download (phantom `.sscribe-download-btn` corrected to
     // `#sscribe-download-btn` per SELECTORS.md §8).
     const downloadPromise = adminPage.waitForEvent('download');
@@ -42,8 +88,12 @@ test.describe('e2e / export / wizard-happy-path', () => {
     const download = await downloadPromise;
     const path = await download.path();
     expect(path).not.toBeNull();
-    // Filename pattern: sscribe-export-{gmdate('Y-m-d-His')}-{6-hex}.zip
-    // Production builds this at includes/class-sscribe-zip-handler.php:135-136.
-    expect(download.suggestedFilename()).toMatch(/^sscribe-export-\d{4}-\d{2}-\d{2}-\d{6}-[a-f0-9]{6}\.zip$/);
+    // Filename pattern (production): {site-name}-{YYYY-MM-DD}-{HHMMSS}-
+    // {lang-tag}-{format}-{6-hex}.zip — the zip-handler derives the base
+    // from the live site name (includes/class-sscribe-zip-handler.php),
+    // NOT the literal string "sscribe-export". We anchor the post-name
+    // part of the filename because that's the contract the ZIP archive
+    // guarantees; the leading site-name segment is host-specific.
+    expect(download.suggestedFilename()).toMatch(/-\d{4}-\d{2}-\d{2}-\d{6}-[a-z0-9-]+-[a-z0-9]{6}\.zip$/i);
   });
 });

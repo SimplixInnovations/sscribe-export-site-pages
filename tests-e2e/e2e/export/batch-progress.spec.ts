@@ -30,7 +30,10 @@ test.describe('e2e / export / batch-progress', () => {
     await expect(progressArea).toHaveAttribute('role', 'status');
 
     // Step 2: start a real export and watch the progress bar advance.
-    await adminPage.locator('input[name="sscribe_format"][value="docx"]').check();
+    // `check({ force: true })` bypasses the `.sscribe-format-card-inner`
+    // overlay that intercepts pointer events on the hidden radio input
+    // (admin/partials/sscribe-admin-display.php:441-442).
+    await adminPage.locator('input[name="sscribe_format"][value="docx"]').check({ force: true });
     const startResp = adminPage.waitForResponse((r) =>
       r.url().includes('action=sscribe_start_export')
     );

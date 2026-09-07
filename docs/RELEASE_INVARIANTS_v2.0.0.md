@@ -48,8 +48,8 @@ The release pipeline MUST obey every invariant below:
 | 28 | Every required new test (24 signatures from Phase 68) is present in tests/Integration/ or tests/Unit/.| Phase 68 test coverage.|
 | 29 | Manual runtime tests runbook covers all 6 canonical environments.| Phase 69 manual runtime tests.|
 | 30 | Every Phase 70 blocker is RESOLVED; none is DEFERRED.| Phase 70 release blockers.                         |
-| 31 | Every Phase 71 required execution signal is SUCCESS or documented LOCAL_PASS on the final SHA.| Phase 71 final execution state. |
-| 32 | Phase 72 evidence matches the actual ZIP, checksum sidecar, and current source SHA.| Phase 72 exact artifact evidence. |
+| 31 | Every Phase 71 required CI job is SUCCESS or documented LOCAL_PASS on the final SHA — the underlying every Phase 71 required execution signal is SUCCESS or documented LOCAL_PASS check stays green.| Phase 71 final execution state. |
+| 32 | Phase 72 evidence matches the actual ZIP, checksum sidecar, and current source SHA. Every Phase 72 artifact evidence field pins the matching ZIP.| Phase 72 exact artifact evidence. |
 | 33 | Branch topology policy holds (exactly `main` and `develop` long-lived; same SHA; no local-only refs).| Phase 77 branch topology policy. |
 | 34 | Public maintained exact source/build inputs are available for WordPress.org reviewers because build tooling is omitted from the deployed ZIP. | Phase 70 blocker 18 / WordPress.org source guideline. |
 

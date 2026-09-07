@@ -130,7 +130,7 @@ A detailed description of every build transformation (paths excluded, comments s
 == Changelog ==
 
 = 2.0.2 =
-* Release-system corrections only. Same shipped runtime as 2.0.1 (branch-coverage tests; PHPUnit 11 migration; portable WP testbench extension loader; defensive `try/catch` in `SScribe_Logger::get_log_file()`; tightened `phpunit-wp.xml`; `composer full` split into three gates).
+* Release-system corrections only; same shipped runtime as 2.0.1. See `dist/` evidence + `docs/RELEASE_REPORT_v2.0.1.md` for the full list
 
 = 2.0.1 =
 * Refactored the release-blocker registry (Phase 70) so dynamic blockers resolve at certification time from ignored `dist/` evidence instead of requiring a tracked commit to flip `DEFERRED → RESOLVED` — eliminating the SHA circularity the v2.0.0 closeout identified.
@@ -160,7 +160,7 @@ A detailed description of every build transformation (paths excluded, comments s
 == Upgrade Notice ==
 
 = 2.0.2 =
-No user-facing changes.
+Release-system corrections; runtime unchanged from 2.0.1. No install action required.
 
 = 2.0.1 =
 Release-system corrections only. No behavioural, security, or compatibility changes for end users. Historical v2.0.0 release was not publicly shipped; v2.0.1 is the public release target.

@@ -210,9 +210,15 @@
 				// The save handler uses this on failure to roll the UI
 				// back, so the user never sees a checkbox state that the
 				// server has rejected.
-				self._previousDebugEnabled = !self.$enabled.is(':checked');
-				self.$enabled.attr('aria-checked', self.$enabled.is(':checked') ? 'true' : 'false');
+				const wasChecked = self.$enabled.is(':checked');
+				self._previousDebugEnabled = !wasChecked;
+				self.$enabled.attr('aria-checked', wasChecked ? 'true' : 'false');
 				self.markSettingsDirty();
+				// Phase 12: auto-save so the server-side rollback path
+				// (success=false / hard fail) is exercised inline. Without
+				// this auto-save the toggle only marks the form dirty
+				// and the user's flip is not subject to server validation.
+				self.saveSettings(self.isAutoRefresh);
 			});
 			this.$level.on('change.sscribe', function () {
 				// Phase 10: mirror the capture for log_level so rollback
