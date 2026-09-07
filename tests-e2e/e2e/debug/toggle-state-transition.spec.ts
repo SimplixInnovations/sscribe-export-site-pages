@@ -109,25 +109,38 @@ test.describe('e2e / debug / toggle-state-transition', () => {
 	});
 
 	test('empty-state taxonomy renders debug_disabled copy when debug is OFF', async ({ adminPage }) => {
-		// Pre-condition: the server is configured with debug_enabled=false
-		// for this test run. WP-Playground seeds the option via
-		// wp-cli on boot, so we read the current toggle state and skip
-		// if it's already ON (we don't want to mutate global state).
+		// Deterministic pre-condition: the mu-plugin bootstrap
+		// (`tests-e2e/fixtures/mu-plugins/00-sscribe-test-bootstrap.php`)
+		// seeds `sscribe_debug_enabled=false` on the first request, so
+		// the toggle reads aria-checked="false" without any prior flip.
+		// No conditional skip — the test is now authoritative.
 		await adminPage.goto('/wp-admin/admin.php?page=sscribe-export');
 		await adminPage.locator('#sscribe-tab-btn-debug').click();
+
 		const toggle = adminPage.locator('#sscribe-debug-enabled[role="switch"]');
-		await expect(toggle).toBeAttached();
-		const ariaInitial = await toggle.getAttribute('aria-checked');
-		if (ariaInitial !== 'false') {
-			test.skip(true, 'debug_enabled=true on this testbed; cannot assert debug_disabled empty-state');
-			return;
-		}
+		await expect(toggle).toHaveAttribute('aria-checked', 'false', { timeout: 10_000 });
+
+		// Event-driven wait: the debug tab renders empty-state via
+		// renderLogs() after the `sscribe_debug_get_logs` AJAX call
+		// completes. Wait for the AJAX response — not arbitrary time.
+		await adminPage.waitForResponse(
+			async (r) => {
+				if (!r.url().includes('admin-ajax.php')) return false;
+				try {
+					const pd = r.request().postData() || '';
+					return pd.includes('action=sscribe_debug_get_logs');
+				} catch {
+					return false;
+				}
+			},
+			{ timeout: 30_000 }
+		);
 
 		// When debug is OFF and the log is empty, renderLogs must show
 		// the debug_disabled copy (state 1 of 5 in the taxonomy), NOT
 		// the default 'No log entries found.' copy.
 		const empty = adminPage.locator('#sscribe-debug-empty p');
-		await expect(empty).toBeVisible();
+		await expect(empty).toBeVisible({ timeout: 10_000 });
 		const text = (await empty.textContent())?.trim() || '';
 		expect(text.toLowerCase()).toContain('disabled');
 		expect(text.toLowerCase()).not.toContain('no log entries found');

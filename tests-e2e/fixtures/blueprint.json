@@ -9,8 +9,8 @@
     { "step": "writeFile", "path": "/wordpress/wp-content/mu-plugins/00-sscribe-test-bootstrap.php", "data": "@@MU_PLUGIN_SSCRIBE_BOOTSTRAP@@" },
     { "step": "writeFile", "path": "/wordpress/wp-content/uploads/probe.txt", "data": "PROBE_OK" },
     { "step": "wp-cli", "command": "wp rewrite structure '/%postname%/' --hard" },
-    { "step": "wp-cli", "command": "wp eval '$f = WP_CONTENT_DIR . \"/uploads/canary.txt\"; file_put_contents($f, \"m=\" . (file_exists(WP_CONTENT_DIR . \"/mu-plugins/00-sscribe-test-bootstrap.php\")?\"Y\":\"N\") . \" p=\" . (file_exists(WP_CONTENT_DIR . \"/uploads/probe.txt\")?\"Y\":\"N\") . \" mu_loaded=\" . (function_exists(\"wp_get_mu_plugins\")?\"Y\":\"N\") . \" active=\" . json_encode(get_option(\"active_plugins\")));'" },
-    { "step": "wp-cli", "command": "wp plugin path --allow-root" },
-    { "step": "wp-cli", "command": "wp plugin list --allow-root --format=json" }
+    { "step": "runPHP", "code": "$count = wp_count_posts('page'); if ((int)$count->publish < 50) { for ($i = ((int)$count->publish + 1); $i <= 50; $i++) { wp_insert_post(array('post_title' => sprintf('Sample Page %02d', $i), 'post_content' => 'Seeded page ' . $i . '.', 'post_status' => 'publish', 'post_type' => 'page', 'post_author' => 1)); } }" },
+    { "step": "wp-cli", "command": "wp rewrite flush --hard" },
+    { "step": "wp-cli", "command": "wp eval '$f = WP_CONTENT_DIR . \"/uploads/canary.txt\"; file_put_contents($f, \"m=\" . (file_exists(WP_CONTENT_DIR . \"/mu-plugins/00-sscribe-test-bootstrap.php\")?\"Y\":\"N\") . \" p=\" . (file_exists(WP_CONTENT_DIR . \"/uploads/probe.txt\")?\"Y\":\"N\") . \" mu_loaded=\" . (function_exists(\"wp_get_mu_plugins\")?\"Y\":\"N\") . \" active=\" . json_encode(get_option(\"active_plugins\")) . \" pages=\" . (int)wp_count_posts(\"page\")->publish);'" }
   ]
 }

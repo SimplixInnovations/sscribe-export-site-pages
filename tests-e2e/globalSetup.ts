@@ -1,34 +1,42 @@
 import { stubFsExt } from './helpers/stub-fs-ext.ts';
-import { spawn, ChildProcess } from 'node:child_process';
 import { mkdirSync, writeFileSync, existsSync, readFileSync, statSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join, dirname } from 'node:path';
+import { join } from 'node:path';
+import { runCLI, type RunCLIServer } from '@wp-playground/cli';
 
 const PLAYGROUND_PORT = 9400;
 const PLAYGROUND_HOST = '127.0.0.1';
 const BOOT_TIMEOUT_MS = 180_000;
 const POLL_INTERVAL_MS = 500;
+const EXPECTED_PAGES = 50;
 
 interface GlobalSetupResult {
   baseURL: string;
+  serverUrl: string;
   teardown: () => Promise<void>;
 }
 
 /**
- * Boots WP-Playground once per Playwright run.
+ * Boots WP-Playground once per Playwright run via the programmatic API.
  *
  * Strategy:
  *   1. Resolve the canonical release ZIP from dist/ (matches package.json
  *      version). Bail loudly if missing.
  *   2. Extract the ZIP into a host staging directory.
- *   3. Mount that staging directory to `/wordpress/wp-content/plugins/<slug>`
- *      so the plugin is visible inside the WASM WordPress filesystem.
- *      WordPress auto-detects plugins in the standard wp-content/plugins
- *      directory on first admin load.
- *   4. Boot the locally installed @wp-playground/cli. Inject NODE_OPTIONS
- *      so the CLI child loads our fs-ext stub before its main module
- *      evaluates (Windows + Node v26 native prebuilt missing).
+ *   3. Build the runtime blueprint with mu-plugin placeholders resolved
+ *      and 50 pages pre-seeded via runPHP (one fast block, not 50 wp-cli
+ *      steps). The plugin is mounted via `--mount-before-install` so the
+ *      plugin file is visible during the WASM VFS init.
+ *   4. Call `runCLI({ command: 'server', ... })` programmatically. The
+ *      returned `RunCLIServer` owns the HTTP server + worker pool for
+ *      the whole Playwright run — no child-process spawn, no version
+ *      drift, no disconnected CLI invocations.
  *   5. Poll `/wp-login.php` until Playground answers sub-500.
+ *   6. Assert boot state: 50 pages exist, plugin is active, admin page
+ *      renders. Fail loudly if any assertion fails — Playwright specs
+ *      depend on this.
+ *   7. Teardown uses `[Symbol.asyncDispose]()` on the returned handle
+ *      so the HTTP server + worker pool shut down deterministically.
  */
 export default async function globalSetup(): Promise<GlobalSetupResult> {
   stubFsExt();
@@ -111,56 +119,36 @@ export default async function globalSetup(): Promise<GlobalSetupResult> {
     blueprintJson = blueprintJson.split(placeholder).join(escaped);
   }
 
+  // Resolve blueprint: either inline object or on-disk path. The
+  // `runCLI` API accepts a parsed BlueprintV1Declaration directly.
+  const blueprint = JSON.parse(blueprintJson) as Record<string, unknown>;
+
   writeFileSync(runtimeBlueprintPath, blueprintJson, 'utf-8');
 
-  // Build the child env with NODE_OPTIONS forcing our fs-ext stub.
-  const stubPath = join(process.cwd(), 'tests-e2e', 'helpers', 'stub-fs-ext.cjs');
-  const childEnv = {
-    ...process.env,
-    NODE_OPTIONS: `--require ${stubPath}${process.env.NODE_OPTIONS ? ' ' + process.env.NODE_OPTIONS : ''}`,
-  } as NodeJS.ProcessEnv;
-
-  // Use the locally installed CLI — `@wp-playground/cli` is declared in
-  // package.json devDependencies and pinned in package-lock.json. Going
-  // through `npx -y @wp-playground/cli@<version>` re-downloads the same
-  // package every run and risks version drift.
-  const cliEntry = join(process.cwd(), 'node_modules', '@wp-playground', 'cli', 'wp-playground.js');
-  if (!existsSync(cliEntry)) {
-    throw new Error(
-      `WP-Playground CLI not installed at ${cliEntry}. Run \`npm ci\` (or \`npm install\`) before \`npm run test:e2e\`.`
-    );
-  }
-
-  // WP-Playground mounts use yargs path quoting — args must be passed as
-  // separate strings, not joined. Use array form (no shell) to avoid
-  // Git-Bash path-mangling (the C:/... prefix issue from memory).
-  const vfsMountPath = `wordpress/wp-content/plugins/${pluginSlug}`;
-  const child = spawn(
-    process.execPath,
-    [
-      cliEntry,
-      'server',
-      `--blueprint=${runtimeBlueprintPath}`,
-      `--port=${PLAYGROUND_PORT}`,
-      // Mount BEFORE WP install so the plugin file is visible during
-      // WP-Playground's worker spawn. After-install mounts in WP-Playground
-      // are re-applied per-worker via applyPostInstallMountsToAllWorkers,
-      // but in practice the file mount on Windows doesn't propagate to
-      // subsequent worker requests reliably. A before-install mount lands
-      // in the initial VFS state and stays.
-      `--mount-dir-before-install`,
-      stagedPluginDir,
-      vfsMountPath,
+  // Boot Playground programmatically. The returned handle owns the
+  // HTTP server + worker pool for the whole Playwright run.
+  // `mount-before-install` lands the plugin in the VFS during the
+  // initial WP install so the file is visible from the first request.
+  const cliServer: RunCLIServer = await runCLI({
+    command: 'server',
+    blueprint,
+    port: PLAYGROUND_PORT,
+    'mount-before-install': [
+      {
+        hostPath: stagedPluginDir,
+        vfsPath: `wordpress/wp-content/plugins/${pluginSlug}`,
+      },
     ],
-    { stdio: ['ignore', 'pipe', 'pipe'], env: childEnv }
-  ) as ChildProcess;
+    quiet: true,
+    skipBrowser: true,
+  });
 
-  // Forward child output to this process so the boot log captures
-  // install-progress and any crash output.
-  child.stdout?.on('data', (d) => process.stdout.write(`[wppg] ${d}`));
-  child.stderr?.on('data', (d) => process.stderr.write(`[wppg] ${d}`));
-
+  const serverUrl = cliServer.serverUrl;
+  // `runCLI` defaults to 127.0.0.1:PORT. Force the host component to
+  // match `PLAYGROUND_HOST` so the Playwright baseURL lines up.
   const baseURL = `http://${PLAYGROUND_HOST}:${PLAYGROUND_PORT}`;
+
+  // Poll /wp-login.php until Playground answers sub-500.
   const start = Date.now();
   let lastStatus: number | null = null;
   while (Date.now() - start < BOOT_TIMEOUT_MS) {
@@ -174,18 +162,59 @@ export default async function globalSetup(): Promise<GlobalSetupResult> {
     await new Promise((res) => setTimeout(res, POLL_INTERVAL_MS));
   }
   if (Date.now() - start >= BOOT_TIMEOUT_MS) {
-    child.kill('SIGTERM');
+    await cliServer[Symbol.asyncDispose]();
     throw new Error(`WP-Playground boot exceeded ${BOOT_TIMEOUT_MS}ms (last seen status: ${lastStatus})`);
   }
   // eslint-disable-next-line no-console
-  console.log(`[globalSetup] WP-Playground booted in ${Date.now() - start}ms (last status: ${lastStatus})`);
+  console.log(`[globalSetup] WP-Playground booted in ${Date.now() - start}ms (last status: ${lastStatus}, serverUrl: ${serverUrl})`);
+
+  // Boot-state assertion: 50 pages exist, plugin is active, admin page
+  // renders. Fail loudly — Playwright specs depend on these guarantees.
+  const bootReport = await assertBootState(baseURL);
+  // eslint-disable-next-line no-console
+  console.log(`[globalSetup] boot-state OK: pages=${bootReport.pages} plugin_active=${bootReport.plugin_active} admin_status=${bootReport.admin_status}`);
 
   return {
     baseURL,
+    serverUrl,
     teardown: async () => {
-      child.kill('SIGTERM');
-      await new Promise((res) => setTimeout(res, 5000));
-      if (!child.killed) child.kill('SIGKILL');
+      await cliServer[Symbol.asyncDispose]();
     },
   };
 }
+
+interface BootReport {
+  pages: number;
+  plugin_active: boolean;
+  admin_status: number;
+}
+
+async function assertBootState(baseURL: string): Promise<BootReport> {
+  // Read pages count via a non-AJAX endpoint (canary file written by
+  // the Blueprint wp-cli eval step). If the file is missing, the
+  // Blueprint failed — fail loudly.
+  const canaryResp = await fetch(`${baseURL}/wp-content/uploads/canary.txt`);
+  if (canaryResp.status !== 200) {
+    throw new Error(`boot-state: canary file missing (status ${canaryResp.status}) — Blueprint did not finish`);
+  }
+  const canaryText = await canaryResp.text();
+  const pagesMatch = canaryText.match(/pages=(\d+)/);
+  const activeMatch = canaryText.match(/active=([^"\s]+)/);
+  const pages = pagesMatch ? parseInt(pagesMatch[1], 10) : 0;
+  // active_plugins is a JSON array; just look for the plugin slug.
+  const plugin_active = activeMatch ? activeMatch[1].includes(plugin_slug_check) : false;
+  if (pages < EXPECTED_PAGES) {
+    throw new Error(`boot-state: expected at least ${EXPECTED_PAGES} pages, found ${pages}`);
+  }
+  // Verify the admin page renders (status 200 or 302 redirect to login).
+  const adminResp = await fetch(`${baseURL}/wp-admin/admin.php?page=sscribe-export`, {
+    redirect: 'manual',
+  });
+  const admin_status = adminResp.status;
+  if (admin_status >= 500) {
+    throw new Error(`boot-state: admin page returned ${admin_status} — plugin not loading?`);
+  }
+  return { pages, plugin_active, admin_status };
+}
+
+const plugin_slug_check = 'sscribe-export-site-pages';

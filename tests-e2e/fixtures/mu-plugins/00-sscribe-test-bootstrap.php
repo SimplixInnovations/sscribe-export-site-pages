@@ -229,6 +229,17 @@ if ( function_exists( 'add_action' ) ) {
 			update_option( 'active_plugins', $active );
 		}
 
+		// Deterministic debug-console seed. The toggle-state-transition
+		// empty-state test depends on `sscribe_debug_enabled=false` so the
+		// debug-disabled copy (not "no log entries found") renders.
+		// Without this explicit seed the test would race against plugin
+		// defaults and skip — leaving the empty-state taxonomy
+		// uncovered. Seed is autoload=yes so the page JS reads it
+		// synchronously on first paint.
+		update_option( 'sscribe_debug_enabled', '0', true );
+		update_option( 'sscribe_debug_log_level', 'INFO', true );
+		update_option( 'sscribe_debug_auto_refresh', '0', true );
+
 		// Heartbeat file (overwrite).
 		$hb = json_encode( array(
 			'ts'              => gmdate( 'c' ),
@@ -393,3 +404,15 @@ register_shutdown_function( function () use ( $ssb_log_dir ) {
 		FILE_APPEND
 	);
 } );
+
+// Test-env deterministic batch size. The 50-page Blueprint seed yields
+// 10 batches at size 5 (matches the production default), which is fast
+// enough on slow WASM for the E2E progress + retry specs without
+// skipping the multi-batch transition. Without this, the resource
+// monitor may grow the batch size to 20 and a 50-page DOCX export can
+// approach the 6-minute WASM timeout ceiling.
+if ( function_exists( 'add_filter' ) ) {
+	add_filter( 'sscribe_batch_size', static function () {
+		return 5;
+	} );
+}

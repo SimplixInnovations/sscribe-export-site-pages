@@ -17,6 +17,15 @@ import { test, expect } from '../../fixtures/shared';
  * `aria-live="polite" → aria-live="off"` on the admin partial. The spec
  * below asserts the live attribute is preserved AND that updates actually
  * land in the live region during a real export.
+ *
+ * Determinism:
+ *   - Blueprint seeds 50 pages via runPHP (tests-e2e/fixtures/blueprint.json).
+ *   - The mu-plugin bootstrap pins `sscribe_batch_size=5` so the export
+ *     produces 10 deterministic batches instead of letting the resource
+ *     monitor grow the batch size to 20 (which on slow WASM can blow
+ *     past the per-test timeout ceiling).
+ *   - Timeouts are tuned for WP-Playground: 30s for the first batch
+ *     transition, 90s for completion.
  */
 test.describe('e2e / export / batch-progress', () => {
   test('progress-area exposes aria-live=polite and updates as the export advances', async ({ adminPage }) => {
@@ -29,13 +38,37 @@ test.describe('e2e / export / batch-progress', () => {
     await expect(progressArea).toHaveAttribute('aria-live', 'polite');
     await expect(progressArea).toHaveAttribute('role', 'status');
 
+    // Wait for counts AJAX so the export button enables.
+    await adminPage.waitForResponse(
+      async (r) => {
+        if (!r.url().includes('admin-ajax.php')) return false;
+        try {
+          const pd = r.request().postData() || '';
+          return pd.includes('action=sscribe_get_status_counts');
+        } catch {
+          return false;
+        }
+      },
+      { timeout: 60_000 }
+    );
+    await expect(adminPage.locator('#sscribe-export-btn')).toBeEnabled({ timeout: 30_000 });
+
     // Step 2: start a real export and watch the progress bar advance.
     // `check({ force: true })` bypasses the `.sscribe-format-card-inner`
     // overlay that intercepts pointer events on the hidden radio input
     // (admin/partials/sscribe-admin-display.php:441-442).
     await adminPage.locator('input[name="sscribe_format"][value="docx"]').check({ force: true });
-    const startResp = adminPage.waitForResponse((r) =>
-      r.url().includes('action=sscribe_start_export')
+    const startResp = adminPage.waitForResponse(
+      async (r) => {
+        if (!r.url().includes('admin-ajax.php')) return false;
+        try {
+          const pd = r.request().postData() || '';
+          return pd.includes('action=sscribe_start_export');
+        } catch {
+          return false;
+        }
+      },
+      { timeout: 60_000 }
     );
     await adminPage.locator('#sscribe-export-btn').click();
     await startResp;
@@ -51,15 +84,16 @@ test.describe('e2e / export / batch-progress', () => {
     const initial = (await statusText.textContent())?.trim() || '';
     expect(initial.length, 'progress area must show initial status text').toBeGreaterThan(0);
 
-    // Wait for the progress bar to advance at least once. The bar's
-    // aria-valuenow is the canonical progress signal for AT.
+    // Step 4: wait for the FIRST batch transition. 30s is generous on
+    // slow WASM (50 pages / batch_size=5 → ~10 batches; first batch
+    // should land within seconds once PHP is warm).
     await expect
       .poll(
         async () => {
           const now = await adminPage.locator('#sscribe-progress-bar').getAttribute('aria-valuenow');
           return parseInt(now || '0', 10);
         },
-        { timeout: 120_000, intervals: [1_000] }
+        { timeout: 30_000, intervals: [1_000] }
       )
       .toBeGreaterThan(0);
 
@@ -72,8 +106,9 @@ test.describe('e2e / export / batch-progress', () => {
     // (some mutations could remove aria-live while the area is visible).
     await expect(progressArea).toHaveAttribute('aria-live', 'polite');
 
-    // Wait for completion via the same UI signal the wizard-happy-path
-    // test uses — `#sscribe-download-area` becomes visible.
-    await expect(adminPage.locator('#sscribe-download-area')).toBeVisible({ timeout: 240_000 });
+    // Step 5: wait for completion via the same UI signal the
+    // wizard-happy-path test uses — `#sscribe-download-area` becomes
+    // visible. 90s is generous for 10 batches on WASM.
+    await expect(adminPage.locator('#sscribe-download-area')).toBeVisible({ timeout: 90_000 });
   });
 });
