@@ -133,6 +133,33 @@ export default async function globalSetup(): Promise<GlobalSetupResult> {
 
   writeFileSync(runtimeBlueprintPath, blueprintJson, 'utf-8');
 
+  // Pre-flight: clear any stale process still holding PLAYGROUND_PORT.
+  // A previous run's WP-Playground worker pool may have crashed or been
+  // SIGKILL'd without disposing the HTTP server. `runCLI` would then
+  // fail with EADDRINUSE. Best-effort: find the PID via netstat and kill
+  // it via taskkill. No-op if the port is free.
+  try {
+    const { execFileSync } = await import('node:child_process');
+    // On Git-Bash on Windows, `netstat -ano` parses cleanly; on Linux it's
+    // identical. Strip the IPv4 + IPv6 LISTENING rows that mention the port.
+    const netstatOut = execFileSync('netstat', ['-ano'], { encoding: 'utf-8' });
+    const portRe = new RegExp(`^\\s*(?:TCP|UDP)\\s+.*[:.]${PLAYGROUND_PORT}\\s+.*LISTENING\\s+(\\d+)\\s*$`, 'm');
+    const m = netstatOut.match(portRe);
+    if (m && m[1]) {
+      const pid = m[1];
+      try {
+        execFileSync('taskkill', ['/F', '/PID', pid], { stdio: 'ignore' });
+        // eslint-disable-next-line no-console
+        console.log(`[globalSetup] cleared stale listener on :${PLAYGROUND_PORT} (pid ${pid})`);
+        await new Promise((res) => setTimeout(res, 500));
+      } catch {
+        // ignore -- taskkill may fail if the process already exited
+      }
+    }
+  } catch {
+    // ignore -- netstat may not be on PATH in some sandboxes
+  }
+
   // Boot Playground programmatically. The returned handle owns the
   // HTTP server + worker pool for the whole Playwright run.
   // `mount-before-install` lands the plugin in the VFS during the
