@@ -44,6 +44,12 @@ const isProcessBatch = (postData: string | null | undefined): boolean =>
   typeof postData === 'string' &&
   postData.includes('action=sscribe_process_batch');
 
+type TableJson = {
+  success?: boolean;
+  data?: { has_active?: boolean; [k: string]: unknown };
+  [k: string]: unknown;
+};
+
 const syntheticJson = (status: number, body: object): { status: number; contentType: string; body: string } => ({
   status,
   contentType: 'application/json; charset=UTF-8',
@@ -88,51 +94,111 @@ async function raceFloor(
 async function bootExport(
   adminPage: import('@playwright/test').Page
 ): Promise<string> {
-  // Cancel any in-flight session from a prior test by POSTing
-  // sscribe_cancel_export for every live session currently in
-  // sscribe_session_*. Without this, the long-running batch loop
-  // from test #1 keeps processing in the background and re-creates
-  // the transient on every polling tick, leaving has_active=true
-  // for test #2 (the DB DELETE in the reset endpoint is overridden
-  // by the next batch within ~1.5s).
+  // Cancel any in-flight session from a prior test, then wipe the
+  // row-level state. Step 4 of the directive asked whether cancel-all
+  // is necessary: tried reset-only and got 1/4 PASS (the disabled-
+  // button residue returned for tests 2-4 because the cancel-all-
+  // delete of the encrypted session rows is the only path that
+  // reliably overrides the JS batch loop's per-tick re-creation of
+  // the transient). Both endpoints are retained.
   await adminPage.context().request.get('/?ssb_test_cancel_all=1');
-  // Also wipe the row-level state for any leftover residue.
   await adminPage.context().request.get('/?ssb_test_reset=1');
+
+  // Install persistent response listeners BEFORE goto. The page's
+  // init() fires sscribe_get_status_counts + sscribe_check_active_session
+  // roughly simultaneously. waitForResponse registered AFTER goto
+  // may miss the response that landed during goto's own wait. We
+  // own a rolling "last response" buffer keyed by action name.
+  let lastActive: { hasActive: boolean; ts: number } | null = null;
+  let countsSeenAt: number | null = null;
+  const installedAt = Date.now();
+  const responseHandler = (resp: import('@playwright/test').Response): void => {
+    if (resp.request().url().includes('admin-ajax.php') && resp.status() < 500) {
+      const trace = process.env.SS_DIAG_RETRY;
+      void resp.text().then((text) => {
+        try {
+          const body = JSON.parse(text) as TableJson;
+          const pd = resp.request().postData() || '';
+          if (pd.includes('action=sscribe_check_active_session')) {
+            // Rate-limited (429) responses have success=false and no
+            // data.has_active — treat as "still unknown" (leave
+            // lastActive untouched so the loop continues).
+            if (body.success === true && typeof body.data?.has_active === 'boolean') {
+              lastActive = {
+                hasActive: body.data.has_active !== false,
+                ts: Date.now(),
+              };
+              if (trace) console.log(`diag: handler check_active_session has_active=${lastActive.hasActive} ts=${lastActive.ts}`);
+            } else if (trace) {
+              console.log(`diag: handler check_active_session non-success status=${resp.status()} body=${JSON.stringify(body).slice(0, 200)}`);
+            }
+          } else if (pd.includes('action=sscribe_get_status_counts')) {
+            // Only mark counts as seen when the response is genuinely
+            // successful — a rate-limited counts response is not
+            // proof that the counts AJAX pipeline is healthy.
+            if (body.success === true) {
+              countsSeenAt = Date.now();
+              if (trace) console.log(`diag: handler get_status_counts ts=${countsSeenAt}`);
+            } else if (trace) {
+              console.log(`diag: handler get_status_counts non-success status=${resp.status()}`);
+            }
+          }
+        } catch {
+          // ignore parse errors
+        }
+      }).catch(() => undefined);
+    }
+  };
+  adminPage.on('response', responseHandler);
+  // The active session check can be polled by the page repeatedly —
+  // keep the listener installed across all attempts.
 
   await adminPage.goto('/wp-admin/admin.php?page=sscribe-export');
 
-  // Wait for the check_active_session AJAX to confirm a clean state.
-  // The first request may return has_active=false quickly OR may be
-  // rate-limited (a previous test burned the budget). In both cases
-  // the response has the keys we expect, so we can proceed once
-  // any check_active_session response lands with `data.has_active`
-  // present and `false`.
-  await adminPage.waitForResponse(
-    async (r) => {
-      if (!r.url().includes('admin-ajax.php')) return false;
-      try {
-        const pd = r.request().postData() || '';
-        return pd.includes('action=sscribe_check_active_session');
-      } catch {
-        return false;
+  // Wait for check_active_session to land with has_active=false.
+  // 30 attempts (each ~0.5s wait = up to 15s) because the page's
+  // check_active_session polls roughly every 5-10s — too short, the
+  // next page load may not even fire one before our reload re-tries.
+  for (let attempt = 0; attempt < 30; attempt += 1) {
+    // First wait for a check_active_session response AFTER goto.
+    let foundClean = false;
+    for (let waited = 0; waited < 30 && !foundClean; waited += 1) {
+      await adminPage.waitForTimeout(500);
+      if (lastActive && lastActive.ts >= installedAt && !lastActive.hasActive) {
+        foundClean = true;
       }
-    },
-    { timeout: 30_000 }
-  );
+    }
+    if (process.env.SS_DIAG_RETRY) {
+      console.log(`diag: attempt=${attempt} foundClean=${foundClean} lastActive=${JSON.stringify(lastActive)} countsSeenAt=${countsSeenAt} installedAt=${installedAt}`);
+    }
+    if (foundClean) break;
+    if (attempt === 29) {
+      adminPage.off('response', responseHandler);
+      throw new Error(
+        `bootExport: has_active still true after ${attempt + 1} reset attempts ` +
+        `(lastActive=${JSON.stringify(lastActive)})`
+      );
+    }
+    // Re-run cleanup and reload to get a fresh check_active_session probe.
+    await adminPage.context().request.get('/?ssb_test_cancel_all=1');
+    await adminPage.context().request.get('/?ssb_test_reset=1');
+    // Wait so the prior test's process_batch in-flight has time to drain.
+    await adminPage.waitForTimeout(500);
+    await adminPage.reload();
+  }
 
   // Wait for counts AJAX so the export button enables.
-  await adminPage.waitForResponse(
-    async (r) => {
-      if (!r.url().includes('admin-ajax.php')) return false;
-      try {
-        const pd = r.request().postData() || '';
-        return pd.includes('action=sscribe_get_status_counts');
-      } catch {
-        return false;
-      }
-    },
-    { timeout: 60_000 }
-  );
+  for (let waited = 0; waited < 60 && countsSeenAt === null; waited += 1) {
+    await adminPage.waitForTimeout(1000);
+  }
+  if (process.env.SS_DIAG_RETRY) {
+    console.log(`diag: countsSeenAt=${countsSeenAt} (after loop)`);
+  }
+  if (countsSeenAt === null) {
+    adminPage.off('response', responseHandler);
+    throw new Error('bootExport: sscribe_get_status_counts did not fire within 60s after goto');
+  }
+  adminPage.off('response', responseHandler);
   await expect(adminPage.locator('#sscribe-export-btn')).toBeEnabled({ timeout: 30_000 });
 
   await adminPage

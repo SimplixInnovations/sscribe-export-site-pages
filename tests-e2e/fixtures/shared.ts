@@ -20,6 +20,16 @@ export const test = base.extend<SharedFixtures>({
     await loginAsAdmin(page);
     await use(page);
     const errors = await drainPluginErrors(page);
+    // Step 5 stability fix: close the page BEFORE the next test gets
+    // its own fresh page. Without this, the previous test's browser
+    // context stays alive for several hundred ms while Playwright
+    // constructs the next one — long enough for any in-flight
+    // SScribe batch poll to land a `process_batch` call that recreates
+    // the `_transient_sscribe_export_session` row. The next test's
+    // bootExport then races against that re-creation for ~9 minutes.
+    if (!page.isClosed()) {
+      await page.close().catch(() => undefined);
+    }
     if (errors.length > 0) {
       throw new Error(`Plugin fired ${errors.length} runtime error(s):\n${JSON.stringify(errors, null, 2)}`);
     }

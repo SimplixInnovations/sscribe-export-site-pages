@@ -7,6 +7,22 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+// SSCRIBE_E2E_TESTBED gate. The test-only reset / cancel /
+// diagnostic endpoints in this mu-plugin are reachable on
+// production URLs only when this constant is true. The
+// bootstrap mu-plugin exists ONLY in the E2E blueprint
+// (tests-e2e/fixtures/mu-plugins/); it is never installed on
+// production sites. This constant is the single source of
+// truth for "we're in a testbed" — the WP_DEBUG constant is
+// not defined by the blueprint and can leak false positives
+// (e.g. WP_DEBUG=false in production, or undefined anywhere
+// the testbed is run). Each endpoint checks this constant
+// at its own guard point (not in a wrapper) so that the
+// dependency is local and obvious.
+if ( ! defined( 'SSCRIBE_E2E_TESTBED' ) ) {
+	define( 'SSCRIBE_E2E_TESTBED', true );
+}
+
 $ssb_log_dir = WP_CONTENT_DIR . '/uploads';
 if ( ! is_dir( $ssb_log_dir ) ) {
 	@wp_mkdir_p( $ssb_log_dir );
@@ -456,7 +472,7 @@ if ( function_exists( 'add_action' ) ) {
 			if ( ! isset( $_GET['ssb_test_reset'] ) ) {
 				return;
 			}
-			if ( ! defined( 'WP_DEBUG' ) || ! WP_DEBUG ) {
+			if ( ! defined( 'SSCRIBE_E2E_TESTBED' ) || true !== SSCRIBE_E2E_TESTBED ) {
 				return;
 			}
 			global $wpdb;
@@ -550,7 +566,7 @@ if ( function_exists( 'add_action' ) ) {
 			if ( ! isset( $_GET['ssb_session_count'] ) ) {
 				return;
 			}
-			if ( ! defined( 'WP_DEBUG' ) || ! WP_DEBUG ) {
+			if ( ! defined( 'SSCRIBE_E2E_TESTBED' ) || true !== SSCRIBE_E2E_TESTBED ) {
 				return;
 			}
 			global $wpdb;
@@ -604,7 +620,7 @@ if ( function_exists( 'add_action' ) ) {
 			if ( ! isset( $_GET['ssb_test_cancel_all'] ) ) {
 				return;
 			}
-			if ( ! defined( 'WP_DEBUG' ) || ! WP_DEBUG ) {
+			if ( ! defined( 'SSCRIBE_E2E_TESTBED' ) || true !== SSCRIBE_E2E_TESTBED ) {
 				return;
 			}
 			global $wpdb;
@@ -706,7 +722,7 @@ if ( function_exists( 'add_action' ) ) {
 	add_action(
 		'admin_init',
 		function () {
-			if ( ! defined( 'WP_DEBUG' ) || ! WP_DEBUG ) {
+			if ( ! defined( 'SSCRIBE_E2E_TESTBED' ) || true !== SSCRIBE_E2E_TESTBED ) {
 				return;
 			}
 			// Only when we're actually on the export page.

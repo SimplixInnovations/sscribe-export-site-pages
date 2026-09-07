@@ -209,6 +209,20 @@ export default async function globalSetup(): Promise<GlobalSetupResult> {
   // eslint-disable-next-line no-console
   console.log(`[globalSetup] boot-state OK: pages=${bootReport.pages} plugin_active=${bootReport.plugin_active} admin_status=${bootReport.admin_status}`);
 
+  // Step 5 stability fix: prime the testbed by running cancel-all +
+  // reset ONCE before the first test fires. Without this, the SQLite
+  // database can carry session rows / transients from prior runs (the
+  // WP-Playground VFS persists for the lifetime of the WASM workers),
+  // and the very first test of every boot race-loses. Both endpoints
+  // are idempotent — safe to call on a fresh DB.
+  try {
+    const cancel = await fetch(`${baseURL}/?ssb_test_cancel_all=1`);
+    const reset = await fetch(`${baseURL}/?ssb_test_reset=1`);
+    console.log(`[globalSetup] pre-test priming: cancel-all status=${cancel.status} reset status=${reset.status}`);
+  } catch (e) {
+    console.warn(`[globalSetup] pre-test priming failed (non-fatal): ${(e as Error).message}`);
+  }
+
   return {
     baseURL,
     serverUrl,

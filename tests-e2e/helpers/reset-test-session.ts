@@ -14,9 +14,20 @@ import { request, type APIRequestContext } from '@playwright/test';
  * export button never enables.
  *
  * The reset endpoint lives at `?ssb_test_reset=1` on any URL, gated by
- * WP_DEBUG + mu-plugin presence in
+ * the `SSCRIBE_E2E_TESTBED` constant defined in
  * `tests-e2e/fixtures/mu-plugins/00-sscribe-test-bootstrap.php`. Never
  * reachable in production because the mu-plugin is testbed-only.
+ *
+ * FAIL LOUD: a failed reset must fail the test setup at the reset call,
+ * not manifest 30 seconds later as a disabled Export button. The helper
+ * throws on:
+ *   - non-2xx status
+ *   - non-JSON Content-Type
+ *   - malformed JSON body
+ *   - JSON body where success !== true
+ *
+ * The thrown error carries status, content-type, and a body prefix
+ * (first 400 chars) so a CI failure log points at the exact cause.
  *
  * Usage: call once before each retry-policy test's `adminPage.goto()`:
  *   await resetTestSession(request, baseURL);
@@ -26,15 +37,90 @@ import { request, type APIRequestContext } from '@playwright/test';
 export async function resetTestSession(
   req: APIRequestContext | { request: APIRequestContext },
   baseURL: string
-): Promise<{ active_keys_cleared: number; session_keys_cleared: number } | null> {
+): Promise<{ active_keys_cleared: number; session_keys_cleared: number }> {
   const apiReq = 'request' in req ? req.request : req;
-  const resp = await apiReq.get(`${baseURL}/?ssb_test_reset=1`);
+  const url = `${baseURL}/?ssb_test_reset=1`;
+  const resp = await apiReq.get(url, { headers: { Accept: 'application/json' } });
   if (!resp.ok()) {
-    return null;
+    throw new Error(
+      `[resetTestSession] HTTP ${resp.status()} from ${url} (expected 2xx). ` +
+      `content-type=${resp.headers()['content-type'] || 'none'}`
+    );
   }
+  const ct = (resp.headers()['content-type'] || '').toLowerCase();
+  if (!ct.includes('application/json')) {
+    const body = (await resp.text()).slice(0, 400);
+    throw new Error(
+      `[resetTestSession] non-JSON response from ${url}. ` +
+      `content-type=${ct} body=${JSON.stringify(body)}`
+    );
+  }
+  let body: unknown;
   try {
-    return await resp.json();
-  } catch {
-    return null;
+    body = await resp.json();
+  } catch (e) {
+    const raw = await resp.text().catch(() => '<unreadable>');
+    throw new Error(
+      `[resetTestSession] malformed JSON from ${url}: ${(e as Error).message}. ` +
+      `body_prefix=${JSON.stringify(raw.slice(0, 400))}`
+    );
   }
+  const ok = typeof body === 'object' && body !== null && (body as { success?: unknown }).success === true;
+  if (!ok) {
+    throw new Error(
+      `[resetTestSession] success !== true from ${url}. body=${JSON.stringify(body).slice(0, 400)}`
+    );
+  }
+  return body as { active_keys_cleared: number; session_keys_cleared: number };
+}
+
+/**
+ * Test-only helper: cancel every in-flight SScribe export session
+ * across all users via the testbed cancel-all endpoint. The endpoint
+ * marks each session as `cancelled=true` in the WP DB.
+ *
+ * FAIL LOUD contract: same as resetTestSession. See the JSDoc above for
+ * the throw conditions and rationale.
+ *
+ * Usage: call before resetTestSession when a prior test left a live
+ * batch loop running that re-creates the transient row on every tick.
+ */
+export async function cancelAllSessions(
+  req: APIRequestContext | { request: APIRequestContext },
+  baseURL: string
+): Promise<{ success: boolean; cancelled_count: number }> {
+  const apiReq = 'request' in req ? req.request : req;
+  const url = `${baseURL}/?ssb_test_cancel_all=1`;
+  const resp = await apiReq.get(url, { headers: { Accept: 'application/json' } });
+  if (!resp.ok()) {
+    throw new Error(
+      `[cancelAllSessions] HTTP ${resp.status()} from ${url} (expected 2xx). ` +
+      `content-type=${resp.headers()['content-type'] || 'none'}`
+    );
+  }
+  const ct = (resp.headers()['content-type'] || '').toLowerCase();
+  if (!ct.includes('application/json')) {
+    const body = (await resp.text()).slice(0, 400);
+    throw new Error(
+      `[cancelAllSessions] non-JSON response from ${url}. ` +
+      `content-type=${ct} body=${JSON.stringify(body)}`
+    );
+  }
+  let body: unknown;
+  try {
+    body = await resp.json();
+  } catch (e) {
+    const raw = await resp.text().catch(() => '<unreadable>');
+    throw new Error(
+      `[cancelAllSessions] malformed JSON from ${url}: ${(e as Error).message}. ` +
+      `body_prefix=${JSON.stringify(raw.slice(0, 400))}`
+    );
+  }
+  const ok = typeof body === 'object' && body !== null && (body as { success?: unknown }).success === true;
+  if (!ok) {
+    throw new Error(
+      `[cancelAllSessions] success !== true from ${url}. body=${JSON.stringify(body).slice(0, 400)}`
+    );
+  }
+  return body as { success: boolean; cancelled_count: number };
 }
