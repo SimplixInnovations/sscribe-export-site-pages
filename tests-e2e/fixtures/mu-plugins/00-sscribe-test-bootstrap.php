@@ -543,3 +543,86 @@ if ( function_exists( 'add_action' ) ) {
 		0
 	);
 }
+
+// Belt-and-suspenders: when the admin lands on the export page, run
+// the same session-state cleanup AT THE TOP of that request so the
+// in-process object cache is clean before any AJAX check_active_session
+// fires. The reset endpoint (above) handles the standalone API call
+// from bootExport(). This hook handles the browser-side page load.
+// Both are idempotent.
+//
+// Why both: the reset endpoint fires on a SEPARATE PHP request from
+// the admin page load. WP-Playground uses no persistent external
+// object cache, but the LIKE-scan index is cached for MINUTE_IN_SECONDS
+// via wp_cache_set() with no group-level purge from the endpoint's
+// wp_cache_flush(). Running the cleanup once again on the next page
+// load guarantees that the AJAX AJAX 'sscribe_check_active_session'
+// sees an empty index in the SAME PHP process that serves it.
+if ( function_exists( 'add_action' ) ) {
+	add_action(
+		'admin_init',
+		function () {
+			if ( ! defined( 'WP_DEBUG' ) || ! WP_DEBUG ) {
+				return;
+			}
+			// Only when we're actually on the export page.
+			// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- No nonce on GET; gated by WP_DEBUG.
+			$page = isset( $_GET['page'] ) ? sanitize_text_field( wp_unslash( $_GET['page'] ) ) : '';
+			if ( 'sscribe-export' !== $page ) {
+				return;
+			}
+			// Skip if the explicit reset endpoint is already running
+			// (single-flight: only one cleanup per page load).
+			if ( isset( $_GET['ssb_test_reset'] ) ) {
+				return;
+			}
+			global $wpdb;
+			$wpdb->query(
+				$wpdb->prepare(
+					"DELETE FROM {$wpdb->options} WHERE option_name LIKE %s",
+					$wpdb->esc_like( '_transient_sscribe_active_sid_' ) . '%'
+				)
+			);
+			$wpdb->query(
+				$wpdb->prepare(
+					"DELETE FROM {$wpdb->options} WHERE option_name LIKE %s",
+					$wpdb->esc_like( '_transient_timeout_sscribe_active_sid_' ) . '%'
+				)
+			);
+			$wpdb->query(
+				$wpdb->prepare(
+					"DELETE FROM {$wpdb->options} WHERE option_name LIKE %s",
+					$wpdb->esc_like( 'sscribe_session_' ) . '%'
+				)
+			);
+			$wpdb->query(
+				$wpdb->prepare(
+					"DELETE FROM {$wpdb->options} WHERE option_name LIKE %s",
+					$wpdb->esc_like( '_transient_sscribe_export_session' ) . '%'
+				)
+			);
+			$wpdb->query(
+				$wpdb->prepare(
+					"DELETE FROM {$wpdb->options} WHERE option_name LIKE %s",
+					$wpdb->esc_like( '_transient_timeout_sscribe_export_session' ) . '%'
+				)
+			);
+			if ( function_exists( 'wp_cache_delete' ) ) {
+				wp_cache_delete( 'sscribe_session_options_index', 'sscribe_session_index' );
+				if ( function_exists( 'get_users' ) ) {
+					$user_ids = get_users(
+						array(
+							'fields'   => 'ID',
+							'number'   => 50,
+							'role__in' => array( 'administrator', 'editor' ),
+						)
+					);
+					foreach ( (array) $user_ids as $uid ) {
+						wp_cache_delete( 'sscribe_active_sid_' . (int) $uid, 'sscribe_active_sid' );
+					}
+				}
+			}
+		},
+		0
+	);
+}
