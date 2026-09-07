@@ -1,8 +1,7 @@
-import { stubFsExt } from './helpers/stub-fs-ext.ts';
+import { runCLI, type RunCLIServer } from '@wp-playground/cli';
 import { mkdirSync, writeFileSync, existsSync, readFileSync, statSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { runCLI, type RunCLIServer } from '@wp-playground/cli';
 
 const PLAYGROUND_PORT = 9400;
 const PLAYGROUND_HOST = '127.0.0.1';
@@ -37,10 +36,19 @@ interface GlobalSetupResult {
  *      depend on this.
  *   7. Teardown uses `[Symbol.asyncDispose]()` on the returned handle
  *      so the HTTP server + worker pool shut down deterministically.
+ *
+ * Note on fs-ext-extra-prebuilt stubbing:
+ *   `node_modules/fs-ext-extra-prebuilt/dist/fs-ext.js` is replaced with a
+ *   JS-only no-op stub in the local node_modules tree. The prebuilt native
+ *   binary does not exist for Windows + Node v26; WP-Playground's
+ *   `@php-wasm/node` requires flock/fcntl/lockFileEx at module-load time
+ *   and would otherwise throw "Failed to load fs-ext native module". The
+ *   stub returns 0 for all calls (acceptable because WP-Playground's SQLite
+ *   is single-threaded inside the worker; OS-level flock is not needed).
+ *   Do NOT commit the stubbed file — it lives in node_modules and is
+ *   restored to upstream on `npm ci`.
  */
 export default async function globalSetup(): Promise<GlobalSetupResult> {
-  stubFsExt();
-
   const cacheDir = join(process.cwd(), 'tests-e2e', '.cache', 'playground');
   mkdirSync(cacheDir, { recursive: true });
   mkdirSync(join(process.cwd(), 'tests-e2e', '.cache', 'perf'), { recursive: true });
