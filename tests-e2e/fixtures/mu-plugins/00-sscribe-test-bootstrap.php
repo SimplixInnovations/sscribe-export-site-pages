@@ -17,6 +17,23 @@ if ( ! is_dir( $ssb_log_dir ) ) {
 	FILE_APPEND
 );
 
+// Test-env PHP memory bump. WP-Playground's bundled PHP defaults to
+// memory_limit=256M. After WP core + plugin + mu-plugin boot, available
+// memory drops to ~196M. SScribe's preflight `check_memory` (Diagnostics:
+//439-455) estimates 51 pages * 5MB/page + 50MB overhead = 305MB required
+// for a 51-page DOCX export (the Blueprint seed 50 + WP "Hello World"
+// sample page yields 51 published pages under post_type=page). When
+// estimated > available, the preflight returns 'error' and the JS
+// click handler's `if (!canProceed)` branch re-enables the export
+// button WITHOUT calling doStartExport — the testbed then waits for
+// `action=sscribe_start_export` indefinitely and times out. Bumping to
+// 512M is exactly what the preflight's own fix-recommendation tells
+// production users to do (Diagnostics:466/481/501). This is a TESTBED
+// ONLY override, declared in the heartbeat, never shipped.
+if ( function_exists( 'ini_set' ) ) {
+	@ini_set( 'memory_limit', '512M' );
+}
+
 // Once-only gate. WP-Playground's SQLite backend has a small per-worker
 // lock budget; running role_init + user_meta writes + a ~5 KB heartbeat
 // JSON dump on EVERY request causes "Error establishing a database
