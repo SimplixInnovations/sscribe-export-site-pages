@@ -501,6 +501,32 @@ if ( function_exists( 'add_action' ) ) {
 			} else {
 				wp_cache_flush();
 			}
+			// 5. Invalidate SScribe's two object-cache groups that the
+			// active-session check reads through. Without this, the
+			// wp_cache_get() in SScribe_Session::load_session_options_index()
+			// returns the LIKE-scanned rows from a PRIOR session for up to
+			// MINUTE_IN_SECONDS, so the export button stays disabled even
+			// though the underlying options + transients were just deleted.
+			// includes/class-sscribe-session.php
+			//   - ACTIVE_SID_CACHE_GROUP='sscribe_active_sid'
+			//     keys: 'sscribe_active_sid_<user_id>'
+			//   - SESSION_INDEX_CACHE_GROUP='sscribe_session_index'
+			//     keys: 'sscribe_session_options_index'
+			if ( function_exists( 'wp_cache_delete' ) ) {
+				if ( function_exists( 'get_users' ) ) {
+					$user_ids = get_users(
+						array(
+							'fields'   => 'ID',
+							'number'   => 50,
+							'role__in' => array( 'administrator', 'editor' ),
+						)
+					);
+					foreach ( (array) $user_ids as $uid ) {
+						wp_cache_delete( 'sscribe_active_sid_' . (int) $uid, 'sscribe_active_sid' );
+					}
+				}
+				wp_cache_delete( 'sscribe_session_options_index', 'sscribe_session_index' );
+			}
 			// 5. Tell the client we did the work. JSON-only, no auth
 			// check beyond WP_DEBUG; this is mu-plugins/ testbed code
 			// that's never installed in production.
