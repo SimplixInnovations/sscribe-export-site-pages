@@ -542,6 +542,150 @@ if ( function_exists( 'add_action' ) ) {
 		},
 		0
 	);
+
+	// Diag-only session count probe. Same gating.
+	add_action(
+		'init',
+		function () {
+			if ( ! isset( $_GET['ssb_session_count'] ) ) {
+				return;
+			}
+			if ( ! defined( 'WP_DEBUG' ) || ! WP_DEBUG ) {
+				return;
+			}
+			global $wpdb;
+			$session_like    = $wpdb->get_var(
+				$wpdb->prepare(
+					"SELECT COUNT(*) FROM {$wpdb->options} WHERE option_name LIKE %s",
+					$wpdb->esc_like( 'sscribe_session_' ) . '%'
+				)
+			);
+			$sid_transient   = $wpdb->get_var(
+				$wpdb->prepare(
+					"SELECT COUNT(*) FROM {$wpdb->options} WHERE option_name LIKE %s",
+					$wpdb->esc_like( '_transient_sscribe_active_sid_' ) . '%'
+				)
+			);
+			$export_session  = $wpdb->get_var(
+				$wpdb->prepare(
+					"SELECT COUNT(*) FROM {$wpdb->options} WHERE option_name LIKE %s",
+					$wpdb->esc_like( '_transient_sscribe_export_session' ) . '%'
+				)
+			);
+			header( 'Content-Type: application/json; charset=UTF-8' );
+			echo wp_json_encode(
+				array(
+					'session_options' => (int) $session_like,
+					'active_sid_transients' => (int) $sid_transient,
+					'export_session_transients' => (int) $export_session,
+				)
+			);
+			exit;
+		},
+		0
+	);
+
+	// Test-only cancel-all endpoint. The batch-retry spec runs 4
+	// tests sequentially; test #1 leaves the page-side batch loop
+	// running in the background, which keeps re-creating the
+	// sscribe_export_session transient on every tick. Wiping the
+	// DB row at /?ssb_test_reset=1 is overridden within ~1.5s by
+	// the next process_batch call. To stop this from bleeding
+	// into test #2 the page-side JS needs to actually stop polling.
+	// The cleanest way without changing the page JS is to flip
+	// SScribe's per-session cancellation flag and let the next
+	// process_batch observe it. Concretely: write
+	// sscribe_session_<sid> = { cancelled:true, ...} so the
+	// is_active_session_data() invariant returns false and the
+	// check_active_session AJAX replies has_active=false.
+	add_action(
+		'init',
+		function () {
+			if ( ! isset( $_GET['ssb_test_cancel_all'] ) ) {
+				return;
+			}
+			if ( ! defined( 'WP_DEBUG' ) || ! WP_DEBUG ) {
+				return;
+			}
+			global $wpdb;
+			$session_keys = $wpdb->get_col(
+				$wpdb->prepare(
+					"SELECT option_name, option_value FROM {$wpdb->options} WHERE option_name LIKE %s",
+					$wpdb->esc_like( 'sscribe_session_' ) . '%'
+				)
+			);
+			// The above query returns names only because of the
+			// LIKE-without-select-value shape; re-query for the
+			// actual blob.
+			$rows = $wpdb->get_results(
+				$wpdb->prepare(
+					"SELECT option_name, option_value FROM {$wpdb->options} WHERE option_name LIKE %s",
+					$wpdb->esc_like( 'sscribe_session_' ) . '%'
+				),
+				OBJECT_K
+			);
+			$cancelled_count = 0;
+			if ( is_array( $rows ) ) {
+				foreach ( $rows as $opt_name => $row ) {
+					$raw   = is_object( $row ) ? (string) $row->option_value : ( is_array( $row ) ? (string) ( $row['option_value'] ?? '' ) : '' );
+					$decoded = json_decode( $raw, true );
+					if ( ! is_array( $decoded ) ) {
+						// Treat unparsable as cancelled outright.
+						delete_option( $opt_name );
+						$cancelled_count++;
+						continue;
+					}
+					$decoded['cancelled']   = true;
+					$decoded['cancelled_at'] = time();
+					$decoded['status']       = 'cancelled';
+					$re_encoded              = wp_json_encode( $decoded );
+					update_option( $opt_name, $re_encoded, false );
+					$cancelled_count++;
+				}
+			}
+			// Invalidate both SScribe cache groups so the next
+			// AJAX reads the cancelled state.
+			if ( function_exists( 'wp_cache_delete' ) ) {
+				wp_cache_delete( 'sscribe_session_options_index', 'sscribe_session_index' );
+				if ( function_exists( 'get_users' ) ) {
+					$user_ids = get_users(
+						array(
+							'fields'   => 'ID',
+							'number'   => 50,
+							'role__in' => array( 'administrator', 'editor' ),
+						)
+					);
+					foreach ( (array) $user_ids as $uid ) {
+						wp_cache_delete( 'sscribe_active_sid_' . (int) $uid, 'sscribe_active_sid' );
+					}
+				}
+			}
+			// Wipe the per-process polling transient so any
+			// batch loop keeping polling observes the cancellation
+			// on the next tick.
+			$wpdb->query(
+				$wpdb->prepare(
+					"DELETE FROM {$wpdb->options} WHERE option_name LIKE %s",
+					$wpdb->esc_like( '_transient_sscribe_export_session' ) . '%'
+				)
+			);
+			$wpdb->query(
+				$wpdb->prepare(
+					"DELETE FROM {$wpdb->options} WHERE option_name LIKE %s",
+					$wpdb->esc_like( '_transient_timeout_sscribe_export_session' ) . '%'
+				)
+			);
+			header( 'Content-Type: application/json; charset=UTF-8' );
+			echo wp_json_encode(
+				array(
+					'success'          => true,
+					'cancelled_count'  => $cancelled_count,
+				)
+			);
+			exit;
+		},
+		0
+	);
 }
 
 // Belt-and-suspenders: when the admin lands on the export page, run

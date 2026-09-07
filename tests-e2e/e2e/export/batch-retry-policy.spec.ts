@@ -88,12 +88,37 @@ async function raceFloor(
 async function bootExport(
   adminPage: import('@playwright/test').Page
 ): Promise<string> {
-  // Clear any in-flight session from a prior test before this page loads.
-  // Without this, test #2+ inherits the "session in progress" state from
-  // test #1 (429) and the export button stays disabled.
+  // Cancel any in-flight session from a prior test by POSTing
+  // sscribe_cancel_export for every live session currently in
+  // sscribe_session_*. Without this, the long-running batch loop
+  // from test #1 keeps processing in the background and re-creates
+  // the transient on every polling tick, leaving has_active=true
+  // for test #2 (the DB DELETE in the reset endpoint is overridden
+  // by the next batch within ~1.5s).
+  await adminPage.context().request.get('/?ssb_test_cancel_all=1');
+  // Also wipe the row-level state for any leftover residue.
   await adminPage.context().request.get('/?ssb_test_reset=1');
 
   await adminPage.goto('/wp-admin/admin.php?page=sscribe-export');
+
+  // Wait for the check_active_session AJAX to confirm a clean state.
+  // The first request may return has_active=false quickly OR may be
+  // rate-limited (a previous test burned the budget). In both cases
+  // the response has the keys we expect, so we can proceed once
+  // any check_active_session response lands with `data.has_active`
+  // present and `false`.
+  await adminPage.waitForResponse(
+    async (r) => {
+      if (!r.url().includes('admin-ajax.php')) return false;
+      try {
+        const pd = r.request().postData() || '';
+        return pd.includes('action=sscribe_check_active_session');
+      } catch {
+        return false;
+      }
+    },
+    { timeout: 30_000 }
+  );
 
   // Wait for counts AJAX so the export button enables.
   await adminPage.waitForResponse(
