@@ -121,14 +121,14 @@ test.describe('e2e / debug / toggle-state-transition', () => {
 		await expect(toggle).toHaveAttribute('aria-checked', 'false', { timeout: 10_000 });
 
 		// Event-driven wait: the debug tab renders empty-state via
-		// renderLogs() after the `sscribe_debug_get_logs` AJAX call
+		// renderLogs() after the `sscribe_debug_fetch_logs` AJAX call
 		// completes. Wait for the AJAX response — not arbitrary time.
 		await adminPage.waitForResponse(
 			async (r) => {
 				if (!r.url().includes('admin-ajax.php')) return false;
 				try {
 					const pd = r.request().postData() || '';
-					return pd.includes('action=sscribe_debug_get_logs');
+					return pd.includes('action=sscribe_debug_fetch_logs');
 				} catch {
 					return false;
 				}
