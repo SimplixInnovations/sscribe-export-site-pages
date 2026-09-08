@@ -115,16 +115,19 @@ class SScribe_Export_Rate_Limiter {
 		// from the same page (sscribe_check_active_session +
 		// sscribe_get_status_counts, both at bucket 'export_read')
 		// serialize through this lock; on WP-Playground the WASM-compiled
-		// request handler can take 100-1500ms per request when the
-		// handler is cold. 20 × 100ms = 2000ms covers the realistic
-		// WASM cold-start envelope without exceeding the JS-side retry
-		// budget in admin/js/sscribe-admin.js (2500ms after a 503 — we
-		// want the first call to succeed whenever possible so the JS
-		// does not have to fall back to its one-shot retry). When the
-		// budget is exhausted the caller gets 503 with
-		// code=rate_limiter_busy, which the export UI handles as
-		// retryable.
-		while ( ! $locked && $attempts < 20 ) {
+		// request handler can take 600-4000ms per request when the
+		// handler is cold (compiles PHP from bytecode on first hit).
+		// 50 × 100ms = 5000ms covers the worst observed WASM cold-start
+		// envelope. We accept the wider budget here because (a) cold
+		// start is the dominant cost on the test path, (b) the JS-side
+		// 2500ms retry in admin/js/sscribe-admin.js is still the
+		// production-time fallback for genuine contention (two users on
+		// the same page), and (c) the rate-limit window is 60s, so a
+		// single AJAX call waiting up to 5s for the lock is bounded by
+		// the lock TTL itself — it cannot spin forever. When the budget
+		// is exhausted the caller gets 503 with code=rate_limiter_busy,
+		// which the export UI handles as retryable.
+		while ( ! $locked && $attempts < 50 ) {
 			if ( $using_cache ) {
 				$locked = wp_cache_add( $cache_lock_key, $lock_token, self::LOCK_CACHE_GROUP, 5 );
 			} else {
@@ -144,7 +147,7 @@ class SScribe_Export_Rate_Limiter {
 				}
 			}
 			++$attempts;
-			if ( ! $locked && $attempts < 20 ) {
+			if ( ! $locked && $attempts < 50 ) {
 				usleep( 100000 );
 			}
 		}
