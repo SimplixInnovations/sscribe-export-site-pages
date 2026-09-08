@@ -108,7 +108,23 @@ class SScribe_Export_Rate_Limiter {
 
 		$locked  = false;
 		$attempts = 0;
-		while ( ! $locked && $attempts < 3 ) {
+		// Micro-lock TTL is 5s (see the stale-lock cleanup below). The
+		// retry budget must be wide enough for legitimate concurrent
+		// contention to drain but narrow enough that we do not pile
+		// requests on top of a slow request handler. Two AJAX calls
+		// from the same page (sscribe_check_active_session +
+		// sscribe_get_status_counts, both at bucket 'export_read')
+		// serialize through this lock; on WP-Playground the WASM-compiled
+		// request handler can take 100-1500ms per request when the
+		// handler is cold. 20 × 100ms = 2000ms covers the realistic
+		// WASM cold-start envelope without exceeding the JS-side retry
+		// budget in admin/js/sscribe-admin.js (2500ms after a 503 — we
+		// want the first call to succeed whenever possible so the JS
+		// does not have to fall back to its one-shot retry). When the
+		// budget is exhausted the caller gets 503 with
+		// code=rate_limiter_busy, which the export UI handles as
+		// retryable.
+		while ( ! $locked && $attempts < 20 ) {
 			if ( $using_cache ) {
 				$locked = wp_cache_add( $cache_lock_key, $lock_token, self::LOCK_CACHE_GROUP, 5 );
 			} else {
@@ -128,8 +144,8 @@ class SScribe_Export_Rate_Limiter {
 				}
 			}
 			++$attempts;
-			if ( ! $locked && $attempts < 3 ) {
-				usleep( 25000 );
+			if ( ! $locked && $attempts < 20 ) {
+				usleep( 100000 );
 			}
 		}
 

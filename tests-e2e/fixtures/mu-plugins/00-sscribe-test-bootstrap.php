@@ -476,6 +476,20 @@ if ( function_exists( 'add_action' ) ) {
 				return;
 			}
 			global $wpdb;
+			// 0. Force the canonical debug-state option to OFF between
+			// tests. The toggle-state-transition:111 spec ("empty-state
+			// taxonomy renders debug_disabled copy when debug is OFF")
+			// depends on `sscribe_debug_enabled` being '0' on every test
+			// boundary. The toggle.spec.ts test that runs before this in
+			// the suite performs a real AJAX save via Save button, which
+			// can flip the option to '1' (or whatever the toggle was
+			// set to). `delete_option()` alone left the alloptions
+			// autoload cache stale in some runs, so the next test's
+			// `get_option(..., false)` returned the previously cached
+			// '1' instead of falling back to false. Setting the option
+			// to '0' explicitly with autoload=yes is a definitive
+			// contract: every test starts with debug=OFF.
+			update_option( 'sscribe_debug_enabled', '0', true );
 			// 1. Delete all sscribe_active_sid_* transients.
 			$active_keys = $wpdb->get_col(
 				$wpdb->prepare(
@@ -508,6 +522,43 @@ if ( function_exists( 'add_action' ) ) {
 				$wpdb->prepare(
 					"DELETE FROM {$wpdb->options} WHERE option_name LIKE %s",
 					$wpdb->esc_like( '_transient_timeout_sscribe_export_session' ) . '%'
+				)
+			);
+			// 3a. Wipe rate-limiter micro-locks. includes/class-sscribe-export-rate-limiter.php
+			// stores them as `sscribe_rate_lock_<sha256-prefix>` options (5s TTL check
+			// inside acquire_lock, retry budget 20 × 100ms = 2000ms — so a previous
+			// test that leaked a lock via an exception between acquire and release
+			// would make the NEXT test's first counts AJAX see a fresh-looking
+			// option, fail to acquire, and burn the full 2000ms budget before
+			// returning 503 `rate_limiter_busy`. The page JS only retries once at
+			// 2500ms, and the retry also fails because the lock is still held, so
+			// countsState.loaded never flips and the export button stays disabled
+			// for the full 30s/60s timeout — exactly the failure mode the
+			// full-suite run was hitting on tests 503/409/500 of
+			// batch-retry-policy and on wizard-happy-path.
+			$rate_lock_keys = $wpdb->get_col(
+				$wpdb->prepare(
+					"SELECT option_name FROM {$wpdb->options} WHERE option_name LIKE %s",
+					$wpdb->esc_like( 'sscribe_rate_lock_' ) . '%'
+				)
+			);
+			foreach ( (array) $rate_lock_keys as $opt ) {
+				delete_option( $opt );
+			}
+			// 3b. Wipe rate-limiter counter transients (`sscribe_rate_<bucket>_<uid>`
+			// and the matching `_transient_timeout_` rows). 60s window — would not
+			// normally leak between fast tests, but cancel-safe and matches the
+			// shared.ts fixture's "fresh state per test" contract.
+			$wpdb->query(
+				$wpdb->prepare(
+					"DELETE FROM {$wpdb->options} WHERE option_name LIKE %s",
+					$wpdb->esc_like( '_transient_sscribe_rate_' ) . '%'
+				)
+			);
+			$wpdb->query(
+				$wpdb->prepare(
+					"DELETE FROM {$wpdb->options} WHERE option_name LIKE %s",
+					$wpdb->esc_like( '_transient_timeout_sscribe_rate_' ) . '%'
 				)
 			);
 			// 4. Best-effort flush the in-process object cache so the
@@ -594,6 +645,18 @@ if ( function_exists( 'add_action' ) ) {
 					'session_options' => (int) $session_like,
 					'active_sid_transients' => (int) $sid_transient,
 					'export_session_transients' => (int) $export_session,
+					'rate_lock_options'      => (int) $wpdb->get_var(
+						$wpdb->prepare(
+							"SELECT COUNT(*) FROM {$wpdb->options} WHERE option_name LIKE %s",
+							$wpdb->esc_like( 'sscribe_rate_lock_' ) . '%'
+						)
+					),
+					'rate_counter_transients' => (int) $wpdb->get_var(
+						$wpdb->prepare(
+							"SELECT COUNT(*) FROM {$wpdb->options} WHERE option_name LIKE %s",
+							$wpdb->esc_like( '_transient_sscribe_rate_' ) . '%'
+						)
+					),
 				)
 			);
 			exit;
