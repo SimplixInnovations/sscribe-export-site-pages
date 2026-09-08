@@ -147,4 +147,44 @@ final class SScribe_Coverage_Path_Normalizer_Test extends TestCase {
 			)
 		);
 	}
+
+	public function test_wsl_mount_path_translates_to_windows_drive_letter(): void {
+		// PHPUnit running inside WSL2 reports the project at
+		// /mnt/c/Users/Ahmed/Desktop/sscribe-export-site-pages/...
+		// while the verifier's repo_root is the Windows path. Without
+		// the WSL-bridge rewrite the gate marks every file as
+		// outside-the-repo and reports every critical file as missing.
+		$this::assertSame(
+			'includes/class-sscribe-security.php',
+			sscribe_normalize_clover_path(
+				'/mnt/c/Users/Ahmed/Desktop/sscribe-export-site-pages/includes/class-sscribe-security.php',
+				self::REPO_ROOT_WINDOWS
+			)
+		);
+	}
+
+	public function test_wsl_mount_lowercase_drive_letter_is_uppercased(): void {
+		// Some WSL mounts hand back lowercase drive letters. The
+		// rewrite must upper-case so the case-insensitive Windows
+		// prefix match below can succeed.
+		$this::assertSame(
+			'includes/foo.php',
+			sscribe_normalize_clover_path(
+				'/mnt/d/Repos/sscribe-export-site-pages/includes/foo.php',
+				'D:\\Repos\\sscribe-export-site-pages'
+			)
+		);
+	}
+
+	public function test_wsl_mount_path_outside_repo_returns_empty(): void {
+		// A WSL mount that does not correspond to the verifier's
+		// repo_root must still be refused, not silently re-anchored.
+		$this::assertSame(
+			'',
+			sscribe_normalize_clover_path(
+				'/mnt/e/Other/project/includes/foo.php',
+				self::REPO_ROOT_WINDOWS
+			)
+		);
+	}
 }

@@ -71,6 +71,18 @@ function sscribe_normalize_clover_path( string $path, string $repo_root ): strin
 	$normalized_repo = str_replace( '\\', '/', $repo_root );
 	$normalized_repo_trimmed = rtrim( $normalized_repo, '/' );
 
+	// 1a. WSL bridge: PHPUnit running inside WSL sees the project at
+	// `/mnt/<drive>/Users/Ahmed/Desktop/sscribe-export-site-pages/...`
+	// but the verifier's repo_root is the Windows path
+	// `C:\Users\Ahmed\Desktop\sscribe-export-site-pages`. Without
+	// translating the WSL bridge to a Windows drive letter, every
+	// Clover entry is treated as outside the repo and the gate
+	// reports every critical file as missing. Rewrite the prefix so
+	// the Windows-prefix-strip below can match.
+	if ( preg_match( '#^/mnt/([a-zA-Z])/(.*)$#', $normalized, $wsl_matches ) ) {
+		$normalized = strtoupper( $wsl_matches[1] ) . ':/' . $wsl_matches[2];
+	}
+
 	// 2. Detect absolute path (Linux /foo, Windows C:/foo, Windows C:foo).
 	$is_absolute = false;
 	if ( strlen( $normalized ) > 0 && '/' === $normalized[0] ) {
