@@ -47,8 +47,9 @@ export const test = base.extend<SharedFixtures>({
     try {
       await resetTestSession(page.context().request, url);
     } catch {
-      // eslint-disable-next-line no-console
-      console.warn('[shared.ts] resetTestSession failed (likely cold boot)');
+      // First test of a cold boot may have nothing to reset — ignore
+      // the failure (the test will surface a real reset failure via
+      // its own checks).
     }
     await loginAsAdmin(page);
     await use(page);
