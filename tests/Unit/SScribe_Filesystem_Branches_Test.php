@@ -1147,6 +1147,94 @@ final class SScribe_Filesystem_Branches_Test extends TestCase {
 		@unlink( $target );
 	}
 
+	/**
+	 * delete() must take the unlink-failure branch (filesystem.php L346-353)
+	 * when the target exists but cannot be unlinked. The portable way to
+	 * force unlink() to return false is to point it at a directory: POSIX
+	 * unlink on a directory returns false and raises a warning. (The
+	 * chmod-based approach fails when the test runs as root.)
+	 *
+	 * The expected warning is captured so the test does not fail on
+	 * PHPUnit's failOnWarning.
+	 */
+	public function test_delete_returns_false_when_unlink_fails(): void {
+		$fs      = $this->make_fs_instance();
+		$export  = \SScribe_Private_Storage::get_subdirectory( 'unlink-fail-' . uniqid() );
+		wp_mkdir_p( $export );
+
+		$result = $this->expect_warning(
+			fn () => $fs->delete( $export ),
+			'unlink'
+		);
+
+		$this::assertFalse( $result, 'delete() must return false when unlink() fails' );
+		$this::assertSame( 'Failed to delete file', $fs->get_last_error() );
+
+		@rmdir( $export );
+	}
+
+	/**
+	 * dirlist() must return false when scandir() fails on the directory
+	 * (filesystem.php L620-622). Achieved on POSIX by removing read
+	 * permission from the directory before calling dirlist().
+	 */
+	public function test_dirlist_returns_false_on_unreadable_directory(): void {
+		if ( 'Windows' === \PHP_OS_FAMILY ) {
+			$this::markTestSkipped( 'POSIX chmod does not restrict directory reads on Windows.' );
+		}
+		if ( ! function_exists( 'posix_seteuid' ) ) {
+			$this::markTestSkipped( 'posix extension unavailable; cannot drop privileges to test scandir-fail branch.' );
+		}
+
+		$fs = $this->make_fs_instance();
+		// Use sys_get_temp_dir() (mode 1777, traversable by any uid) so
+		// the dropped uid can actually reach the test directory. The
+		// private-storage tree is rooted under mode-0700 directories
+		// that uid=1 cannot traverse, so the dirlist() short-circuit
+		// at is_dir() (filesystem.php L615) would mask the scandir()
+		// branch we want to exercise (L621).
+		$dir = sys_get_temp_dir() . '/sscribe-fs-dirlist-unreadable-' . uniqid();
+		wp_mkdir_p( $dir );
+		// Mode 0300 = write+execute only. uid=1 can stat() the directory
+		// (is_dir() returns true) but opendir() / scandir() fail because
+		// there is no read bit.
+		chmod( $dir, 0300 );
+
+		// As root, chmod is bypassed by CAP_DAC_OVERRIDE, so we drop the
+		// effective uid to a non-root account (UID 1 = daemon) to make
+		// the POSIX read check actually fail. Restore before any
+		// PHPUnit assertion so the autoloader can still read vendor/.
+		//
+		// scandir() also raises an E_WARNING when it fails. PHPUnit's
+		// own error handler converts warnings into test issues, which
+		// would try to autoload PHPUnit classes while we are uid=1 and
+		// the parent /root/src/ is mode 0700 (no traverse for non-root).
+		// Install a local handler that swallows the scandir warning for
+		// the duration of the call.
+		set_error_handler(
+			static function ( int $errno, string $errstr ): bool {
+				return str_contains( $errstr, 'scandir(' ) || str_contains( $errstr, 'opendir(' );
+			}
+		);
+		$result = null;
+		try {
+			if ( posix_geteuid() === 0 && ! posix_seteuid( 1 ) ) {
+				restore_error_handler();
+				$this::markTestSkipped( 'posix_seteuid(1) refused; cannot exercise scandir-fail branch.' );
+			}
+			$result = $fs->dirlist( $dir );
+		} finally {
+			if ( posix_geteuid() === 1 ) {
+				posix_seteuid( 0 );
+			}
+			restore_error_handler();
+			chmod( $dir, 0755 );
+			rmdir( $dir );
+		}
+
+		$this::assertFalse( $result, 'dirlist() must return false when scandir() cannot read the directory' );
+	}
+
 	// ==================================================================
 	// is_path_safe_for_plugin_read() — root_real-false branches.
 	// ==================================================================
@@ -1264,18 +1352,58 @@ final class SScribe_Filesystem_Branches_Test extends TestCase {
 		if ( 'Windows' === \PHP_OS_FAMILY ) {
 			$this::markTestSkipped( 'chmod-based permission gating does not restrict scandir() on Windows.' );
 		}
-		$fs     = $this->make_fs_instance();
-		$export = \SScribe_Private_Storage::get_export_dir();
-		wp_mkdir_p( $export );
-		$dir   = $export . '/dirlist-scandir-fail-' . uniqid();
+		if ( ! function_exists( 'posix_seteuid' ) ) {
+			$this::markTestSkipped( 'posix extension unavailable; cannot drop privileges to test scandir-fail branch.' );
+		}
+		if ( posix_geteuid() !== 0 ) {
+			$this::markTestSkipped( 'Test requires root to drop privileges to a non-root uid.' );
+		}
+
+		$fs = $this->make_fs_instance();
+		// Use sys_get_temp_dir() (mode 1777) so the dropped uid can
+		// reach the test directory. The private-storage tree is rooted
+		// under mode-0700 directories that uid=1 cannot traverse, so
+		// is_dir() would short-circuit (L615) before the scandir()
+		// branch (L621) runs.
+		$dir = sys_get_temp_dir() . '/sscribe-fs-scandir-fail-' . uniqid();
 		wp_mkdir_p( $dir );
-		chmod( $dir, 0000 );
+		// Mode 0300 = write+execute only: is_dir() returns true but
+		// opendir()/scandir() fail with E_WARNING because there is no
+		// read bit.
+		chmod( $dir, 0300 );
 
-		$result = $fs->dirlist( $dir );
-		$this::assertFalse( $result );
+		// Root bypasses chmod-based restrictions via CAP_DAC_OVERRIDE,
+		// so drop the effective uid to a non-root account (UID 1 =
+		// daemon, no shell/login) to make the POSIX read check actually
+		// fail. Restore before any PHPUnit assertion runs so the
+		// autoloader can still read vendor/.
+		//
+		// scandir() also raises an E_WARNING when it fails. PHPUnit's
+		// own error handler converts warnings into test issues, which
+		// would try to autoload PHPUnit classes while we are uid=1 and
+		// the parent /root/src/ is mode 0700 (no traverse for non-root).
+		// Install a local handler that swallows the scandir warning for
+		// the duration of the call.
+		set_error_handler(
+			static function ( int $errno, string $errstr ): bool {
+				return str_contains( $errstr, 'scandir(' ) || str_contains( $errstr, 'opendir(' );
+			}
+		);
+		$result = null;
+		try {
+			if ( ! posix_seteuid( 1 ) ) {
+				restore_error_handler();
+				$this::markTestSkipped( 'posix_seteuid(1) refused; cannot exercise scandir-fail branch.' );
+			}
+			$result = $fs->dirlist( $dir );
+		} finally {
+			posix_seteuid( 0 );
+			restore_error_handler();
+			chmod( $dir, 0755 );
+			rmdir( $dir );
+		}
 
-		chmod( $dir, 0700 );
-		rmdir( $dir );
+		$this::assertFalse( $result, 'dirlist() must return false when scandir() cannot read the directory' );
 	}
 
 	// ==================================================================

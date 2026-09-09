@@ -90,6 +90,49 @@ final class SScribe_Security_Branches_Test extends TestCase {
 		rmdir( $outside );
 	}
 
+	/**
+	 * delete_directory() must take the is_link branch (L85-88) when a child
+	 * of the target is a symlink. This is the security-critical path that
+	 * unlinks the symlink entry without resolving its target, so an attacker
+	 * cannot delete files outside plugin-owned storage by planting a symlink
+	 * inside an SScribe-owned directory.
+	 *
+	 * The pre-existing test_delete_directory_removes_symlinked_file uses
+	 * sys_get_temp_dir() which is OUTSIDE plugin scope, so delete_directory
+	 * returns false at the scope check before reaching the symlink branch.
+	 * This variant places the root inside plugin-owned private storage so
+	 * the symlink branch actually executes.
+	 */
+	public function test_delete_directory_symlink_branch_inside_owned_scope(): void {
+		if ( ! function_exists( 'symlink' ) ) {
+			$this::markTestSkipped( 'symlink() not available on this platform' );
+		}
+
+		$root_dir = \SScribe_Private_Storage::get_subdirectory( 'sec-symlink-' . uniqid() );
+		$this::assertNotSame( '', $root_dir );
+		$this::assertDirectoryExists( $root_dir );
+
+		// Plant a symlink that points OUTSIDE plugin-owned storage.
+		$outside      = sys_get_temp_dir() . '/sscribe-sec-outside-' . uniqid();
+		wp_mkdir_p( $outside );
+		$linked_path  = $root_dir . '/linked';
+		if ( ! @symlink( $outside, $linked_path ) ) {
+			rmdir( $outside );
+			$this::markTestSkipped( 'symlink() not permitted on this platform' );
+		}
+
+		// The function must unlink the symlink (L88) and clean up.
+		$result = \SScribe_Security::delete_directory( $root_dir );
+		$this::assertTrue( $result, 'delete_directory() must succeed and take the symlink branch' );
+
+		// The outside target MUST survive — L88 specifically does NOT
+		// resolve the symlink before unlinking.
+		$this::assertDirectoryExists( $outside, 'outside target must not be deleted' );
+		$this::assertFalse( file_exists( $root_dir ) || is_link( $root_dir ), 'root dir must be cleaned up' );
+
+		rmdir( $outside );
+	}
+
 	public function test_delete_directory_returns_false_for_path_outside_scope(): void {
 		// A directory that exists but is outside the resolved plugin-owned
 		// bases (uploads base + private storage + legacy) is rejected by

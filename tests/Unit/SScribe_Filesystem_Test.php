@@ -389,7 +389,11 @@ class SScribe_Filesystem_Test extends TestCase {
 
 		$fs    = new \SScribe_Filesystem();
 		$name  = 'phase38-symlink-' . uniqid();
-		$link  = $this->export_dir . DIRECTORY_SEPARATOR . $name;
+		// mkdir_under_private_root places the target at the EXPORT ROOT
+		// (not under any per-test subdirectory), so the planted symlink
+		// must live at $export_root/$name to be seen by is_link().
+		$export_root = \SScribe_Private_Storage::get_export_dir();
+		$link  = $export_root . DIRECTORY_SEPARATOR . $name;
 		$real  = $this->test_dir . DIRECTORY_SEPARATOR . $name . '-target';
 		mkdir( $real, 0755, true );
 
