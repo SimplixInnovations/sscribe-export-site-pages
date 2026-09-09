@@ -373,6 +373,42 @@ class SScribe_Filesystem_Test extends TestCase {
 		$this::assertDirectoryExists( $result );
 	}
 
+	/**
+	 * mkdir_under_private_root must refuse when the target path is an
+	 * existing symlink (filesystem.php L487-491). Even if the symlink
+	 * resolves inside the export root, the function refuses to follow
+	 * pre-existing symlinks because the resulting directory would not
+	 * be owned by this plugin's containment check at creation time.
+	 *
+	 * Symlink() requires Developer Mode on Windows; skip otherwise.
+	 */
+	public function test_mkdir_under_private_root_rejects_existing_symlink(): void {
+		if ( ! function_exists( 'symlink' ) ) {
+			$this::markTestSkipped( 'symlink() not available on this platform' );
+		}
+
+		$fs    = new \SScribe_Filesystem();
+		$name  = 'phase38-symlink-' . uniqid();
+		$link  = $this->export_dir . DIRECTORY_SEPARATOR . $name;
+		$real  = $this->test_dir . DIRECTORY_SEPARATOR . $name . '-target';
+		mkdir( $real, 0755, true );
+
+		$ok = @symlink( $real, $link );
+		if ( ! $ok ) {
+			$this::markTestSkipped( 'symlink() not permitted on this platform (Windows non-admin / locked-down CI)' );
+		}
+
+		$this::assertTrue( is_link( $link ), 'pre-condition: link must exist as a symlink' );
+
+		$result = $fs->mkdir_under_private_root( $name );
+
+		$this::assertSame( '', $result, 'mkdir_under_private_root must refuse an existing symlink' );
+		$this::assertNotEmpty( $fs->get_last_error(), 'last_error must be populated on rejection' );
+
+		@unlink( $link );
+		@rmdir( $real );
+	}
+
 	public function test_sanitize_path_strips_traversal_segments(): void {
 		$unsafe = $this->test_dir . '/../../../etc/passwd';
 		$safe   = \SScribe_Filesystem::sanitize_path( $unsafe );
