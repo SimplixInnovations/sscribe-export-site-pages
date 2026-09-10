@@ -1113,37 +1113,31 @@ final class SScribe_Filesystem_Branches_Test extends TestCase {
 	}
 
 	public function test_delete_direct_unlink_failure(): void {
+		// Force an unlink() failure by pointing at a non-empty directory:
+		// POSIX unlink() on a directory returns false and raises an
+		// E_WARNING. This works regardless of whether the test runs as
+		// root (CAP_DAC_OVERRIDE bypasses chmod-based permission gating
+		// but cannot bypass the "unlink a directory" rule) or as a
+		// non-root user.
 		$fs     = $this->make_fs_instance();
 		$export = \SScribe_Private_Storage::get_export_dir();
 		wp_mkdir_p( $export );
-		$target = $export . '/cannot-unlink-' . uniqid() . '.txt';
-		file_put_contents( $target, 'x' );
-
-		if ( 'Windows' === \PHP_OS_FAMILY ) {
-			// Windows honors the read-only attribute via attrib — PHP's
-			// unlink() returns false on a read-only file because the OS
-			// refuses the delete request. The expected unlink() warning
-			// is captured and asserted (proves the branch was reached)
-			// without suppressing it.
-			exec( 'attrib +R ' . escapeshellarg( $target ) );
-		} else {
-			chmod( $target, 0400 );
-		}
+		$dir_target  = $export . '/unlink-target-' . uniqid();
+		wp_mkdir_p( $dir_target );
+		$child_file  = $dir_target . '/child.txt';
+		file_put_contents( $child_file, 'x' );
 
 		$result = $this->expect_warning(
-			fn () => $fs->delete( $target ),
+			fn () => $fs->delete( $dir_target ),
 			'unlink'
 		);
 
 		$this::assertFalse( $result );
 		$this::assertSame( 'Failed to delete file', $fs->get_last_error() );
 
-		if ( 'Windows' === \PHP_OS_FAMILY ) {
-			exec( 'attrib -R ' . escapeshellarg( $target ) );
-		} else {
-			chmod( $target, 0600 );
-		}
-		@unlink( $target );
+		// Clean up the child file + directory.
+		@unlink( $child_file );
+		@rmdir( $dir_target );
 	}
 
 	/**

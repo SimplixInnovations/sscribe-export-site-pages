@@ -67,27 +67,13 @@ final class SScribe_Security_Branches_Test extends TestCase {
 	}
 
 	public function test_delete_directory_removes_symlinked_file(): void {
-		$root = sys_get_temp_dir() . '/sscribe-sec-symlink-' . uniqid();
-		wp_mkdir_p( $root );
-		$outside = sys_get_temp_dir() . '/sscribe-sec-outside-' . uniqid();
-		wp_mkdir_p( $outside );
-		$target_in_root = $root . '/linked';
-		@unlink( $target_in_root );
-		if ( ! @symlink( $outside, $target_in_root ) ) {
-			rmdir( $outside );
-			rmdir( $root );
-			$this::markTestSkipped( 'Symbolic links unavailable in this environment.' );
-		}
-
-		// The function unlinks the symlink entry without resolving it
-		// (line 88, is_link branch) and proceeds to clean up.
-		$this::assertTrue( \SScribe_Security::delete_directory( $root ) );
-
-		$this::assertFalse( file_exists( $root ) || is_link( $root ) );
-		// The outside dir must still exist — line 88 specifically
-		// avoids resolving the symlink target before unlinking.
-		$this::assertDirectoryExists( $outside );
-		rmdir( $outside );
+		// Pre-existing assertion against sys_get_temp_dir() always fails
+		// because delete_directory() rejects any path that is not inside
+		// plugin-owned storage at is_path_in_scope(). The functional
+		// replacement is the in-scope variant
+		// test_delete_directory_symlink_branch_inside_owned_scope() right
+		// below, which actually exercises the is_link branch (L88).
+		$this::markTestSkipped( 'Replaced by test_delete_directory_symlink_branch_inside_owned_scope (out-of-scope root cannot reach the symlink branch).' );
 	}
 
 	/**
@@ -96,12 +82,6 @@ final class SScribe_Security_Branches_Test extends TestCase {
 	 * unlinks the symlink entry without resolving its target, so an attacker
 	 * cannot delete files outside plugin-owned storage by planting a symlink
 	 * inside an SScribe-owned directory.
-	 *
-	 * The pre-existing test_delete_directory_removes_symlinked_file uses
-	 * sys_get_temp_dir() which is OUTSIDE plugin scope, so delete_directory
-	 * returns false at the scope check before reaching the symlink branch.
-	 * This variant places the root inside plugin-owned private storage so
-	 * the symlink branch actually executes.
 	 */
 	public function test_delete_directory_symlink_branch_inside_owned_scope(): void {
 		if ( ! function_exists( 'symlink' ) ) {

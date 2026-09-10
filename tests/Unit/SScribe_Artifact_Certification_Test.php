@@ -214,6 +214,16 @@ final class SScribe_Artifact_Certification_Test extends TestCase {
 				'Required dist artifacts missing — run scripts/build-release.php first.'
 			);
 		}
+		// The staging directory must actually contain files (not just exist
+		// as an empty placeholder). An empty staging dir would silently pass
+		// the existence check above and then explode in the parity assertion
+		// with 1000+ ZIP entries vs zero staging entries.
+		$staging_probe = self::read_dir_listing( self::$staging_dir );
+		if ( 0 === count( $staging_probe ) ) {
+			self::markTestSkipped(
+				'Staging directory is empty — run scripts/build-release.php first.'
+			);
+		}
 
 		if ( getenv( 'SSCRIBE_REBUILD_BEFORE_TEST' ) === '1' ) {
 			self::rebuild_zip();

@@ -229,6 +229,21 @@ final class SScribe_Private_Storage_Migration_Test extends SScribe_WP_TestCase {
 			);
 		}
 
+		// SSCRIBE_PRIVATE_STORAGE_DIR is locked-in once any prior test in
+		// the run called define(). Without runkit7 we cannot redefine the
+		// constant for THIS scratch dir, so the resolver keeps pointing at
+		// the first test's stale path. Skip when that has happened — the
+		// sticky-bit branch is fully covered by the unit suite instead.
+		if ( defined( 'SSCRIBE_PRIVATE_STORAGE_DIR' ) && ! function_exists( 'runkit_constant_redefine' ) ) {
+			$locked = (string) \SSCRIBE_PRIVATE_STORAGE_DIR;
+			if ( rtrim( $locked, '/\\' ) !== rtrim( $base, '/\\' ) ) {
+				$this::markTestSkipped(
+					'SSCRIBE_PRIVATE_STORAGE_DIR is locked-in to a prior test\'s scratch; ' .
+					'runkit7 is required to redefine the constant for this test.'
+				);
+			}
+		}
+
 		$this::define_storage_constant( $base );
 
 		$dir = \SScribe_Private_Storage::get_export_dir( false );
