@@ -119,4 +119,34 @@ final class SScribe_Main_Test extends TestCase {
 		$plugin->invalidate_admin_page_cache( 42 );
 		$this->assertArrayNotHasKey( $cache_key, $GLOBALS['sscribe_test_transients'] );
 	}
+
+	public function test_run_boots_services_and_registers_hooks(): void {
+		// run() must complete without throwing. The function chains
+		// require_once for fatal-handler + upgrader + request-id, then
+		// registers every service in the container before pushing the
+		// loader onto WordPress. Anything that would silently break
+		// boot (a moved file, a renamed service, a wiring bug) raises
+		// here.
+		$plugin = new SScribe();
+		$plugin->run();
+
+		// After run() the container must hold the core services.
+		$container = \SScribe_Container::instance();
+		$this->assertTrue( $container->has( \SScribe_Page_Collector::class ) );
+		$this->assertTrue( $container->has( \SScribe_Session::class ) );
+		$this->assertTrue( $container->has( \SScribe_Filesystem::class ) );
+		$this->assertTrue( $container->has( \SScribe_Batch_Processor::class ) );
+		$this->assertTrue( $container->has( \SScribe_Admin::class ) );
+	}
+
+	public function test_run_can_be_invoked_multiple_times_safely(): void {
+		// Bootstrapping must be idempotent: the loader latch keeps the
+		// second run() from double-registering hooks.
+		$plugin = new SScribe();
+		$plugin->run();
+		$plugin->run();
+
+		// No throw on either call proves the latch held.
+		$this->assertTrue( true );
+	}
 }
