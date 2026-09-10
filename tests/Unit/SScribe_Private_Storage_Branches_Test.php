@@ -200,7 +200,14 @@ final class SScribe_Private_Storage_Branches_Test extends TestCase {
 		// normalized form differs from the canonicalized form.
 		$base = $real . '/../inside';
 		$this::assertDirectoryExists( $base, 'base directory must resolve to an existing directory for the early guards' );
-		$this::assertSame( $real, realpath( $base ), 'realpath must collapse the textual ..' );
+		// realpath() canonicalises path separators — Windows uses '\',
+		// POSIX uses '/'. Normalise to forward-slashes before comparing so
+		// the assertion is portable across platforms.
+		$this::assertSame(
+			str_replace( '\\', '/', $real ),
+			str_replace( '\\', '/', (string) realpath( $base ) ),
+			'realpath must collapse the textual ..'
+		);
 
 		define( 'SSCRIBE_PRIVATE_STORAGE_DIR', $base );
 
