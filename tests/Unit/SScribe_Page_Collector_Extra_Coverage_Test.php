@@ -50,12 +50,14 @@ final class SScribe_Page_Collector_Extra_Coverage_Test extends TestCase {
 	}
 
 	public function test_get_selectable_post_types_respects_sscribe_allowed_post_types_filter(): void {
-		add_filter(
-			'sscribe_allowed_post_types',
-			static fn( array $types ): array => array( 'product', 'page' )
-		);
-		$collector = new \SScribe_Page_Collector();
-		$types     = $collector->get_selectable_post_types();
+		$callback = static fn( array $types ): array => array( 'product', 'page' );
+		add_filter( 'sscribe_allowed_post_types', $callback );
+		try {
+			$collector = new \SScribe_Page_Collector();
+			$types     = $collector->get_selectable_post_types();
+		} finally {
+			remove_filter( 'sscribe_allowed_post_types', $callback );
+		}
 		$this::assertSame( array( 'product', 'page' ), $types );
 	}
 

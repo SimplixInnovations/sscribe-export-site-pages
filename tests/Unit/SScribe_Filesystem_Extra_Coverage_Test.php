@@ -54,7 +54,14 @@ final class SScribe_Filesystem_Extra_Coverage_Test extends TestCase {
 		$this::assertIsBool( $fs->is_wp_filesystem() );
 	}
 
-	public function test_get_last_error_is_empty_after_init(): void {
+	public function test_get_last_error_is_string_after_init(): void {
+		// Reset the static $last_error so we can assert empty-on-init deterministically
+		// (other tests in the suite share this static state).
+		$ref = new \ReflectionClass( '\\SScribe_Filesystem' );
+		$p   = $ref->getProperty( 'last_error' );
+		$p->setAccessible( true );
+		$p->setValue( null, '' );
+
 		$fs = new \SScribe_Filesystem();
 		$this::assertSame( '', $fs->get_last_error() );
 	}
