@@ -90,7 +90,7 @@ final class SScribe_Security_Traversal_Test extends TestCase {
 				unlink( $link );
 			}
 			if ( is_dir( $target ) ) {
-				rmdir( $target );
+				\SScribe_Security::delete_directory( $target );
 			}
 		}
 	}

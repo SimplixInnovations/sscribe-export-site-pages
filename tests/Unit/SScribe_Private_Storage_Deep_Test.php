@@ -155,7 +155,7 @@ final class SScribe_Private_Storage_Deep_Test extends TestCase {
 	}
 
 	public function test_harden_file_applies_mode_to_real_file(): void {
-		$base = \SScribe_Private_Storage::get_export_dir( false );
+		$base = \SScribe_Private_Storage::get_export_dir( true );
 		if ( '' === $base ) {
 			$this::markTestSkipped( 'No private storage dir' );
 		}
@@ -171,7 +171,7 @@ final class SScribe_Private_Storage_Deep_Test extends TestCase {
 	}
 
 	public function test_harden_directory_applies_mode_to_real_dir(): void {
-		$base = \SScribe_Private_Storage::get_export_dir( false );
+		$base = \SScribe_Private_Storage::get_export_dir( true );
 		if ( '' === $base ) {
 			$this::markTestSkipped( 'No private storage dir' );
 		}
