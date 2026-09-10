@@ -1103,7 +1103,7 @@ jobs:
     coverage:
         name: Coverage PHP 8.4
         runs-on: ubuntu-latest
-        needs: test
+        needs: [test, real-wp-tests]
         steps:
             - name: Checkout code
               uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
@@ -1131,8 +1131,15 @@ jobs:
             - name: Generate prefixed vendor tree
               run: composer vendor:prefix
 
-            - name: Run tests with coverage
-              run: composer test:coverage
+            - name: Set up WordPress test environment
+              run: composer test:wp:install
+
+            # Combined coverage pipeline: core PHPUnit suite + real-WP
+            # integration suite, merged via phpcov into the canonical
+            # clover.xml that the threshold gate consumes. See
+            # scripts/merge-coverage.php for the fail-closed contract.
+            - name: Run combined coverage pipeline
+              run: composer test:coverage:core && composer test:coverage:wp && composer test:coverage:merge
 
             - name: Enforce coverage-threshold gate
               run: composer test:coverage:check
@@ -1141,7 +1148,7 @@ jobs:
               uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
               with:
                   name: coverage-report
-                  path: coverage/
+                  path: clover.xml
 
             - name: Upload coverage threshold manifest
               uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6

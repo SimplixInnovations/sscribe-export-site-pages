@@ -71,10 +71,18 @@ if ( ! preg_match( '/include-experimental:\s*true/', $ci ) ) {
 	$errors[] = 'plugin-check job does not set `include-experimental: true`. WP.org review runs the experimental checks; CI must match.';
 }
 
-// 5. needs: [test, frontend-quality, audit, real-wp-tests].
+// 5. needs: [test, frontend-quality, audit, real-wp-tests] inside the
+//    plugin-check job block. Scope the regex so other jobs (coverage,
+//    audit, etc.) do not poison the search. Match either the next job
+//    header OR end-of-document so plugin-check is also matched when it
+//    is the last job in the workflow.
+$plugin_check_block = '';
+if ( preg_match( '/^    plugin-check:\s*$(.*?)(?=^    [a-z][a-z0-9_-]*:\s*$|^---|\Z)/sm', $ci, $pc_hit ) ) {
+	$plugin_check_block = $pc_hit[1];
+}
 $needs_pattern = '/needs:\s*\[[^\]]+\]/';
 $needs_match   = '';
-if ( preg_match( $needs_pattern, $ci, $needs_hit ) ) {
+if ( '' !== $plugin_check_block && preg_match( $needs_pattern, $plugin_check_block, $needs_hit ) ) {
 	$needs_match = $needs_hit[0];
 }
 foreach ( array( 'test', 'frontend-quality', 'audit', 'real-wp-tests' ) as $required_dep ) {
