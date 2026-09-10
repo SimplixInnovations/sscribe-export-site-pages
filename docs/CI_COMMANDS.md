@@ -577,6 +577,67 @@ failure looks like**, **how to debug**, **what manifest it writes**.
 - **Manifest:** none (the verifier exits non-zero with a per-class
   summary).
 
+### `composer test:coverage:core`
+
+- **Script:** `php -d memory_limit=1G phpunit -c phpunit-coverage-core.xml --exclude-group=release-contract`
+- **Gates:** runs the Unit + Integration + Security suites and writes
+  serialized coverage data to `dist/coverage-data/core.cov`. Consumes
+  the same source filter as `phpunit-coverage.xml` but emits
+  `coverage-php` data instead of clover.xml — the canonical clover is
+  produced by the merge step, not by this run.
+- **Failure:** PHPUnit failure list, or fatal error during serialize
+  (memory_limit must be ≥ 1G).
+- **Debug:** ensure `XDEBUG_MODE=coverage` (or PCOV) is set, then
+  re-run.
+- **Manifest:** none (the artifact is `dist/coverage-data/core.cov`).
+
+### `composer test:coverage:wp`
+
+- **Script:** `php -d memory_limit=1G phpunit -c phpunit-coverage-wp.xml`
+- **Gates:** runs the real-WordPress integration suite against a
+  real WordPress testbench (via `tests-wp/bootstrap.php`) and writes
+  serialized coverage data to `dist/coverage-data/wp.cov`. This is
+  the suite that exercises AJAX endpoints, `wp_die()` flows,
+  WP_Query-bound admin pages, and cron handlers — paths the unit
+  suite cannot reach.
+- **Failure:** real-WP test failures, OR missing WordPress testbench
+  (`bash bin/install-wp-tests.sh --sqlite` first).
+- **Debug:** see `docs/CI_COMMANDS.md` §`composer test:wp` for the
+  non-coverage version of this command.
+- **Manifest:** none (the artifact is `dist/coverage-data/wp.cov`).
+
+### `composer test:coverage:merge`
+
+- **Script:** `php scripts/merge-coverage.php`
+- **Gates:** validates every `.cov` file in `dist/coverage-data/`,
+  refuses any file that is corrupt, of the wrong class, or that
+  references source paths outside `includes/` or `admin/`, then
+  invokes `vendor/bin/phpcov merge` to produce `clover.xml` and
+  `coverage/index.html`.
+- **Failure:** "merge-coverage: coverage data directory missing",
+  "no *.cov files", "is corrupt", "references a source path outside
+  the audited source tree", "empty merged clover.xml".
+- **Debug:** check `dist/coverage-data/` — only files matching
+  `*.cov` are consumed, every other file is silently ignored.
+- **Manifest:** none (the canonical `clover.xml` is the artifact).
+
+### `composer test:coverage:full`
+
+- **Script:** `composer test:coverage:core && composer test:coverage:wp && composer test:coverage:merge && composer test:coverage:check`
+- **Gates:** the complete combined coverage pipeline:
+  core suite → wp suite → merge → threshold verification. This is
+  the canonical release coverage evidence; the suite produces a
+  single `clover.xml` whose project + critical-module percentages
+  must meet the 70% / 90% thresholds.
+- **Failure:** any sub-step failing causes the chain to abort with
+  that step's non-zero exit code.
+- **Debug:** run each sub-step independently with `XDEBUG_MODE=coverage`
+  to localize the failure.
+- **Manifest:** `dist/coverage-threshold-manifest.json` (written by
+  `composer test:coverage:check`).
+
+
+
 ### `composer i18n:check`
 
 - **Script:** `php scripts/verify-i18n.php`
@@ -667,7 +728,7 @@ purpose):
 | `test`                   | `composer test`                                              |
 | `acceptance`             | every `composer test:*` (verifier + PHPUnit step pair)       |
 | `real-wp-tests`          | `composer test:wp` (matrix: PHP 8.2/8.3/8.4 × WP latest/previous) |
-| `coverage`               | `composer test:coverage` + `composer test:coverage:check`    |
+| `coverage`               | `composer test:coverage:core` + `composer test:coverage:wp` + `composer test:coverage:merge` + `composer test:coverage:check` (= `composer test:coverage:full`) |
 | `frontend-quality`       | `npm run lint`, `npm run format:check`, `npm audit`          |
 | `audit`                  | `composer audit:npm` + `composer audit:composer`             |
 | `plugin-check`           | Runs the official WordPress Plugin Check (`Submission Package Check`) on the produced ZIP |

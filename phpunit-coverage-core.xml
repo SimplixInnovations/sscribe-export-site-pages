@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  PHPUnit configuration for the core coverage suite (Unit, Integration,
+  Security) emitting serialized coverage data to dist/coverage-data/core.cov.
+
+  See scripts/merge-coverage.php for how this file is consumed.
+-->
+<phpunit
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:noNamespaceSchemaLocation="https://schema.phpunit.de/11.5/phpunit.xsd"
+    bootstrap="tests/bootstrap.php"
+    colors="true"
+    cacheDirectory=".phpunit.cache"
+    failOnRisky="true"
+    failOnWarning="true"
+    requireCoverageMetadata="false"
+>
+    <testsuites>
+        <testsuite name="Unit">
+            <directory suffix="Test.php">tests/Unit</directory>
+        </testsuite>
+        <testsuite name="Integration">
+            <directory suffix="Test.php">tests/Integration</directory>
+        </testsuite>
+        <testsuite name="Security">
+            <directory suffix="Test.php">tests/Security</directory>
+        </testsuite>
+    </testsuites>
+
+    <source>
+        <include>
+            <directory suffix=".php">includes</directory>
+            <directory suffix=".php">admin</directory>
+        </include>
+        <exclude>
+            <file>includes/class-sscribe-activator.php</file>
+            <file>includes/class-sscribe-deactivator.php</file>
+        </exclude>
+    </source>
+
+    <coverage>
+        <report>
+            <php outputFile="dist/coverage-data/core.cov"/>
+        </report>
+    </coverage>
+</phpunit>

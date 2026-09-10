@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  PHPUnit configuration for the real WordPress integration coverage
+  suite emitting serialized coverage data to dist/coverage-data/wp.cov.
+
+  See scripts/merge-coverage.php for how this file is consumed.
+-->
+<phpunit
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:noNamespaceSchemaLocation="https://schema.phpunit.de/11.5/phpunit.xsd"
+    bootstrap="tests-wp/bootstrap.php"
+    colors="true"
+    cacheDirectory=".phpunit.cache"
+    failOnRisky="true"
+    failOnWarning="true"
+>
+    <testsuites>
+        <testsuite name="WordPress">
+            <directory suffix="Test.php">tests-wp/WordPress</directory>
+        </testsuite>
+    </testsuites>
+
+    <source>
+        <include>
+            <directory suffix=".php">includes</directory>
+            <directory suffix=".php">admin</directory>
+        </include>
+        <exclude>
+            <file>includes/class-sscribe-activator.php</file>
+            <file>includes/class-sscribe-deactivator.php</file>
+        </exclude>
+    </source>
+
+    <php>
+        <env name="WP_TESTS_DIR" value="tests-wp/_wordpress-tests-lib"/>
+        <env name="WP_CORE_DIR" value="tests-wp/_wordpress"/>
+        <env name="WP_PHP_BINARY" value="php tests-wp/wp-php-wrapper.php"/>
+        <ini name="memory_limit" value="1024M"/>
+    </php>
+
+    <coverage>
+        <report>
+            <php outputFile="dist/coverage-data/wp.cov"/>
+        </report>
+    </coverage>
+</phpunit>
