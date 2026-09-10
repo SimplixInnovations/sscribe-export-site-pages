@@ -171,6 +171,46 @@ final class SScribe_Private_Storage_Branches_Test extends TestCase {
 		rmdir( $outside );
 	}
 
+	/**
+	 * get_export_dir() must reject a base whose canonicalized form
+	 * differs from its own normalized form (private-storage.php L91).
+	 *
+	 * normalize_path() does NOT collapse `..` segments, so a base of
+	 * `/tmp/foo/../foo` normalizes to `/tmp/foo/../foo` while realpath()
+	 * resolves it to `/tmp/foo`. The mismatch is caught by the
+	 * canonical-form check and the function returns the empty string.
+	 *
+	 * The base still has to pass all the earlier guards (absolute,
+	 * exists as a directory, not a symlink, writable, owned), so we
+	 * point it at a real directory whose textual form contains `..`.
+	 */
+	#[\PHPUnit\Framework\Attributes\RunInSeparateProcess]
+	#[\PHPUnit\Framework\Attributes\PreserveGlobalState( false )]
+	public function test_get_export_dir_rejects_dotdot_in_base_path(): void {
+		$root = sys_get_temp_dir() . '/sscribe-dotdot-real-' . uniqid();
+		wp_mkdir_p( $root );
+
+		// Create a child so we can construct a textual path that
+		// resolves back to the same directory but contains `..`.
+		$real = $root . '/inside';
+		wp_mkdir_p( $real );
+
+		// /tmp/foo/inside/../inside resolves to /tmp/foo/inside which
+		// is the same as $real; the textual form has `..` so its
+		// normalized form differs from the canonicalized form.
+		$base = $real . '/../inside';
+		$this::assertDirectoryExists( $base, 'base directory must resolve to an existing directory for the early guards' );
+		$this::assertSame( $real, realpath( $base ), 'realpath must collapse the textual ..' );
+
+		define( 'SSCRIBE_PRIVATE_STORAGE_DIR', $base );
+
+		$result = \SScribe_Private_Storage::get_export_dir();
+		$this::assertSame( '', $result, 'get_export_dir() must reject a base whose canonical form differs from its normalized form' );
+
+		rmdir( $real );
+		rmdir( $root );
+	}
+
 	// ------------------------------------------------------------------
 	// get_subdirectory() — unsafe payload branches.
 	// The regex on line 138 is `^[a-z0-9][a-z0-9/_-]*$`. Payloads that
@@ -811,5 +851,152 @@ final class SScribe_Private_Storage_Branches_Test extends TestCase {
 
 		@unlink( $source );
 		@unlink( $dest );
+	}
+
+	// ------------------------------------------------------------------
+	// get_legacy_storage_dirs() — upload-dir error fallback
+	// (lines 178-182). The test stub wp_upload_dir() honours the
+	// `pre_upload_dir` filter so a forced error shape exercises the
+	// empty-string fallback path.
+	// ------------------------------------------------------------------
+
+	public function test_get_legacy_storage_dirs_returns_empty_when_upload_dir_errors(): void {
+		$filter = static function () {
+			return array(
+				'basedir' => '',
+				'baseurl' => '',
+				'path'    => '',
+				'url'     => '',
+				'subdir'  => '',
+				'error'   => 'forced test failure',
+			);
+		};
+		add_filter( 'pre_upload_dir', $filter );
+		try {
+			$dirs = \SScribe_Private_Storage::get_legacy_storage_dirs();
+		} finally {
+			remove_filter( 'pre_upload_dir', $filter );
+		}
+
+		$this::assertSame( '', $dirs['exports'] );
+		$this::assertSame( '', $dirs['logs'] );
+		$this::assertSame( '', $dirs['mpdf_temp'] );
+	}
+
+	// ------------------------------------------------------------------
+	// get_export_dir() — mkdir-p failure short-circuit (line 104).
+	// The export tree walks `$base/sscribe-exports/site-key/<dir>`;
+	// pre-creating a non-directory at the first segment makes
+	// wp_mkdir_p() refuse to descend and the function returns ''.
+	// ------------------------------------------------------------------
+
+	#[\PHPUnit\Framework\Attributes\RunInSeparateProcess]
+	#[\PHPUnit\Framework\Attributes\PreserveGlobalState( false )]
+	public function test_get_export_dir_returns_empty_when_inner_mkdir_fails(): void {
+		$base = sys_get_temp_dir() . '/sscribe-export-mkdirfail-' . uniqid();
+		wp_mkdir_p( $base );
+
+		// The export tree walks `$base/sscribe-export-site-pages/site-key/<dir>`.
+		// Block the first directory segment with a non-directory so
+		// wp_mkdir_p() refuses to descend and trips the short-circuit
+		// on line 104.
+		$blocker = $base . '/sscribe-export-site-pages';
+		if ( ! @file_put_contents( $blocker, 'blocker' ) ) {
+			$this::markTestSkipped( 'Could not seed the blocker file.' );
+		}
+
+		// wp_mkdir_p emits an E_WARNING when mkdir() rejects a leaf;
+		// the production branch swallows it via the false === check,
+		// but the warning still fires under PHPUnit's failOnWarning, so
+		// we route it through a permissive local handler.
+		set_error_handler(
+			static function ( int $errno, string $errstr ): bool {
+				return str_contains( $errstr, 'mkdir' );
+			}
+		);
+		try {
+			define( 'SSCRIBE_PRIVATE_STORAGE_DIR', $base );
+			$result = \SScribe_Private_Storage::get_export_dir();
+		} finally {
+			restore_error_handler();
+		}
+		$this::assertSame( '', $result, 'get_export_dir() must return "" when wp_mkdir_p cannot create the inner tree' );
+
+		@unlink( $blocker );
+	}
+
+	// ------------------------------------------------------------------
+	// get_subdirectory() — mkdir-p failure short-circuit (line 147).
+	// The subdirectory is appended beneath the export root; a regular
+	// file at that exact path makes wp_mkdir_p return false.
+	// ------------------------------------------------------------------
+
+	public function test_get_subdirectory_returns_empty_when_inner_mkdir_fails(): void {
+		$root = \SScribe_Private_Storage::get_export_dir();
+		$this::assertNotSame( '', $root, 'precondition: export root must resolve' );
+
+		$blocker = $root . '/leaf-blocked';
+		if ( ! @file_put_contents( $blocker, 'blocker' ) ) {
+			$this::markTestSkipped( 'Could not seed the blocker file.' );
+		}
+
+		// wp_mkdir_p emits E_WARNING when the leaf collides with an
+		// existing non-directory; the production branch swallows it via
+		// the `false === wp_mkdir_p()` check, but the warning still fires
+		// under PHPUnit's failOnWarning, so we route it through the
+		// pattern's error handler.
+		set_error_handler(
+			static function ( int $errno, string $errstr ): bool {
+				return str_contains( $errstr, 'mkdir(' ) || str_contains( $errstr, 'mkdir():' );
+			}
+		);
+		try {
+			$result = \SScribe_Private_Storage::get_subdirectory( 'leaf-blocked' );
+		} finally {
+			restore_error_handler();
+		}
+		$this::assertSame( '', $result, 'get_subdirectory() must return "" when wp_mkdir_p cannot create the leaf' );
+
+		@unlink( $blocker );
+	}
+
+	// ------------------------------------------------------------------
+	// get_subdirectory() — get_export_dir failure short-circuit (line 143).
+	// When the export root cannot be resolved, get_subdirectory() must
+	// not try to descend and must return the empty string immediately.
+	// ------------------------------------------------------------------
+
+	#[\PHPUnit\Framework\Attributes\RunInSeparateProcess]
+	#[\PHPUnit\Framework\Attributes\PreserveGlobalState( false )]
+	public function test_get_subdirectory_returns_empty_when_export_root_unavailable(): void {
+		// Empty base path → get_export_dir() short-circuits to ''.
+		define( 'SSCRIBE_PRIVATE_STORAGE_DIR', '' );
+		$this::assertSame( '', \SScribe_Private_Storage::get_subdirectory( 'never-reached' ) );
+	}
+
+	// ------------------------------------------------------------------
+	// get_subdirectory() — re-validation ownership/symlink rejection
+	// (line 151). After get_export_dir creates the export tree,
+	// get_subdirectory walks the OR-chain `! is_dir($path) || is_link($path)
+	// || ! is_owned_path($path)`. A symlink at the leaf triggers the
+	// is_link() clause without needing posix_seteuid gymnastics.
+	// ------------------------------------------------------------------
+
+	public function test_get_subdirectory_returns_empty_when_leaf_is_symlink(): void {
+		$root = \SScribe_Private_Storage::get_export_dir();
+		$this::assertNotSame( '', $root, 'precondition: export root must resolve' );
+
+		$link = $root . '/symlinked-leaf';
+		@unlink( $link );
+		if ( ! @symlink( sys_get_temp_dir(), $link ) ) {
+			$this::markTestSkipped( 'Symbolic links are unavailable in this environment.' );
+		}
+
+		$result = \SScribe_Private_Storage::get_subdirectory( 'symlinked-leaf' );
+		$this::assertSame( '', $result, 'get_subdirectory() must return "" when the leaf is a symlink (is_link branch on line 151)' );
+
+		if ( is_link( $link ) ) {
+			unlink( $link );
+		}
 	}
 }

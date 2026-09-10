@@ -228,6 +228,19 @@ if ( ! function_exists( 'strip_shortcodes' ) ) {
 
 if ( ! function_exists( 'wp_upload_dir' ) ) {
 	function wp_upload_dir() {
+		// Real WordPress exposes a `pre_upload_dir` filter that lets
+		// short-circuit overrides return a payload (including an error
+		// shape) before the default calculation runs. The test stub
+		// mirrors that contract so branches that depend on an
+		// upload-dir error or a missing basedir can be exercised
+		// without monkey-patching the function itself.
+		if ( function_exists( 'apply_filters' ) ) {
+			$pre = apply_filters( 'pre_upload_dir', null );
+			if ( is_array( $pre ) ) {
+				return $pre;
+			}
+		}
+
 		$sscribe_basedir = sys_get_temp_dir() . '/sscribe-test-uploads';
 		if ( ! is_dir( $sscribe_basedir ) ) {
 			wp_mkdir_p( $sscribe_basedir );
@@ -291,8 +304,30 @@ if ( ! function_exists( 'wp_strip_all_tags' ) ) {
 
 if ( ! function_exists( 'wp_mkdir_p' ) ) {
 	function wp_mkdir_p( $sscribe_dir ) {
-		if ( ! is_dir( $sscribe_dir ) ) {
-			mkdir( $sscribe_dir, 0755, true );
+		// The test stub mirrors the contract of WP's wp_mkdir_p: it
+		// returns true when the directory already exists or when every
+		// segment was created, and false when an intermediate segment
+		// cannot be created (e.g. a non-directory collides with the
+		// target). The real WP function walks `$dir` with @mkdir and
+		// returns the boolean status, so tests that depend on the
+		// failure branch can exercise the production short-circuit
+		// without monkey-patching the function.
+		if ( is_dir( $sscribe_dir ) ) {
+			return true;
+		}
+		$segments = explode( '/', str_replace( '\\', '/', (string) $sscribe_dir ) );
+		$current  = '' === $segments[0] ? '/' : '';
+		foreach ( $segments as $segment ) {
+			if ( '' === $segment ) {
+				continue;
+			}
+			$current .= $segment . '/';
+			if ( is_dir( $current ) ) {
+				continue;
+			}
+			if ( ! @mkdir( $current, 0755, false ) ) {
+				return false;
+			}
 		}
 		return true;
 	}
