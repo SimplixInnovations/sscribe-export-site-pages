@@ -68,6 +68,13 @@ final class SScribe_Filesystem_Late_Branch_Test extends TestCase {
 		$this::assertNotSame( '', $this->fs->get_last_error() );
 	}
 
+	public function test_read_contents_returns_false_for_directory(): void {
+		// Reading a directory hits the 'File does not exist' / 'Failed to read' branch.
+		$result = $this->fs->get_contents( $this->tmp );
+		$this::assertFalse( $result );
+		$this::assertNotSame( '', $this->fs->get_last_error() );
+	}
+
 	public function test_write_contents_chmod_failure_logs_warning(): void {
 		// Pass an invalid mode that didn't make sense — chmod returns false on Windows
 		// when given mode 0 (no read/write/exec), which exercises the warning branch.
