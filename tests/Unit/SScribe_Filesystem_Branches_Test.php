@@ -897,22 +897,21 @@ final class SScribe_Filesystem_Branches_Test extends TestCase {
 		$export = \SScribe_Private_Storage::get_export_dir();
 		wp_mkdir_p( $export );
 		// Plant a regular file at the location mkdir_under_private_root
-		// would try to descend through; the bootstrap stub of wp_mkdir_p
-		// forwards to PHP's mkdir() which then warns, and the harden-
-		// directory chmod() afterwards also raises a "No such file or
-		// directory" warning because the target was not actually created.
+		// would try to descend through. The bootstrap stub of wp_mkdir_p
+		// walks the path segment by segment and the inner mkdir() call
+		// raises an E_WARNING when the leaf collides with a non-directory.
 		// Capture that expected warning and assert.
 		file_put_contents( $export . '/blocker', 'x' );
 
 		$result = $this->expect_warning(
 			fn () => $fs->mkdir_under_private_root( 'blocker/inside' ),
-			'chmod'
+			'mkdir'
 		);
 		$this::assertSame( '', $result );
-		// The bootstrap stub wp_mkdir_p() always returns true, so the
-		// post-create resolve check picks up that the target does not
-		// exist and returns 'Could not resolve target or root' rather
-		// than 'wp_mkdir_p failed for contained target'. Either error
+		// A correct wp_mkdir_p() stub returns false when mkdir fails,
+		// so mkdir_under_private_root short-circuits to its
+		// "wp_mkdir_p failed for contained target" error rather than
+		// later discovering the missing target. Either error string
 		// proves the function refused to create the directory.
 		$this::assertNotSame( '', $fs->get_last_error() );
 		@unlink( $export . '/blocker' );
