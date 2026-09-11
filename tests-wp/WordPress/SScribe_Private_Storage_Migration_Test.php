@@ -25,6 +25,9 @@
 
 declare(strict_types=1);
 
+use PHPUnit\Framework\Attributes\PreserveGlobalState;
+use PHPUnit\Framework\Attributes\RunInSeparateProcess;
+
 require_once __DIR__ . '/SScribe_WP_TestCase.php';
 
 final class SScribe_Private_Storage_Migration_Test extends SScribe_WP_TestCase {
@@ -60,10 +63,9 @@ final class SScribe_Private_Storage_Migration_Test extends SScribe_WP_TestCase {
 	 * without runkit, and PHPUnit's per-test set_up cannot reset the
 	 * constant between cases. Process isolation is the only way to
 	 * keep this test deterministic across runs.
-	 *
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
 	 */
+	#[RunInSeparateProcess]
+	#[PreserveGlobalState( false )]
 	public function test_migration_moves_legacy_uploads_to_private(): void {
 		$private_base = $this->scratch . '/private';
 		wp_mkdir_p( $private_base );

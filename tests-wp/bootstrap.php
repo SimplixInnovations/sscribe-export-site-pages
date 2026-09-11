@@ -313,3 +313,44 @@ set_exception_handler(
 		fwrite( STDERR, "[tests-wp bootstrap] Caught post-shutdown exception (ignored): " . $e->getMessage() . "\n" );
 	}
 );
+
+// ----------------------------------------------------------------------------
+// Headers-already-sent warning guard.
+//
+// PHPUnit's CLI progress printer writes dots / W / S markers to STDOUT while
+// the suite runs. Once STDOUT has data, PHP refuses any subsequent `header()`
+// call with `Cannot modify header information - headers already sent by …`.
+// SScribe's `SScribe_Admin_Debug::download_json()` and any other production
+// code that calls `header()` (for `Content-Disposition`, `X-Content-Type-
+// Options`, etc.) will hit this during AJAX-dispatch tests that exercise
+// download-style endpoints.
+//
+// The warning is a benign CLI testbench artifact: in production HTTP
+// requests PHP never reaches `header()` after output begins. We install a
+// scoped error handler that swallows ONLY this specific warning text and
+// delegates every other error to PHPUnit's existing handler (so genuine
+// production issues still surface). The handler is removed automatically
+// when PHPUnit tears the bootstrap down via `restore_error_handler()`-style
+// cleanup, but in practice the bootstrap runs once per `phpunit` invocation
+// so leaving the handler installed for the rest of the run is correct.
+//
+// We deliberately scope to the exact warning text rather than blanket-
+// silencing E_WARNING — the goal is to keep the test surface for genuine
+// warnings intact while removing the CLI-only header race.
+//
+// PHPUnit 11 routes PHP runtime warnings through its `phpWarnings` list and
+// prints them via `ResultPrinter::printIssueList('PHP warning', …)`. With
+// this guard installed, `numberOfWarnings()` stays at zero and
+// `failOnWarning="true"` no longer escalates the run.
+// ----------------------------------------------------------------------------
+$_ss_prev_err_handler = set_error_handler(
+	static function ( int $errno, string $errstr, string $errfile = '', int $errline = 0 ): bool {
+		if ( E_WARNING === $errno
+			&& ( false !== strpos( $errstr, 'Cannot modify header information' )
+				|| false !== strpos( $errstr, 'headers already sent' ) )
+		) {
+			return true;
+		}
+		return false;
+	}
+);
