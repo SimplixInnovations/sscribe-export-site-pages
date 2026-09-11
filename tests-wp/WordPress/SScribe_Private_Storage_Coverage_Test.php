@@ -185,9 +185,14 @@ final class SScribe_Private_Storage_Coverage_Test extends SScribe_WP_TestCase {
 		$target          = $this->scratch . '/opt-in-storage';
 		$this::define_storage_constant( $target );
 
+		// Permissive variadic — on the canonical Linux/POSIX bench,
+		// WP_Hook::do_action passes array_merge([$value], $extra_args),
+		// but on certain WP versions the extra args can be omitted when
+		// the filter is registered without a priority. Accepting a
+		// variadic signature avoids an ArgumentCountError.
 		$this->with_filter(
 			'sscribe_private_storage_allow_foreign_owner',
-			static fn( $allow, $base ) => true
+			static fn( ...$args ) => true
 		);
 
 		$resolved = \SScribe_Private_Storage::get_export_dir();
@@ -208,9 +213,14 @@ final class SScribe_Private_Storage_Coverage_Test extends SScribe_WP_TestCase {
 		wp_mkdir_p( $target );
 		$this::define_storage_constant( $target );
 
+		// Permissive variadic — on the canonical Linux/POSIX bench,
+		// WP_Hook::do_action passes array_merge([$value], $extra_args),
+		// but on certain WP versions the extra args can be omitted when
+		// the filter is registered without a priority. Accepting a
+		// variadic signature avoids an ArgumentCountError.
 		$this->with_filter(
 			'sscribe_private_storage_allow_foreign_owner',
-			static fn( $allow, $base ) => true
+			static fn( ...$args ) => true
 		);
 
 		$resolved = \SScribe_Private_Storage::get_export_dir();

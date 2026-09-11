@@ -53,6 +53,16 @@ final class SScribe_Private_Storage_Migration_Test extends SScribe_WP_TestCase {
 	/**
 	 * The legacy public `sscribe-exports` directory must migrate into
 	 * the private base on first use.
+	 *
+	 * Runs in a separate PHP process so SSCRIBE_PRIVATE_STORAGE_DIR is
+	 * guaranteed to be undefined at the time the test calls
+	 * `define()` — PHP refuses to redefine an already-defined constant
+	 * without runkit, and PHPUnit's per-test set_up cannot reset the
+	 * constant between cases. Process isolation is the only way to
+	 * keep this test deterministic across runs.
+	 *
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
 	 */
 	public function test_migration_moves_legacy_uploads_to_private(): void {
 		$private_base = $this->scratch . '/private';
