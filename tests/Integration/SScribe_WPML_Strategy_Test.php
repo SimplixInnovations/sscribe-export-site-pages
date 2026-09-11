@@ -152,6 +152,18 @@ final class SScribe_WPML_Strategy_Test extends TestCase {
 		);
 	}
 
+	/**
+	 * Run in a separate PHP process so the constant + class definitions
+	 * in this test do NOT pollute later "absent" or "default-false"
+	 * assertions. PHP cannot undefine `ICL_SITEPRESS_VERSION` or unload
+	 * `SitePress`, so without this isolation the random order in which
+	 * PHPUnit runs our three `is_wpml_active()` coverage tests could
+	 * leave the constant defined for the rest of the suite run and break
+	 * the sibling assertions. Mirrors the pattern on the sibling
+	 * "absent" test above.
+	 */
+	#[RunInSeparateProcess]
+	#[PreserveGlobalState( false )]
 	public function test_page_collector_is_wpml_active_returns_true_when_constant_defined(): void {
 		// Phase 57 contract: define the constant + load the SitePress
 		// class, then assert is_wpml_active() returns true.

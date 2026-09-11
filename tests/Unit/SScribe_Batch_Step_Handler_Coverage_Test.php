@@ -16,6 +16,8 @@ declare(strict_types=1);
 
 namespace SScribe\Tests\Unit;
 
+use PHPUnit\Framework\Attributes\PreserveGlobalState;
+use PHPUnit\Framework\Attributes\RunInSeparateProcess;
 use PHPUnit\Framework\TestCase;
 use ReflectionClass;
 
@@ -113,6 +115,16 @@ final class SScribe_Batch_Step_Handler_Coverage_Test extends TestCase {
 		$this::assertIsArray( $result['error_diagnostics'] );
 	}
 
+	/**
+	 * Run in a separate PHP process so the `define('SSCRIBE_DEBUG', true)`
+	 * on line 120 cannot leak into sibling tests' `is_logging_enabled()`
+	 * computation. PHP has no API to undefine a constant, so without
+	 * process isolation the constant stays true for the rest of the
+	 * suite run and breaks `SScribe_Logger_Singleton_Test`'s disabled-
+	 * logger assertions whenever this method runs first in random order.
+	 */
+	#[RunInSeparateProcess]
+	#[PreserveGlobalState( false )]
 	public function test_build_batch_response_debug_info_when_constant_enabled(): void {
 		// SSCRIBE_DEBUG is a runtime constant; flip it on for this assertion.
 		$previous = defined( 'SSCRIBE_DEBUG' ) ? SSCRIBE_DEBUG : false;

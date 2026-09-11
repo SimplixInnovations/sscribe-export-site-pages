@@ -87,6 +87,19 @@ final class SScribe_PDF_Exporter_Extra_Helper_Coverage_Test extends TestCase {
 		if ( '' === $base ) {
 			$this::markTestSkipped( 'No private storage dir' );
 		}
+		// Self-heal against test-order dependence: when this test happens to
+		// run AFTER a sibling that called `delete_owned_storage()` (e.g.
+		// SScribe_Private_Storage_Late_Branch_Test) the export dir does not
+		// exist on disk yet `get_export_dir(false)` returns its path string.
+		// `file_put_contents()` would then emit PHP warnings (and the
+		// `assertFileExists` assertion would fail). Recreate the dir; the
+		// test's intent — proving `cleanup_temp_images` leaves siblings of
+		// the image-staging temp dir alone — is unaffected by who built the
+		// dir originally.
+		if ( ! is_dir( $base ) ) {
+			// phpcs:ignore WordPress.PHP.NoSilencedErrors
+			@mkdir( $base, 0777, true );
+		}
 		$a = $base . '/pdf_cleanup_a_' . uniqid() . '.tmp';
 		$b = $base . '/pdf_cleanup_b_' . uniqid() . '.tmp';
 		file_put_contents( $a, 'x' );

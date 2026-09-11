@@ -33,11 +33,19 @@ final class SScribe_Settings_Coverage_Test extends TestCase {
 	}
 
 	public function test_set_debug_enabled_returns_bool(): void {
+		$previous = (bool) \SScribe_Settings::is_debug_enabled();
 		$result = \SScribe_Settings::set_debug_enabled( true );
 		$this::assertTrue( $result );
 		// Idempotent set returns true.
 		$result = \SScribe_Settings::set_debug_enabled( true );
 		$this::assertTrue( $result );
+		// Restore prior state. The `sscribe_test_options` global is shared
+		// across the parent PHPUnit run; without this restore, every
+		// later test sees `is_debug_enabled() === true`, which breaks
+		// `SScribe_Logger_Singleton_Test`'s disabled-logger assertions
+		// (is_logging_enabled() short-circuits to true and the
+		// singleton cache key embeds the effective-enabled flag).
+		\SScribe_Settings::set_debug_enabled( $previous );
 	}
 
 	public function test_get_debug_log_level_defaults_to_debug(): void {
