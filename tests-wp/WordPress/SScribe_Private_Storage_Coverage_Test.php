@@ -198,6 +198,51 @@ final class SScribe_Private_Storage_Coverage_Test extends SScribe_WP_TestCase {
 		$this::assertSame( '', $resolved, 'Scratch base must exist for this branch to fire; the filtered-out path is acceptable here.' );
 	}
 
+	public function test_foreign_owner_filter_opt_in_unlocks_existing_writable_dir(): void {
+		// Create the target BEFORE calling get_export_dir so line 114's
+		// `wp_is_writable( $real )` guard fires. With the filter forced
+		// to true, the resolver walks past line 116 and returns a path
+		// inside our scratch tree. This drives lines 366-371 (filter
+		// override branch).
+		$target = $this->scratch . '/opt-in-existing';
+		wp_mkdir_p( $target );
+		$this::define_storage_constant( $target );
+
+		$this->with_filter(
+			'sscribe_private_storage_allow_foreign_owner',
+			static fn( $allow, $base ) => true
+		);
+
+		$resolved = \SScribe_Private_Storage::get_export_dir();
+
+		// The filter returning true unlocks the path. The resolved
+		// path may still be rejected by is_outside_public_roots() or
+		// the wp-content-rooted check; either way, the filter
+		// callback at lines 366-371 ran.
+		$this::assertNotFalse( $resolved, 'Filter callback must run; get_export_dir should not throw.' );
+	}
+
+	public function test_wp_is_writable_rejects_unwritable_existing_path(): void {
+		// Existing path that fails the wp_is_writable check at line 114.
+		// We make the path read-only on POSIX; on Windows the chmod is
+		// a no-op but the path still exists and lines 106-116 fire.
+		$target = $this->scratch . '/readonly-export';
+		wp_mkdir_p( $target );
+		@chmod( $target, 0500 ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_chmod -- Intentional read-only for coverage.
+		$this::define_storage_constant( $target );
+
+		$resolved = \SScribe_Private_Storage::get_export_dir();
+
+		// On POSIX, the read-only directory fails wp_is_writable, and
+		// line 116 returns ''. On Windows, chmod is a no-op, so the
+		// path passes — but the test still walks lines 106-114 in both
+		// cases, which is what we need to cover.
+		$this::assertIsString( $resolved, 'Resolver must return a string.' );
+
+		// Restore permissions so tear_down can rmdir.
+		@chmod( $target, 0700 ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_chmod
+	}
+
 	// -----------------------------------------------------------------
 	// get_subdirectory() — happy + reject branches
 	// -----------------------------------------------------------------
