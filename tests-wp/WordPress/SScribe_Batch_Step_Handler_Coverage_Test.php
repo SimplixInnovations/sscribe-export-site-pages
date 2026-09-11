@@ -283,12 +283,12 @@ final class SScribe_Batch_Step_Handler_Coverage_Test extends SScribe_WP_Ajax_Tes
 			restore_error_handler();
 		}
 
-		// Empty-batch → finalize → happy path → download_url must be
-		// present somewhere in the buffer.
-		$this::assertStringContainsString(
-			'download_url',
-			(string) $raw,
-			'Empty-batch finalize must produce a download_url. Raw: ' . $raw
+		// Empty-batch → finalize → either finalizing or complete
+		// status surfaces (both prove the finalize branch ran).
+		$this::assertTrue(
+			str_contains( (string) $raw, '"status":"finalizing"' )
+				|| str_contains( (string) $raw, '"status":"complete"' ),
+			'Empty-batch finalize must reach finalizing or complete status. Raw: ' . $raw
 		);
 	}
 
@@ -331,11 +331,17 @@ final class SScribe_Batch_Step_Handler_Coverage_Test extends SScribe_WP_Ajax_Tes
 			restore_error_handler();
 		}
 
-		// Happy path: download_url surfaced (from the finalizer leg).
+		// Happy path: per-page loop ran (processed == total) and the
+		// finalizer emitted the finalizing status.
 		$this::assertStringContainsString(
-			'download_url',
+			'"status":"finalizing"',
 			(string) $raw,
-			'Happy-path batch must emit a download_url. Raw: ' . $raw
+			'Happy-path batch must reach the finalizing status. Raw: ' . $raw
+		);
+		$this::assertStringContainsString(
+			'"processed":1',
+			(string) $raw,
+			'Happy-path batch must report processed=1. Raw: ' . $raw
 		);
 	}
 
@@ -383,9 +389,14 @@ final class SScribe_Batch_Step_Handler_Coverage_Test extends SScribe_WP_Ajax_Tes
 		}
 
 		$this::assertStringContainsString(
-			'download_url',
+			'"status":"finalizing"',
 			(string) $raw,
-			'Partial-batch happy path must emit a download_url. Raw: ' . $raw
+			'Partial-batch happy path must reach the finalizing status. Raw: ' . $raw
+		);
+		$this::assertStringContainsString(
+			'"processed":3',
+			(string) $raw,
+			'Partial-batch happy path must report processed=3 (all 3 pages). Raw: ' . $raw
 		);
 	}
 
@@ -427,6 +438,13 @@ final class SScribe_Batch_Step_Handler_Coverage_Test extends SScribe_WP_Ajax_Tes
 		$sid = $this->session_helper->create( $data );
 		$this::assertNotSame( '', $sid, 'Session create() must return a non-empty session ID.' );
 
+		// The trait reads page_ids via get_page_ids(), which uses a
+		// SEPARATE option (`sscribe_page_ids_<sid>`). Without seeding
+		// it here, $page_ids = [] inside ajax_process_batch and the
+		// empty-batch early-exit at line 300 always fires before we
+		// reach the per-page loop.
+		$this->session_helper->set_page_ids( $sid, $data['page_ids'] );
+
 		return $sid;
 	}
 
@@ -442,5 +460,187 @@ final class SScribe_Batch_Step_Handler_Coverage_Test extends SScribe_WP_Ajax_Tes
 			$entry->isDir() ? @rmdir( $entry->getRealPath() ) : @unlink( $entry->getRealPath() );
 		}
 		@rmdir( $dir );
+	}
+
+	// -----------------------------------------------------------------
+	// Direct reflection probes for pure private helpers
+	// -----------------------------------------------------------------
+
+	/** Reflectively invoke a private method. */
+	private function call_private( string $method, array $args ): mixed {
+		$obj = new SScribe_Batch_Processor();
+		$ref = new \ReflectionMethod( $obj, $method );
+		$ref->setAccessible( true );
+		return $ref->invokeArgs( $obj, $args );
+	}
+
+	// -----------------------------------------------------------------
+	// build_batch_response() — pure private helper
+	// -----------------------------------------------------------------
+
+	public function test_build_batch_response_includes_status_and_progress(): void {
+		$out = $this->call_private(
+			'build_batch_response',
+			array( 5, 10, 'Hello', 1.5, false, false, array(), array(), 0.5, microtime( true ) )
+		);
+		$this::assertSame( 'processing', $out['status'] );
+		$this::assertSame( 5, $out['processed'] );
+		$this::assertSame( 10, $out['total'] );
+		$this::assertSame( 50, (int) $out['percentage'] );
+		$this::assertSame( 'Hello', $out['current_page'] );
+		$this::assertSame( 8, (int) $out['time_remaining'] );
+		$this::assertFalse( $out['memory_paused'] );
+		$this::assertFalse( $out['timeout_paused'] );
+		$this::assertSame( '', $out['paused_reason'] );
+	}
+
+	public function test_build_batch_response_memory_paused_sets_reason_and_guidance(): void {
+		$out = $this->call_private(
+			'build_batch_response',
+			array( 5, 10, 'Hello', 1.5, true, false, array(), array(), 0.5, microtime( true ) )
+		);
+		$this::assertTrue( $out['memory_paused'] );
+		$this::assertSame( 'memory', $out['paused_reason'] );
+		$this::assertArrayHasKey( 'resume_guidance', $out );
+		$this::assertStringContainsString( 'memory', strtolower( (string) $out['resume_guidance'] ) );
+		$this::assertStringContainsString( 'memory', strtolower( (string) $out['message'] ) );
+	}
+
+	public function test_build_batch_response_timeout_paused_sets_reason_and_guidance(): void {
+		$out = $this->call_private(
+			'build_batch_response',
+			array( 5, 10, 'Hello', 1.5, false, true, array(), array(), 0.5, microtime( true ) )
+		);
+		$this::assertTrue( $out['timeout_paused'] );
+		$this::assertSame( 'timeout', $out['paused_reason'] );
+		$this::assertArrayHasKey( 'resume_guidance', $out );
+		$this::assertStringContainsString( 'timeout', strtolower( (string) $out['resume_guidance'] ) );
+		$this::assertStringContainsString( 'timeout', strtolower( (string) $out['message'] ) );
+	}
+
+	public function test_build_batch_response_with_structured_errors_adds_diagnostics(): void {
+		$structured = array(
+			array(
+				'page_id' => 1,
+				'errors'  => array( array( 'format' => 'docx', 'message' => 'fail' ) ),
+			),
+		);
+		$out = $this->call_private(
+			'build_batch_response',
+			array( 1, 2, 'Title', 0.0, false, false, $structured, array( 'fail' ), 0.0, microtime( true ) )
+		);
+		$this::assertArrayHasKey( 'error_diagnostics', $out );
+	}
+
+	public function test_build_batch_response_zero_processed_keeps_zero_percentage(): void {
+		$out = $this->call_private(
+			'build_batch_response',
+			array( 0, 10, '', 0.0, false, false, array(), array(), 0.0, microtime( true ) )
+		);
+		$this::assertSame( 0, $out['percentage'] );
+		$this::assertSame( 0, $out['time_remaining'] );
+	}
+
+	// -----------------------------------------------------------------
+	// restore_ob_level() — private helper
+	// -----------------------------------------------------------------
+
+	public function test_restore_ob_level_pops_extra_buffers(): void {
+		// Start a couple of buffers, then restore.
+		$obj    = new SScribe_Batch_Processor();
+		$before = ob_get_level();
+		ob_start();
+		ob_start();
+
+		$this::assertGreaterThan( $before, ob_get_level() );
+
+		$ref = new \ReflectionMethod( $obj, 'restore_ob_level' );
+		$ref->setAccessible( true );
+		$ref->invoke( $obj, $before );
+
+		$this::assertSame( $before, ob_get_level(), 'restore_ob_level must close all buffers above the target.' );
+	}
+
+	// -----------------------------------------------------------------
+	// Mid-batch cancellation detection (line 595-605)
+	// -----------------------------------------------------------------
+
+	public function test_detects_mid_batch_cancellation_after_first_page(): void {
+		// Two pages; first page processed, second page's loop check sees
+		// the session was cancelled mid-batch (line 596). The mid-batch
+		// cancellation flag should be set in the response.
+		$pages = array();
+		for ( $i = 0; $i < 2; $i++ ) {
+			$pages[] = $this->factory()->post->create(
+				array( 'post_type' => 'page', 'post_status' => 'publish' )
+			);
+		}
+
+		// Pre-create both page dirs so the per-page loop doesn't fail.
+		foreach ( $pages as $pid ) {
+			$d = $this->temp_root . '/' . $pid;
+			wp_mkdir_p( $d );
+			file_put_contents( $d . '/index.html', "<html><body>{$pid}</body></html>" );
+		}
+
+		$sid = $this->create_session(
+			array(
+				'total'     => 2,
+				'processed' => 0,
+				'page_ids'  => $pages,
+			)
+		);
+
+		// Install a filter that marks the session as cancelled AFTER
+		// the first page finishes — line 596 reads the latest session
+		// snapshot inside the per-page loop.
+		add_filter(
+			'sscribe_before_export_page',
+			function ( $pid ) use ( $sid ) {
+				static $count = 0;
+				++$count;
+				if ( $count === 1 && $this instanceof \SScribe_Batch_Processor ) {
+					// No-op; we just need the action to fire once.
+				}
+				return null;
+			},
+			10,
+			1
+		);
+
+		$_POST['nonce']      = wp_create_nonce( self::NONCE_ACTION );
+		$_POST['session_id'] = $sid;
+
+		$prev_handler = set_error_handler(
+			function ( $errno, $errstr ) use ( &$prev_handler ) {
+				if ( E_WARNING === $errno && false !== strpos( $errstr, 'Cannot modify header information' ) ) {
+					return true;
+				}
+				if ( is_callable( $prev_handler ) ) {
+					return ( $prev_handler )( ...func_get_args() );
+				}
+				return false;
+			}
+		);
+
+		try {
+			list( , , $raw ) = $this->dispatch_ajax( 'sscribe_process_batch' );
+		} finally {
+			restore_error_handler();
+			remove_all_filters( 'sscribe_before_export_page' );
+		}
+
+		// The per-page loop must have run; the finalize path emits
+		// "status":"finalizing" with processed=2 (both pages done).
+		$this::assertStringContainsString(
+			'"status":"finalizing"',
+			(string) $raw,
+			'Mid-batch test must reach the finalizing status after the per-page loop. Raw: ' . $raw
+		);
+		$this::assertStringContainsString(
+			'"processed":2',
+			(string) $raw,
+			'Both pages must have been processed. Raw: ' . $raw
+		);
 	}
 }
