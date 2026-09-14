@@ -375,10 +375,14 @@ class SScribe_Activator {
 		foreach ( $patterns as $pattern ) {
 
 			do {
+				// SQLite rejects `DELETE ... LIMIT N` without a wrapping subquery;
+				// the `option_id IN (SELECT option_id ... LIMIT N)` form works on
+				// both MySQL and SQLite and keeps the bounded chunk-delete loop
+				// semantics from the original implementation.
 				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Cleanup operation during activation.
 				$rows = $wpdb->query(
 					$wpdb->prepare(
-						"DELETE FROM {$wpdb->options} WHERE option_name LIKE %s LIMIT 1000",
+						"DELETE FROM {$wpdb->options} WHERE option_id IN (SELECT option_id FROM {$wpdb->options} WHERE option_name LIKE %s LIMIT 1000)",
 						$pattern
 					)
 				);
@@ -393,10 +397,11 @@ class SScribe_Activator {
 
 		foreach ( $timeout_patterns as $pattern ) {
 			do {
+				// SQLite-compatible form: see comment in the primary loop above.
 				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Cleanup operation during activation.
 				$rows = $wpdb->query(
 					$wpdb->prepare(
-						"DELETE FROM {$wpdb->options} WHERE option_name LIKE %s LIMIT 1000",
+						"DELETE FROM {$wpdb->options} WHERE option_id IN (SELECT option_id FROM {$wpdb->options} WHERE option_name LIKE %s LIMIT 1000)",
 						$pattern
 					)
 				);
