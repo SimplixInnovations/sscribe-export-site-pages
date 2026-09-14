@@ -64,28 +64,36 @@ jobs:
       - name: Prepare release fixture
         run: composer release:prepare
 
+      - name: Runtime contract
+        run: npm run test:e2e:runtime-contract
+
       - name: Dry-run check
         run: npx playwright test --list --reporter=line
+        env:
+          SSCRIBE_E2E_RUNTIME: native
 
       - name: Smoke
         run: npm run test:e2e:smoke
+        env:
+          SSCRIBE_E2E_RUNTIME: native
 
       - name: Full E2E suite (PR + main)
         if: github.event_name == 'push' || github.event_name == 'pull_request'
         run: npm run test:e2e:full
+        env:
+          SSCRIBE_E2E_RUNTIME: native
 
       - name: Regression discipline (PR only)
         if: github.event_name == 'pull_request'
         run: node tests-e2e/regression-discipline.mjs
+
+      - name: Performance budget gate
+        run: |
+          composer test:perf
+          vendor/bin/phpunit tests/Integration/SScribe_Performance_Budget_Test.php
 
       - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
         if: failure()
         with:
           name: playwright-report
           path: playwright-report/
-
-      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
-        if: failure()
-        with:
-          name: perf-samples
-          path: tests-e2e/.cache/perf/

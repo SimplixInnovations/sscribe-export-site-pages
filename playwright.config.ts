@@ -2,6 +2,7 @@ import { defineConfig, devices } from '@playwright/test';
 
 export default defineConfig({
   globalSetup: './tests-e2e/globalSetup.ts',
+  globalTeardown: './tests-e2e/globalTeardown.ts',
   testDir: './tests-e2e',
   testMatch: /.*\.spec\.ts$/,
   fullyParallel: true,
@@ -40,11 +41,6 @@ export default defineConfig({
     {
       name: 'a11y',
       testMatch: /tests-e2e\/a11y\/.*\.spec\.ts$/,
-      use: { ...devices['Desktop Chrome'] },
-    },
-    {
-      name: 'perf',
-      testMatch: /tests-e2e\/perf\/.*\.spec\.ts$/,
       use: { ...devices['Desktop Chrome'] },
     },
   ],

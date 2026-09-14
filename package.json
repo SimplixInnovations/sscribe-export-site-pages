@@ -19,7 +19,7 @@
 		"test:e2e:full": "playwright test",
 		"test:e2e:e2e": "playwright test --project=e2e",
 		"test:e2e:a11y": "playwright test --project=a11y",
-		"test:e2e:perf": "playwright test --project=perf",
+		"test:e2e:runtime-contract": "node tests-js/e2e-runtime-contract.test.mjs",
 		"test:audit-helper": "node --test tests-js/npm-audit-high.test.mjs",
 		"audit:js": "node scripts/npm-audit-high.mjs"
 	},
