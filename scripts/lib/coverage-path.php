@@ -79,8 +79,14 @@ function sscribe_normalize_clover_path( string $path, string $repo_root ): strin
 	// Clover entry is treated as outside the repo and the gate
 	// reports every critical file as missing. Rewrite the prefix so
 	// the Windows-prefix-strip below can match.
+	//
+	// Both the file path AND the repo root must be normalized so the
+	// prefix comparison succeeds.
 	if ( preg_match( '#^/mnt/([a-zA-Z])/(.*)$#', $normalized, $wsl_matches ) ) {
 		$normalized = strtoupper( $wsl_matches[1] ) . ':/' . $wsl_matches[2];
+	}
+	if ( preg_match( '#^/mnt/([a-zA-Z])/(.*)$#', $normalized_repo_trimmed, $wsl_matches_repo ) ) {
+		$normalized_repo_trimmed = strtoupper( $wsl_matches_repo[1] ) . ':/' . $wsl_matches_repo[2];
 	}
 
 	// 2. Detect absolute path (Linux /foo, Windows C:/foo, Windows C:foo).
