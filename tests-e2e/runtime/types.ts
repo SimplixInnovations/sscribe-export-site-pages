@@ -1,13 +1,11 @@
 /**
  * E2E runtime abstraction.
  *
- * Defines the narrow contract every WordPress HTTP runtime must satisfy
- * to host the Playwright matrix. Two adapters implement this contract:
+ * Defines the narrow contract the WordPress HTTP runtime must satisfy
+ * to host the Playwright matrix. The native-wordpress adapter is the
+ * sole release-critical backend (real PHP + real WP + SQLite).
  *
- *   - native-wordpress.ts  — release-default runtime (real PHP + real WP + SQLite)
- *   - playground.ts        — optional non-blocking compatibility lane
- *
- * Select via SSCRIBE_E2E_RUNTIME (default: "native").
+ * Historical WP-Playground adapter removed; see repository history.
  *
  * The Playwright specs, helpers, and globalSetup are runtime-agnostic —
  * they consume `baseURL` and `teardown` only.

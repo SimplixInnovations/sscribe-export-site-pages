@@ -26,8 +26,8 @@
  *
  * This verifier enforces:
  *
- *   1. package.json devDependencies contains @playwright/test,
- *      @axe-core/playwright, and @wp-playground/cli.
+ *   1. package.json devDependencies contains @playwright/test and
+ *      @axe-core/playwright.
  *   2. package.json scripts contains test:e2e, test:e2e:smoke,
  *      test:e2e:full, test:e2e:e2e, test:e2e:a11y.
  *   3. package-lock.json is present (npm ci must be deterministic).
@@ -66,7 +66,6 @@ $dev_deps = isset( $package['devDependencies'] ) && is_array( $package['devDepen
 $required_dev_deps = array(
 	'@playwright/test'      => 'Playwright test runner',
 	'@axe-core/playwright'  => 'axe-core Playwright integration (a11y project)',
-	'@wp-playground/cli'    => 'WP-Playground CLI for the E2E server fixture',
 );
 foreach ( $required_dev_deps as $dep => $purpose ) {
 	if ( ! array_key_exists( $dep, $dev_deps ) ) {

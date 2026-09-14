@@ -5,25 +5,23 @@
  *   "Refactor tests-e2e/globalSetup.ts into orchestration only.
  *    It should roughly:
  *      resolve exact ZIP
- *      select runtime
  *      start runtime
  *      assert readiness
  *      prime test state
  *      return teardown"
  *
- * The runtime itself is in tests-e2e/runtime/. Select via SSCRIBE_E2E_RUNTIME
- * (default: native).
+ * The runtime is in tests-e2e/runtime/native-wordpress.ts.
+ * SSCRIBE_E2E_RUNTIME=native is the only supported value.
  */
 
-import { bootRuntime, resolveRuntimeChoice, resolveRuntimePaths } from './runtime/runtime-config';
+import { bootRuntime, resolveRuntimePaths } from './runtime/runtime-config';
 
 export default async function globalSetup(): Promise<void> {
-  const choice = resolveRuntimeChoice();
   // Touch paths early so the canonical ZIP gate fires before we boot a runtime.
   const paths = resolveRuntimePaths();
-  console.log(`[globalSetup] runtime="${choice}" zip=${paths.sscribeZipPath}`);
+  console.log(`[globalSetup] zip=${paths.sscribeZipPath}`);
 
-  const runtime = await bootRuntime(choice);
+  const runtime = await bootRuntime();
 
   // Wire teardown.
   const teardown = async (): Promise<void> => {

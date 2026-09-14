@@ -57,6 +57,22 @@ if (!existsSync(configPath)) {
   pass('runtime-config exists');
 }
 
+// 3a. Playground runtime adapter must NOT exist (removed; native-only).
+const playgroundPath = join(root, 'tests-e2e/runtime/playground.ts');
+if (existsSync(playgroundPath)) {
+  fail('playground.ts still exists — WP-Playground was removed; delete it');
+} else {
+  pass('playground.ts removed (native-only)');
+}
+
+// 3b. @wp-playground/cli must NOT be in devDependencies.
+const pkgJsonEarly = JSON.parse(readFileSync(join(root, 'package.json'), 'utf-8'));
+if (pkgJsonEarly.devDependencies && pkgJsonEarly.devDependencies['@wp-playground/cli']) {
+  fail('@wp-playground/cli still in devDependencies — remove it');
+} else {
+  pass('@wp-playground/cli removed from devDependencies');
+}
+
 // 4. Exact ZIP path is required — runtime must read from dist/.
 const adapterSrc = readFileSync(adapterPath, 'utf-8');
 if (!/sscribe-export-site-pages-\$\{releaseVersion\}\.zip|sscribeZipPath/.test(adapterSrc)) {
@@ -159,19 +175,19 @@ if (!existsSync(gtPath)) {
   pass('globalTeardown.ts present');
 }
 
-// 15. SSCRIBE_E2E_RUNTIME selector exists.
+// 15. SSCRIBE_E2E_RUNTIME recognized (native-only; warns on unknown values).
 if (!/SSCRIBE_E2E_RUNTIME/.test(readFileSync(configPath, 'utf-8'))) {
-  fail('SSCRIBE_E2E_RUNTIME selector missing');
+  fail('SSCRIBE_E2E_RUNTIME not referenced in runtime config');
 } else {
-  pass('SSCRIBE_E2E_RUNTIME selector present');
+  pass('SSCRIBE_E2E_RUNTIME recognized in runtime config');
 }
 
-// 16. Native backend is the default.
+// 16. Native backend is the only runtime (no playground fallback).
 const configSrc = readFileSync(configPath, 'utf-8');
-if (!/return\s+['"]native['"]/.test(configSrc)) {
-  fail('native is not the default runtime');
+if (/PlaygroundRuntime|playground\.ts|playground/i.test(configSrc) && !/removed|historical/i.test(configSrc)) {
+  fail('runtime-config still references playground as an active runtime');
 } else {
-  pass('native is the default runtime');
+  pass('native is the only runtime (no playground fallback)');
 }
 
 // 17. Fixtures: mu-plugins dir exists.

@@ -19,7 +19,6 @@
  *
  *   - silently accepts a missing @playwright/test devDep,
  *   - silently accepts a missing @axe-core/playwright devDep,
- *   - silently accepts a missing @wp-playground/cli devDep,
  *   - silently accepts a missing test:e2e:* npm script,
  *   - silently accepts a dropped Playwright project,
  *   - silently accepts a missing tests-e2e/{a11y,e2e}/ subdir,
@@ -97,7 +96,6 @@ final class SScribe_E2E_Deps_Test extends TestCase {
 				'devDependencies' => array(
 					'@playwright/test'     => '^1.62.1',
 					'@axe-core/playwright' => '^4.13.0',
-					'@wp-playground/cli'   => '^3.1.44',
 				),
 			)
 		);
@@ -142,14 +140,6 @@ final class SScribe_E2E_Deps_Test extends TestCase {
 		list( $code, $output ) = $this->run_against( json_encode( $pkg ), $this->well_formed_composer() );
 		$this::assertSame( 1, $code );
 		$this::assertStringContainsString( '@axe-core/playwright', $output );
-	}
-
-	public function test_missing_wp_playground_devdep_fails(): void {
-		$pkg                                                    = json_decode( $this->well_formed_package(), true );
-		unset( $pkg['devDependencies']['@wp-playground/cli'] );
-		list( $code, $output ) = $this->run_against( json_encode( $pkg ), $this->well_formed_composer() );
-		$this::assertSame( 1, $code );
-		$this::assertStringContainsString( '@wp-playground/cli', $output );
 	}
 
 	public function test_missing_test_e2e_smoke_script_fails(): void {
