@@ -15,9 +15,11 @@
  *
  *   - package.json declares every dev dependency the Playwright
  *     projects need (and the suite scripts CI invokes).
- *   - playwright.config.ts declares all three projects (e2e, a11y,
- *     perf) so a project dropped during a refactor cannot silently
- *     skip its slice of the suite.
+ *   - playwright.config.ts declares the browser projects (e2e, a11y)
+ *     so a project dropped during a refactor cannot silently skip
+ *     its slice of the suite. Performance is enforced by the PHP
+ *     integration benchmark (composer test:perf), not a browser
+ *     timing project.
  *   - composer.json declares the release:prepare script (which
  *     bakes a stable ZIP for the E2E server fixture) and the
  *     release script (which the e2e.yml workflow invokes).
@@ -27,9 +29,9 @@
  *   1. package.json devDependencies contains @playwright/test,
  *      @axe-core/playwright, and @wp-playground/cli.
  *   2. package.json scripts contains test:e2e, test:e2e:smoke,
- *      test:e2e:full, test:e2e:e2e, test:e2e:a11y, test:e2e:perf.
+ *      test:e2e:full, test:e2e:e2e, test:e2e:a11y.
  *   3. package-lock.json is present (npm ci must be deterministic).
- *   4. playwright.config.ts exists and declares the e2e, a11y, perf
+ *   4. playwright.config.ts exists and declares the e2e and a11y
  *      projects.
  *   5. tests-e2e/ has at least one spec file under each project
  *      subdirectory.
@@ -84,7 +86,6 @@ $required_scripts = array(
 	'test:e2e:full',
 	'test:e2e:e2e',
 	'test:e2e:a11y',
-	'test:e2e:perf',
 );
 foreach ( $required_scripts as $script ) {
 	if ( ! array_key_exists( $script, $npm_scripts ) ) {
@@ -105,7 +106,7 @@ if ( ! is_file( $pw_config ) ) {
 	$errors[] = 'playwright.config.ts is missing. The Playwright CLI cannot discover specs without it.';
 } else {
 	$pw_contents = (string) file_get_contents( $pw_config );
-	foreach ( array( 'e2e', 'a11y', 'perf' ) as $project ) {
+	foreach ( array( 'e2e', 'a11y' ) as $project ) {
 		// Match the project name as either a top-level `name: 'e2e'`
 		// or as a quoted string. We intentionally use a simple match
 		// so renaming the projects list cannot silently slip past.

@@ -93,7 +93,6 @@ final class SScribe_E2E_Deps_Test extends TestCase {
 					'test:e2e:full'  => 'playwright test',
 					'test:e2e:e2e'   => 'playwright test --project=e2e',
 					'test:e2e:a11y'  => 'playwright test --project=a11y',
-					'test:e2e:perf'  => 'playwright test --project=perf',
 				),
 				'devDependencies' => array(
 					'@playwright/test'     => '^1.62.1',
