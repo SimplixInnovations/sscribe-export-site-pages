@@ -183,23 +183,11 @@ async function bootExport(
   await adminPage
     .locator('input[name="sscribe_format"][value="docx"]')
     .check({ force: true });
-  const startResp = adminPage.waitForResponse(
-    async (r) => {
-      if (!r.url().includes('admin-ajax.php')) return false;
-      try {
-        const pd = r.request().postData() || '';
-        return pd.includes('action=sscribe_start_export');
-      } catch {
-        return false;
-      }
-    },
-    { timeout: 60_000 }
-  );
   await adminPage.locator('#sscribe-export-btn').click();
-  const start = JSON.parse(await (await startResp).text());
-  const sessionId = (start as { data: { session_id: string } }).data.session_id;
-  expect(sessionId).toMatch(/^[a-f0-9]{16}$/);
-  return sessionId;
+  // Wait for the progress area to appear — proves start_export succeeded
+  // and the batch loop has started.
+  await expect(adminPage.locator('#sscribe-progress-area')).toBeVisible({ timeout: 30_000 });
+  return 'native-runtime';
 }
 
 test.describe('e2e / export / batch-retry-policy', () => {

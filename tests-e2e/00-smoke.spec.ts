@@ -2,42 +2,37 @@ import { test, expect } from './fixtures/shared';
 
 test.describe('00-smoke — stack canary', () => {
   test('00-smoke: admin page renders + WP global present', async ({ adminPage, request }) => {
-    // 1. Canary: did wp-cli step write the canary file?
+    // 1. Canary: did the native bootstrap write the canary file? The native
+    // runtime's canary format is pages=N + active=[...] + sscribe_active=N +
+    // bootstrap_time=ISO (see tests-e2e/runtime/native-wordpress.ts:240-245).
+    // The legacy m=Y/p=Y keys were the WP-Playground canary format; the
+    // sscribe_active=1 marker implies both mu-plugins loaded and plugins
+    // loaded (the runtime's mu-plugin activates SScribe on bootstrap).
     const canary = await request.get('/wp-content/uploads/canary.txt');
     const canaryText = canary.status() === 200 ? await canary.text() : `HTTP ${canary.status()}`;
     console.log('CANARY:', canaryText);
-    expect(canaryText).toContain('m=Y');
-    expect(canaryText).toContain('p=Y');
+    expect(canaryText).toContain('sscribe_active=1');
+    expect(canaryText).toMatch(/^pages=\d+/m);
 
-    // 2. Probe what /wp-admin/ requests return BEFORE login
-    const adminPre = await request.get('/wp-admin/admin.php?page=sscribe-export');
-    console.log('ADMIN_PRE_STATUS:', adminPre.status());
-    const adminPreText = adminPre.status() === 200 ? await adminPre.text() : await adminPre.text();
-    console.log('ADMIN_PRE_BODY:', adminPreText.slice(0, 300));
-
-    // 3. Probe what /wp-login.php returns
-    const login = await request.get('/wp-login.php');
-    console.log('LOGIN_STATUS:', login.status());
-
-    // 4. Read trace after these probe requests
-    const tr = await request.get('/wp-content/uploads/sscribe-bootstrap-trace.txt');
-    const trText = tr.status() === 200 ? await tr.text() : `HTTP ${tr.status()}`;
-    console.log('TRACE_AFTER_PROBES:', trText);
-
-    // 5. Now try adminPage.goto() (login flow happens via fixture)
+    // 2. Admin page goto (login flow happens via fixture)
     const response = await adminPage.goto('/wp-admin/admin.php?page=sscribe-export');
     const status = response?.status() ?? 0;
     console.log('ADMIN_STATUS:', status);
 
-    // 6. Trace after adminPage goto
-    const tr2 = await request.get('/wp-content/uploads/sscribe-bootstrap-trace.txt');
-    const tr2Text = tr2.status() === 200 ? await tr2.text() : `HTTP ${tr2.status()}`;
-    console.log('TRACE_AFTER_ADMIN:', tr2Text);
-
-    // 7. Read heartbeat to see what the mu-plugin thinks the state is
-    const hb = await request.get('/wp-content/uploads/sscribe-bootstrap-heartbeat.txt');
-    const hbText = hb.status() === 200 ? await hb.text() : `HTTP ${hb.status()}`;
-    console.log('HEARTBEAT:', hbText.slice(0, 500));
+    // 3. Diagnostic probes (non-fatal; PHP CLI server may produce
+    //    parse errors on Connection:close after heavy AJAX traffic)
+    try {
+      const tr = await request.get('/wp-content/uploads/sscribe-bootstrap-trace.txt');
+      console.log('TRACE:', tr.status() === 200 ? (await tr.text()).slice(0, 500) : `HTTP ${tr.status()}`);
+    } catch (e) {
+      console.log('TRACE_FETCH_ERROR:', (e as Error).message);
+    }
+    try {
+      const hb = await request.get('/wp-content/uploads/sscribe-bootstrap-heartbeat.txt');
+      console.log('HEARTBEAT:', hb.status() === 200 ? (await hb.text()).slice(0, 500) : `HTTP ${hb.status()}`);
+    } catch (e) {
+      console.log('HEARTBEAT_FETCH_ERROR:', (e as Error).message);
+    }
 
     // 8. Page assertion: format card visible (real class is
     //    `.sscribe-format-card-inner`, the inner div inside the label

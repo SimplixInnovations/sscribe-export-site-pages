@@ -30,20 +30,12 @@ test.describe('e2e / export / download-token-auth', () => {
   test('download token is single-use: replay returns 403', async ({ adminPage }) => {
     await adminPage.goto('/wp-admin/admin.php?page=sscribe-export');
 
-    // Wait for counts AJAX to complete first — the export button is
-    // disabled until `sscribe_get_status_counts` returns.
-    await adminPage.waitForResponse(
-      async (r) => {
-        if (!r.url().includes('admin-ajax.php')) return false;
-        try {
-          const pd = r.request().postData() || '';
-          return pd.includes('action=sscribe_get_status_counts');
-        } catch {
-          return false;
-        }
-      },
-      { timeout: 60_000 }
-    );
+    // Wait until the export button reports enabled. The button enables
+    // only after the counts success handler runs (admin/js/sscribe-admin.js:
+    // 679-682), which depends on the language-roundtrip shim succeeding.
+    // This is the reliable UI contract — the waitForResponse filter for
+    // scribe_get_status_counts can miss the response on PHP CLI server
+    // due to Connection:close framing issues.
     await expect(adminPage.locator('#sscribe-export-btn')).toBeEnabled({ timeout: 30_000 });
 
     // Step 1: trigger a fresh export so we get a token-bearing URL.
@@ -52,22 +44,7 @@ test.describe('e2e / export / download-token-auth', () => {
     // (admin/partials/sscribe-admin-display.php:441-442) and dispatches
     // the click directly on the input — same result as a real user.
     await adminPage.locator('input[name="sscribe_format"][value="docx"]').check({ force: true });
-    // jQuery $.ajax puts the action name in the POST body, not the URL —
-    // match against postData() like the counts handler above.
-    const startResp = adminPage.waitForResponse(
-      async (r) => {
-        if (!r.url().includes('admin-ajax.php')) return false;
-        try {
-          const pd = r.request().postData() || '';
-          return pd.includes('action=sscribe_start_export');
-        } catch {
-          return false;
-        }
-      },
-      { timeout: 60_000 }
-    );
     await adminPage.locator('#sscribe-export-btn').click();
-    await startResp;
 
     // Wait for the download area to surface AND for the production JS to
     // set the token-bearing href. The fadeIn callback in exportComplete()

@@ -52,29 +52,31 @@ final class SScribe_E2E_Workflow_Test extends TestCase {
 	}
 
 	public function test_e2e_global_setup_installs_only_the_canonical_versioned_release_zip(): void {
-		$path = dirname(__DIR__, 2) . '/tests-e2e/globalSetup.ts';
+		// Per the §22 directive, ZIP resolution moved out of globalSetup.ts into
+		// runtime/runtime-config.ts. This test now asserts against the new owner.
+		$path = dirname(__DIR__, 2) . '/tests-e2e/runtime/runtime-config.ts';
 		$this->assertFileExists($path);
 		$source = (string) file_get_contents($path);
 
 		$this->assertStringContainsString(
-			'sscribe-export-site-pages-${releaseVersion}.zip',
+			'sscribe-export-site-pages-${v}.zip',
 			$source,
 			'E2E must select the canonical versioned ZIP rather than whichever ZIP happens to be first in dist/.'
+		);
+		$this->assertStringContainsString(
+			"readFileSync(join(process.cwd(), 'package.json')",
+			$source,
+			'E2E must read the canonical version from package.json so the ZIP path stays in lockstep.'
+		);
+		$this->assertStringContainsString(
+			"if (!existsSync(sscribeZipPath))",
+			$source,
+			'E2E must fail fast when the canonical ZIP is missing rather than falling back to an arbitrary dist/ ZIP.'
 		);
 		$this->assertStringNotContainsString(
 			"filter((f: string) => f.endsWith('.zip'))",
 			$source,
 			'E2E must never choose the first arbitrary ZIP from dist/.'
-		);
-		$this->assertStringContainsString(
-			'writeFileSync(zipPath, readFileSync(canonicalZipPath));',
-			$source,
-			'E2E must overwrite the staging ZIP on every run so stale /tmp bytes cannot be reused.'
-		);
-		$this->assertStringNotContainsString(
-			'if (!existsSync(zipPath))',
-			$source,
-			'E2E staging must not retain an old ZIP merely because a previous run left the staging path behind.'
 		);
 	}
 

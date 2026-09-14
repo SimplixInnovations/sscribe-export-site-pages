@@ -50,6 +50,47 @@ if ( function_exists( 'ini_set' ) ) {
 	@ini_set( 'memory_limit', '512M' );
 }
 
+// Disable all cron scheduling in the testbed.
+//
+// Layer A — Native WordPress startup: WP_Recovery_Mode->initialize() at
+// wp-settings.php:575 calls wp_schedule_event('recovery_mode_clean_expired_keys',
+// 'daily') on EVERY request when wp_next_scheduled() returns false (because the
+// first schedule write failed). Each retry acquires a transaction, writes to
+// wp_options.cron, and the SQLite plugin's WP_SQLite_DB class returns
+// SQLSTATE[HY000] "database is locked" — leaving wpdb in a stuck transaction
+// state. Subsequent queries on the same worker (including the mu-plugin's
+// SELECT ID FROM wp_users at line 104, the login form's wp_authenticate chain,
+// etc.) hit SQLSTATE[HY000] "cannot start a transaction within a transaction"
+// and silently return NULL/false. The login POST then fails with "The username
+// admin is not registered on this site." because get_user_by('login', 'admin')
+// could not read wp_users.
+//
+// E2E tests do not need scheduled events: the reset + cancel endpoints handle
+// session cleanup synchronously, and the page JS does its own polling. Skipping
+// the schedule call removes the poison-write that contaminates every worker.
+//
+// pre_schedule_event is the canonical WP hook documented in wp-includes/cron.php
+// to short-circuit event registration. Returning a non-null value from the
+// filter stops wp_schedule_event() from doing any further work. Returning false
+// means "skipped" and wp_schedule_event returns false (no error path). This
+// is registered at file level so it runs on muplugins_loaded (line 548 in
+// wp-settings.php), which fires before WP_Recovery_Mode->initialize() at
+// line 575. The filter is the lowest-impact way to disable cron without
+// touching the runtime's wp-config.php (which would mask the issue behind a
+// global constant rather than fixing the demonstrated failure path).
+if ( function_exists( 'add_filter' ) ) {
+	add_filter(
+		'pre_schedule_event',
+		static function ( $pre, $event ) {
+			// Returning a non-null value short-circuits wp_schedule_event.
+			// false = "event not scheduled" (no error, no DB write).
+			return false;
+		},
+		PHP_INT_MAX,
+		2
+	);
+}
+
 // Once-only gate. WP-Playground's SQLite backend has a small per-worker
 // lock budget; running role_init + user_meta writes + a ~5 KB heartbeat
 // JSON dump on EVERY request causes "Error establishing a database
@@ -74,65 +115,19 @@ if ( function_exists( 'add_action' ) ) {
 			@file_put_contents( $ssb_log_dir . '/sscribe-bootstrap-trace.txt', '[' . gmdate( 'c' ) . '] PLUGINS_LOADED_FIRED active=' . json_encode( get_option( 'active_plugins', array() ) ) . "\n", FILE_APPEND );
 		}
 
-		// Skip all per-request DB work after the first pass. The role
-		// caps + user_meta are persisted, so subsequent requests need
-		// nothing. The user_has_cap filter below continues to run as a
-		// pure in-memory belt-and-suspenders.
-		if ( ! $ssb_first_request ) {
-			add_filter( 'user_has_cap', function ( $allcaps ) {
-				if ( ! is_array( $allcaps ) ) {
-					$allcaps = array();
-				}
-				$allcaps['sscribe_export'] = true;
-				$allcaps['sscribe_health'] = true;
-				$allcaps['manage_options'] = true;
-				return $allcaps;
-			}, 999, 4 );
-			return;
-		}
-
-		// Update admin user_meta cap key BEFORE wp_get_current_user()
-		// builds the allcaps array. WP caches allcaps in user_meta under
-		// {$wpdb->prefix}capabilities. If we update it here on every
-		// request, the cap is always present. Skip the UPDATE when the
-		// cached allcaps already include our caps (they're persistent in
-		// the role, so this branch is the steady state — eliminates a
-		// write per request on the long-running suite).
-		global $wpdb;
-		$caps_key = $wpdb->prefix . 'capabilities';
-		$users    = $wpdb->users;
-		$admin_user_id = (int) $wpdb->get_var( "SELECT ID FROM {$users} WHERE user_login = 'admin' LIMIT 1" );
-		if ( $admin_user_id ) {
-			$stored = get_user_meta( $admin_user_id, $caps_key, true );
-			$needs_meta_update = ! is_array( $stored )
-				|| empty( $stored['sscribe_export'] )
-				|| empty( $stored['sscribe_health'] )
-				|| empty( $stored['administrator'] );
-			if ( $needs_meta_update ) {
-				if ( ! is_array( $stored ) ) {
-					$stored = array();
-				}
-				$stored['administrator']  = true;
-				$stored['sscribe_export'] = true;
-				$stored['sscribe_health'] = true;
-				update_user_meta( $admin_user_id, $caps_key, $stored );
-			}
-
-			// Also ensure the role itself has the caps. add_cap writes to
-			// the user_roles option; gate by has_cap to avoid the write
-			// on every request.
-			$role = get_role( 'administrator' );
-			if ( $role && ! $role->has_cap( 'sscribe_export' ) ) {
-				$role->add_cap( 'sscribe_export' );
-			}
-			if ( $role && ! $role->has_cap( 'sscribe_health' ) ) {
-				$role->add_cap( 'sscribe_health' );
-			}
-		}
-
-		// Belt-and-suspenders: filter user_has_cap so sscribe_export +
-		// manage_options are always granted. Catches cases where WP
-		// caches the cap check before our meta update lands.
+		// Layer A fix (native runtime): the DB-touching role + user_meta
+		// updates previously lived here on first request. Under native
+		// PHP-CLI server, wp-settings.php fires 'plugins_loaded' BEFORE
+		// bootstrap.php (which is included by wp-config.php AFTER
+		// wp-settings.php returns) has had a chance to call wp_install().
+		// So wp_users / wp_options don't exist on the first request,
+		// every SELECT / INSERT failed with "no such table", and the
+		// resulting wpdb error poisoned the worker for the login POST
+		// (which needs get_user_by('login', 'admin') to succeed on the
+		// next request). The same DB work is performed by the 'init'
+		// hook below at priority 99 — which fires AFTER bootstrap.php
+		// has finished installing. Keep only the in-memory cap filter
+		// here; defer all DB writes to the init handler.
 		add_filter( 'user_has_cap', function ( $allcaps, $caps, $args, $user ) {
 			if ( ! is_array( $allcaps ) ) {
 				$allcaps = array();
@@ -149,6 +144,40 @@ if ( function_exists( 'add_action' ) ) {
 		// requests. WP-Playground's SQLite lock budget is small and
 		// burning it on every request on a 20+ test run breaks the DB.
 		if ( ! $ssb_first_request ) {
+			return;
+		}
+
+		// Layer A fix (native runtime): on the FIRST request, wp-settings.php
+		// fires the 'init' action (line 779) BEFORE wp-config.php's bootstrap.php
+		// runs (wp-config.php:91). bootstrap.php is what calls wp_install() and
+		// creates wp_options / wp_users / wp_user_roles. So at this point the
+		// tables don't exist yet, and every SELECT / INSERT INTO wp_options
+		// returns "no such table". Worse, the failed query poisons wpdb's
+		// connection state — the SQLite plugin's transaction tracking gets
+		// stuck in an open transaction, and subsequent queries on the same
+		// PHP CLI worker fail with "cannot start a transaction within a
+		// transaction". That cascade breaks wp_authenticate() on the login
+		// POST (the user's browser POSTs to wp-login.php and
+		// get_user_by('login','admin') silently returns NULL).
+		//
+		// The fix: detect this race via the native-runtime-only constant
+		// SSCRIBE_E2E_BOOTSTRAP_FILE (defined in wp-config.php) and skip
+		// the DB-touching init work until bootstrap.php has finished. The
+		// bootstrap itself activates SScribe + grants caps + writes
+		// sscribe_debug_* options, so we don't need to redo any of it.
+		// After bootstrap.php completes, sscribe_e2e_bootstrap_done='1' is
+		// written and the user_has_cap filter at plugins_loaded priority 1
+		// already covers current_user_can('sscribe_export') for free.
+		if ( defined( 'SSCRIBE_E2E_BOOTSTRAP_FILE' ) ) {
+			// Native runtime — bootstrap.php will run AFTER this init
+			// hook returns. Skip all first-request DB work; bootstrap.php
+			// handles install + activate + caps + options. The
+			// sscribe_e2e_bootstrap_done option (written by bootstrap.php
+			// at the very end of its run) is the durable signal that the
+			// next request should re-evaluate and proceed normally — but
+			// since the mu-plugin's first-request work is entirely
+			// redundant with bootstrap.php's, we just bail here.
+			@file_put_contents( $ssb_log_dir . '/sscribe-bootstrap-trace.txt', '[' . gmdate( 'c' ) . '] INIT_SKIPPED_NATIVE_BOOTSTRAP_PENDING' . "\n", FILE_APPEND );
 			return;
 		}
 		// Initialize WP roles if not loaded (WP-Playground's fresh DB

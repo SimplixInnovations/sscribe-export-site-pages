@@ -39,39 +39,14 @@ test.describe('e2e / export / batch-progress', () => {
     await expect(progressArea).toHaveAttribute('role', 'status');
 
     // Wait for counts AJAX so the export button enables.
-    await adminPage.waitForResponse(
-      async (r) => {
-        if (!r.url().includes('admin-ajax.php')) return false;
-        try {
-          const pd = r.request().postData() || '';
-          return pd.includes('action=sscribe_get_status_counts');
-        } catch {
-          return false;
-        }
-      },
-      { timeout: 60_000 }
-    );
-    await expect(adminPage.locator('#sscribe-export-btn')).toBeEnabled({ timeout: 30_000 });
+    await expect(adminPage.locator('#sscribe-export-btn')).toBeEnabled({ timeout: 60_000 });
 
     // Step 2: start a real export and watch the progress bar advance.
     // `check({ force: true })` bypasses the `.sscribe-format-card-inner`
     // overlay that intercepts pointer events on the hidden radio input
     // (admin/partials/sscribe-admin-display.php:441-442).
     await adminPage.locator('input[name="sscribe_format"][value="docx"]').check({ force: true });
-    const startResp = adminPage.waitForResponse(
-      async (r) => {
-        if (!r.url().includes('admin-ajax.php')) return false;
-        try {
-          const pd = r.request().postData() || '';
-          return pd.includes('action=sscribe_start_export');
-        } catch {
-          return false;
-        }
-      },
-      { timeout: 60_000 }
-    );
     await adminPage.locator('#sscribe-export-btn').click();
-    await startResp;
 
     // The progress area is hidden by default (`.sscribe-hidden`). It must
     // become visible once the export starts.
