@@ -1,4 +1,4 @@
-# Release Blockers — v2.0.0 / v2.0.1 (canonical contract)
+# Release Blockers — v2.0.x (canonical contract)
 
 ## Why this exists
 
@@ -52,8 +52,8 @@ are vocabulary-reserved and will fail validation.
 |----|-------------------------------------------------------------------------------------------|----------|-----------------------------|-------------------------------------------------------------------------------------------------------------------|
 | 1  | Any required CI job red                                                                   | DEFERRED | phase71-evidence            | Strict cert gate reads `dist/final-execution-evidence.json`; resolves to RESOLVED when every required signal is `SUCCESS` or `LOCAL_PASS`. |
 | 2  | Any required job skipped                                                                  | DEFERRED | phase71-evidence            | Same evidence as #1 — `LOCAL_PASS` is a legitimate shippable status; skipped signals are detected by the absence of a signal key or an empty `evidence` path. |
-| 3  | PHPUnit runtime fatal                                                                     | RESOLVED | static                      | 1457 tests, 6090 assertions, 0 failures, 0 deprecations, 28 skipped, deterministic across 3+ `--order-by=random` seeds. Fixes: WPML docblock→attributes; download-security / format-matrix / ajax-network-trace order independence via `setUpBeforeClass`; bootstrap self-heal regenerates missing manifest files; `tests/bootstrap.php` `get_user_by` stub honors field/value pairs so the `SScribe_Privacy` fast path is correctly testable. |
-| 4  | E2E not actually executed                                                                 | DEFERRED | e2e-evidence                | `npm run test:e2e:smoke` + `npm run test:e2e:full` + `npm run test:e2e:a11y` + `npm run test:e2e:perf` against the exact final ZIP. |
+| 3  | PHPUnit runtime fatal                                                                     | RESOLVED | static                      | 2451 tests, 7930 assertions, 0 failures, 0 deprecations, 28 skipped, deterministic across 3+ `--order-by=random` seeds. Fixes: WPML docblock→attributes; download-security / format-matrix / ajax-network-trace order independence via `setUpBeforeClass`; bootstrap self-heal regenerates missing manifest files; `tests/bootstrap.php` `get_user_by` stub honors field/value pairs so the `SScribe_Privacy` fast path is correctly testable. |
+| 4  | E2E not actually executed                                                                 | DEFERRED | e2e-evidence                | `npm run test:e2e:smoke` + `npm run test:e2e:full` + `npm run test:e2e:a11y` against the exact final ZIP. Performance is separately enforced by `composer test:perf`. |
 | 5  | Security workflow red                                                                     | RESOLVED | static                      | `tests/Security/SScribe_Security_Test.php` + Phase 49/66 contract gates green.                                     |
 | 6  | All Languages broken                                                                      | RESOLVED | static                      | Phase 68 #4–6 registry + `SScribe_Export_Query_Controller` `__all__` paths + Phase 58 acceptance matrix.            |
 | 7  | All Types Preview mismatch                                                                | RESOLVED | static                      | Phase 68 #7 registry + admin display renders `sscribe-post-type-card-any` sentinel.                                  |
@@ -116,3 +116,8 @@ genuine external action on #18).
 - 2026-09-05: Removed the historical v2.0.0 hardcoded SHA from any
   tracked file. Source SHA / ZIP SHA / timestamp live in ignored
   `dist/` JSONs only.
+- 2026-09-15: Phase 70 synchronized with native WordPress E2E.
+  Obsolete zero-test Playwright perf requirement removed from blocker #4.
+  Performance remains enforced by `composer test:perf`. Current PHPUnit
+  certification evidence refreshed (2451 tests, 7930 assertions). Contract
+  confirmed for v2.0.2. Registry heading updated to v2.0.x.
