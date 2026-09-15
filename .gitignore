@@ -141,6 +141,9 @@ error_log
 AUDIT-REPORT*.md
 AUDIT-*.md
 
+# Windows device file (NUL)
+NUL
+
 # Test references (not part of plugin)
 WPScan/
 WordPress-Core/
