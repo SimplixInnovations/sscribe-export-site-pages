@@ -239,6 +239,16 @@ function Invoke-E2E {
     }
     $chromium = Get-ChildItem -Path (Join-Path $env:USERPROFILE 'AppData\Local\ms-playwright') -Filter 'chromium-*' -Directory -ErrorAction SilentlyContinue | Select-Object -First 1
     if (-not $chromium) { throw 'e2e: Chromium not installed; run npx playwright install chromium (or dev.ps1 setup)' }
+    # The Playwright bed boots the canonical release ZIP; build it on
+    # demand so e2e needs no manual prerequisite beyond setup.
+    # NOTE: `composer release` (build only), not `release:prepare`:
+    # prepare gates on release-contract tests that themselves require
+    # the built ZIP, so it cannot bootstrap a missing artifact.
+    $e2eVersion = Get-PluginVersion
+    $e2eZip = Join-Path $RepoRoot ("dist\sscribe-export-site-pages-{0}.zip" -f $e2eVersion)
+    if (-not (Test-Path -LiteralPath $e2eZip)) {
+        Invoke-DevStep 'release build (e2e artifact)' { composer release }
+    }
     try {
         Invoke-DevStep 'runtime contract' { npm run test:e2e:runtime-contract }
         Invoke-DevStep 'smoke suite' { npm run test:e2e:smoke }
