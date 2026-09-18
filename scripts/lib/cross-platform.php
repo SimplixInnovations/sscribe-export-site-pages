@@ -319,8 +319,14 @@ if ( ! function_exists( 'sscribe_http_get' ) ) {
 			throw new RuntimeException( "Download failed for {$url}: transport error (curl extension unavailable)" );
 		}
 		$status = 0;
-		if ( isset( $http_response_header[0] ) && preg_match( '/\s(\d{3})\s/', $http_response_header[0], $m ) ) {
-			$status = (int) $m[1];
+		if ( function_exists( 'http_get_last_response_headers' ) ) {
+			$headers = (array) http_get_last_response_headers();
+			if ( isset( $headers[0] ) && preg_match( '/\s(\d{3})\s/', $headers[0], $m ) ) {
+				$status = (int) $m[1];
+			}
+		} else {
+			require_once __DIR__ . '/http-legacy-headers.php';
+			$status = sscribe_legacy_response_status();
 		}
 		if ( 200 !== $status ) {
 			throw new RuntimeException( "Download failed for {$url}: HTTP {$status}" );
