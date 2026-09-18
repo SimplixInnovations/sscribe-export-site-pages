@@ -57,16 +57,16 @@ class SScribe_Helpers_Test extends TestCase {
 
 	public function test_get_icon_strips_attributes(): void {
 		$result = SScribe_Helpers::get_icon( 'check' );
-		
+
 		$this->assertIsString( $result );
 	}
 
 
 
 	public function test_get_icon_uses_cache(): void {
-		
+
 		$result1 = SScribe_Helpers::get_icon( 'check' );
-		
+
 		$result2 = SScribe_Helpers::get_icon( 'check' );
 		$this->assertSame( $result1, $result2 );
 	}

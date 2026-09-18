@@ -25,7 +25,7 @@ final class SScribe_Export_Log_Test extends TestCase {
 
 	protected function tearDown(): void {
 		if ( is_dir( $this->temp_dir ) ) {
-			
+
 			$files = new \RecursiveIteratorIterator(
 				new \RecursiveDirectoryIterator( $this->temp_dir, \RecursiveDirectoryIterator::SKIP_DOTS ),
 				\RecursiveIteratorIterator::CHILD_FIRST

@@ -15,7 +15,7 @@ class SScribe_Result_Test extends TestCase {
 
 	public function test_success_creates_successful_result() {
 		$result = \SScribe_Result::success( array( 'id' => 1 ) );
-		
+
 		$this->assertTrue( $result->is_success() );
 		$this->assertFalse( $result->is_failure() );
 		$this->assertEquals( array( 'id' => 1 ), $result->get_data() );
@@ -24,7 +24,7 @@ class SScribe_Result_Test extends TestCase {
 
 	public function test_failure_creates_failed_result() {
 		$result = \SScribe_Result::failure( 'Something went wrong', array( 'context' => 'test' ) );
-		
+
 		$this->assertFalse( $result->is_success() );
 		$this->assertTrue( $result->is_failure() );
 		$this->assertEquals( 'Something went wrong', $result->get_error() );

@@ -110,7 +110,7 @@ final class SScribe_Security_Test extends TestCase {
 	}
 
 	public function test_delete_directory_respects_depth_limit(): void {
-		
+
 		$target = $this->temp_dir . '/shallow';
 		mkdir( $target, 0755, true );
 		mkdir( $target . '/sub', 0755, true );

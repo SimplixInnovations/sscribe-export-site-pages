@@ -174,8 +174,8 @@ class SScribe_Session_Test extends TestCase {
 	public function test_short_session_id_returns_null(): void {
 		$session = new \SScribe_Session();
 
-		
-		
+
+
 		$data = $session->get( 'nonexistent-id' );
 
 		$this->assertNull( $data );
@@ -184,8 +184,8 @@ class SScribe_Session_Test extends TestCase {
 	public function test_valid_length_nonexistent_session_returns_null(): void {
 		$session = new \SScribe_Session();
 
-		
-		
+
+
 		$data = $session->get( 'a1b2c3d4e5f67890' );
 
 		$this->assertNull( $data );

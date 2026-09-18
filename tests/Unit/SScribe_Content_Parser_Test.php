@@ -264,7 +264,7 @@ public function test_url_to_local_path_rejects_sibling_upload_directories(): voi
         $this->assertNotEmpty( $result );
         $found_text = false;
         foreach ( $result as $element ) {
-           	if ( isset( $element['content'] ) && false !== strpos( $element['content'], 'Direct text content' ) ) {
+            if ( isset( $element['content'] ) && false !== strpos( $element['content'], 'Direct text content' ) ) {
                 $found_text = true;
                 break;
             }

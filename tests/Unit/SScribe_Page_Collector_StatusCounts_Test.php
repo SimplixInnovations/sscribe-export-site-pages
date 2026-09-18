@@ -57,7 +57,7 @@ final class SScribe_Page_Collector_StatusCounts_Test extends TestCase {
 	}
 
 	public function test_language_parameter_accepted(): void {
-		
+
 		$counts = $this->collector->get_post_status_counts( 'en' );
 		$this->assertIsArray( $counts );
 		$this->assertArrayHasKey( 'all', $counts );

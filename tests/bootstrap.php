@@ -41,8 +41,8 @@ if ( ! function_exists( 'wp_kses_allowed_html' ) ) {
 
 
 	function wp_kses_allowed_html( string $context = 'post' ): array {
-		
-		
+
+
 		$html = array(
 			'address'    => array(),
 			'a'          => array( 'href' => true, 'title' => true, 'rel' => true, 'target' => true ),
@@ -438,7 +438,7 @@ if ( ! function_exists( 'wp_is_writable' ) ) {
 
 if ( ! function_exists( 'check_ajax_referer' ) ) {
 	function check_ajax_referer( $action = -1, $query_arg = false, $stop = true ) {
-		
+
 		$nonce_field = false === $query_arg ? '_ajax_nonce' : $query_arg;
 		$nonce_value = $_POST[ $nonce_field ] ?? $_REQUEST[ $nonce_field ] ?? '';
 
@@ -449,7 +449,7 @@ if ( ! function_exists( 'check_ajax_referer' ) ) {
 			return false;
 		}
 
-		return 1; 
+		return 1;
 	}
 }
 
@@ -461,7 +461,7 @@ if ( ! function_exists( 'esc_attr' ) ) {
 
 if ( ! function_exists( 'wp_raise_memory_limit' ) ) {
 	function wp_raise_memory_limit( $context = 'admin' ) {
-		return 268435456; 
+		return 268435456;
 	}
 }
 
@@ -1117,7 +1117,7 @@ $sscribe_test_ajax_nonce_valid = true;
 		public function get_var( $query ) {
 			global $sscribe_test_db_tables;
 
-			
+
 
 			if ( preg_match( "/SHOW TABLES LIKE\s+['`]([^'`]+)['`]/i", $query, $matches ) ) {
 				return array_key_exists( $matches[1], (array) $sscribe_test_db_tables ) ? $matches[1] : null;
@@ -1391,7 +1391,7 @@ if ( ! function_exists( 'esc_html' ) ) {
 if ( ! function_exists( 'esc_url_raw' ) ) {
 	function esc_url_raw( $url ) {
 		$url = (string) $url;
-		
+
 		$protocol = strtolower( (string) wp_parse_url( $url, PHP_URL_SCHEME ) );
 		if ( '' === $protocol ) {
 			return '';
@@ -1948,7 +1948,7 @@ if ( ! function_exists( 'wp_should_upgrade_global_tables' ) ) {
 
 if ( ! function_exists( 'wp_count_posts' ) ) {
 	function wp_count_posts( $post_type = 'post', $perm = 'readable' ) {
-		
+
 		$counts                = new \stdClass();
 		$counts->publish       = 5;
 		$counts->draft         = 2;
