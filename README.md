@@ -77,7 +77,7 @@ Prerequisites: Windows 11, PowerShell 5.1+, Git, PHP 8.2+, Composer, Node 24+ wi
 .\scripts\dev.ps1 setup
 ```
 
-`setup` is deterministic from lock files only: `composer install --no-interaction --prefer-dist`, `npm ci`, `npx playwright install chromium`, then `composer validate --strict`, `composer audit --locked`, `npm audit`. No `composer update` / `npm update`.
+`setup` is deterministic from lock files only: `composer install --no-interaction --prefer-dist`, `composer vendor:prefix`, `npm ci`, `npx playwright install chromium`, then `composer validate --strict`, `composer audit --locked`, `npm audit`. No `composer update` / `npm update`.
 
 ## Dependency installation
 
@@ -85,6 +85,7 @@ Same as setup, explicitly:
 
 ```powershell
 composer install --no-interaction --prefer-dist
+composer vendor:prefix   # generate gitignored Strauss tree (SScribeVendor\*) the suite loads
 npm ci
 npx playwright install chromium
 ```

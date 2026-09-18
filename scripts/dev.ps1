@@ -160,6 +160,10 @@ function Invoke-Doctor {
 function Invoke-Setup {
     Set-Location -LiteralPath $RepoRoot
     Invoke-DevStep 'composer install' { composer install --no-interaction --prefer-dist }
+    # The unit suite loads Strauss-prefixed vendors (SScribeVendor\*);
+    # vendor-prefixed/ is gitignored by policy, so a fresh clone must
+    # generate it before any test command can pass.
+    Invoke-DevStep 'vendor prefixing' { composer vendor:prefix }
     Invoke-DevStep 'npm ci' { npm ci }
     Invoke-DevStep 'playwright chromium' { npx playwright install chromium }
     Invoke-DevStep 'composer validate' { composer validate --strict }
