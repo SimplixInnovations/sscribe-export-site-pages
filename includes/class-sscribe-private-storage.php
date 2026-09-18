@@ -182,10 +182,15 @@ final class SScribe_Private_Storage {
 	 */
 	private static function validate_base_candidate( string $base ): string {
 		$base = rtrim( trim( $base ), '/\\' );
+		$normalized_segments = preg_split( '#[\\\\/]+#', $base );
 		if (
 			'' === $base
 			|| str_contains( $base, "\0" )
 			|| ! self::is_absolute_path( $base )
+			|| ! is_array( $normalized_segments )
+			|| in_array( '.', $normalized_segments, true )
+			|| in_array( '..', $normalized_segments, true )
+			|| dirname( $base ) === $base
 			|| ! is_dir( $base )
 			|| is_link( $base )
 			|| ! wp_is_writable( $base )
