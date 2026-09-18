@@ -150,8 +150,12 @@ final class SScribe_Private_Storage {
 			? sanitize_text_field( wp_unslash( $_SERVER['DOCUMENT_ROOT'] ) )
 			: '';
 		if ( '' !== $document_root && self::is_absolute_path( $document_root ) ) {
+			// The parent of the actual web document root is a common
+			// account-private location on managed/shared hosting. Do not derive
+			// a second candidate from ABSPATH: WordPress can be symlinked or
+			// test-bootstrapped outside DOCUMENT_ROOT, and treating that unrelated
+			// parent as private would defeat the document-root boundary.
 			$candidates[] = dirname( rtrim( $document_root, '/\\' ) );
-			$candidates[] = dirname( rtrim( ABSPATH, '/\\' ) );
 		}
 
 		$filtered = apply_filters( 'sscribe_private_storage_base_candidates', $candidates );
