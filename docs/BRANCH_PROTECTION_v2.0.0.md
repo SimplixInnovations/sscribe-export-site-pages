@@ -1,9 +1,8 @@
-# SScribe v2.0.0 — Branch Protection Policy & Live Status
+# SScribe v2.x — Branch Protection Policy & Live Status
 
-This document is the repository governance policy for the two canonical
-long-lived branches. It is intentionally **not** treated as proof that GitHub
-has applied the server-side settings: live protection must be checked in the
-repository settings/API.
+This document defines repository governance for the two canonical long-lived branches.
+It is not proof of live GitHub settings; live protection must be verified through the
+repository API/settings.
 
 ## Target branches
 
@@ -14,69 +13,84 @@ Audited Date: 2026-09-18
 
 ## Observed live status
 
-At the 2026-09-18 repository audit, the GitHub API reported:
+At the 2026-09-18 repository audit, GitHub reported:
 
 ```
 main:    UNPROTECTED
 develop: UNPROTECTED
 ```
 
-This is an external repository setting, not a WordPress plugin-code defect and
-not a WordPress.org submission requirement. It remains an external repository-administration gap and should be enabled. Until then, the release process uses pull
-requests, exact-artifact certification, immutable GitHub Action pins, and the
-local release audit as compensating controls.
+This is a repository-administration gap, not a WordPress plugin defect and not a
+WordPress.org submission requirement.
 
 ## Required status checks (desired server-side policy)
-
-The following release signals map to the repository workflows and should be
-configured as required checks when branch protection/rulesets are available:
 
 | Check | Job / workflow | What it proves |
 |---|---|---|
 | Version Sync | `version-check` | Metadata and release contracts are internally consistent. |
 | PHPUnit | `test` | Runtime/unit/integration suite passes. |
-| Real WordPress Integration Suite | `real-wp-tests` | Real WordPress matrix (multiple PHP × WP × DB legs, SQLite drop-in allowed) passes on the actual WordPress runtime. |
+| Real WordPress Integration Suite | `real-wp-tests` | Real WordPress compatibility matrix passes. |
 | Submission Package Check | `plugin-check` | Official WordPress Plugin Check passes on the exact ZIP. |
-| Exact-package browser runtime | `e2e` workflow | Built ZIP boots and completes browser export/download flows. |
-| Release audit | `release-audit` workflow | Final promotion audit passes. |
+| Exact-package browser runtime | `e2e` workflow | Built ZIP boots and completes browser flows. |
+| Release audit | `release-audit` workflow | Cross-platform promotion audit passes. |
 
-## Desired pull-request rules
+## Desired protection rules
 
-- **No direct push** to `main`; promotion should occur through a pull request.
+### `develop` — reviewed integration branch
+
+- Changes enter through pull requests; no ordinary direct pushes.
 - At least 1 approving review for ordinary changes.
-- At least 2 approving reviews for sensitive release/security files:
-  - `includes/class-sscribe-activator.php`
-  - `includes/class-sscribe-private-storage.php`
-  - `includes/class-sscribe-security.php`
-  - `scripts/build-release.php`
-  - `bin/release-audit.sh`
-  - `phpcs.xml`, `phpstan.neon`, and `.github/workflows/*.yml`
+- Sensitive security/release paths should require 2 approving reviews through
+  CODEOWNERS or an equivalent review rule.
 - Conversation resolution is required before merge.
-- Signed commits or DCO `--signoff` are required for release promotion once server-side protection is enabled.
-- **No force-pushes** to protected long-lived branches.
-- **No branch deletion** for `main` or `develop`.
-- **No admin bypass** for required release checks once protection is enabled.
+- Required status checks must pass.
+- Signed commits or DCO `--signoff` are required for release promotion.
+- Squash is the project merge method for pull requests into `develop`.
 
-## Allowed merge methods
+### `main` — exact-SHA alias of `develop`
 
-- **Squash** is the preferred merge method for feature/release PRs.
-- Rebase-merge is disabled by policy for release promotion.
-- Merge commits are avoided unless repository history requires them.
+The branch-topology contract requires `origin/main == origin/develop`. Therefore
+`main` must **not** use a squash/rebase/merge-commit PR promotion path, because
+that would create a different SHA.
 
-## Compensating controls while GitHub protection is unavailable
+- General updates to `main` are restricted.
+- The only allowed update is a controlled fast-forward synchronization to the
+  already-reviewed exact `origin/develop` SHA.
+- That synchronization may use one narrowly scoped ruleset bypass actor
+  (designated maintainer or branch-sync GitHub App/workflow) because GitHub PR
+  merging cannot preserve the exact SHA under squash-only repository policy.
+- There is **no unrestricted admin bypass**. The synchronization exception is
+  limited to fast-forwarding `main` to the already-gated `develop` SHA.
+- Required status checks remain required for the commit being synchronized.
 
-1. Feature work lands through PRs rather than direct edits to `main`.
-2. External GitHub Actions are pinned to immutable 40-character commit SHAs.
-3. The exact versioned ZIP is built once and certified before publication.
-4. Plugin Check runs against the exact submission package.
-5. `composer release:audit` fails closed when mandatory tooling is unavailable; `bin/release-audit.sh` remains a thin compatibility wrapper.
-6. Release tags are allowed only from `origin/main` HEAD.
+### Rules shared by both branches
+
+- **No force-pushes**.
+- **No branch deletion**.
+- Release tags are immutable and separately protected.
+- Do not disable checks to make a promotion pass.
+
+## Allowed merge/update methods
+
+- Pull requests into `develop`: squash.
+- Rebase-merge is disabled for reviewed PR integration.
+- Merge commits are disabled for normal reviewed PR integration.
+- `main` promotion: fast-forward synchronization only; do not use the GitHub
+  merge UI to create a different commit.
+
+## Compensating controls while live protection is absent
+
+1. Only `main` and `develop` may persist as long-lived branches.
+2. `main` and `develop` are synchronized to the exact same SHA.
+3. External GitHub Actions are pinned to immutable commit SHAs.
+4. Exact ZIPs are built/certified and Plugin Check runs on the package.
+5. `composer release:audit` fails closed when mandatory tooling is unavailable.
+6. Release tags are immutable and allowed only from the certified shared SHA.
 
 ## How to verify live state
 
-Before tagging a release, inspect GitHub repository settings or the branch API
-for both `main` and `develop`. If protection is available, enable the policy
-above. Do not infer server-side enforcement from this document.
+Before a release, inspect GitHub rulesets/branch APIs for `main`, `develop`,
+and `v*`. Policy text is never a substitute for live server-side enforcement.
 
 ## Companion evidence
 
@@ -88,5 +102,4 @@ above. Do not infer server-side enforcement from this document.
 ## Living document
 
 This is a living document. Update it whenever branch topology, required checks,
-merge policy, GitHub plan capabilities, or the observed live protection state
-changes.
+merge/update policy, GitHub capabilities, or observed live protection changes.

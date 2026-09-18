@@ -87,7 +87,7 @@ final class SScribe_Branch_Protection_Test extends TestCase {
 		);
 	}
 
-	public function test_doc_forbids_force_pushes_and_admin_bypass(): void {
+	public function test_doc_forbids_force_pushes_and_unrestricted_admin_bypass(): void {
 		$source = (string) file_get_contents( self::plugin_root() . '/' . self::DOC_PATH );
 		$this::assertMatchesRegularExpression(
 			'/(no|forbid|reject|disallow)[^\n]*force[ -]?push/i',
@@ -95,9 +95,9 @@ final class SScribe_Branch_Protection_Test extends TestCase {
 			'Branch-protection doc must forbid force-pushes.'
 		);
 		$this::assertMatchesRegularExpression(
-			'/(no admin[ -]?bypass|admin[ -]?bypass[ -]?(is\s+)?(disabled|forbidden|not\s+allowed)|no\s+bypass)/i',
+			'/no unrestricted admin bypass/i',
 			$source,
-			'Branch-protection doc must forbid admin bypass.'
+			'Branch-protection doc must forbid unrestricted admin bypass.'
 		);
 		$this::assertMatchesRegularExpression(
 			'/(?:no|rejects?|forbid)[^\n]*(?:branch[ -]?deletion|deletion)/i',
@@ -106,12 +106,12 @@ final class SScribe_Branch_Protection_Test extends TestCase {
 		);
 	}
 
-	public function test_doc_requires_pr_reviews_resolution_and_signoff(): void {
+	public function test_doc_requires_develop_pr_reviews_and_controlled_main_sync(): void {
 		$source = (string) file_get_contents( self::plugin_root() . '/' . self::DOC_PATH );
 		$this::assertMatchesRegularExpression(
-			'/(pull\s+request|PRs?\s+(are\s+)?required|no\s+direct\s+push)/i',
+			'/Changes enter through pull requests/i',
 			$source,
-			'Branch-protection doc must require pull requests (no direct push).'
+			'Branch-protection doc must require reviewed pull requests into develop.'
 		);
 		$this::assertMatchesRegularExpression(
 			'/[Aa]t\s+least\s+\d+\s+(approving\s+)?review/i',
@@ -128,20 +128,46 @@ final class SScribe_Branch_Protection_Test extends TestCase {
 			$source,
 			'Branch-protection doc must require --signoff / DCO.'
 		);
+		$this::assertStringContainsString(
+			'controlled fast-forward synchronization',
+			$source,
+			'main must be synchronized to the exact reviewed develop SHA without creating a new merge commit.'
+		);
+		$this::assertStringContainsString(
+			'no unrestricted admin bypass',
+			strtolower( $source ),
+			'Only the narrowly scoped main synchronization actor may bypass update restrictions.'
+		);
 	}
 
-	public function test_doc_pins_squash_only_merge_method(): void {
+	public function test_doc_pins_develop_squash_and_main_fast_forward_methods(): void {
 		$source = (string) file_get_contents( self::plugin_root() . '/' . self::DOC_PATH );
 		$this::assertMatchesRegularExpression(
 			'/squash/i',
 			$source,
-			'Branch-protection doc must declare squash-only merge method.'
+			'Branch-protection doc must declare squash PR integration for develop.'
 		);
 		$this::assertMatchesRegularExpression(
 			'/(rebase[- ]?merge|rebase)\s+(is\s+)?(disabled|forbidden)/i',
 			$source,
 			'Branch-protection doc must explicitly disable rebase-merge.'
 		);
+		$this::assertStringContainsString(
+			'fast-forward synchronization only',
+			$source,
+			'Branch-protection doc must preserve exact-SHA main/develop aliasing.'
+		);
+	}
+
+	public function test_release_helpers_use_fast_forward_only_promotion(): void {
+		$commit = (string) file_get_contents( self::plugin_root() . '/scripts/release-commit.php' );
+		$prepare = (string) file_get_contents( self::plugin_root() . '/scripts/release-prepare.php' );
+
+		$this::assertStringContainsString( 'git pull --ff-only origin main', $commit );
+		$this::assertStringContainsString( 'git merge --ff-only origin/develop', $commit );
+		$this::assertStringContainsString( 'git tag -a', $commit );
+		$this::assertStringNotContainsString( 'git merge --abort 2>NUL', $commit );
+		$this::assertStringContainsString( 'git merge --ff-only origin/develop', $prepare );
 	}
 
 	public function test_doc_lists_required_jobs_by_ci_yml_friendly_name(): void {

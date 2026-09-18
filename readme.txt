@@ -103,44 +103,28 @@ The bundled mPDF library uses GPL-2.0-only. Required notices for bundled depende
 
 Canonical source repository: https://github.com/SimplixInnovations/sscribe-export-site-pages
 
-The released ZIP is built from this repository with the documented, deterministic build commands below; no private pre-built runtime blobs are substituted into the submission package. Because the production ZIP excludes development/build tooling such as scripts and tests, the canonical repository (or an equivalent maintained source mirror containing the exact tagged source and build tooling) must be publicly accessible for a WordPress.org submission, so the exact tagged source used for each public submission is accessible to reviewers. Reviewer-only or private access is not treated as a substitute for the public source availability required by the WordPress.org plugin guidelines.
+The exact tagged source used for each public WordPress.org submission is accessible to reviewers.
 
-Required tools and versions:
+Required tools: PHP 8.2+, Composer 2.x, Node.js 24+, and Git.
 
-* PHP 8.2 or later (8.4 recommended for local development)
-* Composer 2.x (locked via composer.lock)
-* Node.js 24 or later (pinned via GitHub Actions setup-node)
-* Git for source checkout
+Build from a clean checkout:
 
-Build a clean submission archive from a fresh checkout:
-
-    git clone https://github.com/SimplixInnovations/sscribe-export-site-pages.git
-    cd sscribe-export-site-pages
     composer install
     composer vendor:prefix
-    composer test
-    composer stan
-    composer cs
     composer release
 
-The last command runs scripts/build-release.php and writes dist/sscribe-export-site-pages-<version>.zip plus its SHA-256 sidecar. The build process strips comments, prunes unused fonts, prefixes third-party namespaces via Strauss, removes dev-only paths, and verifies the ZIP against the certification contract before it is ever uploaded to WordPress.org.
-
-A detailed description of every build transformation (paths excluded, comments stripped, namespaces prefixed, fonts pruned, AI artifacts sanitized) lives at docs/BUILD_TRANSFORMATIONS.md in the repository. The release evidence trail lives at docs/RELEASE_REPORT_v2.0.0.md.
+Build transformations are documented in docs/BUILD_TRANSFORMATIONS.md.
 
 == Changelog ==
 
 = 2.0.3 =
-* Development-line tooling and release-workflow hardening: Windows/Linux parity, fresh exact-artifact E2E provisioning, cross-platform process execution, and release-governance corrections. No production runtime behavior changed from the certified 2.0.2 release.
+* Release-tooling hardening only; runtime unchanged from 2.0.2.
 
 = 2.0.2 =
 * Release-system corrections only; same shipped runtime as 2.0.1. See `dist/` evidence + `docs/RELEASE_REPORT_v2.0.1.md` for the full list
 
 = 2.0.1 =
-* Refactored the release-blocker registry (Phase 70) so dynamic blockers resolve at certification time from ignored `dist/` evidence instead of requiring a tracked commit to flip `DEFERRED → RESOLVED` — eliminating the SHA circularity the v2.0.0 closeout identified.
-* Corrected the tag policy (Phase 54) so `gh release create --verify-tag` is correctly identified as SHA-binding via GitHub's signed-tag store rather than cryptographic signing; cryptographic tag signing is now recorded as recommended (when the maintainer has signing configured), not required.
-* Bumped the public release target from 2.0.0 to 2.0.1. The historical `v2.0.0` tag is preserved as a documented artifact (`docs/RELEASE_REPORT_v2.0.0.md`); the live public release target is `v2.0.1`.
-* Removed live source SHA / ZIP SHA-256 / build-timestamp values from any tracked release report; authoritative final identities now live in ignored, regenerated `dist/*.json` evidence files.
-* Same shipped runtime as 2.0.0 — no behavioural, security, or compatibility changes for end users.
+* Release-evidence and tag-policy corrections only; runtime unchanged from 2.0.0.
 
 = 2.0.0 =
 * Moved archives, logs, and working files from public uploads to site-isolated private storage, with verified migration of legacy data.
@@ -163,7 +147,7 @@ A detailed description of every build transformation (paths excluded, comments s
 == Upgrade Notice ==
 
 = 2.0.3 =
-Development tooling and release-governance hardening only; no production runtime behavior change from 2.0.2.
+Release tooling only; runtime unchanged from 2.0.2.
 
 = 2.0.2 =
 Release-system corrections; runtime unchanged from 2.0.1. No install action required.

@@ -15,8 +15,8 @@
  *   - required reviews are declared
  *   - conversation resolution is required
  *   - signed commits / sign-off is required
- *   - no force pushes, no deletions, no admin bypass
- *   - allowed merge methods are pinned (squash only, no rebase, no merge commits)
+ *   - no force pushes or deletions; no unrestricted admin bypass
+ *   - develop uses reviewed squash PRs; main uses controlled exact-SHA fast-forward synchronization
  *   - audit SHA matches the current audited state
  *
  * If a regression (or a new maintainer) silently removes a clause
@@ -134,36 +134,43 @@ $no_deletion = (bool) preg_match( '/(?:no|rejects?|forbid)[^\n]*(?:branch[ -]?de
 $matrix[] = array(
 	'rule'   => 'branch_protection_doc_forbids_branch_deletion',
 	'passes' => $no_deletion,
-	'detail' => 'Branch protection must forbid branch deletion (a non-admin must delete from main after a clean release tag).',
+	'detail' => 'Branch protection must forbid deletion of the canonical long-lived branches.',
 );
 if ( ! $no_deletion ) {
 	$errors[] = 'Branch-protection doc does NOT forbid branch deletion.';
 }
 
 /**
- * Rule 5: doc forbids admin bypass (no admin-only escape hatch).
+ * Rule 5: no unrestricted bypass; the only exception is controlled main
+ * fast-forward synchronization required by the alias-branch topology.
  */
-$no_admin_bypass = (bool) preg_match( '/(no admin[ -]?bypass|admin[ -]?bypass[ -]?(is\s+)?(disabled|forbidden|not\s+allowed)|no\s+bypass)/i', $doc_src );
+$restricted_bypass = (bool) preg_match( '/no unrestricted admin bypass/i', $doc_src )
+	&& (bool) preg_match( '/controlled fast-forward synchronization/i', $doc_src )
+	&& (bool) preg_match( '/narrowly scoped ruleset bypass actor/i', $doc_src );
 $matrix[] = array(
-	'rule'   => 'branch_protection_doc_forbids_admin_bypass',
-	'passes' => $no_admin_bypass,
-	'detail' => 'No admin-only escape hatch — every push must go through the gate.',
+	'rule'   => 'branch_protection_doc_restricts_main_sync_bypass',
+	'passes' => $restricted_bypass,
+	'detail' => 'No unrestricted bypass is allowed; only a narrowly scoped actor may fast-forward main to the already-gated develop SHA.',
 );
-if ( ! $no_admin_bypass ) {
-	$errors[] = 'Branch-protection doc does NOT forbid admin bypass.';
+if ( ! $restricted_bypass ) {
+	$errors[] = 'Branch-protection doc does NOT restrict the main synchronization bypass correctly.';
 }
 
 /**
- * Rule 6: doc requires PR-based merging (no direct push).
+ * Rule 6: develop is PR-reviewed while main preserves the exact develop SHA
+ * through controlled fast-forward synchronization.
  */
-$requires_pr = (bool) preg_match( '/(require|prefer|pull\s+request|no\s+direct\s+push|PRs?\s+(required|are\s+required))/i', $doc_src );
+$requires_pr = (bool) preg_match( '/develop[^\n]*(reviewed integration branch|pull requests?)/i', $doc_src )
+	|| ( false !== stripos( $doc_src, 'Changes enter through pull requests' ) );
+$main_fast_forward = (bool) preg_match( '/main[^\n]*(exact-SHA alias|fast-forward)/i', $doc_src )
+	|| ( false !== stripos( $doc_src, 'fast-forward synchronization only' ) );
 $matrix[] = array(
-	'rule'   => 'branch_protection_doc_requires_pull_requests',
-	'passes' => $requires_pr,
-	'detail' => 'Branch protection must require pull requests (no direct push).',
+	'rule'   => 'branch_protection_doc_matches_alias_branch_promotion',
+	'passes' => $requires_pr && $main_fast_forward,
+	'detail' => 'develop must require reviewed PR integration and main must preserve the exact develop SHA through controlled fast-forward synchronization.',
 );
-if ( ! $requires_pr ) {
-	$errors[] = 'Branch-protection doc does NOT require pull requests.';
+if ( ! ( $requires_pr && $main_fast_forward ) ) {
+	$errors[] = 'Branch-protection doc does NOT match the canonical develop-PR/main-fast-forward alias model.';
 }
 
 /**
@@ -193,18 +200,19 @@ if ( ! $requires_signed ) {
 }
 
 /**
- * Rule 9: doc declares the allowed merge method(s). Per
- * project convention only squash is allowed.
+ * Rule 9: doc declares squash PR integration on develop and exact-SHA
+ * fast-forward synchronization on main.
  */
-$declares_merge_methods = (bool) preg_match( '/(allowed\s+merge\s+method|merge\s+method|##\s*Allowed\s+merge)/i', $doc_src )
-	&& (bool) preg_match( '/squash/i', $doc_src );
+$declares_merge_methods = (bool) preg_match( '/(allowed\s+merge|merge\/update)/i', $doc_src )
+	&& false !== stripos( $doc_src, 'squash' )
+	&& false !== stripos( $doc_src, 'fast-forward synchronization only' );
 $matrix[] = array(
 	'rule'   => 'branch_protection_doc_pins_allowed_merge_methods',
 	'passes' => $declares_merge_methods,
-	'detail' => 'Branch protection must pin the allowed merge methods (squash-only is the project convention; rebase/merge commits disabled).',
+	'detail' => 'develop uses squash PRs; main uses exact-SHA fast-forward synchronization; rebase/merge-commit PR integration is disabled.',
 );
 if ( ! $declares_merge_methods ) {
-	$errors[] = 'Branch-protection doc does NOT pin the allowed merge methods.';
+	$errors[] = 'Branch-protection doc does NOT pin squash-on-develop plus fast-forward-only main synchronization.';
 }
 
 /**
@@ -274,10 +282,9 @@ if ( ! ( $cross_refs_ci && $cross_refs_sec ) ) {
  * names at least one compensating control when the ideal rule
  * cannot be enforced by the plan.
  *
- * The current doc does enforce every rule through the GitHub
- * settings manually applied; this rule documents the auditability
- * of that claim by demanding a "compensating controls" or
- * "Living document / pin-audited-SHA" line.
+ * The live repository may temporarily lack server-side enforcement;
+ * this rule requires the source contract to identify compensating controls
+ * without pretending those controls are equivalent to GitHub protection.
  */
 $declares_compensating = (bool) stripos( $doc_src, 'Compensating controls' );
 $matrix[] = array(

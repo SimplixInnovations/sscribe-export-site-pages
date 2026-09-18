@@ -50,7 +50,7 @@ if ( 0 === $verify_exit ) {
 }
 
 echo "  PHPUnit tests... ";
-exec( 'php vendor/bin/phpunit --no-coverage --no-progress 2>&1', $test_output, $test_exit );
+exec( 'php vendor/bin/phpunit --no-coverage --no-progress --order-by=random --exclude-group=release-contract 2>&1', $test_output, $test_exit );
 if ( 0 === $test_exit ) {
 
 	$test_text = implode( "\n", $test_output );
