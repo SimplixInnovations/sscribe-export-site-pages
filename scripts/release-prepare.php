@@ -129,8 +129,9 @@ $patch = (int) $parts[2];
 echo "{$separator}\n";
 echo "  Current version: v{$current_version}\n";
 echo "{$separator}\n\n";
-echo "Select bump type:\n\n";
-echo "  [1] Patch  → v{$major}.{$minor}." . ( $patch + 1 ) . "   (bug fixes)\n";
+echo "Select release version:\n\n";
+echo "  [0] Current → v{$current_version}   (finalize the already-versioned development line)\n";
+echo "  [1] Patch   → v{$major}.{$minor}." . ( $patch + 1 ) . "   (bug fixes)\n";
 echo "  [2] Minor  → v{$major}." . ( $minor + 1 ) . ".0   (new features)\n";
 echo "  [3] Major  → v" . ( $major + 1 ) . ".0.0     (breaking changes)\n";
 echo "  [4] Custom → enter manually\n";
@@ -140,6 +141,9 @@ echo "Choice: ";
 $choice = strtolower( trim( (string) fgets( STDIN ) ) );
 
 switch ( $choice ) {
+	case '0':
+		$new_version = $current_version;
+		break;
 	case '1':
 		$new_version = "{$major}.{$minor}." . ( $patch + 1 );
 		break;
@@ -162,14 +166,17 @@ switch ( $choice ) {
 		exit( 0 );
 }
 
-echo "\n{$info_mark} Bumping: v{$current_version} → v{$new_version}\n\n";
+if ( $new_version === $current_version ) {
+	echo "\n{$info_mark} Finalizing current development version: v{$current_version}\n\n";
+} else {
+	echo "\n{$info_mark} Bumping: v{$current_version} → v{$new_version}\n\n";
+	$bump_cmd = sprintf( 'php %s/scripts/bump-version.php %s', $root_dir, $new_version );
+	passthru( $bump_cmd, $bump_exit );
 
-$bump_cmd = sprintf( 'php %s/scripts/bump-version.php %s', $root_dir, $new_version );
-passthru( $bump_cmd, $bump_exit );
-
-if ( 0 !== $bump_exit ) {
-	echo "\n{$fail_mark} Version bump failed.\n";
-	exit( 1 );
+	if ( 0 !== $bump_exit ) {
+		echo "\n{$fail_mark} Version bump failed.\n";
+		exit( 1 );
+	}
 }
 
 echo "\n{$info_mark} Ready to add changelog entry?\n\n";
@@ -205,7 +212,7 @@ echo "  4. Create a Git tag:\n";
 echo "     git tag -a v{$new_version} -m \"Release v{$new_version}\"\n";
 echo "     git push origin v{$new_version}\n\n";
 echo "  Or use the automated commit:\n\n";
-echo "     php scripts/release-commit.php {$new_version}\n\n";
+echo "     composer release:commit   # reads SSCRIBE_VERSION automatically\n\n";
 echo "{$separator}\n";
 
 exit( 0 );

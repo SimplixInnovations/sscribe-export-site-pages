@@ -146,27 +146,13 @@ final class SScribe_Agent_Final_Report_Test extends TestCase {
 		);
 	}
 
-	public function test_release_audit_sh_declares_agent_final_report_gate(): void {
-		$audit_sh_path = $this->repo_root . '/bin/release-audit.sh';
-		$this->assertFileExists( $audit_sh_path );
-
-		$audit_src = (string) file_get_contents( $audit_sh_path );
-
-		$this->assertStringContainsString(
-			'Agent-Final-Report',
-			$audit_src,
-			'bin/release-audit.sh must declare the Phase 73 Agent-Final-Report gate.'
-		);
-		$this->assertStringContainsString(
-			'agent-final-report',
-			$audit_src,
-			'bin/release-audit.sh must invoke `composer test:agent-final-report` for Phase 73.'
-		);
-		$this->assertStringContainsString(
-			'/tmp/release-audit-agent-final-report.log',
-			$audit_src,
-			'bin/release-audit.sh must record the Phase 73 log path.'
-		);
+	public function test_release_audit_php_declares_agent_final_report_gate(): void {
+		$audit_path = $this->repo_root . '/scripts/release-audit.php';
+		$this->assertFileExists( $audit_path );
+		$audit_src = (string) file_get_contents( $audit_path );
+		$this->assertStringContainsString( 'Agent-Final-Report', $audit_src, 'scripts/release-audit.php must declare the Phase 73 Agent-Final-Report gate.' );
+		$this->assertStringContainsString( 'test:agent-final-report', $audit_src, 'scripts/release-audit.php must invoke test:agent-final-report for Phase 73 Agent-Final-Report.' );
+		$this->assertStringContainsString( 'release-audit-', $audit_src, 'Canonical release audit must persist per-gate logs.' );
 	}
 
 	public function test_ci_commands_doc_documents_agent_final_report(): void {

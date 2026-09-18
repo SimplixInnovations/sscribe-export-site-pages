@@ -166,10 +166,11 @@ composer release   # canonical builder (scripts/build-release.php)
 
 ## Release process
 
-1. `develop` and `main` are kept at the same SHA at all times (alias model, enforced by `composer test:branch-policy`).
+1. `develop` and `main` are kept at the same SHA (alias model, enforced by `composer test:branch-policy`).
 2. Day-to-day work lands on `develop`, then `main` is advanced by fast-forward only to match.
-3. At a release cut both branches are set to the release SHA and the immutable tag is created (`composer release:full`).
-4. `composer release:audit` runs every release gate, reports the complete summary, and exits non-zero if any gate fails.
+3. `composer release:prepare` can finalize the current development version or deliberately bump it; `composer release:commit` commits and fast-forwards both canonical branches.
+4. Build/certify the exact ZIP and run `SSCRIBE_RELEASE_CERTIFICATION=1 composer release:audit` with the final Phase 70/71/72 evidence.
+5. Only after certification, create the immutable annotated tag with `composer release:tag`; the tag push triggers the release workflow.
 
 Tags and certified ZIPs are immutable after certification — never move, rebuild, or replace them.
 
@@ -201,7 +202,7 @@ The submission artifact is the certified versioned ZIP (`dist/sscribe-export-sit
 | Chromium missing | `npx playwright install chromium` (or `dev.ps1 setup`) |
 | `git diff --check` flags CRLF | The repo enforces LF via `.gitattributes`; let Git renormalize, do not commit CRLF |
 | symlink-guard tests skip on Windows | Enable Developer Mode (Settings > System > For developers) so `mklink` can create test symlinks; `dev.ps1 doctor` reports the state |
-| `test:branch-policy` fails | `main` and `develop` diverged; advance `main` to `develop` (fast-forward, never force outside a release cut) |
+| `test:branch-policy` fails | `main` and `develop` diverged; reconcile `develop`, then fast-forward `main` to the exact same SHA; never force either branch |
 
 ## Contributing
 

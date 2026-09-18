@@ -179,27 +179,13 @@ final class SScribe_Definition_Of_Done_Test extends TestCase {
 		);
 	}
 
-	public function test_release_audit_sh_declares_definition_of_done_gate(): void {
-		$audit_sh_path = $this->repo_root . '/bin/release-audit.sh';
-		$this->assertFileExists( $audit_sh_path );
-
-		$audit_src = (string) file_get_contents( $audit_sh_path );
-
-		$this->assertStringContainsString(
-			'Definition-Of-Done',
-			$audit_src,
-			'bin/release-audit.sh must declare the Phase 76 Definition-Of-Done gate.'
-		);
-		$this->assertStringContainsString(
-			'definition-of-done',
-			$audit_src,
-			'bin/release-audit.sh must invoke `composer test:definition-of-done` for Phase 76.'
-		);
-		$this->assertStringContainsString(
-			'/tmp/release-audit-definition-of-done.log',
-			$audit_src,
-			'bin/release-audit.sh must record the Phase 76 log path.'
-		);
+	public function test_release_audit_php_declares_definition_of_done_gate(): void {
+		$audit_path = $this->repo_root . '/scripts/release-audit.php';
+		$this->assertFileExists( $audit_path );
+		$audit_src = (string) file_get_contents( $audit_path );
+		$this->assertStringContainsString( 'Definition-Of-Done', $audit_src, 'scripts/release-audit.php must declare the Phase 76 Definition-Of-Done gate.' );
+		$this->assertStringContainsString( 'test:definition-of-done', $audit_src, 'scripts/release-audit.php must invoke test:definition-of-done for Phase 76 Definition-Of-Done.' );
+		$this->assertStringContainsString( 'release-audit-', $audit_src, 'Canonical release audit must persist per-gate logs.' );
 	}
 
 	public function test_ci_commands_doc_documents_definition_of_done(): void {

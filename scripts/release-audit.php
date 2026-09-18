@@ -48,6 +48,12 @@ function sscribe_audit_gate( string $name, array $argv, array $extra, array &$su
 		'name'   => $name,
 	);
 	printf( "%s %-32s %6sms\n", $status, $name, number_format( $res['ms'] ) );
+	if ( 0 !== $res['code'] && is_file( $log ) ) {
+		$failure_output = trim( (string) file_get_contents( $log ) );
+		if ( '' !== $failure_output ) {
+			fwrite( STDERR, "\n--- {$name} failure output ---\n{$failure_output}\n--- end {$name} failure output ---\n\n" );
+		}
+	}
 	return 0 === $res['code'];
 }
 
@@ -140,7 +146,16 @@ function sscribe_release_audit(): void {
 		$wp_found = 'wp' !== $wp_bin;
 	}
 	if ( is_string( $wp_root ) && '' !== $wp_root && is_dir( $wp_root . '/wp-content/plugins/plugin-check' ) && $wp_found && '' !== $wp_bin ) {
-		$gate( 'Plugin-Check', array( $wp_bin, '--path=' . $wp_root, 'plugin', 'check', 'sscribe-export-site-pages', '--allow-root' ) );
+		$plugin_dir       = $wp_root . '/wp-content/plugins/sscribe-export-site-pages';
+		$plugin_check_cli = $wp_root . '/wp-content/plugins/plugin-check/cli.php';
+		if ( ! is_dir( $plugin_dir ) || ! is_file( $plugin_check_cli ) ) {
+			fwrite( STDERR, "Plugin Check runtime prerequisites are incomplete: exact plugin directory or plugin-check/cli.php is missing.\n" );
+			$summary[] = array( 'status' => 'FAIL', 'ms' => 0, 'name' => 'Plugin-Check' );
+			$fail++;
+			printf( "%s %-32s %6sms\n", 'FAIL', 'Plugin-Check', '0' );
+		} else {
+			$gate( 'Plugin-Check', array( $wp_bin, '--path=' . $wp_root, 'plugin', 'check', $plugin_dir, '--format=json', '--require=' . $plugin_check_cli, '--allow-root' ) );
+		}
 	} else {
 		fwrite( STDERR, "Plugin Check testbench unavailable. Set SSCRIBE_WP_ROOT to a WordPress install containing the official Plugin Check plugin and optionally SSCRIBE_WP_BIN to the wp-cli executable. release audit is fail-closed.\n" );
 		$summary[] = array(

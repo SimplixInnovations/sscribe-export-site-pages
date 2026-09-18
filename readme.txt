@@ -121,7 +121,7 @@ Build transformations are documented in docs/BUILD_TRANSFORMATIONS.md.
 * Release-tooling hardening only; runtime unchanged from 2.0.2.
 
 = 2.0.2 =
-* Release-system corrections only; same shipped runtime as 2.0.1. See `dist/` evidence + `docs/RELEASE_REPORT_v2.0.1.md` for the full list
+* Release-system hardening plus runtime reliability fixes, including storage/activation compatibility and export-path corrections.
 
 = 2.0.1 =
 * Release-evidence and tag-policy corrections only; runtime unchanged from 2.0.0.
@@ -147,10 +147,10 @@ Build transformations are documented in docs/BUILD_TRANSFORMATIONS.md.
 == Upgrade Notice ==
 
 = 2.0.3 =
-Release tooling only; runtime unchanged from 2.0.2.
+Release tooling and cross-platform developer workflow hardening only; no production runtime behavior changes from 2.0.2.
 
 = 2.0.2 =
-Release-system corrections; runtime unchanged from 2.0.1. No install action required.
+Release hardening and runtime reliability fixes; no manual migration action is required.
 
 = 2.0.1 =
 Release-system corrections only. No behavioural, security, or compatibility changes for end users. Historical v2.0.0 release was not publicly shipped; v2.0.1 is the public release target.

@@ -247,22 +247,14 @@ final class SScribe_Auditor_Handoff_Test extends TestCase {
 		$ci_handoff = strpos( $ci_src, 'run: composer test:auditor-handoff' );
 		$this->assertIsInt( $ci_branch );
 		$this->assertIsInt( $ci_handoff );
-		$this->assertLessThan(
-			$ci_handoff,
-			$ci_branch,
-			'CI must generate dist/branch-policy-manifest.json before the auditor-handoff consumer runs.'
-		);
+		$this->assertLessThan( $ci_handoff, $ci_branch, 'CI must generate branch-policy evidence before the auditor-handoff consumer runs.' );
 
-		$audit_src = (string) file_get_contents( $this->repo_root . '/bin/release-audit.sh' );
-		$audit_branch = strpos( $audit_src, 'run_gate "Branch-Policy" composer test:branch-policy' );
-		$audit_handoff = strpos( $audit_src, 'run_gate "Auditor-Handoff" composer test:auditor-handoff' );
+		$audit_src = (string) file_get_contents( $this->repo_root . '/scripts/release-audit.php' );
+		$audit_branch = strpos( $audit_src, "'Branch-Policy'      => 'test:branch-policy'" );
+		$audit_handoff = strpos( $audit_src, "'Auditor-Handoff'    => 'test:auditor-handoff'" );
 		$this->assertIsInt( $audit_branch );
 		$this->assertIsInt( $audit_handoff );
-		$this->assertLessThan(
-			$audit_handoff,
-			$audit_branch,
-			'release-audit.sh must generate branch-policy evidence before the auditor-handoff consumer runs.'
-		);
+		$this->assertLessThan( $audit_handoff, $audit_branch, 'Canonical release audit must run Branch-Policy before Auditor-Handoff.' );
 	}
 
 	public function test_ci_yml_declares_auditor_handoff_step_pair(): void {
@@ -283,27 +275,13 @@ final class SScribe_Auditor_Handoff_Test extends TestCase {
 		);
 	}
 
-	public function test_release_audit_sh_declares_auditor_handoff_gate(): void {
-		$audit_sh_path = $this->repo_root . '/bin/release-audit.sh';
-		$this->assertFileExists( $audit_sh_path );
-
-		$audit_src = (string) file_get_contents( $audit_sh_path );
-
-		$this->assertStringContainsString(
-			'Auditor-Handoff',
-			$audit_src,
-			'bin/release-audit.sh must declare the Phase 74 Auditor-Handoff gate.'
-		);
-		$this->assertStringContainsString(
-			'auditor-handoff',
-			$audit_src,
-			'bin/release-audit.sh must invoke `composer test:auditor-handoff` for Phase 74.'
-		);
-		$this->assertStringContainsString(
-			'/tmp/release-audit-auditor-handoff.log',
-			$audit_src,
-			'bin/release-audit.sh must record the Phase 74 log path.'
-		);
+	public function test_release_audit_php_declares_auditor_handoff_gate(): void {
+		$audit_path = $this->repo_root . '/scripts/release-audit.php';
+		$this->assertFileExists( $audit_path );
+		$audit_src = (string) file_get_contents( $audit_path );
+		$this->assertStringContainsString( 'Auditor-Handoff', $audit_src );
+		$this->assertStringContainsString( 'test:auditor-handoff', $audit_src );
+		$this->assertStringContainsString( 'release-audit-', $audit_src );
 	}
 
 	public function test_ci_commands_doc_documents_auditor_handoff(): void {

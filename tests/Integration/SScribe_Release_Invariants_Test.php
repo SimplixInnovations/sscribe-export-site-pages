@@ -177,27 +177,13 @@ final class SScribe_Release_Invariants_Test extends TestCase {
 		);
 	}
 
-	public function test_release_audit_sh_declares_release_invariants_gate(): void {
-		$audit_sh_path = $this->repo_root . '/bin/release-audit.sh';
-		$this->assertFileExists( $audit_sh_path );
-
-		$audit_src = (string) file_get_contents( $audit_sh_path );
-
-		$this->assertStringContainsString(
-			'Release-Invariants',
-			$audit_src,
-			'bin/release-audit.sh must declare the Phase 75 Release-Invariants gate.'
-		);
-		$this->assertStringContainsString(
-			'release-invariants',
-			$audit_src,
-			'bin/release-audit.sh must invoke `composer test:release-invariants` for Phase 75.'
-		);
-		$this->assertStringContainsString(
-			'/tmp/release-audit-release-invariants.log',
-			$audit_src,
-			'bin/release-audit.sh must record the Phase 75 log path.'
-		);
+	public function test_release_audit_php_declares_release_invariants_gate(): void {
+		$audit_path = $this->repo_root . '/scripts/release-audit.php';
+		$this->assertFileExists( $audit_path );
+		$audit_src = (string) file_get_contents( $audit_path );
+		$this->assertStringContainsString( 'Release-Invariants', $audit_src, 'scripts/release-audit.php must declare the Phase 75 Release-Invariants gate.' );
+		$this->assertStringContainsString( 'test:release-invariants', $audit_src, 'scripts/release-audit.php must invoke test:release-invariants for Phase 75 Release-Invariants.' );
+		$this->assertStringContainsString( 'release-audit-', $audit_src, 'Canonical release audit must persist per-gate logs.' );
 	}
 
 	public function test_ci_commands_doc_documents_release_invariants(): void {

@@ -170,6 +170,18 @@ final class SScribe_Branch_Protection_Test extends TestCase {
 		$this::assertStringContainsString( 'git merge --ff-only origin/develop', $prepare );
 	}
 
+	public function test_release_helpers_support_already_versioned_development_line(): void {
+		$commit   = (string) file_get_contents( self::plugin_root() . '/scripts/release-commit.php' );
+		$prepare  = (string) file_get_contents( self::plugin_root() . '/scripts/release-prepare.php' );
+		$composer = (string) file_get_contents( self::plugin_root() . '/composer.json' );
+
+		$this::assertStringContainsString( '[0] Current', $prepare );
+		$this::assertStringContainsString( 'Finalizing current development version', $prepare );
+		$this::assertStringContainsString( 'null === $requested_version ? $canonical_version : $requested_version', $commit );
+		$this::assertStringContainsString( '2 !== $existing_tag_exit', $commit );
+		$this::assertStringContainsString( '"release:tag": "php scripts/release-commit.php --tag"', $composer );
+	}
+
 	public function test_doc_lists_required_jobs_by_ci_yml_friendly_name(): void {
 		// The doc's "Required status checks" table must use the same
 		// friendly names as ci.yml, so the GitHub-required-checks UI

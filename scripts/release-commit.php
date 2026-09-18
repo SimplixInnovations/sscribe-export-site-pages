@@ -11,31 +11,41 @@ if ( 'cli' !== php_sapi_name() ) {
 	exit( 'This script must be run from the command line.' . PHP_EOL );
 }
 
-if ( $argc < 2 ) {
-	echo "Usage: php scripts/release-commit.php <version> [--tag]\n";
-	echo "Example: php scripts/release-commit.php X.Y.Z --tag\n";
-	exit( 1 );
-}
-
-$new_version = $argv[1];
-$create_tag  = in_array( '--tag', $argv, true );
-
-if ( ! preg_match( '/^\d+\.\d+\.\d+$/', $new_version ) ) {
-	echo "Error: Version must be in format major.minor.patch (e.g., X.Y.Z)\n";
-	exit( 1 );
+$create_tag       = in_array( '--tag', $argv, true );
+$requested_version = null;
+foreach ( array_slice( $argv, 1 ) as $arg ) {
+	if ( '--tag' === $arg ) {
+		continue;
+	}
+	if ( null !== $requested_version ) {
+		echo "Usage: php scripts/release-commit.php [version] [--tag]\n";
+		exit( 1 );
+	}
+	$requested_version = $arg;
 }
 
 $root_dir = dirname( __DIR__ );
 
-$branch = trim( (string) shell_exec( 'git branch --show-current' ) );
-if ( 'develop' !== $branch ) {
-	echo "Error: release-commit must start on develop; current branch is '{$branch}'.\n";
+$plugin_source = (string) file_get_contents( $root_dir . '/sscribe-export-site-pages.php' );
+if ( ! preg_match( "/define\\s*\\(\\s*['\"]SSCRIBE_VERSION['\"]\\s*,\\s*['\"]([0-9]+\\.[0-9]+\\.[0-9]+)['\"]/", $plugin_source, $version_match ) ) {
+	echo "Error: could not resolve SSCRIBE_VERSION.\n";
+	exit( 1 );
+}
+$canonical_version = $version_match[1];
+$new_version       = null === $requested_version ? $canonical_version : $requested_version;
+
+if ( ! preg_match( '/^\d+\.\d+\.\d+$/', $new_version ) ) {
+	echo "Error: Version must be in format major.minor.patch (e.g., X.Y.Z).\n";
+	exit( 1 );
+}
+if ( $new_version !== $canonical_version ) {
+	echo "Error: requested release version does not match SSCRIBE_VERSION ({$canonical_version}).\n";
 	exit( 1 );
 }
 
-$plugin_source = (string) file_get_contents( $root_dir . '/sscribe-export-site-pages.php' );
-if ( ! preg_match( "/define\\s*\\(\\s*['\"]SSCRIBE_VERSION['\"]\\s*,\\s*['\"]([0-9]+\\.[0-9]+\\.[0-9]+)['\"]/", $plugin_source, $version_match ) || $version_match[1] !== $new_version ) {
-	echo "Error: requested release version does not match SSCRIBE_VERSION.\n";
+$branch = trim( (string) shell_exec( 'git branch --show-current' ) );
+if ( 'develop' !== $branch ) {
+	echo "Error: release-commit must start on develop; current branch is '{$branch}'.\n";
 	exit( 1 );
 }
 
@@ -102,6 +112,18 @@ if ( 0 !== $push_main_exit ) {
 }
 echo "✓ Fast-forwarded main to develop and pushed\n";
 
+exec( 'git fetch origin', $post_push_fetch_output, $post_push_fetch_exit );
+if ( 0 !== $post_push_fetch_exit ) {
+	echo "Error: could not refresh remote refs after main promotion.\n";
+	exit( 1 );
+}
+$remote_main    = trim( (string) shell_exec( 'git rev-parse origin/main' ) );
+$remote_develop = trim( (string) shell_exec( 'git rev-parse origin/develop' ) );
+if ( '' === $remote_main || $remote_main !== $remote_develop ) {
+	echo "Error: origin/main and origin/develop are not identical after promotion; refusing to tag.\n";
+	exit( 1 );
+}
+
 exec( 'git checkout develop', $co_dev_output, $co_dev_exit );
 if ( 0 !== $co_dev_exit ) {
 	echo "Warning: git checkout develop failed.\n";
@@ -113,6 +135,16 @@ if ( $create_tag ) {
 	exec( sprintf( 'git ls-remote --exit-code --tags origin refs/tags/%s', $tag ), $existing_tag_output, $existing_tag_exit );
 	if ( 0 === $existing_tag_exit ) {
 		echo "Error: remote tag {$tag} already exists; release tags are immutable.\n";
+		exit( 1 );
+	}
+	if ( 2 !== $existing_tag_exit ) {
+		echo "Error: could not verify whether remote tag {$tag} exists; refusing to create a tag.\n";
+		exit( 1 );
+	}
+
+	$local_develop = trim( (string) shell_exec( 'git rev-parse HEAD' ) );
+	if ( $local_develop !== $remote_develop ) {
+		echo "Error: local develop does not match the synchronized remote release SHA; refusing to tag.\n";
 		exit( 1 );
 	}
 
