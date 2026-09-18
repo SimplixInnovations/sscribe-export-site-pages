@@ -128,6 +128,17 @@ function Invoke-Doctor {
     }
 
     try {
+        $devModeKey = Get-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\AppModelUnlock' -Name AllowDevelopmentWithoutDevLicense -ErrorAction Stop
+        if ($devModeKey.AllowDevelopmentWithoutDevLicense -eq 1) {
+            Show-DoctorRow 'Symlinks' 'PASS' 'Developer Mode on: symlink-guard tests can run (private-storage coverage)'
+        } else {
+            Show-DoctorRow 'Symlinks' 'LIMITED' 'Developer Mode off: symlink-guard tests skip; enable Settings > System > For developers'
+        }
+    } catch {
+        Show-DoctorRow 'Symlinks' 'LIMITED' 'could not read Developer Mode state; symlink-guard tests may skip'
+    }
+
+    try {
         $branch = (git -C $RepoRoot rev-parse --abbrev-ref HEAD).Trim()
         Show-DoctorRow 'Branch' 'PASS' $branch
         $dirty = git -C $RepoRoot status --porcelain

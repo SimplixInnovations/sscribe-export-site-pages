@@ -199,6 +199,7 @@ The submission artifact is the certified versioned ZIP (`dist/sscribe-export-sit
 | Real-WP suite missing | `composer test:wp:install`, then `composer test:wp` |
 | Chromium missing | `npx playwright install chromium` (or `dev.ps1 setup`) |
 | `git diff --check` flags CRLF | The repo enforces LF via `.gitattributes`; let Git renormalize, do not commit CRLF |
+| symlink-guard tests skip on Windows | Enable Developer Mode (Settings > System > For developers) so `mklink` can create test symlinks; `dev.ps1 doctor` reports the state |
 | `test:branch-policy` fails | `main` and `develop` diverged; advance `main` to `develop` (fast-forward, never force outside a release cut) |
 
 ## Contributing
