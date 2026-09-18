@@ -11,15 +11,27 @@ namespace SScribe\Tests;
 
 use PHPUnit\Framework\TestCase;
 use SScribe_Logger;
+use SScribe_Settings;
 
 final class SScribe_Logger_Singleton_Test extends TestCase {
 
 	protected function setUp(): void {
-		
-		
-		$reflection = new \ReflectionClass( SScribe_Logger::class );
-		$property   = $reflection->getProperty( 'instances' );
-		$property->setValue( null, array() );
+		parent::setUp();
+
+		delete_option( SScribe_Settings::OPT_DEBUG_ENABLED );
+		SScribe_Logger::reset_instance();
+
+		$this->assertFalse(
+			SScribe_Settings::is_debug_enabled(),
+			'Logger singleton tests require the debug option to start disabled.'
+		);
+	}
+
+	protected function tearDown(): void {
+		SScribe_Logger::reset_instance();
+		delete_option( SScribe_Settings::OPT_DEBUG_ENABLED );
+
+		parent::tearDown();
 	}
 
 	public function test_instance_returns_same_object_for_same_key(): void {
@@ -79,5 +91,14 @@ final class SScribe_Logger_Singleton_Test extends TestCase {
 
 	public function test_cleanup_old_logs_is_static(): void {
 		$this->assertTrue( method_exists( SScribe_Logger::class, 'cleanup_old_logs' ) );
+	}
+
+	public function test_global_debug_setting_overrides_disabled_instance_argument(): void {
+		SScribe_Settings::set_debug_enabled( true );
+		SScribe_Logger::reset_instance();
+
+		$logger = SScribe_Logger::instance( false, 'global_debug_override' );
+
+		$this->assertTrue( $logger->is_enabled() );
 	}
 }

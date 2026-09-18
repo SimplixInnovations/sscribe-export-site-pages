@@ -95,10 +95,11 @@ final class SScribe_Filesystem_Mkdir_Coverage_Test extends TestCase {
 	}
 
 	public function test_put_contents_writes_real_file(): void {
-		$base = \SScribe_Private_Storage::get_export_dir( false );
+		$base = \SScribe_Private_Storage::get_export_dir( true );
 		if ( '' === $base ) {
 			$this::markTestSkipped( 'No private storage dir' );
 		}
+		$this::assertDirectoryExists( $base );
 		$tmp    = $base . '/test_' . uniqid() . '.txt';
 		$result = $this->fs->put_contents( $tmp, 'hello world' );
 		$this::assertTrue( $result );
@@ -107,10 +108,11 @@ final class SScribe_Filesystem_Mkdir_Coverage_Test extends TestCase {
 	}
 
 	public function test_put_contents_overwrites_existing_file(): void {
-		$base = \SScribe_Private_Storage::get_export_dir( false );
+		$base = \SScribe_Private_Storage::get_export_dir( true );
 		if ( '' === $base ) {
 			$this::markTestSkipped( 'No private storage dir' );
 		}
+		$this::assertDirectoryExists( $base );
 		$tmp = $base . '/test_' . uniqid() . '.txt';
 		file_put_contents( $tmp, 'first' );
 		$result = $this->fs->put_contents( $tmp, 'second' );
@@ -120,10 +122,11 @@ final class SScribe_Filesystem_Mkdir_Coverage_Test extends TestCase {
 	}
 
 	public function test_get_contents_reads_real_file(): void {
-		$base = \SScribe_Private_Storage::get_export_dir( false );
+		$base = \SScribe_Private_Storage::get_export_dir( true );
 		if ( '' === $base ) {
 			$this::markTestSkipped( 'No private storage dir' );
 		}
+		$this::assertDirectoryExists( $base );
 		$tmp = $base . '/test_' . uniqid() . '.txt';
 		file_put_contents( $tmp, 'round-trip' );
 		$result = $this->fs->get_contents( $tmp );
@@ -132,19 +135,21 @@ final class SScribe_Filesystem_Mkdir_Coverage_Test extends TestCase {
 	}
 
 	public function test_get_contents_returns_false_for_missing(): void {
-		$base = \SScribe_Private_Storage::get_export_dir( false );
+		$base = \SScribe_Private_Storage::get_export_dir( true );
 		if ( '' === $base ) {
 			$this::markTestSkipped( 'No private storage dir' );
 		}
+		$this::assertDirectoryExists( $base );
 		$result = $this->fs->get_contents( $base . '/nope_' . uniqid() . '.txt' );
 		$this::assertFalse( $result );
 	}
 
 	public function test_delete_removes_real_file(): void {
-		$base = \SScribe_Private_Storage::get_export_dir( false );
+		$base = \SScribe_Private_Storage::get_export_dir( true );
 		if ( '' === $base ) {
 			$this::markTestSkipped( 'No private storage dir' );
 		}
+		$this::assertDirectoryExists( $base );
 		$tmp = $base . '/test_' . uniqid() . '.txt';
 		file_put_contents( $tmp, 'data' );
 		$this::assertTrue( $this->fs->delete( $tmp ) );
@@ -152,10 +157,11 @@ final class SScribe_Filesystem_Mkdir_Coverage_Test extends TestCase {
 	}
 
 	public function test_delete_returns_true_for_missing_file(): void {
-		$base = \SScribe_Private_Storage::get_export_dir( false );
+		$base = \SScribe_Private_Storage::get_export_dir( true );
 		if ( '' === $base ) {
 			$this::markTestSkipped( 'No private storage dir' );
 		}
+		$this::assertDirectoryExists( $base );
 		$result = $this->fs->delete( $base . '/nope_' . uniqid() . '.txt' );
 		$this::assertTrue( $result );
 	}
