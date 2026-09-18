@@ -260,25 +260,33 @@ final class SScribe_Release_Blockers_Test extends TestCase {
 	}
 
 	public function test_release_audit_sh_declares_release_blockers_gate(): void {
-		$audit_sh_path = $this->repo_root . '/bin/release-audit.sh';
-		$this::assertFileExists( $audit_sh_path );
+		$audit_php_path = $this->repo_root . '/scripts/release-audit.php';
+		$this::assertFileExists( $audit_php_path );
 
-		$audit_src = (string) file_get_contents( $audit_sh_path );
+		$audit_src = (string) file_get_contents( $audit_php_path );
 
 		$this::assertStringContainsString(
 			'Release-Blockers',
 			$audit_src,
-			'bin/release-audit.sh must declare the Phase 70 Release-Blockers gate.'
+			'scripts/release-audit.php must declare the Phase 70 Release-Blockers gate.'
 		);
 		$this::assertStringContainsString(
-			'release-blockers',
+			'test:release-blockers',
 			$audit_src,
-			'bin/release-audit.sh must invoke `composer test:release-blockers` for Phase 70.'
+			'scripts/release-audit.php must invoke `composer test:release-blockers` for Phase 70.'
 		);
 		$this::assertStringContainsString(
-			'/tmp/release-audit-release-blockers.log',
+			'release-audit-',
 			$audit_src,
-			'bin/release-audit.sh must record the Phase 70 log path.'
+			'scripts/release-audit.php must record per-gate logs as release-audit-<gate>.log (Phase 70: release-audit-release-blockers.log).'
+		);
+
+		$audit_sh_path = $this->repo_root . '/bin/release-audit.sh';
+		$this::assertFileExists( $audit_sh_path );
+		$this::assertStringContainsString(
+			'scripts/release-audit.php',
+			(string) file_get_contents( $audit_sh_path ),
+			'bin/release-audit.sh must delegate to the canonical scripts/release-audit.php.'
 		);
 	}
 

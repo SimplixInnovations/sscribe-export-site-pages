@@ -27,7 +27,7 @@ $root_dir       = dirname( __DIR__ );
 $matrix_path    = $root_dir . '/docs/ACCEPTANCE_MATRIX_v2.0.0.json';
 $composer_path  = $root_dir . '/composer.json';
 $ci_path        = $root_dir . '/.github/workflows/ci.yml';
-$audit_script   = $root_dir . '/bin/release-audit.sh';
+$audit_script   = $root_dir . '/scripts/release-audit.php';
 $manifest_path  = $root_dir . '/dist/acceptance-matrix-manifest.json';
 
 $matrix = array();
@@ -191,10 +191,10 @@ $audit_invokes_matrix = (bool) strpos( $audit_src, 'acceptance-matrix' )
 $matrix[] = array(
 	'rule'   => 'release_audit_invokes_acceptance_matrix',
 	'passes' => $audit_invokes_matrix,
-	'detail' => 'bin/release-audit.sh must invoke the acceptance matrix (via composer verify-acceptance-matrix or explicit reference).',
+	'detail' => 'scripts/release-audit.php must invoke the acceptance matrix (via composer verify-acceptance-matrix or explicit reference).',
 );
 if ( ! $audit_invokes_matrix ) {
-	$errors[] = 'bin/release-audit.sh does NOT invoke the acceptance matrix.';
+	$errors[] = 'scripts/release-audit.php does NOT invoke the acceptance matrix.';
 }
 
 // Persist manifest.

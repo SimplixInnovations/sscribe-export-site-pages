@@ -203,10 +203,13 @@ final class SScribe_Plugin_Check_Test extends TestCase {
 	}
 
 	public function test_local_release_audit_fails_closed_when_plugin_check_testbench_is_missing(): void {
-		$source = (string) file_get_contents( self::plugin_root() . '/bin/release-audit.sh' );
+		$source = (string) file_get_contents( self::plugin_root() . '/scripts/release-audit.php' );
 		$this::assertStringNotContainsString( 'SKIP plugin-check testbench missing', $source );
-		$this::assertStringContainsString( 'run_gate "Plugin-Check"', $source );
+		$this::assertStringContainsString( "'Plugin-Check'", $source );
 		$this::assertStringContainsString( 'release audit is fail-closed', $source );
+
+		$wrapper = (string) file_get_contents( self::plugin_root() . '/bin/release-audit.sh' );
+		$this::assertStringContainsString( 'scripts/release-audit.php', $wrapper );
 	}
 
 	public function test_live_repo_passes(): void {

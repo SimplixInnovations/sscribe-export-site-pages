@@ -327,7 +327,7 @@ function sscribe_install_wp_tests( array $argv ): void {
 		if ( ! is_dir( $suite_cache . '/includes' ) ) {
 			sscribe_rmdir( $suite_cache );
 			$git = sscribe_which( 'git' );
-			$res = sscribe_run( escapeshellarg( $git ) . ' clone --depth 1 https://github.com/wp-phpunit/wp-phpunit.git ' . escapeshellarg( $suite_cache ) );
+			$res = sscribe_run_argv( array( $git, 'clone', '--depth', '1', 'https://github.com/wp-phpunit/wp-phpunit.git', $suite_cache ) );
 			if ( 0 !== $res['code'] || ! is_dir( $suite_cache . '/includes' ) ) {
 				throw new RuntimeException( 'wp-phpunit clone has no includes/ directory' );
 			}

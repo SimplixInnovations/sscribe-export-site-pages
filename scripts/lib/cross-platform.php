@@ -37,7 +37,12 @@ if ( ! function_exists( 'sscribe_repo_root' ) ) {
 
 if ( ! function_exists( 'sscribe_which' ) ) {
 	/**
-	 * Resolve a binary via PATH.
+	 * Resolve a binary via PATH to a directly usable file.
+	 *
+	 * On Windows the result is normalized to a concrete file: when PATH
+	 * resolution yields an extensionless name, PATHEXT-style siblings
+	 * (.exe, .bat, .cmd, .ps1) are probed so callers never depend on
+	 * shell fallback behavior.
 	 *
 	 * @param string $binary Binary name, e.g. 'composer'.
 	 * @return string Absolute path, or the bare name when not found.
@@ -47,10 +52,15 @@ if ( ! function_exists( 'sscribe_which' ) ) {
 		$lines = array();
 		$code  = 1;
 		exec( $probe . ' 2>' . ( sscribe_is_windows() ? 'NUL' : '/dev/null' ), $lines, $code );
-		if ( 0 === $code && isset( $lines[0] ) && '' !== trim( $lines[0] ) ) {
-			return trim( $lines[0] );
+		$found = ( 0 === $code && isset( $lines[0] ) && '' !== trim( $lines[0] ) ) ? trim( $lines[0] ) : $binary;
+		if ( sscribe_is_windows() && '' === pathinfo( $found, PATHINFO_EXTENSION ) ) {
+			foreach ( array( '.exe', '.bat', '.cmd', '.ps1' ) as $ext ) {
+				if ( is_file( $found . $ext ) ) {
+					return $found . $ext;
+				}
+			}
 		}
-		return $binary;
+		return $found;
 	}
 }
 
@@ -84,12 +94,84 @@ if ( ! function_exists( 'sscribe_npm_cmd' ) ) {
 	}
 }
 
+if ( ! function_exists( 'sscribe_run_argv' ) ) {
+	/**
+	 * Run a command given as an argument vector, bypassing any shell.
+	 *
+	 * The executable is launched according to its kind so exit codes
+	 * propagate exactly on every OS:
+	 *   - native executables (.exe or extensionless binaries): direct
+	 *   - Windows .bat/.cmd/.ps1 shims: via cmd /c
+	 *   - anything else (e.g. .phar files, PHP proxy scripts): via PHP
+	 *
+	 * @param array       $argv Argument vector; argv[0] is the executable.
+	 * @param string|null $cwd  Working directory. Defaults to repo root.
+	 * @param array       $env  Extra environment variables (string values).
+	 * @param string|null $log  Append combined output to this file.
+	 * @return array{code:int,ms:int} Exit code and wall time in milliseconds.
+	 */
+	function sscribe_run_argv( array $argv, ?string $cwd = null, array $env = array(), ?string $log = null ): array {
+		if ( null === $cwd ) {
+			$cwd = sscribe_repo_root();
+		}
+		$exe = $argv[0];
+		if ( sscribe_is_windows() ) {
+			$lower = strtolower( $exe );
+			if ( str_ends_with( $lower, '.bat' ) || str_ends_with( $lower, '.cmd' ) || str_ends_with( $lower, '.ps1' ) ) {
+				$argv = array_merge( array( 'cmd', '/c', $exe ), array_slice( $argv, 1 ) );
+			} elseif ( ! str_ends_with( $lower, '.exe' ) && ! is_executable( $exe ) ) {
+				$argv = array_merge( array( PHP_BINARY, $exe ), array_slice( $argv, 1 ) );
+			}
+		}
+		$start = hrtime( true );
+		$spec  = array(
+			0 => array( 'file', sscribe_is_windows() ? 'NUL' : '/dev/null', 'r' ),
+			1 => array( 'pipe', 'w' ),
+			2 => array( 'pipe', 'w' ),
+		);
+		$merged = getenv();
+		if ( ! is_array( $merged ) ) {
+			$merged = array();
+		}
+		foreach ( $env as $key => $value ) {
+			if ( is_scalar( $value ) || null === $value ) {
+				$merged[ (string) $key ] = null === $value ? '' : (string) $value;
+			}
+		}
+		$proc = proc_open( $argv, $spec, $pipes, $cwd, $merged );
+		if ( ! is_resource( $proc ) ) {
+			return array(
+				'code' => 127,
+				'ms'   => (int) ( ( hrtime( true ) - $start ) / 1000000 ),
+			);
+		}
+		$out = stream_get_contents( $pipes[1] );
+		$err = stream_get_contents( $pipes[2] );
+		fclose( $pipes[1] );
+		fclose( $pipes[2] );
+		$code = proc_close( $proc );
+		$ms   = (int) ( ( hrtime( true ) - $start ) / 1000000 );
+		if ( null !== $log ) {
+			file_put_contents( $log, (string) $out . (string) $err, FILE_APPEND );
+		}
+		if ( getenv( 'SSCRIBE_TOOL_VERBOSE' ) ) {
+			fwrite( STDOUT, (string) $out );
+			fwrite( STDERR, (string) $err );
+		}
+		return array(
+			'code' => $code,
+			'ms'   => $ms,
+		);
+	}
+}
+
 if ( ! function_exists( 'sscribe_run' ) ) {
 	/**
-	 * Run a command, optionally teeing output to a log file.
+	 * Run a shell command line (POSIX shells only).
 	 *
-	 * Windows batch shims (.bat/.cmd) are executed via `cmd /c` so exit
-	 * codes propagate; POSIX shells run the command directly.
+	 * Prefer sscribe_run_argv(): string commands cannot run without a
+	 * shell and therefore cannot guarantee exit-code fidelity on
+	 * Windows. This wrapper is kept for POSIX-only contexts.
 	 *
 	 * @param string      $command Shell command line.
 	 * @param string|null $cwd     Working directory. Defaults to repo root.
@@ -101,16 +183,22 @@ if ( ! function_exists( 'sscribe_run' ) ) {
 		if ( null === $cwd ) {
 			$cwd = sscribe_repo_root();
 		}
-		if ( sscribe_is_windows() && preg_match( '/\.(bat|cmd)(\s|$)/i', $command ) ) {
-			$command = 'cmd /c ' . $command;
-		}
 		$start = hrtime( true );
 		$spec  = array(
-			0 => array( 'file', sscribe_is_windows() ? 'NUL' : '/dev/null', 'r' ),
+			0 => array( 'file', '/dev/null', 'r' ),
 			1 => array( 'pipe', 'w' ),
 			2 => array( 'pipe', 'w' ),
 		);
-		$proc  = proc_open( $command, $spec, $pipes, $cwd, $env + $_SERVER );
+		$merged = getenv();
+		if ( ! is_array( $merged ) ) {
+			$merged = array();
+		}
+		foreach ( $env as $key => $value ) {
+			if ( is_scalar( $value ) || null === $value ) {
+				$merged[ (string) $key ] = null === $value ? '' : (string) $value;
+			}
+		}
+		$proc = proc_open( $command, $spec, $pipes, $cwd, $merged );
 		if ( ! is_resource( $proc ) ) {
 			return array(
 				'code' => 127,

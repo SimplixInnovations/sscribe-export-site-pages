@@ -111,7 +111,7 @@
         "release:prepare": "php scripts/release-prepare.php",
         "release:commit": "php scripts/release-commit.php",
         "release:full": "composer release:prepare && composer release:commit",
-        "release:audit": "bash bin/release-audit.sh",
+        "release:audit": "@php scripts/release-audit.php",
         "audit:npm": "node scripts/npm-audit-high.mjs",
         "release": "php scripts/build-release.php",
         "full": "composer verify:source && composer release && composer verify:artifact"

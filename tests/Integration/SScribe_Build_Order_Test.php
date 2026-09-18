@@ -28,7 +28,7 @@ final class SScribe_Build_Order_Test extends TestCase {
 	private const MANIFEST_PATH = 'dist/build-order-manifest.json';
 	private const CI_PATH       = '.github/workflows/ci.yml';
 	private const RELEASE_PATH  = '.github/workflows/release.yml';
-	private const AUDIT_SCRIPT  = 'bin/release-audit.sh';
+	private const AUDIT_SCRIPT  = 'scripts/release-audit.php';
 
 	private static function plugin_root(): string {
 		return dirname( __DIR__, 2 );
@@ -202,25 +202,26 @@ final class SScribe_Build_Order_Test extends TestCase {
 	public function test_release_audit_runs_phpunit(): void {
 		$audit = (string) file_get_contents( self::plugin_root() . '/' . self::AUDIT_SCRIPT );
 		$this::assertMatchesRegularExpression(
-			'/(^|\s)(vendor\/bin\/phpunit|composer test)(\s|$)/m',
+			'/(^|\s|\'|"|,|\()(vendor\/bin\/phpunit|composer test)(\s|$|\'|"|,|\))/m',
 			$audit,
-			'bin/release-audit.sh must run PHPUnit (or composer test) as part of its gate.'
+			'scripts/release-audit.php must run PHPUnit (or composer test) as part of its gate.'
 		);
 	}
 
 	public function test_release_audit_does_not_build(): void {
 		$audit = (string) file_get_contents( self::plugin_root() . '/' . self::AUDIT_SCRIPT );
-		// Strip comments to avoid false positives from docstrings.
-		$stripped = preg_replace( '/^\s*#[^\n]*/m', '', $audit ) ?? '';
+		// Strip comments to avoid false positives from docstrings
+		// (shell `#` as well as PHP `//` and docblock `*` leaders).
+		$stripped = preg_replace( '/^\s*(#[^\n]*|\/\/[^\n]*|\*[^\n]*)/m', '', $audit ) ?? '';
 		$this::assertStringNotContainsString(
 			'build-release.php',
 			$stripped,
-			'bin/release-audit.sh MUST NOT run build-release.php — that\'s the ci.yml plugin-check job\'s responsibility.'
+			'scripts/release-audit.php MUST NOT run build-release.php — that\'s the ci.yml plugin-check job\'s responsibility.'
 		);
 		$this::assertDoesNotMatchRegularExpression(
 			'/composer\s+release\b(?!:audit)/',
 			$stripped,
-			'bin/release-audit.sh MUST NOT call composer release — that\'s the ci.yml plugin-check job\'s responsibility.'
+			'scripts/release-audit.php MUST NOT call composer release — that\'s the ci.yml plugin-check job\'s responsibility.'
 		);
 	}
 

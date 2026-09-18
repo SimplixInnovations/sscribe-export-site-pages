@@ -33,7 +33,7 @@ if ( 'cli' !== php_sapi_name() ) {
 $root_dir      = dirname( __DIR__ );
 $ci_path       = $root_dir . '/.github/workflows/ci.yml';
 $release_path  = $root_dir . '/.github/workflows/release.yml';
-$audit_script  = $root_dir . '/bin/release-audit.sh';
+$audit_script  = $root_dir . '/scripts/release-audit.php';
 $manifest_path = $root_dir . '/dist/build-order-manifest.json';
 
 $matrix = array();
@@ -174,7 +174,7 @@ if ( -1 === $release_build_idx || -1 === $release_check_idx || $release_build_id
 }
 
 /**
- * Rule 5: bin/release-audit.sh is a verification gate, NOT a build
+ * Rule 5: scripts/release-audit.php is a verification gate, NOT a build
  * step. It must run the canonical test order (PHPUnit → every
  * verifier → audit → artifact cert) and MUST NOT call
  * composer release / build-release.php (those run later in the
@@ -186,7 +186,7 @@ $audit_runs_phpunit = false;
 $audit_runs_build   = false;
 foreach ( $audit_lines as $i => $line ) {
 	$clean = ltrim( $line );
-	if ( 0 === strpos( $clean, '#' ) || '' === $clean ) {
+	if ( 0 === strpos( $clean, '#' ) || 0 === strpos( $clean, '//' ) || 0 === strpos( $clean, '*' ) || 0 === strpos( $clean, '/*' ) || '' === $clean ) {
 		continue;
 	}
 	if ( false === $audit_runs_phpunit && ( false !== strpos( $clean, 'vendor/bin/phpunit' ) || false !== strpos( $clean, 'composer test' ) ) ) {
@@ -202,18 +202,18 @@ foreach ( $audit_lines as $i => $line ) {
 $matrix[] = array(
 	'rule'   => 'release_audit_runs_phpunit',
 	'passes' => $audit_runs_phpunit,
-	'detail' => 'bin/release-audit.sh must run vendor/bin/phpunit (or composer test) as part of its verification gate.',
+	'detail' => 'scripts/release-audit.php must run vendor/bin/phpunit (or composer test) as part of its verification gate.',
 );
 if ( ! $audit_runs_phpunit ) {
-	$errors[] = 'bin/release-audit.sh does NOT run PHPUnit — release gate cannot enforce the test contract.';
+	$errors[] = 'scripts/release-audit.php does NOT run PHPUnit — release gate cannot enforce the test contract.';
 }
 $matrix[] = array(
 	'rule'   => 'release_audit_does_not_build',
 	'passes' => ! $audit_runs_build,
-	'detail' => 'bin/release-audit.sh must NOT call build-release.php / composer release — that\'s the ci.yml plugin-check job\'s responsibility. Building inside the audit would skip the real CI build.',
+	'detail' => 'scripts/release-audit.php must NOT call build-release.php / composer release — that\'s the ci.yml plugin-check job\'s responsibility. Building inside the audit would skip the real CI build.',
 );
 if ( $audit_runs_build ) {
-	$errors[] = 'bin/release-audit.sh MUST NOT run build-release.php / composer release.';
+	$errors[] = 'scripts/release-audit.php MUST NOT run build-release.php / composer release.';
 }
 
 /**

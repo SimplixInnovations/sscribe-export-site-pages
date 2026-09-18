@@ -30,7 +30,7 @@ final class SScribe_Acceptance_Matrix_Test extends TestCase {
 	private const MATRIX_PATH   = 'docs/ACCEPTANCE_MATRIX_v2.0.0.json';
 	private const COMPOSER_PATH = 'composer.json';
 	private const CI_PATH       = '.github/workflows/ci.yml';
-	private const AUDIT_SCRIPT  = 'bin/release-audit.sh';
+	private const AUDIT_SCRIPT  = 'scripts/release-audit.php';
 
 	private static function plugin_root(): string {
 		return dirname( __DIR__, 2 );
@@ -126,7 +126,7 @@ final class SScribe_Acceptance_Matrix_Test extends TestCase {
 		$this::assertMatchesRegularExpression(
 			'/acceptance-matrix|Acceptance-Matrix|verify-acceptance-matrix/i',
 			$audit,
-			'bin/release-audit.sh must invoke the acceptance matrix verifier.'
+			'scripts/release-audit.php must invoke the acceptance matrix verifier.'
 		);
 	}
 
