@@ -274,8 +274,9 @@ if ( is_file( $smoke_doc ) ) {
 	$smoke_src = (string) file_get_contents( $smoke_doc );
 	$record(
 		'smoke_doc_references_canonical_zip_pattern',
-		(bool) preg_match( "/dist\\/sscribe-export-site-pages-{$canonical_version}\\.zip/", $smoke_src ),
-		"docs/WP_ORG_CLEAN_INSTALL_SMOKE.md must reference dist/sscribe-export-site-pages-{$canonical_version}.zip."
+		(bool) preg_match( '/dist\/sscribe-export-site-pages-\{VERSION\}\.zip/', $smoke_src )
+			&& false !== strpos( $smoke_src, 'SSCRIBE_VERSION' ),
+		'docs/WP_ORG_CLEAN_INSTALL_SMOKE.md must reference dist/sscribe-export-site-pages-{VERSION}.zip and define {VERSION} from SSCRIBE_VERSION.'
 	);
 	$record(
 		'smoke_doc_declares_canonical_invariants',
