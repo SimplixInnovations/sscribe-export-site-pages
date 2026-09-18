@@ -30,7 +30,7 @@ if ( 'cli' !== php_sapi_name() ) {
 $root_dir      = dirname( __DIR__ );
 $ci_workflow   = $root_dir . '/.github/workflows/ci.yml';
 $composer_json = $root_dir . '/composer.json';
-$installer     = $root_dir . '/bin/install-wp-tests.sh';
+$installer     = $root_dir . '/scripts/install-wp-tests.php';
 $manifest_path = $root_dir . '/dist/real-wp-matrix-manifest.json';
 
 $matrix = array();
@@ -220,7 +220,7 @@ if ( ! $has_declared_floor_leg ) {
 }
 
 /**
- * Rule 6: install-wp-tests.sh honors the WP_VERSION env / arg.
+ * Rule 6: install-wp-tests.php honors the WP_VERSION env / arg.
  * The matrix sets per-leg WP versions; the installer must consume
  * them.
  */
@@ -228,14 +228,14 @@ $installer_honors_wp_version = (bool) preg_match( '/WP_VERSION/', $inst_src );
 $matrix[] = array(
 	'rule'   => 'installer_honors_wp_version_variable',
 	'passes' => $installer_honors_wp_version,
-	'detail' => 'bin/install-wp-tests.sh must honor `WP_VERSION` env / `--version <ver>` flag so each matrix leg boots the right WP core.',
+	'detail' => 'scripts/install-wp-tests.php must honor `WP_VERSION` env / `--version <ver>` flag so each matrix leg boots the right WP core.',
 );
 if ( ! $installer_honors_wp_version ) {
-	$errors[] = 'bin/install-wp-tests.sh does NOT honor WP_VERSION — matrix legs will all use the same WP version.';
+	$errors[] = 'scripts/install-wp-tests.php does NOT honor WP_VERSION — matrix legs will all use the same WP version.';
 }
 
 /**
- * Rule 7: install-wp-tests.sh supports the SQLite drop-in. The
+ * Rule 7: install-wp-tests.php supports the SQLite drop-in. The
  * default matrix leg must work without MySQL on the runner.
  */
 $installer_supports_sqlite = (bool) preg_match( '/--sqlite/', $inst_src )
@@ -243,10 +243,10 @@ $installer_supports_sqlite = (bool) preg_match( '/--sqlite/', $inst_src )
 $matrix[] = array(
 	'rule'   => 'installer_supports_sqlite_dropin',
 	'passes' => $installer_supports_sqlite,
-	'detail' => 'bin/install-wp-tests.sh must support a SQLite drop-in path (no MySQL on the runner).',
+	'detail' => 'scripts/install-wp-tests.php must support a SQLite drop-in path (no MySQL on the runner).',
 );
 if ( ! $installer_supports_sqlite ) {
-	$errors[] = 'bin/install-wp-tests.sh does NOT support the SQLite drop-in.';
+	$errors[] = 'scripts/install-wp-tests.php does NOT support the SQLite drop-in.';
 }
 
 /**

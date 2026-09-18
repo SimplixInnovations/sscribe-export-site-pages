@@ -26,7 +26,7 @@ final class SScribe_Real_WP_Matrix_Test extends TestCase {
 	private const VERIFIER_PATH = 'scripts/verify-real-wp-matrix.php';
 	private const MANIFEST_PATH = 'dist/real-wp-matrix-manifest.json';
 	private const CI_PATH       = '.github/workflows/ci.yml';
-	private const INSTALLER     = 'bin/install-wp-tests.sh';
+	private const INSTALLER     = 'scripts/install-wp-tests.php';
 	private const DOC_PATH      = 'docs/BRANCH_PROTECTION_v2.0.0.md';
 
 	private static function plugin_root(): string {

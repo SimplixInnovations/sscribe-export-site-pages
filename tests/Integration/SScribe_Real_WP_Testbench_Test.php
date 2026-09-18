@@ -71,18 +71,22 @@ final class SScribe_Real_WP_Testbench_Test extends TestCase {
 	}
 
 	public function test_install_script_provisions_sqlite_dropin(): void {
-		$path = self::plugin_root() . '/' . self::INSTALL_SCRIPT;
-		$contents = (string) file_get_contents($path);
+		$path = self::plugin_root() . '/scripts/install-wp-tests.php';
+		$this::assertFileExists( $path );
+		$contents = (string) file_get_contents( $path );
 
-		$this->assertStringContainsString('sqlite-database-integration', $contents);
-		$this->assertStringContainsString('WordPress/sqlite-database-integration/releases/latest', $contents);
-		$this->assertStringContainsString("-name 'db.copy'", $contents);
-		$this->assertStringContainsString('wp-content/db.php', $contents);
-		$this->assertStringContainsString(
-			'cp "${SQLITE_DIR}/db.copy" "${WP_CORE_DIR}/wp-content/db.php"',
+		$this::assertStringContainsString( 'sqlite-database-integration', $contents );
+		$this::assertStringContainsString( 'WordPress/sqlite-database-integration/releases/latest', $contents );
+		$this::assertStringContainsString( "'db.copy'", $contents );
+		$this::assertStringContainsString( 'wp-content/db.php', $contents );
+		$this::assertStringContainsString(
+			'copy( $sqlite_dir',
 			$contents,
 			'The installer must provision the generated SQLite drop-in; generated tests-wp/_wordpress contents must not be required in a clean checkout.'
 		);
+
+		$wrapper = (string) file_get_contents( self::plugin_root() . '/' . self::INSTALL_SCRIPT );
+		$this::assertStringContainsString( 'scripts/install-wp-tests.php', $wrapper );
 	}
 
 	public function test_composer_test_wp_command_is_wired(): void {
