@@ -167,9 +167,9 @@ composer release   # canonical builder (scripts/build-release.php)
 ## Release process
 
 1. `develop` and `main` are kept at the same SHA at all times (alias model, enforced by `composer test:branch-policy`).
-2. Day-to-day work lands on `develop`, then `main` is advanced to match.
+2. Day-to-day work lands on `develop`, then `main` is advanced by fast-forward only to match.
 3. At a release cut both branches are set to the release SHA and the immutable tag is created (`composer release:full`).
-4. `composer release:audit` runs the gated evidence pipeline (fail-fast, exit codes preserved).
+4. `composer release:audit` runs every release gate, reports the complete summary, and exits non-zero if any gate fails.
 
 Tags and certified ZIPs are immutable after certification — never move, rebuild, or replace them.
 

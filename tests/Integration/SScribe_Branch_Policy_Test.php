@@ -16,7 +16,7 @@
  *   - composer.json declares the test:branch-policy script.
  *   - composer.json `ci` chain includes the gate.
  *   - ci.yml declares a step that runs the verifier and the test.
- *   - bin/release-audit.sh declares the Branch-Policy gate.
+ *   - scripts/release-audit.php declares the Branch-Policy gate.
  *   - docs/CI_COMMANDS.md documents the gate.
  *
  * @package SScribe_Export_Site_Pages
@@ -189,26 +189,26 @@ final class SScribe_Branch_Policy_Test extends TestCase {
 		);
 	}
 
-	public function test_release_audit_sh_declares_branch_policy_gate(): void {
-		$audit_sh_path = $this->repo_root . '/bin/release-audit.sh';
-		$this->assertFileExists( $audit_sh_path );
+	public function test_release_audit_php_declares_branch_policy_gate(): void {
+		$audit_path = $this->repo_root . '/scripts/release-audit.php';
+		$this->assertFileExists( $audit_path );
 
-		$audit_src = (string) file_get_contents( $audit_sh_path );
+		$audit_src = (string) file_get_contents( $audit_path );
 
 		$this->assertStringContainsString(
 			'Branch-Policy',
 			$audit_src,
-			'bin/release-audit.sh must declare the Phase 77 Branch-Policy gate.'
+			'scripts/release-audit.php must declare the Phase 77 Branch-Policy gate.'
 		);
 		$this->assertStringContainsString(
 			'test:branch-policy',
 			$audit_src,
-			'bin/release-audit.sh must invoke `composer test:branch-policy` for Phase 77.'
+			'scripts/release-audit.php must invoke `composer test:branch-policy` for Phase 77.'
 		);
 		$this->assertStringContainsString(
-			'/tmp/release-audit-branch-policy.log',
+			'release-audit-',
 			$audit_src,
-			'bin/release-audit.sh must record the Phase 77 log path.'
+			'scripts/release-audit.php must persist per-gate release-audit logs.'
 		);
 	}
 

@@ -61,8 +61,8 @@ jobs:
       - name: Certify generated vendor-prefix tree
         run: php scripts/verify-strauss-config.php --built
 
-      - name: Prepare release fixture
-        run: composer release:prepare
+      - name: Build exact E2E release fixture
+        run: composer release
 
       - name: Runtime contract
         run: npm run test:e2e:runtime-contract

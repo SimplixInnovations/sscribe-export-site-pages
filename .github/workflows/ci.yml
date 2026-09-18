@@ -125,12 +125,10 @@ jobs:
             - name: Strauss vendor-prefix integration test
               run: vendor/bin/phpunit tests/Integration/SScribe_Strauss_Config_Test.php
 
-            # Phase 29: E2E dev-dependency contract — pins package.json
-            # devDependencies (@playwright/test, @axe-core/playwright,
-            # @wp-playground/cli), the test:e2e:* npm scripts, the
-            # playwright.config.ts project list (e2e, a11y, perf), the
-            # presence of tests-e2e/{e2e,a11y}/ subdirs, and the
-            # composer release:prepare + release scripts.
+            # Phase 29: E2E dev-dependency contract — pins the native
+            # Playwright/axe development dependencies, test:e2e:* npm
+            # scripts, e2e + a11y projects, native runtime fixtures, and
+            # the non-interactive release builder used for exact-ZIP tests.
             - name: Verify E2E dev-dependency contract
               run: php scripts/verify-e2e-deps.php
 

@@ -200,7 +200,7 @@ echo "  3. Commit & push:\n";
 echo "     git add -A\n";
 echo "     git commit -m \"chore: release v{$new_version}\"\n";
 echo "     git push origin develop\n";
-echo "     git checkout main && git merge develop && git push origin main\n\n";
+echo "     git checkout main && git pull --ff-only origin main && git merge --ff-only origin/develop && git push origin main\n\n";
 echo "  4. Create a Git tag:\n";
 echo "     git tag -a v{$new_version} -m \"Release v{$new_version}\"\n";
 echo "     git push origin v{$new_version}\n\n";

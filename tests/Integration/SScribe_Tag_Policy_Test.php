@@ -11,8 +11,9 @@
  *     ci.yml)
  *   - the certified release evidence (build.json) records
  *     source_sha, tag, and zip_sha256
- *   - `gh release create` uses `--verify-tag` (SHA-binding via
- *     GitHub's signed-tag store)
+ *   - `gh release create` uses `--verify-tag` so publication
+ *     aborts when the remote tag does not exist
+ *   - v2.0.3+ release tags are annotated tag objects
  *
  * Cryptographic signing (`git tag -s`) is recommended when the
  * maintainer has signing configured, NOT required. WP.org submission
@@ -99,7 +100,7 @@ final class SScribe_Tag_Policy_Test extends TestCase {
 		$this::assertMatchesRegularExpression(
 			'/--verify-tag\b/',
 			$source,
-			'`gh release create` must use `--verify-tag` (SHA-binding via GitHub\'s signed-tag store).'
+			'`gh release create` must use `--verify-tag` so publication aborts if the remote tag does not exist.'
 		);
 	}
 
@@ -174,20 +175,22 @@ final class SScribe_Tag_Policy_Test extends TestCase {
 		}
 	}
 
-	public function test_policy_doc_clarifies_verify_tag_is_sha_binding_not_crypto_signing(): void {
-		// The v2.0.0 closeout identified a conflation between
-		// `gh release create --verify-tag` (SHA-binding) and
-		// `git tag -s` (cryptographic signing). The policy must
-		// explicitly distinguish the two.
+	public function test_policy_doc_describes_verify_tag_accurately(): void {
 		$policy = (string) file_get_contents( self::plugin_root() . '/' . self::POLICY_DOC );
-		$this::assertStringContainsString( 'SHA-binding', $policy );
-		$this::assertStringContainsString( 'signed-tag store', $policy );
 		$this::assertStringContainsString( '--verify-tag', $policy );
-		// And must say crypto signing is recommended (not required).
+		$this::assertStringContainsString( 'remote tag existence', $policy );
+		$this::assertStringNotContainsString( 'signed-tag store', $policy );
 		$this::assertMatchesRegularExpression(
 			'/cryptographic.*recommend|recommend.*cryptographic|signing.*recommend|recommend.*signing/si',
 			$policy,
 			'docs/TAG_POLICY_v2.0.0.md must state that cryptographic tag signing is recommended (not required).'
 		);
+	}
+
+	public function test_verifier_enforces_annotated_tags_for_v2_0_3_and_later(): void {
+		$source = (string) file_get_contents( self::plugin_root() . '/' . self::VERIFIER_PATH );
+		$this::assertStringContainsString( 'git cat-file -t', $source );
+		$this::assertStringContainsString( 'release_tag_is_annotated_from_v2_0_3_onward', $source );
+		$this::assertStringContainsString( "version_compare( \$canonical_version, '2.0.3', '>=' )", $source );
 	}
 }

@@ -48,6 +48,9 @@ $config = array(
 		// state into a sibling `test-results/` directory). Phase 34
 		// ZIP-certification surfaces this leak.
 		'test-results',
+		// Defense in depth: a Windows null-device redirect must never become
+		// a shippable root file when a command runs on POSIX.
+		'NUL',
 		'vendor-prefixed/phpoffice/phpword/COPYING.LESSER',
 		// Ad-hoc Python transform scripts left over from one-off
 		// SVG / kses / indent fixes. Nothing in the production code

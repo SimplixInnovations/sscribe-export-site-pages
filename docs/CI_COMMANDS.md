@@ -682,8 +682,11 @@ failure looks like**, **how to debug**, **what manifest it writes**.
 ### `composer release:audit`
 
 - **Script:** `@php scripts/release-audit.php`
-- **Purpose:** runs the most critical gates again as the final
-  pre-tag check. See the script header for the ordered gate list.
+- **Purpose:** runs the most critical gates in one run-all summary.
+  Normal mode validates the tracked/source/artifact contracts and is suitable
+  for branch CI. Set `SSCRIBE_RELEASE_CERTIFICATION=1` only for a real
+  release-certification run after the ignored Phase 70/71/72 evidence files
+  have been generated for the exact source SHA and artifact.
 
 ### `composer release:prepare` / `composer release:commit`
 

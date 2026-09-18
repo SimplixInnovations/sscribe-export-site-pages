@@ -11,6 +11,11 @@
  *
  * Usage:
  *   php scripts/release-audit.php
+ *   SSCRIBE_RELEASE_CERTIFICATION=1 php scripts/release-audit.php
+ *
+ * Normal mode validates the source/artifact contracts without requiring the
+ * release-only ignored Phase 70/71/72 evidence bundle. Strict certification
+ * is enabled only when SSCRIBE_RELEASE_CERTIFICATION=1 is explicitly set.
  *
  * Per-gate logs are written to the system temp directory as
  * release-audit-<slug>.log (the same basenames the shell implementation
@@ -63,7 +68,12 @@ function sscribe_release_audit(): void {
 		}
 	};
 
-	$cert = array( 'SSCRIBE_RELEASE_CERTIFICATION' => '1' );
+	$strict_certification = '1' === (string) getenv( 'SSCRIBE_RELEASE_CERTIFICATION' );
+	$cert = $strict_certification ? array( 'SSCRIBE_RELEASE_CERTIFICATION' => '1' ) : array();
+	fwrite(
+		STDOUT,
+		'Release certification mode: ' . ( $strict_certification ? 'STRICT' : 'NORMAL' ) . "\n"
+	);
 
 	fwrite( STDOUT, "== PHPUnit (full suite) ==\n" );
 	$gate( 'PHPUnit', array( $composer, 'test' ) );

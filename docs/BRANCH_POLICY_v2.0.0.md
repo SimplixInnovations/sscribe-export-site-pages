@@ -19,8 +19,7 @@ became unanswerable.
 
 The fix: **only two long-lived branches exist at any time, and they
 must always point to the same SHA**. New work always lands on the
-single tip; promotion is `develop` → `main` by force-push during a
-release tag cut, never by parallel development.
+single tip; promotion is `develop` → `main` by fast-forward only, never by history rewriting or parallel development.
 
 ## Canonical long-lived branches
 
@@ -31,9 +30,7 @@ Exactly two branches are allowed to persist between releases:
 | `main`  | Release branch — every commit is shippable | identical to `develop` between releases |
 | `develop` | Integration branch — work lands here first | identical to `main` between releases |
 
-Between releases, the two branches are aliases of the same commit. At
-a release tag cut, a single force-push moves `main` to the release
-SHA; `develop` continues forward from there.
+Between releases, the two branches are aliases of the same commit. At a release tag cut, both branches must already point to the certified release SHA; the immutable tag is created from that shared SHA. Force-pushing either long-lived branch is prohibited.
 
 ## Forbidden patterns
 
@@ -55,13 +52,11 @@ must fail CI if introduced:
 ## Promotion rules
 
 - **Day-to-day work**: commit on `develop`, push to origin.
-- **Release cut**: when a release tag is applied:
-  1. Both branches are force-pushed to the release SHA.
-  2. The release tag is cut on `origin/main`.
-  3. `develop` and `main` are again at the same SHA afterwards.
-- **Hotfixes**: a hotfix branch may exist transiently, but it must
-  be merged into `develop` and force-pushed to `main` before being
-  deleted. No hotfix branch may survive a release tag cut.
+- **Release cut**: before a release tag is applied:
+  1. `develop` contains the certified release SHA.
+  2. `main` is advanced to that SHA using a verified fast-forward update only.
+  3. The release tag is cut from the shared `origin/main == origin/develop` SHA.
+- **Hotfixes**: a hotfix branch may exist transiently, but it must be merged into `develop`, then `main` must be fast-forwarded to the same SHA before the hotfix branch is deleted. No hotfix branch may survive a release tag cut.
 
 ## How an independent auditor verifies this
 
@@ -112,14 +107,7 @@ git reflog | grep <offending-branch>
 git update-ref refs/heads/develop <recovered-sha>
 ```
 
-If the verifier fails because `main` and `develop` diverge:
-
-```bash
-# The branch with the LATEST work wins; force-update the other.
-git checkout <losing-branch>
-git reset --hard <winning-sha>
-git push --force-with-lease origin <losing-branch>
-```
+If the verifier fails because `main` and `develop` diverge, stop release work and reconcile the unique commits on `develop` using an ordinary merge or reviewed cherry-picks. Once `develop` contains the complete intended history, advance `main` with `git merge --ff-only origin/develop` and a normal push. Never repair branch drift by rewriting a published long-lived branch.
 
 ## Living document
 

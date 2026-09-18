@@ -110,9 +110,18 @@ function Invoke-Doctor {
     }
 
     try {
-        composer check-platform-reqs --no-interaction 2>&1 | Select-Object -Last 3 | ForEach-Object { Write-Host ("  check-platform-reqs: {0}" -f $_) }
+        $platformOutput = & composer check-platform-reqs --no-interaction 2>&1
+        $platformExit = $LASTEXITCODE
+        @($platformOutput) | Select-Object -Last 3 | ForEach-Object { Write-Host ("  check-platform-reqs: {0}" -f $_) }
+        if ($platformExit -eq 0) {
+            Show-DoctorRow 'Composer platform' 'PASS' 'locked requirements satisfied'
+        } else {
+            Show-DoctorRow 'Composer platform' 'MISSING' ("composer check-platform-reqs exit {0}" -f $platformExit)
+            $failed = $true
+        }
     } catch {
-        Write-Host '  check-platform-reqs: could not run'
+        Show-DoctorRow 'Composer platform' 'MISSING' 'composer check-platform-reqs could not run'
+        $failed = $true
     }
 
     if (Test-Path (Join-Path $RepoRoot 'node_modules\@playwright\test\package.json')) {
@@ -121,10 +130,10 @@ function Invoke-Doctor {
         if ($chromium) {
             Show-DoctorRow 'Playwright' 'PASS' ("@playwright/test {0}; chromium @ {1}" -f $pwVer, $chromium.FullName)
         } else {
-            Show-DoctorRow 'Playwright' 'MISSING' ("@playwright/test {0} installed but no Chromium; run dev.ps1 setup" -f $pwVer)
+            Show-DoctorRow 'Playwright' 'SETUP NEEDED' ("@playwright/test {0} installed but no Chromium; run dev.ps1 setup" -f $pwVer)
         }
     } else {
-        Show-DoctorRow 'Playwright' 'MISSING' 'run dev.ps1 setup (npm ci + playwright install)'
+        Show-DoctorRow 'Playwright' 'SETUP NEEDED' 'run dev.ps1 setup (npm ci + playwright install)'
     }
 
     try {
@@ -154,7 +163,7 @@ function Invoke-Doctor {
     }
 
     if ($failed) { throw 'doctor: required tooling is missing (see MISSING rows above)' }
-    Write-Host "`ndoctor: all required tooling present"
+    Write-Host "`ndoctor: all required host tooling present"
 }
 
 function Invoke-Setup {
@@ -222,11 +231,10 @@ function Invoke-Verify {
     Invoke-DevStep 'npm lint' { npm run lint }
     Invoke-DevStep 'npm format:check' { npm run format:check }
     Invoke-DevStep 'e2e runtime-contract' { npm run test:e2e:runtime-contract }
-    if (Test-WpBenchPresent) {
-        Invoke-DevStep 'composer test:wp' { composer test:wp }
-    } else {
-        Write-Host 'SKIP: composer test:wp (testbench absent). Provision it with: composer test:wp:install'
+    if (-not (Test-WpBenchPresent)) {
+        Invoke-DevStep 'real WordPress testbench install' { composer test:wp:install }
     }
+    Invoke-DevStep 'composer test:wp' { composer test:wp }
 }
 
 function Invoke-E2E {
@@ -239,16 +247,8 @@ function Invoke-E2E {
     }
     $chromium = Get-ChildItem -Path (Join-Path $env:USERPROFILE 'AppData\Local\ms-playwright') -Filter 'chromium-*' -Directory -ErrorAction SilentlyContinue | Select-Object -First 1
     if (-not $chromium) { throw 'e2e: Chromium not installed; run npx playwright install chromium (or dev.ps1 setup)' }
-    # The Playwright bed boots the canonical release ZIP; build it on
-    # demand so e2e needs no manual prerequisite beyond setup.
-    # NOTE: `composer release` (build only), not `release:prepare`:
-    # prepare gates on release-contract tests that themselves require
-    # the built ZIP, so it cannot bootstrap a missing artifact.
-    $e2eVersion = Get-PluginVersion
-    $e2eZip = Join-Path $RepoRoot ("dist\sscribe-export-site-pages-{0}.zip" -f $e2eVersion)
-    if (-not (Test-Path -LiteralPath $e2eZip)) {
-        Invoke-DevStep 'release build (e2e artifact)' { composer release }
-    }
+    # Never reuse a stale versioned ZIP from another commit.
+    Invoke-DevStep 'release build (fresh e2e artifact)' { composer release }
     try {
         Invoke-DevStep 'runtime contract' { npm run test:e2e:runtime-contract }
         Invoke-DevStep 'smoke suite' { npm run test:e2e:smoke }

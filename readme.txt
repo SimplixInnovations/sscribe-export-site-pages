@@ -3,7 +3,7 @@ Contributors: simplixinnovations
 Tags: export, docx, pdf, html, markdown
 Requires at least: 6.1
 Tested up to: 7.1
-Stable tag: 2.0.2
+Stable tag: 2.0.3
 Requires PHP: 8.2
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -129,6 +129,9 @@ A detailed description of every build transformation (paths excluded, comments s
 
 == Changelog ==
 
+= 2.0.3 =
+* Development-line tooling and release-workflow hardening: Windows/Linux parity, fresh exact-artifact E2E provisioning, cross-platform process execution, and release-governance corrections. No production runtime behavior changed from the certified 2.0.2 release.
+
 = 2.0.2 =
 * Release-system corrections only; same shipped runtime as 2.0.1. See `dist/` evidence + `docs/RELEASE_REPORT_v2.0.1.md` for the full list
 
@@ -158,6 +161,9 @@ A detailed description of every build transformation (paths excluded, comments s
 * Initial public release with DOCX, PDF, HTML, Markdown, WPML, RTL, batch processing, and secure downloads.
 
 == Upgrade Notice ==
+
+= 2.0.3 =
+Development tooling and release-governance hardening only; no production runtime behavior change from 2.0.2.
 
 = 2.0.2 =
 Release-system corrections; runtime unchanged from 2.0.1. No install action required.

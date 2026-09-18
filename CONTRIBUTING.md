@@ -3,7 +3,7 @@
 ## Branch policy (`main` / `develop` / tags)
 
 - `main` and `develop` are the only long-lived branches and must always point to the **same SHA** between releases (alias model).
-- Day-to-day work: commit on `develop`, push to origin, then advance `main` to match (fast-forward). Never force-push outside a release cut.
+- Day-to-day work: commit on `develop`, push to origin, then advance `main` to match by fast-forward only. Never force-push `main` or `develop`, including during a release cut.
 - No `release/*`, `feature/*`, `hotfix/*`, or `support/*` branch may persist between releases. Transient hotfix branches must be merged into `develop` and deleted before a tag cut.
 - Tags are **immutable**. The release ZIP certified against a tag is immutable: never move, rebuild, or replace it.
 - Enforcement: `composer test:branch-policy`, `composer test:tag-policy`, `composer test:branch-protection`. Full policy: `docs/BRANCH_POLICY_v2.0.0.md`.

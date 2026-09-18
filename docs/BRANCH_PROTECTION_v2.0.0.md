@@ -9,12 +9,12 @@ repository settings/API.
 
 ```
 Branches: main, develop
-Audited Date: 2026-09-04
+Audited Date: 2026-09-18
 ```
 
 ## Observed live status
 
-At the 2026-09-04 release-hardening audit, the GitHub API reported:
+At the 2026-09-18 repository audit, the GitHub API reported:
 
 ```
 main:    UNPROTECTED
@@ -22,8 +22,7 @@ develop: UNPROTECTED
 ```
 
 This is an external repository setting, not a WordPress plugin-code defect and
-not a WordPress.org submission requirement. It should be enabled when the
-GitHub plan/account permits it. Until then, the release process uses pull
+not a WordPress.org submission requirement. It remains an external repository-administration gap and should be enabled. Until then, the release process uses pull
 requests, exact-artifact certification, immutable GitHub Action pins, and the
 local release audit as compensating controls.
 
@@ -53,7 +52,7 @@ configured as required checks when branch protection/rulesets are available:
   - `bin/release-audit.sh`
   - `phpcs.xml`, `phpstan.neon`, and `.github/workflows/*.yml`
 - Conversation resolution is required before merge.
-- Signed commits / DCO `--signoff` are preferred for release promotion.
+- Signed commits or DCO `--signoff` are required for release promotion once server-side protection is enabled.
 - **No force-pushes** to protected long-lived branches.
 - **No branch deletion** for `main` or `develop`.
 - **No admin bypass** for required release checks once protection is enabled.
@@ -70,7 +69,7 @@ configured as required checks when branch protection/rulesets are available:
 2. External GitHub Actions are pinned to immutable 40-character commit SHAs.
 3. The exact versioned ZIP is built once and certified before publication.
 4. Plugin Check runs against the exact submission package.
-5. `bin/release-audit.sh` fails closed when mandatory tooling is unavailable.
+5. `composer release:audit` fails closed when mandatory tooling is unavailable; `bin/release-audit.sh` remains a thin compatibility wrapper.
 6. Release tags are allowed only from `origin/main` HEAD.
 
 ## How to verify live state

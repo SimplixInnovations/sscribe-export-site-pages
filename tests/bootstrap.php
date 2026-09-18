@@ -1993,8 +1993,9 @@ if ( 'cli' === php_sapi_name() && ! defined( 'SSCRIBE_TEST_BOOTSTRAP_QUIET' ) ) 
 		$cmd = escapeshellcmd( PHP_BINARY ) . ' ' . escapeshellarg( $regen_script );
 		// Silent: PHPUnit captures STDERR during tests and treats any
 		// captured output as a test-level exception.
-		@shell_exec( $cmd . ' >NUL 2>&1' );
-		unset( $cmd, $regen_script );
+		$null_device = 'Windows' === PHP_OS_FAMILY ? 'NUL' : '/dev/null';
+		@shell_exec( $cmd . ' >' . $null_device . ' 2>&1' );
+		unset( $cmd, $null_device, $regen_script );
 	}
 }
 

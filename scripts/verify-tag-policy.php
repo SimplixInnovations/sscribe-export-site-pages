@@ -7,8 +7,8 @@
  *   1. The tag's version component (stripping the leading `v`)
  *      equals SSCRIBE_VERSION in sscribe-export-site-pages.php —
  *      i.e. the tag names what the constant says.
- *   2. The tag is an annotated tag (created via `git tag -a`), not a
- *      lightweight tag.
+ *   2. New tags from v2.0.3 onward are annotated tags. Historical
+ *      v2.0.2-and-earlier tags remain immutable as originally published.
  *   3. The tag points at the latest origin/main HEAD at cert time.
  *   4. The tag points at the exact certified source SHA — the SHA
  *      recorded in dist/release-certification-evidence.json.
@@ -18,9 +18,8 @@
  *      force-moved.
  *   7. CI MUST NOT cut tags. Cutting is a deliberate maintainer
  *      action gated on Phase 55 branch protection.
- *   8. `gh release create` uses `--verify-tag` when publishing.
- *      `--verify-tag` is SHA-binding via GitHub's signed-tag store;
- *      it does NOT itself produce a cryptographic signature.
+ *   8. `gh release create` uses `--verify-tag` when publishing so
+ *      publication aborts when the named remote tag does not exist.
  *
  * Cryptographic signing (git tag -s) is **recommended** when the
  * maintainer has signing configured, NOT required. WP.org plugin
@@ -89,16 +88,16 @@ if ( ! is_file( $policy_doc_path ) ) {
 		'passes' => count( $errors ) === 0 || ! in_array( "Policy doc must declare rule #1 in its canonical rules table.", $errors, true ),
 		'detail' => 'docs/TAG_POLICY_v2.0.0.md must declare all 8 canonical rules in the table.',
 	);
-	// Also assert the policy explicitly notes that --verify-tag is SHA-binding, not crypto signing.
-	$clarifies_verify_tag = (bool) preg_match( '/--verify-tag.*SHA-binding|SHA-binding.*--verify-tag|--verify-tag.*signed-tag store|signed-tag store.*--verify-tag/si', $policy_src )
-		|| ( false !== stripos( $policy_src, 'SHA-binding' ) && false !== stripos( $policy_src, '--verify-tag' ) );
+	// Assert the policy accurately describes --verify-tag as a remote-tag existence check.
+	$clarifies_verify_tag = false !== stripos( $policy_src, '--verify-tag' )
+		&& ( false !== stripos( $policy_src, 'does not already exist' ) || false !== stripos( $policy_src, 'remote tag existence' ) );
 	$matrix[] = array(
-		'rule'   => 'policy_doc_clarifies_verify_tag_is_sha_binding',
+		'rule'   => 'policy_doc_clarifies_verify_tag_checks_remote_tag_existence',
 		'passes' => $clarifies_verify_tag,
-		'detail' => 'docs/TAG_POLICY_v2.0.0.md must explicitly note that `gh release create --verify-tag` is SHA-binding via GitHub\'s signed-tag store, not cryptographic signing.',
+		'detail' => 'docs/TAG_POLICY_v2.0.0.md must state that `gh release create --verify-tag` aborts when the named remote tag does not exist.',
 	);
 	if ( ! $clarifies_verify_tag ) {
-		$errors[] = 'Policy doc does not clarify that `--verify-tag` is SHA-binding, not cryptographic signing.';
+		$errors[] = 'Policy doc does not accurately describe `--verify-tag` as a remote-tag existence check.';
 	}
 	// Also assert the policy says crypto signing is recommended, not required.
 	$crypto_advisory = (bool) preg_match( '/cryptographic signing.*recommend|crypto.*sign.*recommend|signing.*recommend/i', $policy_src );
@@ -110,6 +109,36 @@ if ( ! is_file( $policy_doc_path ) ) {
 	if ( ! $crypto_advisory ) {
 		$errors[] = 'Policy doc does not state that cryptographic tag signing is recommended, not required.';
 	}
+}
+
+/**
+ * Rule 2: v2.0.3+ release tags, when present, must be annotated tag objects.
+ * Historical v2.0.2-and-earlier tag objects are immutable exceptions.
+ */
+$annotated_tag_pass   = true;
+$annotated_tag_detail = 'No current-version tag exists yet (pre-tag verification).';
+if ( null !== $canonical_version ) {
+	$tag_name = 'v' . $canonical_version;
+	$tag_ref  = trim( (string) shell_exec( 'git rev-parse --verify refs/tags/' . escapeshellarg( $tag_name ) . ' 2>/dev/null' ) );
+	if ( '' !== $tag_ref ) {
+		if ( version_compare( $canonical_version, '2.0.3', '>=' ) ) {
+			$tag_type = trim( (string) shell_exec( 'git cat-file -t ' . escapeshellarg( $tag_name ) . ' 2>/dev/null' ) );
+			$annotated_tag_pass   = 'tag' === $tag_type;
+			$annotated_tag_detail = $annotated_tag_pass
+				? "{$tag_name} is an annotated tag object."
+				: "{$tag_name} exists but is not an annotated tag object.";
+		} else {
+			$annotated_tag_detail = "{$tag_name} is a preserved historical tag (v2.0.2 or earlier).";
+		}
+	}
+}
+$matrix[] = array(
+	'rule'   => 'release_tag_is_annotated_from_v2_0_3_onward',
+	'passes' => $annotated_tag_pass,
+	'detail' => $annotated_tag_detail,
+);
+if ( ! $annotated_tag_pass ) {
+	$errors[] = $annotated_tag_detail;
 }
 
 /**
@@ -247,10 +276,10 @@ $releases_verify_tag = (bool) preg_match( '/--verify-tag/', $source );
 $matrix[] = array(
 	'rule'   => 'gh_release_create_uses_verify_tag',
 	'passes' => $releases_verify_tag,
-	'detail' => '`gh release create` must use `--verify-tag` (SHA-binding via GitHub\'s signed-tag store) when publishing the release.',
+	'detail' => '`gh release create` must use `--verify-tag` so publication fails when the named remote tag does not exist.',
 );
 if ( ! $releases_verify_tag ) {
-	$errors[] = '`gh release create` does not use `--verify-tag` — release will not be bound to a tag.';
+	$errors[] = '`gh release create` does not use `--verify-tag` — publication could create a release for a tag that was not already present remotely.';
 }
 
 /**
@@ -303,7 +332,8 @@ $matrix[] = array(
  */
 $tag_signing_status = 'not_applicable';
 if ( null !== $canonical_version ) {
-	$tag_exists = 0 === strpos( trim( (string) shell_exec( 'git rev-parse v' . escapeshellarg( $canonical_version ) . '^{tag} 2>/dev/null' ) ), '' ) ? false : true;
+	$tag_ref    = trim( (string) shell_exec( 'git rev-parse --verify refs/tags/v' . escapeshellarg( $canonical_version ) . ' 2>/dev/null' ) );
+	$tag_exists = '' !== $tag_ref;
 	if ( $tag_exists ) {
 		$verify_out = shell_exec( 'git tag -v v' . escapeshellarg( $canonical_version ) . ' 2>&1' );
 		// `git tag -v` exits 0 + "Good signature" / "gpg: Good signature" when signed and key is loaded.

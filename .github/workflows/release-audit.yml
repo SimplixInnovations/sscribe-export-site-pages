@@ -1,6 +1,6 @@
 name: release-audit
 
-# Single-pass promotion gate that wraps bin/release-audit.sh.
+# Single-pass promotion gate that runs the canonical cross-platform release audit.
 #
 # The repository uses main + develop as its only long-lived branches.
 # This workflow runs for promotion into main and may also be invoked
@@ -25,7 +25,7 @@ concurrency:
 
 jobs:
     release-audit:
-        name: bin/release-audit.sh
+        name: release audit
         runs-on: ubuntu-latest
         timeout-minutes: 30
         steps:
@@ -33,13 +33,15 @@ jobs:
               uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
               with:
                   persist-credentials: false
+                  fetch-depth: 0
 
             - name: Setup PHP 8.4
               uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # v2
               with:
                   php-version: '8.4'
                   coverage: none
-                  extensions: fileinfo, zip
+                  extensions: fileinfo, zip, sqlite3, pdo_sqlite
+                  tools: composer:v2, wp-cli
 
             - name: Cache Composer dependencies
               uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
@@ -58,5 +60,18 @@ jobs:
             - name: Build the submission package
               run: php scripts/build-release.php
 
-            - name: Run release-audit
-              run: bash bin/release-audit.sh
+            - name: Provision WordPress + Plugin Check for release audit
+              run: |
+                  composer test:wp:install
+                  wp --path=tests-wp/_wordpress config create --dbname=sscribe --dbuser=sscribe --dbpass=sscribe --dbhost=localhost --skip-check
+                  wp --path=tests-wp/_wordpress core install --url=http://localhost --title=SScribe --admin_user=admin --admin_password=sscribe-ci-password --admin_email=ci@example.invalid --skip-email
+                  wp --path=tests-wp/_wordpress plugin install plugin-check --activate
+                  ZIP_PATH="$(find dist -maxdepth 1 -type f -name 'sscribe-export-site-pages-*.zip' -print -quit)"
+                  test -n "$ZIP_PATH"
+                  wp --path=tests-wp/_wordpress plugin install "$ZIP_PATH" --force --activate
+
+            - name: Run release audit
+              run: composer release:audit
+              env:
+                  SSCRIBE_WP_ROOT: ${{ github.workspace }}/tests-wp/_wordpress
+                  SSCRIBE_WP_BIN: wp

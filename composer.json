@@ -102,7 +102,7 @@
         "stan": "phpstan analyse --memory-limit=512M",
         "cs": "phpcs -d memory_limit=512M --standard=phpcs.xml",
         "cs:fix": "phpcbf -d memory_limit=512M --standard=phpcs.xml",
-        "i18n:make-pot": "WP_CLI_PHP_ARGS=\"-d memory_limit=1G\" $(which wp) i18n make-pot . languages/sscribe-export-site-pages.pot --domain=sscribe-export-site-pages --exclude=vendor,vendor-prefixed,node_modules,tests,scripts,.github,coverage,dist,build,.cache",
+        "i18n:make-pot": "@php scripts/make-pot.php",
         "version:check": "php scripts/verify-version-sync.php",
         "vendor:prefix": "php -d memory_limit=512M -d error_reporting=\"E_ALL & ~E_DEPRECATED & ~E_WARNING\" scripts/run-strauss.php && php -d memory_limit=512M scripts/fix-prefixed-safe.php && php scripts/fix-phpword-style-deprecation.php",
         "clean": "composer clean:cache && composer clean:coverage",

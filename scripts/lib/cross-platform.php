@@ -96,38 +96,63 @@ if ( ! function_exists( 'sscribe_npm_cmd' ) ) {
 
 if ( ! function_exists( 'sscribe_run_argv' ) ) {
 	/**
-	 * Run a command given as an argument vector, bypassing any shell.
+	 * Run a command from an argument vector without shell command-string parsing.
 	 *
-	 * The executable is launched according to its kind so exit codes
-	 * propagate exactly on every OS:
-	 *   - native executables (.exe or extensionless binaries): direct
-	 *   - Windows .bat/.cmd/.ps1 shims: via cmd /c
-	 *   - anything else (e.g. .phar files, PHP proxy scripts): via PHP
+	 * Windows launch rules:
+	 *   - native executables: direct
+	 *   - .bat/.cmd: cmd.exe /d /s /c
+	 *   - .ps1: pwsh.exe, falling back to powershell.exe
+	 *   - PHP proxy scripts / PHARs: PHP_BINARY
+	 *
+	 * Stdout and stderr go to temporary files instead of pipes so a verbose
+	 * child cannot deadlock while the parent drains the other stream.
 	 *
 	 * @param array       $argv Argument vector; argv[0] is the executable.
 	 * @param string|null $cwd  Working directory. Defaults to repo root.
-	 * @param array       $env  Extra environment variables (string values).
+	 * @param array       $env  Extra environment variables.
 	 * @param string|null $log  Append combined output to this file.
-	 * @return array{code:int,ms:int} Exit code and wall time in milliseconds.
+	 * @return array{code:int,ms:int}
 	 */
 	function sscribe_run_argv( array $argv, ?string $cwd = null, array $env = array(), ?string $log = null ): array {
 		if ( null === $cwd ) {
 			$cwd = sscribe_repo_root();
 		}
+		if ( empty( $argv ) || ! is_string( $argv[0] ) || '' === $argv[0] ) {
+			return array( 'code' => 127, 'ms' => 0 );
+		}
+
 		$exe = $argv[0];
 		if ( sscribe_is_windows() ) {
 			$lower = strtolower( $exe );
-			if ( str_ends_with( $lower, '.bat' ) || str_ends_with( $lower, '.cmd' ) || str_ends_with( $lower, '.ps1' ) ) {
-				$argv = array_merge( array( 'cmd', '/c', $exe ), array_slice( $argv, 1 ) );
+			if ( str_ends_with( $lower, '.ps1' ) ) {
+				$runner = sscribe_resolve_powershell();
+				if ( null === $runner ) {
+					return array( 'code' => 127, 'ms' => 0 );
+				}
+				$argv = array_merge(
+					array( $runner, '-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-File', $exe ),
+					array_slice( $argv, 1 )
+				);
+			} elseif ( str_ends_with( $lower, '.bat' ) || str_ends_with( $lower, '.cmd' ) ) {
+				$argv = array_merge( array( 'cmd.exe', '/d', '/s', '/c', $exe ), array_slice( $argv, 1 ) );
 			} elseif ( ! str_ends_with( $lower, '.exe' ) && ! is_executable( $exe ) ) {
 				$argv = array_merge( array( PHP_BINARY, $exe ), array_slice( $argv, 1 ) );
 			}
 		}
-		$start = hrtime( true );
-		$spec  = array(
+
+		$start   = hrtime( true );
+		$out_tmp = tempnam( sys_get_temp_dir(), 'sscribe-out-' );
+		$err_tmp = tempnam( sys_get_temp_dir(), 'sscribe-err-' );
+		if ( false === $out_tmp || false === $err_tmp ) {
+			if ( is_string( $out_tmp ) ) { @unlink( $out_tmp ); }
+			if ( is_string( $err_tmp ) ) { @unlink( $err_tmp ); }
+			return array( 'code' => 127, 'ms' => (int) ( ( hrtime( true ) - $start ) / 1000000 ) );
+		}
+
+		$spec = array(
 			0 => array( 'file', sscribe_is_windows() ? 'NUL' : '/dev/null', 'r' ),
-			1 => array( 'pipe', 'w' ),
-			2 => array( 'pipe', 'w' ),
+			1 => array( 'file', $out_tmp, 'w' ),
+			2 => array( 'file', $err_tmp, 'w' ),
 		);
 		$merged = getenv();
 		if ( ! is_array( $merged ) ) {
@@ -138,30 +163,45 @@ if ( ! function_exists( 'sscribe_run_argv' ) ) {
 				$merged[ (string) $key ] = null === $value ? '' : (string) $value;
 			}
 		}
+
 		$proc = proc_open( $argv, $spec, $pipes, $cwd, $merged );
 		if ( ! is_resource( $proc ) ) {
-			return array(
-				'code' => 127,
-				'ms'   => (int) ( ( hrtime( true ) - $start ) / 1000000 ),
-			);
+			@unlink( $out_tmp );
+			@unlink( $err_tmp );
+			return array( 'code' => 127, 'ms' => (int) ( ( hrtime( true ) - $start ) / 1000000 ) );
 		}
-		$out = stream_get_contents( $pipes[1] );
-		$err = stream_get_contents( $pipes[2] );
-		fclose( $pipes[1] );
-		fclose( $pipes[2] );
 		$code = proc_close( $proc );
 		$ms   = (int) ( ( hrtime( true ) - $start ) / 1000000 );
+		$out  = (string) @file_get_contents( $out_tmp );
+		$err  = (string) @file_get_contents( $err_tmp );
+		@unlink( $out_tmp );
+		@unlink( $err_tmp );
+
 		if ( null !== $log ) {
-			file_put_contents( $log, (string) $out . (string) $err, FILE_APPEND );
+			file_put_contents( $log, $out . $err, FILE_APPEND );
 		}
 		if ( getenv( 'SSCRIBE_TOOL_VERBOSE' ) ) {
-			fwrite( STDOUT, (string) $out );
-			fwrite( STDERR, (string) $err );
+			fwrite( STDOUT, $out );
+			fwrite( STDERR, $err );
 		}
-		return array(
-			'code' => $code,
-			'ms'   => $ms,
-		);
+		return array( 'code' => $code, 'ms' => $ms );
+	}
+}
+
+if ( ! function_exists( 'sscribe_resolve_powershell' ) ) {
+	/**
+	 * Resolve PowerShell without routing .ps1 files through cmd.exe.
+	 *
+	 * @return string|null
+	 */
+	function sscribe_resolve_powershell(): ?string {
+		foreach ( array( 'pwsh.exe', 'powershell.exe' ) as $candidate ) {
+			$resolved = sscribe_which( $candidate );
+			if ( $resolved !== $candidate || is_file( $resolved ) ) {
+				return $resolved;
+			}
+		}
+		return null;
 	}
 }
 
