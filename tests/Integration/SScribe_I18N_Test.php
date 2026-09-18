@@ -80,7 +80,18 @@ final class SScribe_I18N_Test extends TestCase {
 		$this::assertSame( 'sscribe-export-site-pages', $payload['canonical_text_domain'] );
 		$this::assertSame( 'sscribe-export-site-pages', $payload['header']['text_domain'] );
 		$this::assertSame( '/languages', $payload['header']['domain_path'] );
-		$this::assertSame( '2.0.2', $payload['header']['version'] );
+
+		$mainfile = (string) file_get_contents( self::plugin_root() . '/sscribe-export-site-pages.php' );
+		$this::assertMatchesRegularExpression(
+			"/define\\s*\\(\\s*['\"]SSCRIBE_VERSION['\"]\\s*,\\s*['\"]([0-9]+\\.[0-9]+\\.[0-9]+)['\"]/",
+			$mainfile
+		);
+		preg_match(
+			"/define\\s*\\(\\s*['\"]SSCRIBE_VERSION['\"]\\s*,\\s*['\"]([0-9]+\\.[0-9]+\\.[0-9]+)['\"]/",
+			$mainfile,
+			$version_match
+		);
+		$this::assertSame( $version_match[1], $payload['header']['version'] );
 
 		// Every translation call the verifier observed must have
 		// declared the canonical domain — the verifier would have
