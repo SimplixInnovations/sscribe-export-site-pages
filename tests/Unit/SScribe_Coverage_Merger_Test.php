@@ -110,7 +110,6 @@ final class SScribe_Coverage_Merger_Test extends TestCase {
 		// includeUncoveredFiles is false, so the uninitialised Filter
 		// property is never touched.
 		$inc_prop = $ref->getProperty( 'includeUncoveredFiles' );
-		$inc_prop->setAccessible( true );
 		$inc_prop->setValue( $coverage, false );
 
 		$raw = \SebastianBergmann\CodeCoverage\Data\RawCodeCoverageData::fromXdebugWithoutPathCoverage(

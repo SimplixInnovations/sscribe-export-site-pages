@@ -41,7 +41,6 @@ final class SScribe_DOCX_Content_Renderer_Helper_Coverage_Test extends TestCase 
 
 	private function call( string $name, array $args = array() ): mixed {
 		$m = $this->ref->getMethod( $name );
-		$m->setAccessible( true );
 		return $m->invokeArgs( $this->rnd, $args );
 	}
 
@@ -143,7 +142,6 @@ final class SScribe_DOCX_Content_Renderer_Helper_Coverage_Test extends TestCase 
 	public function test_with_complex_script_adds_complex_script_when_rtl(): void {
 		// Set is_rtl via reflection (private property).
 		$p = $this->ref->getProperty( 'is_rtl' );
-		$p->setAccessible( true );
 		$p->setValue( $this->rnd, true );
 
 		$result = $this->call( 'with_complex_script', array( array( 'name' => 'Amiri' ) ) );
@@ -160,7 +158,6 @@ final class SScribe_DOCX_Content_Renderer_Helper_Coverage_Test extends TestCase 
 
 	public function test_get_para_style_adds_bidi_when_rtl(): void {
 		$p = $this->ref->getProperty( 'is_rtl' );
-		$p->setAccessible( true );
 		$p->setValue( $this->rnd, true );
 
 		$result = $this->call( 'get_para_style' );
@@ -179,13 +176,9 @@ final class SScribe_DOCX_Content_Renderer_Helper_Coverage_Test extends TestCase 
 
 		// After sync, internal state should be set.
 		$colors = $this->ref->getProperty( 'colors' );
-		$colors->setAccessible( true );
 		$is_rtl = $this->ref->getProperty( 'is_rtl' );
-		$is_rtl->setAccessible( true );
 		$font   = $this->ref->getProperty( 'font_name' );
-		$font->setAccessible( true );
 		$size   = $this->ref->getProperty( 'font_size' );
-		$size->setAccessible( true );
 
 		$this::assertSame( 'AABBCC', $colors->getValue( $this->rnd )['primary'] );
 		$this::assertTrue( $is_rtl->getValue( $this->rnd ) );

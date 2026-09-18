@@ -36,7 +36,6 @@ final class SScribe_Zip_Handler_Helper_Coverage_Test extends TestCase {
 
 	private function call( string $name, array $args = array() ): mixed {
 		$m = $this->ref->getMethod( $name );
-		$m->setAccessible( true );
 		return $m->invokeArgs( $this->zh, $args );
 	}
 

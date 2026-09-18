@@ -223,7 +223,6 @@ class SScribe_Private_Storage_Test extends TestCase {
 
 		$method = ( new \ReflectionClass( \SScribe_Private_Storage::class ) )
 			->getMethod( 'is_owned_by_current_process' );
-		$method->setAccessible( true );
 
 		$this->assertTrue( $method->invoke( null, $base ) );
 
@@ -254,7 +253,6 @@ class SScribe_Private_Storage_Test extends TestCase {
 
 		$method = ( new \ReflectionClass( \SScribe_Private_Storage::class ) )
 			->getMethod( 'is_owned_by_current_process' );
-		$method->setAccessible( true );
 		$method->invoke( null, $base );
 
 		$this->assertSame( $base, $captured );
@@ -280,7 +278,6 @@ class SScribe_Private_Storage_Test extends TestCase {
 
 		$method = ( new \ReflectionClass( \SScribe_Private_Storage::class ) )
 			->getMethod( 'is_owned_by_current_process' );
-		$method->setAccessible( true );
 		$result = $method->invoke( null, $base );
 
 		// On a developer's machine the test UID matches the dir owner and
@@ -314,7 +311,6 @@ class SScribe_Private_Storage_Test extends TestCase {
 
 		$method = ( new \ReflectionClass( \SScribe_Private_Storage::class ) )
 			->getMethod( 'is_owned_by_current_process' );
-		$method->setAccessible( true );
 		$result = $method->invoke( null, $base );
 
 		// On a shared-host test bench the foreign-owner branch is taken

@@ -56,11 +56,9 @@ final class SScribe_Filesystem_WP_Branch_Test extends TestCase {
 		// Reset static $fs to null so we can inject it.
 		$this->ref = new ReflectionClass( '\\SScribe_Filesystem' );
 		$prop_fs = $this->ref->getProperty( 'fs' );
-		$prop_fs->setAccessible( true );
 		$prop_fs->setValue( null, null );
 
 		$prop_err = $this->ref->getProperty( 'last_error' );
-		$prop_err->setAccessible( true );
 		$prop_err->setValue( null, '' );
 
 		$this->fs = new \SScribe_Filesystem();
@@ -70,7 +68,6 @@ final class SScribe_Filesystem_WP_Branch_Test extends TestCase {
 		// Always restore to null so other tests are unaffected.
 		if ( $this->ref->hasProperty( 'fs' ) ) {
 			$prop_fs = $this->ref->getProperty( 'fs' );
-			$prop_fs->setAccessible( true );
 			$prop_fs->setValue( null, null );
 		}
 		parent::tearDown();

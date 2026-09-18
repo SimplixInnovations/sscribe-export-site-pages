@@ -53,7 +53,6 @@ final class SScribe_Private_Storage_Late_Branch_Test extends TestCase {
 
 	private function call( string $name, array $args = array() ): mixed {
 		$m = $this->ref->getMethod( $name );
-		$m->setAccessible( true );
 		return $m->invokeArgs( null, $args );
 	}
 

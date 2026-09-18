@@ -34,7 +34,6 @@ final class SScribe_Session_Static_Helper_Coverage_Test extends TestCase {
 
 	private function call_static( string $name, array $args = array() ): mixed {
 		$m = $this->ref->getMethod( $name );
-		$m->setAccessible( true );
 		return $m->invokeArgs( null, $args );
 	}
 

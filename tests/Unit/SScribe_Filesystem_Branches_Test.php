@@ -64,7 +64,6 @@ final class SScribe_Filesystem_Branches_Test extends TestCase {
 			// Reset the WP_Filesystem singleton between tests so each
 			// test gets a clean slate.
 			$fs = $this->reflection->getProperty( 'fs' );
-			$fs->setAccessible( true );
 			$fs->setValue( null, null );
 		}
 	}
@@ -72,7 +71,6 @@ final class SScribe_Filesystem_Branches_Test extends TestCase {
 	protected function tearDown(): void {
 		if ( class_exists( '\\SScribe_Filesystem' ) ) {
 			$fs = $this->reflection->getProperty( 'fs' );
-			$fs->setAccessible( true );
 			$fs->setValue( null, null );
 		}
 		if ( class_exists( '\\SScribe_Private_Storage' ) ) {
@@ -94,14 +92,12 @@ final class SScribe_Filesystem_Branches_Test extends TestCase {
 
 	private function inject_wpfs( \WP_Filesystem_Base $fs ): void {
 		$prop = $this->reflection->getProperty( 'fs' );
-		$prop->setAccessible( true );
 		$prop->setValue( null, $fs );
 	}
 
 	private function make_fs_instance(): \SScribe_Filesystem {
 		$instance = $this->reflection->newInstanceWithoutConstructor();
 		$prop     = $this->reflection->getProperty( 'logger' );
-		$prop->setAccessible( true );
 		$prop->setValue( $instance, \SScribe_Logger::instance( false ) );
 		return $instance;
 	}

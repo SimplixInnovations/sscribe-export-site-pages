@@ -45,7 +45,6 @@ final class SScribe_Vendor_Bootstrap_Test extends TestCase {
 	}
 
 	private function reset_latch(): void {
-		$this->loaded_prop->setAccessible( true );
 		$this->loaded_prop->setValue( null, false );
 	}
 

@@ -44,7 +44,6 @@ final class SScribe_Exporter_Helper_Coverage_Test extends TestCase {
 
 	private function call( string $name, array $args = array() ): mixed {
 		$m = $this->ref->getMethod( $name );
-		$m->setAccessible( true );
 		return $m->invokeArgs( $this->ex, $args );
 	}
 
@@ -274,7 +273,6 @@ final class SScribe_Exporter_Helper_Coverage_Test extends TestCase {
 	public function test_with_complex_script_adds_complex_script_when_rtl(): void {
 		// Set the instance property so the RTL branch fires.
 		$p = $this->ref->getProperty( 'is_rtl' );
-		$p->setAccessible( true );
 		$p->setValue( $this->ex, true );
 
 		$result = $this->call( 'with_complex_script', array( array( 'name' => 'Amiri' ) ) );

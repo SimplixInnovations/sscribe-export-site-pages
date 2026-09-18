@@ -36,7 +36,6 @@ final class SScribe_Filesystem_DirList_IsWithin_Test extends TestCase {
 		// Reset static $last_error.
 		$this->ref = new ReflectionClass( '\\SScribe_Filesystem' );
 		$prop = $this->ref->getProperty( 'last_error' );
-		$prop->setAccessible( true );
 		$prop->setValue( null, '' );
 
 		$this->fs  = new \SScribe_Filesystem();
@@ -61,7 +60,6 @@ final class SScribe_Filesystem_DirList_IsWithin_Test extends TestCase {
 
 	private function call( string $name, array $args = array() ): mixed {
 		$m = $this->ref->getMethod( $name );
-		$m->setAccessible( true );
 		return $m->invokeArgs( $this->fs, $args );
 	}
 

@@ -39,13 +39,11 @@ final class SScribe_Admin_Debug_Helper_Coverage_Test extends TestCase {
 
 	private function call_static( string $name, array $args = array() ): mixed {
 		$m = $this->ref->getMethod( $name );
-		$m->setAccessible( true );
 		return $m->invokeArgs( null, $args );
 	}
 
 	private function call( string $name, array $args = array() ): mixed {
 		$m = $this->ref->getMethod( $name );
-		$m->setAccessible( true );
 		return $m->invokeArgs( $this->dbg, $args );
 	}
 

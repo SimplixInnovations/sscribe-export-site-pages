@@ -66,14 +66,12 @@ final class SScribe_Private_Storage_Deep_Test extends TestCase {
 	public function test_is_absolute_path_string_rejects_empty(): void {
 		$ref  = new \ReflectionClass( '\\SScribe_Private_Storage' );
 		$m    = $ref->getMethod( 'is_absolute_path' );
-		$m->setAccessible( true );
 		$this::assertFalse( $m->invoke( null, '' ) );
 	}
 
 	public function test_path_is_within_returns_false_for_empty_inputs(): void {
 		$ref  = new \ReflectionClass( '\\SScribe_Private_Storage' );
 		$m    = $ref->getMethod( 'path_is_within' );
-		$m->setAccessible( true );
 
 		$this::assertFalse( $m->invoke( null, '', '/tmp', true ) );
 		$this::assertFalse( $m->invoke( null, '/tmp/foo', '', true ) );
@@ -82,7 +80,6 @@ final class SScribe_Private_Storage_Deep_Test extends TestCase {
 	public function test_resolve_path_for_comparison_handles_dotdot_segment(): void {
 		$ref  = new \ReflectionClass( '\\SScribe_Private_Storage' );
 		$m    = $ref->getMethod( 'resolve_path_for_comparison' );
-		$m->setAccessible( true );
 
 		// A path that has a missing tail containing '..' must be rejected.
 		$result = $m->invoke( null, '/tmp/nonexistent_' . uniqid() . '/../escape' );
@@ -92,7 +89,6 @@ final class SScribe_Private_Storage_Deep_Test extends TestCase {
 	public function test_resolve_path_for_comparison_handles_empty_inputs(): void {
 		$ref  = new \ReflectionClass( '\\SScribe_Private_Storage' );
 		$m    = $ref->getMethod( 'resolve_path_for_comparison' );
-		$m->setAccessible( true );
 
 		$this::assertSame( '', $m->invoke( null, '' ) );
 		$this::assertSame( '', $m->invoke( null, "ok\0bad" ) );
@@ -101,7 +97,6 @@ final class SScribe_Private_Storage_Deep_Test extends TestCase {
 	public function test_normalize_path_handles_backslashes(): void {
 		$ref  = new \ReflectionClass( '\\SScribe_Private_Storage' );
 		$m    = $ref->getMethod( 'normalize_path' );
-		$m->setAccessible( true );
 
 		$result = $m->invoke( null, '/foo\\bar/baz/' );
 		// On Windows, lowercased; on Unix, just normalized.

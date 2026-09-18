@@ -38,7 +38,6 @@ final class SScribe_Diagnostics_Categorize_Coverage_Test extends TestCase {
 
 	private function call( string $name, array $args = array() ): mixed {
 		$m = $this->ref->getMethod( $name );
-		$m->setAccessible( true );
 		return $m->invokeArgs( $this->diag, $args );
 	}
 

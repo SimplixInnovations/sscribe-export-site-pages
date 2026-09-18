@@ -59,7 +59,6 @@ final class SScribe_Filesystem_Extra_Coverage_Test extends TestCase {
 		// (other tests in the suite share this static state).
 		$ref = new \ReflectionClass( '\\SScribe_Filesystem' );
 		$p   = $ref->getProperty( 'last_error' );
-		$p->setAccessible( true );
 		$p->setValue( null, '' );
 
 		$fs = new \SScribe_Filesystem();

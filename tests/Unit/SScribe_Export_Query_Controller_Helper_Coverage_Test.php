@@ -39,7 +39,6 @@ final class SScribe_Export_Query_Controller_Helper_Coverage_Test extends TestCas
 
 	private function call( string $name, array $args = array() ): mixed {
 		$m = $this->ref->getMethod( $name );
-		$m->setAccessible( true );
 		return $m->invokeArgs( $this->ctrl, $args );
 	}
 

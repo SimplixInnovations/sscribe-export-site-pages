@@ -72,7 +72,6 @@ final class SScribe_SEO_Reader_Plugin_Paths_Test extends TestCase {
 		$reader = new \SScribe_SEO_Reader();
 		$ref    = new ReflectionClass( $reader );
 		$rm     = $ref->getMethod( $method );
-		$rm->setAccessible( true );
 		return $rm->invoke( $reader, 1 );
 	}
 
@@ -119,7 +118,6 @@ final class SScribe_SEO_Reader_Plugin_Paths_Test extends TestCase {
 		$reader = new \SScribe_SEO_Reader();
 		$ref    = new ReflectionClass( $reader );
 		$rm     = $ref->getMethod( 'is_yoast_active' );
-		$rm->setAccessible( true );
 		$this::assertFalse( $rm->invoke( $reader ) );
 	}
 
@@ -127,7 +125,6 @@ final class SScribe_SEO_Reader_Plugin_Paths_Test extends TestCase {
 		$reader = new \SScribe_SEO_Reader();
 		$ref    = new ReflectionClass( $reader );
 		$rm     = $ref->getMethod( 'is_rankmath_active' );
-		$rm->setAccessible( true );
 		$this::assertFalse( $rm->invoke( $reader ) );
 	}
 
@@ -135,7 +132,6 @@ final class SScribe_SEO_Reader_Plugin_Paths_Test extends TestCase {
 		$reader = new \SScribe_SEO_Reader();
 		$ref    = new ReflectionClass( $reader );
 		$rm     = $ref->getMethod( 'is_aioseo_v4_active' );
-		$rm->setAccessible( true );
 		$this::assertFalse( $rm->invoke( $reader ) );
 	}
 
@@ -143,7 +139,6 @@ final class SScribe_SEO_Reader_Plugin_Paths_Test extends TestCase {
 		$reader = new \SScribe_SEO_Reader();
 		$ref    = new ReflectionClass( $reader );
 		$rm     = $ref->getMethod( 'is_aioseo_v3_active' );
-		$rm->setAccessible( true );
 		$this::assertFalse( $rm->invoke( $reader ) );
 	}
 
@@ -151,7 +146,6 @@ final class SScribe_SEO_Reader_Plugin_Paths_Test extends TestCase {
 		$reader = new \SScribe_SEO_Reader();
 		$ref    = new ReflectionClass( $reader );
 		$rm     = $ref->getMethod( 'is_seopress_active' );
-		$rm->setAccessible( true );
 		$this::assertFalse( $rm->invoke( $reader ) );
 	}
 
@@ -159,7 +153,6 @@ final class SScribe_SEO_Reader_Plugin_Paths_Test extends TestCase {
 		$reader = new \SScribe_SEO_Reader();
 		$ref    = new ReflectionClass( $reader );
 		$rm     = $ref->getMethod( 'is_tsf_active' );
-		$rm->setAccessible( true );
 		$this::assertFalse( $rm->invoke( $reader ) );
 	}
 
@@ -167,7 +160,6 @@ final class SScribe_SEO_Reader_Plugin_Paths_Test extends TestCase {
 		$reader = new \SScribe_SEO_Reader();
 		$ref    = new ReflectionClass( $reader );
 		$rm     = $ref->getMethod( 'empty_seo_data' );
-		$rm->setAccessible( true );
 		$data = $rm->invoke( $reader );
 
 		$expected_keys = array(
@@ -191,7 +183,6 @@ final class SScribe_SEO_Reader_Plugin_Paths_Test extends TestCase {
 		$reader = new \SScribe_SEO_Reader();
 		$ref    = new ReflectionClass( $reader );
 		$rm     = $ref->getMethod( 'has_seo_data' );
-		$rm->setAccessible( true );
 		$this::assertFalse( $rm->invoke( $reader, array(
 			'meta_title'       => '',
 			'meta_description' => '',
@@ -207,7 +198,6 @@ final class SScribe_SEO_Reader_Plugin_Paths_Test extends TestCase {
 		$reader = new \SScribe_SEO_Reader();
 		$ref    = new ReflectionClass( $reader );
 		$rm     = $ref->getMethod( 'has_seo_data' );
-		$rm->setAccessible( true );
 
 		$this::assertTrue( $rm->invoke( $reader, array(
 			'meta_title'       => 'Hi',
@@ -244,7 +234,6 @@ final class SScribe_SEO_Reader_Plugin_Paths_Test extends TestCase {
 		$reader = new \SScribe_SEO_Reader();
 		$ref    = new ReflectionClass( $reader );
 		$rm     = $ref->getMethod( 'get_primary_taxonomy' );
-		$rm->setAccessible( true );
 		// The bootstrap does not stub get_object_taxonomies; the type-juggling
 		// inside must not surface a fatal error — if the global is missing
 		// the method bails out to its 'category' default.

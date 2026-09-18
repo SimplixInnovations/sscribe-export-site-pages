@@ -41,7 +41,6 @@ class SScribe_PDF_Exporter_Backup_Font_Policy_Test extends TestCase {
 				// is hit. Force a known-good temp dir for the test.
 				$reflection = new \ReflectionClass( \SScribe_PDF_Exporter::class );
 				$prop       = $reflection->getProperty( 'config' );
-				$prop->setAccessible( true );
 				return $prop->getValue( $exporter ) ?? array();
 			},
 			null,

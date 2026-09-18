@@ -30,13 +30,11 @@ final class SScribe_Vendor_Bootstrap_Coverage_Test extends TestCase {
 
 		// Reset $loaded to false between tests so each can re-exercise require().
 		$prop = $this->ref->getProperty( 'loaded' );
-		$prop->setAccessible( true );
 		$prop->setValue( null, false );
 	}
 
 	private function reset_loaded(): void {
 		$prop = $this->ref->getProperty( 'loaded' );
-		$prop->setAccessible( true );
 		$prop->setValue( null, false );
 	}
 
@@ -61,7 +59,6 @@ final class SScribe_Vendor_Bootstrap_Coverage_Test extends TestCase {
 		$this->reset_loaded(); // forcibly reset to test the early-return path
 		// Manually set $loaded back to true so the early-return branch fires.
 		$prop = $this->ref->getProperty( 'loaded' );
-		$prop->setAccessible( true );
 		$prop->setValue( null, true );
 
 		$result = \SScribe_Vendor_Bootstrap::require();
