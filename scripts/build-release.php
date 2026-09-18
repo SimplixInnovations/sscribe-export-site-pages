@@ -376,8 +376,10 @@ function run_tests( string $root ): bool {
 
 	if ( $return !== 0 ) {
 		$output_str = implode( "\n", $output );
-		$lines = explode( "\n", $output_str );
-		$show = implode( "\n     ", array_slice( $lines, -10 ) );
+		$lines      = explode( "\n", $output_str );
+		// Keep enough context to expose every failing test name/assertion in
+		// hosted CI. The previous 10-line tail hid multi-failure root causes.
+		$show = implode( "\n     ", array_slice( $lines, -120 ) );
 		echo "     ❌ PHPUnit tests failed:\n     $show\n";
 		return false;
 	}

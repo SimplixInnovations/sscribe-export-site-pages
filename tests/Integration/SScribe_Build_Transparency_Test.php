@@ -198,19 +198,18 @@ final class SScribe_Build_Transparency_Test extends TestCase {
 	}
 
 	public function test_missing_tool_version_keyword_fails(): void {
-		// Strip the WHOLE "Required tools and versions:" block — that
-		// removes the explicit `php`, `composer`, and `node` keywords
-		// in the development section. (The build command list further
-		// down the section still mentions `composer`, so we can't
-		// simply blank one word; the whole list must go.)
+		// Remove the canonical one-line tool declaration from the Development
+		// section while leaving the build commands intact. The verifier must
+		// still fail because the reviewer-visible PHP/Composer/Node versions
+		// are no longer declared.
 		$live  = $this->read_live( 'readme.txt' );
 		$strip = preg_replace(
-			'/(Required tools and versions:[\s\S]*?\*\s+Git[^\n]*\n)/',
+			'/^Required tools:\s*PHP[^\n]*\n/m',
 			'',
 			$live,
 			1
 		);
-		$this::assertNotSame( $live, $strip, 'Failed to strip Required tools block' );
+		$this::assertNotSame( $live, $strip, 'Failed to strip Required tools declaration' );
 		list( $code, $output ) = $this->run_with_override( array( 'readme.txt' => $strip ) );
 		$this::assertSame( 1, $code, 'Stripped tool versions must fail. Output:' . "\n" . $output );
 		$this::assertStringContainsString( 'required tools', $output );
