@@ -50,14 +50,13 @@ is cut.
 
 ## Warnings table
 
-> The table is empty at the current audited SHA — Plugin Check
-> exits with **0 errors and 0 warnings** on
-> `dist/sscribe-export-site-pages-2.0.0.zip`. Every future
-> regression that introduces a warning must add a row here.
+The table records warnings discovered during release hardening even when they
+are fixed before the final certified ZIP. The final Plugin Check run must still
+exit with zero errors and zero warnings.
 
-| Warning code | Source   | Severity | Status | Remediation | Owner |
-|--------------|----------|----------|--------|-------------|-------|
-| _(none)_     | _(none)_ | _(none)_ | _(none)_ | _(no warnings at audited SHA)_ | Simplix Innovations |
+| Warning code | Source | Severity | Status | Remediation | Owner |
+|--------------|--------|----------|--------|-------------|-------|
+| `WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound` | `includes/class-sscribe-operational-logger.php` | warning | `fixed` | Replaced the dynamic `$GLOBALS[$lock_key]` shutdown recursion lock with class-scoped static state in v2.0.3. | Simplix Innovations |
 
 ## Adding a new warning
 

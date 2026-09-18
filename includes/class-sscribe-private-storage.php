@@ -69,11 +69,119 @@ final class SScribe_Private_Storage {
 	 * @return string Absolute path, or an empty string when no safe path exists.
 	 */
 	public static function get_export_dir( bool $create = true ): string {
-		$explicit = defined( 'SSCRIBE_PRIVATE_STORAGE_DIR' );
-		$base     = $explicit
-			? (string) SSCRIBE_PRIVATE_STORAGE_DIR
-			: sys_get_temp_dir();
-		$base     = rtrim( trim( $base ), '/\\' );
+		foreach ( self::get_base_candidates() as $base ) {
+			$canonical_base = self::validate_base_candidate( $base );
+			if ( '' === $canonical_base ) {
+				continue;
+			}
+
+			$site_key = 'site-' . get_current_blog_id() . '-' . substr( hash( 'sha256', self::normalize_path( ABSPATH ) ), 0, 12 );
+			$path     = $canonical_base . DIRECTORY_SEPARATOR . self::DIRECTORY_NAME . DIRECTORY_SEPARATOR . $site_key . DIRECTORY_SEPARATOR . self::get_directory_name();
+
+			// Resolve through any existing ancestor before creating children.
+			// A planted symlink must never redirect SScribe outside the
+			// validated base, even when the final export path does not exist yet.
+			if ( ! self::path_is_within( $path, $canonical_base, false ) || ! self::is_outside_public_roots( $path ) ) {
+				continue;
+			}
+			if ( is_link( $path ) ) {
+				continue;
+			}
+			if ( $create && ! is_dir( $path ) && ! wp_mkdir_p( $path ) ) {
+				continue;
+			}
+			if ( self::path_exists( $path ) ) {
+				$real = realpath( $path );
+				if (
+					false === $real
+					|| ! is_dir( $path )
+					|| is_link( $path )
+					|| ! self::path_is_within( $real, $canonical_base, false )
+					|| ! self::is_outside_public_roots( $real )
+					|| ( $create && ! wp_is_writable( $real ) )
+				) {
+					continue;
+				}
+			}
+			if ( $create ) {
+				self::harden_directory( $path );
+				SScribe_Security::protect_directory( $path );
+				self::harden_file( $path . '/.htaccess' );
+				self::harden_file( $path . '/index.php' );
+			}
+
+			return $path;
+		}
+
+		return '';
+	}
+
+	/**
+	 * Return ordered candidate bases for private storage.
+	 *
+	 * An explicit SSCRIBE_PRIVATE_STORAGE_DIR is authoritative: if the
+	 * operator pins an unsafe/unwritable value we fail closed rather than
+	 * silently writing elsewhere. Without an explicit override we try the
+	 * WordPress/PHP temp locations first, then hosting-account parents that
+	 * are outside the document root. Every candidate is independently
+	 * validated before use.
+	 *
+	 * @return string[]
+	 */
+	private static function get_base_candidates(): array {
+		if ( defined( 'SSCRIBE_PRIVATE_STORAGE_DIR' ) ) {
+			return array( (string) SSCRIBE_PRIVATE_STORAGE_DIR );
+		}
+
+		$candidates = array();
+		if ( function_exists( 'get_temp_dir' ) ) {
+			$candidates[] = (string) get_temp_dir();
+		}
+		if ( function_exists( 'sys_get_temp_dir' ) ) {
+			$candidates[] = (string) sys_get_temp_dir();
+		}
+
+		$upload_tmp = ini_get( 'upload_tmp_dir' );
+		if ( is_string( $upload_tmp ) && '' !== trim( $upload_tmp ) ) {
+			$candidates[] = $upload_tmp;
+		}
+
+		$document_root = isset( $_SERVER['DOCUMENT_ROOT'] )
+			? sanitize_text_field( wp_unslash( $_SERVER['DOCUMENT_ROOT'] ) )
+			: '';
+		if ( '' !== $document_root && self::is_absolute_path( $document_root ) ) {
+			$candidates[] = dirname( rtrim( $document_root, '/\\' ) );
+			$candidates[] = dirname( rtrim( ABSPATH, '/\\' ) );
+		}
+
+		$filtered = apply_filters( 'sscribe_private_storage_base_candidates', $candidates );
+		if ( is_array( $filtered ) ) {
+			$candidates = $filtered;
+		}
+
+		$unique = array();
+		foreach ( $candidates as $candidate ) {
+			if ( ! is_string( $candidate ) ) {
+				continue;
+			}
+			$candidate = rtrim( trim( $candidate ), '/\\' );
+			if ( '' === $candidate || in_array( $candidate, $unique, true ) ) {
+				continue;
+			}
+			$unique[] = $candidate;
+		}
+
+		return $unique;
+	}
+
+	/**
+	 * Validate and canonicalize one private-storage base candidate.
+	 *
+	 * @param string $base Candidate base directory.
+	 * @return string Canonical absolute base or an empty string when unsafe.
+	 */
+	private static function validate_base_candidate( string $base ): string {
+		$base = rtrim( trim( $base ), '/\\' );
 		if (
 			'' === $base
 			|| str_contains( $base, "\0" )
@@ -81,49 +189,22 @@ final class SScribe_Private_Storage {
 			|| ! is_dir( $base )
 			|| is_link( $base )
 			|| ! wp_is_writable( $base )
-			|| ! self::is_owned_by_current_process( $base )
 		) {
 			return '';
 		}
 
 		$canonical_base = realpath( $base );
-		if ( false === $canonical_base || self::normalize_path( $base ) !== self::normalize_path( $canonical_base ) ) {
+		if (
+			false === $canonical_base
+			|| ! is_dir( $canonical_base )
+			|| ! wp_is_writable( $canonical_base )
+			|| ! self::is_owned_by_current_process( $canonical_base )
+			|| ! self::is_outside_public_roots( $canonical_base )
+		) {
 			return '';
 		}
 
-		$site_key = 'site-' . get_current_blog_id() . '-' . substr( hash( 'sha256', self::normalize_path( ABSPATH ) ), 0, 12 );
-		$path     = $canonical_base . DIRECTORY_SEPARATOR . self::DIRECTORY_NAME . DIRECTORY_SEPARATOR . $site_key . DIRECTORY_SEPARATOR . self::get_directory_name();
-		if ( ! self::is_outside_public_roots( $path ) ) {
-			return '';
-		}
-
-		if ( is_link( $path ) ) {
-			return '';
-		}
-		if ( $create && ! is_dir( $path ) && ! wp_mkdir_p( $path ) ) {
-			return '';
-		}
-		if ( self::path_exists( $path ) ) {
-			$real = realpath( $path );
-			if (
-				false === $real
-				|| ! is_dir( $path )
-				|| is_link( $path )
-				|| self::normalize_path( $path ) !== self::normalize_path( $real )
-				|| ! self::is_outside_public_roots( $real )
-				|| ( $create && ! wp_is_writable( $real ) )
-			) {
-				return '';
-			}
-		}
-		if ( $create ) {
-			self::harden_directory( $path );
-			SScribe_Security::protect_directory( $path );
-			self::harden_file( $path . '/.htaccess' );
-			self::harden_file( $path . '/index.php' );
-		}
-
-		return $path;
+		return rtrim( $canonical_base, '/\\' );
 	}
 
 	/**

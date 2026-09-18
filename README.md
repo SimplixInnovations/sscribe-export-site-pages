@@ -203,6 +203,7 @@ The submission artifact is the certified versioned ZIP (`dist/sscribe-export-sit
 | `git diff --check` flags CRLF | The repo enforces LF via `.gitattributes`; let Git renormalize, do not commit CRLF |
 | symlink-guard tests skip on Windows | Enable Developer Mode (Settings > System > For developers) so `mklink` can create test symlinks; `dev.ps1 doctor` reports the state |
 | `test:branch-policy` fails | `main` and `develop` diverged; reconcile `develop`, then fast-forward `main` to the exact same SHA; never force either branch |
+| Activation reports private-storage setup failure | Ensure PHP has a writable private temp directory. If the host exposes no safe automatic location, define `SSCRIBE_PRIVATE_STORAGE_DIR` in `wp-config.php` as an absolute writable directory outside the public web root. |
 
 ## Contributing
 

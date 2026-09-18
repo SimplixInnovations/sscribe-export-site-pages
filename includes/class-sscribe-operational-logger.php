@@ -53,6 +53,16 @@ final class SScribe_Operational_Logger {
 	private static bool $reset_hooked = false;
 
 	/**
+	 * Recursion/idempotency guard for the shutdown flush.
+	 *
+	 * Class-scoped state avoids dynamic globals and keeps Plugin Check's
+	 * global-prefix contract intact.
+	 *
+	 * @var bool
+	 */
+	private static bool $shutdown_flush_in_progress = false;
+
+	/**
 	 * Pending entries written at shutdown.
 	 *
 	 * @var array<int, string>
@@ -66,6 +76,7 @@ final class SScribe_Operational_Logger {
 	 */
 	public static function reset_for_testing(): void {
 		self::$buffer = array();
+		self::$shutdown_flush_in_progress = false;
 	}
 
 	/**
@@ -116,11 +127,10 @@ final class SScribe_Operational_Logger {
 	 * @return void
 	 */
 	public static function flush_on_shutdown(): void {
-		$lock_key = 'sscribe_op_log_shutdown_lock';
-		if ( isset( $GLOBALS[ $lock_key ] ) && $GLOBALS[ $lock_key ] ) {
+		if ( self::$shutdown_flush_in_progress ) {
 			return;
 		}
-		$GLOBALS[ $lock_key ] = true;
+		self::$shutdown_flush_in_progress = true;
 
 		// Capture the most recent fatal, if any. error_get_last() can
 		// return E_NOTICE / E_WARNING from the live request - filter

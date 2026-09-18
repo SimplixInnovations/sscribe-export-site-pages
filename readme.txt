@@ -118,7 +118,9 @@ Build transformations are documented in docs/BUILD_TRANSFORMATIONS.md.
 == Changelog ==
 
 = 2.0.3 =
-* Release-tooling hardening only; runtime unchanged from 2.0.2.
+* Fixed activation on hosting environments where the primary PHP temp directory cannot satisfy SScribe's private-storage policy by selecting the next validated private base.
+* Removed a dynamic global shutdown lock flagged by WordPress Plugin Check; the operational logger now uses class-scoped state.
+* Hardened cross-platform release tooling and exact-package certification.
 
 = 2.0.2 =
 * Release-system hardening plus runtime reliability fixes, including storage/activation compatibility and export-path corrections.
@@ -147,7 +149,7 @@ Build transformations are documented in docs/BUILD_TRANSFORMATIONS.md.
 == Upgrade Notice ==
 
 = 2.0.3 =
-Release tooling and cross-platform developer workflow hardening only; no production runtime behavior changes from 2.0.2.
+Fixes private-storage activation compatibility and a Plugin Check warning, with no manual data migration required.
 
 = 2.0.2 =
 Release hardening and runtime reliability fixes; no manual migration action is required.
