@@ -372,14 +372,14 @@ function run_tests( string $root ): bool {
 
 	$output = array();
 	$return = 0;
-	exec( "php \"$phpunit\" --testdox --exclude-group=release-contract 2>&1", $output, $return );
+	exec( "php \"$phpunit\" --exclude-group=release-contract 2>&1", $output, $return );
 
 	if ( $return !== 0 ) {
 		$output_str = implode( "\n", $output );
 		$lines      = explode( "\n", $output_str );
-		// Keep enough context to expose every failing test name/assertion in
-		// hosted CI. The previous 10-line tail hid multi-failure root causes.
-		$show = implode( "\n     ", array_slice( $lines, -120 ) );
+		// Compact PHPUnit output keeps failure details at the end; retain a
+		// generous tail so hosted CI exposes every failing test/assertion.
+		$show = implode( "\n     ", array_slice( $lines, -160 ) );
 		echo "     ❌ PHPUnit tests failed:\n     $show\n";
 		return false;
 	}

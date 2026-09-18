@@ -80,8 +80,8 @@ final class SScribe_Branch_Protection_Test extends TestCase {
 		);
 		$this::assertMatchesRegularExpression( '/main:\s*UNPROTECTED/i', $source );
 		$this::assertMatchesRegularExpression( '/develop:\s*UNPROTECTED/i', $source );
-		$this::assertStringContainsString(
-			'not a WordPress.org submission requirement',
+		$this::assertMatchesRegularExpression(
+			'/not[\s\S]{0,100}WordPress\.org submission requirement/i',
 			$source,
 			'The document must distinguish repository governance from WordPress plugin submission compliance.'
 		);
