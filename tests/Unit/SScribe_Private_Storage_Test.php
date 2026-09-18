@@ -427,6 +427,54 @@ class SScribe_Private_Storage_Test extends TestCase {
 		}
 	}
 
+
+	#[\PHPUnit\Framework\Attributes\RunInSeparateProcess]
+	#[\PHPUnit\Framework\Attributes\PreserveGlobalState( false )]
+	public function test_default_storage_falls_back_to_next_safe_base_candidate(): void {
+		$fallback = sys_get_temp_dir() . '/sscribe-safe-fallback-' . uniqid();
+		wp_mkdir_p( $fallback );
+
+		$filter = static function ( $candidates ) use ( $fallback ): array {
+			unset( $candidates );
+			return array(
+				WP_CONTENT_DIR,
+				$fallback,
+			);
+		};
+		add_filter( 'sscribe_private_storage_base_candidates', $filter );
+
+		try {
+			$resolved = \SScribe_Private_Storage::get_export_dir();
+			$this->assertNotSame( '', $resolved, 'A safe secondary private-storage base must keep activation viable.' );
+			$this->assertStringStartsWith(
+				str_replace( '\\', '/', (string) realpath( $fallback ) ) . '/',
+				str_replace( '\\', '/', $resolved ),
+				'Resolver must skip the rejected primary candidate and use the next safe base.'
+			);
+		} finally {
+			remove_filter( 'sscribe_private_storage_base_candidates', $filter );
+			$this->remove_test_tree( $fallback );
+		}
+	}
+
+	private function remove_test_tree( string $path ): void {
+		if ( ! is_dir( $path ) || is_link( $path ) ) {
+			return;
+		}
+		$iterator = new \RecursiveIteratorIterator(
+			new \RecursiveDirectoryIterator( $path, \FilesystemIterator::SKIP_DOTS ),
+			\RecursiveIteratorIterator::CHILD_FIRST
+		);
+		foreach ( $iterator as $entry ) {
+			if ( $entry->isDir() && ! $entry->isLink() ) {
+				@rmdir( $entry->getPathname() );
+			} else {
+				@unlink( $entry->getPathname() );
+			}
+		}
+		@rmdir( $path );
+	}
+
 	private function path_is_within( string $path, string $root ): bool {
 		$path = strtolower( str_replace( '\\', '/', rtrim( $path, '/\\' ) ) );
 		$root = strtolower( str_replace( '\\', '/', rtrim( $root, '/\\' ) ) );

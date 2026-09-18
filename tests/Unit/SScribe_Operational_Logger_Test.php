@@ -132,4 +132,21 @@ class SScribe_Operational_Logger_Test extends TestCase {
 		) );
 		$this->assertLessThanOrEqual( 204, strlen( $out['msg'] ) );
 	}
+	public function test_shutdown_recursion_lock_is_class_scoped_not_dynamic_global(): void {
+		$source = (string) file_get_contents(
+			dirname( __DIR__, 2 ) . '/includes/class-sscribe-operational-logger.php'
+		);
+
+		$this->assertStringNotContainsString(
+			'$GLOBALS[ $lock_key ]',
+			$source,
+			'Plugin Check rejects the dynamic global shutdown lock; use class-scoped state instead.'
+		);
+		$this->assertMatchesRegularExpression(
+			'/private static bool \\$shutdown_flush_in_progress\\s*=\\s*false;/',
+			$source,
+			'Shutdown recursion protection must remain explicit class-scoped state.'
+		);
+	}
+
 }
