@@ -15,8 +15,8 @@
  *      hooks + 2 capability names + delegates to the 3 table
  *      suffixes (export_logs, export_stats, audit_log).
  *   3. DOCUMENTARY — the smoke doc at docs/WP_ORG_CLEAN_INSTALL_SMOKE.md
- *      references the canonical ZIP filename and declares the
- *      canonical invariants table.
+ *      references the version-agnostic exact-ZIP pattern, binds VERSION
+ *      to SSCRIBE_VERSION, and declares the canonical invariants table.
  *
  * The full end-to-end "extract + install + activate + smoke-probe"
  * lives in the live WordPress testbench under the SScribe_Clean_Install_Test
@@ -208,12 +208,16 @@ final class SScribe_Exact_Package_Clean_Install_Test extends TestCase {
 	}
 
 	public function test_smoke_doc_references_canonical_zip_and_invariants(): void {
-		$version = self::read_canonical_version();
 		$smoke = (string) file_get_contents( self::plugin_root() . '/' . self::SMOKE_DOC );
 		$this::assertStringContainsString(
-			'dist/sscribe-export-site-pages-' . $version . '.zip',
+			'dist/sscribe-export-site-pages-{VERSION}.zip',
 			$smoke,
-			'Smoke doc must reference the exact canonical ZIP filename.'
+			'Smoke doc must reference the canonical version-agnostic ZIP pattern.'
+		);
+		$this::assertStringContainsString(
+			'SSCRIBE_VERSION',
+			$smoke,
+			'Smoke doc must define VERSION from the canonical SSCRIBE_VERSION source.'
 		);
 		$this::assertStringContainsString( '| Invariant ', $smoke );
 		$this::assertStringContainsString( 'wp_sscribe_export_logs', $smoke );

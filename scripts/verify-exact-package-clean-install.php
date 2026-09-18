@@ -29,8 +29,8 @@
  *      WP_UNINSTALL_PLUGIN (so it only runs inside the WP
  *      uninstall flow).
  *   5. docs/WP_ORG_CLEAN_INSTALL_SMOKE.md declares the
- *      canonical 10-invariant matrix and references the exact
- *      ZIP filename pattern (so the reviewer can reproduce).
+ *      canonical 10-invariant matrix and the version-agnostic
+ *      exact-ZIP pattern (so the runbook cannot go stale on bump).
  *
  * The actual end-to-end "extract ZIP, install + activate on a
  * fresh WP, run smoke probes" step lives in
