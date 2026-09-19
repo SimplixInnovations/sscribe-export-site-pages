@@ -213,25 +213,32 @@ final class SScribe_Plugin_Check_Test extends TestCase {
 	}
 
 	public function test_release_audit_bootstraps_plugin_check_runtime_checks(): void {
-		$source = (string) file_get_contents( self::plugin_root() . '/scripts/release-audit.php' );
+		$source    = (string) file_get_contents( self::plugin_root() . '/scripts/release-audit.php' );
+		$bootstrap = (string) @file_get_contents( self::plugin_root() . '/scripts/plugin-check-cli-bootstrap.php' );
 
 		$this::assertStringContainsString(
-			"'--require=' . \$plugin_check_cli",
+			"'--require=' . \\$plugin_check_bootstrap",
 			$source,
-			'Release audit must load Plugin Check cli.php early so runtime checks execute under WP-CLI, matching the official Plugin Check action.'
+			'Release audit must load the SScribe-owned Plugin Check bootstrap before WordPress starts.'
 		);
-		$this::assertStringContainsString(
-			"'/wp-content/plugins/plugin-check/cli.php'",
+		$this::assertStringNotContainsString(
+			"'--require=' . \\$plugin_check_cli",
 			$source,
-			'Release audit must resolve the runtime bootstrap from the exact provisioned Plugin Check installation.'
+			'Release audit must not require Plugin Check cli.php directly because Plugin Check 2.1.0 can reach PHPCS checks before its directory constant is defined.'
+		);
+		$this::assertStringContainsString( "define( 'WP_PLUGIN_CHECK_PLUGIN_DIR_PATH'", $bootstrap );
+		$this::assertStringContainsString(
+			"require \\$plugin_check_cli;",
+			$bootstrap,
+			'The compatibility bootstrap must delegate to the official Plugin Check CLI entry point after defining the missing runtime constant.'
 		);
 		$this::assertStringContainsString( '$wp_bin,', $source );
-		$this::assertStringContainsString( "'--path=' . \$wp_root", $source );
+		$this::assertStringContainsString( "'--path=' . \\$wp_root", $source );
 		$this::assertStringContainsString( "'plugin',", $source );
 		$this::assertStringContainsString(
 			"'check',",
 			$source,
-			'Release audit must invoke the official wp plugin check command after bootstrapping the runtime environment.'
+			'Release audit must still invoke the official wp plugin check command.'
 		);
 	}
 
