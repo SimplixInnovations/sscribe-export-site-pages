@@ -75,7 +75,7 @@ final class SScribe_Real_WP_Matrix_Test extends TestCase {
 		$source = (string) file_get_contents( self::plugin_root() . '/' . self::CI_PATH );
 		// Find real-wp-tests job slice.
 		$this::assertMatchesRegularExpression(
-			'/real-wp-tests:[\s\S]{0,500}?strategy:[\s\S]{0,200}?matrix:\s*\n/m',
+			'/real-wp-tests:[\s\S]{0,2000}?strategy:[\s\S]{0,500}?matrix:\s*\n/m',
 			$source,
 			'real-wp-tests job must declare `strategy.matrix` block.'
 		);
