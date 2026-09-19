@@ -882,7 +882,7 @@ final class SScribe_Filesystem_Branches_Test extends TestCase {
 
 		$result = $fs->mkdir_under_private_root( 'linked-target' );
 		$this::assertSame( '', $result );
-		$this::assertSame( 'Target path is a symlink', $fs->get_last_error() );
+		$this::assertSame( 'Path contains a symlink', $fs->get_last_error() );
 
 		unlink( $target );
 		rmdir( $outside );
@@ -899,17 +899,13 @@ final class SScribe_Filesystem_Branches_Test extends TestCase {
 		// Capture that expected warning and assert.
 		file_put_contents( $export . '/blocker', 'x' );
 
-		$result = $this->expect_warning(
-			fn () => $fs->mkdir_under_private_root( 'blocker/inside' ),
-			'mkdir'
-		);
+		$result = $fs->mkdir_under_private_root( 'blocker/inside' );
 		$this::assertSame( '', $result );
-		// A correct wp_mkdir_p() stub returns false when mkdir fails,
-		// so mkdir_under_private_root short-circuits to its
-		// "wp_mkdir_p failed for contained target" error rather than
-		// later discovering the missing target. Either error string
-		// proves the function refused to create the directory.
-		$this::assertNotSame( '', $fs->get_last_error() );
+		$this::assertSame(
+			'Path component is not a directory',
+			$fs->get_last_error(),
+			'The component walk must reject a file collision before wp_mkdir_p() is called.'
+		);
 		@unlink( $export . '/blocker' );
 	}
 
