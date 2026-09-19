@@ -289,6 +289,24 @@ final class SScribe_I18N_Test extends TestCase {
 		}
 	}
 
+
+	public function test_pot_excludes_test_and_fixture_trees(): void {
+		$root = self::plugin_root();
+		$pot  = (string) file_get_contents( $root . '/languages/sscribe-export-site-pages.pot' );
+
+		$this::assertStringNotContainsString( '#: tests-wp/', $pot );
+		$this::assertStringNotContainsString( '#: tests-e2e/', $pot );
+		$this::assertStringNotContainsString( '#: stubs/', $pot );
+	}
+
+	public function test_make_pot_excludes_nonproduction_trees(): void {
+		$source = (string) file_get_contents( self::plugin_root() . '/scripts/make-pot.php' );
+
+		$this::assertStringContainsString( 'tests-wp', $source );
+		$this::assertStringContainsString( 'tests-e2e', $source );
+		$this::assertStringContainsString( 'stubs', $source );
+	}
+
 	public function test_mainfile_header_constants(): void {
 		// The plugin mainfile MUST declare the canonical Text
 		// Domain and Domain Path headers, exactly as the WP.org
