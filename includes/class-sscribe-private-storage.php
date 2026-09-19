@@ -321,16 +321,8 @@ final class SScribe_Private_Storage {
 			return '';
 		}
 		$path = $root . DIRECTORY_SEPARATOR . str_replace( '/', DIRECTORY_SEPARATOR, $relative );
-		if ( $create && ! is_dir( $path ) && ! wp_mkdir_p( $path ) ) {
+		if ( ! self::prepare_managed_path( $path, $root, $create ) ) {
 			return '';
-		}
-		if ( self::path_exists( $path ) ) {
-			if ( ! is_dir( $path ) || is_link( $path ) || ! self::is_owned_path( $path ) ) {
-				return '';
-			}
-		}
-		if ( $create ) {
-			self::harden_directory( $path );
 		}
 
 		return $path;
