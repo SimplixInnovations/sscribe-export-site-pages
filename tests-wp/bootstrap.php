@@ -274,52 +274,6 @@ if ( did_action( 'plugins_loaded' ) ) {
 }
 
 // ----------------------------------------------------------------------------
-// Tear-down noise guard.
-//
-// The plugin attaches its logger flush to the WP `shutdown` hook AND
-// it also flushes from `SScribe_Logger::__destruct()`. Both fire AFTER
-// PHPUnit has reported "OK" and would otherwise yield a non-zero exit
-// code when the logger's resolved private-storage path was invalidated
-// mid-run (the real-WordPress suite redefines `SSCRIBE_PRIVATE_STORAGE_DIR`
-// per test using scratch directories it then deletes).
-//
-// The exception fires only from the destructor path, only inside the
-// testbench, and only after PHPUnit has already printed its results —
-// so we register a final shutdown function that overrides any pending
-// fatal exit code with 0. Production never hits this because nothing
-// in `composer test:wp` configures it to load this bootstrap outside
-// the test run.
-// ----------------------------------------------------------------------------
-// PHPUnit's own exit() runs first; suppress any subsequent fatal that
-// bubbles out of the Logger destructor by catching it via a top-level
-// try/catch at exit-time plus a final-shutdown exit code rewrite.
-$ss_wp_test_final_exit = static function (): void {
-	if ( function_exists( 'error_get_last' ) ) {
-		$last = error_get_last();
-		if ( is_array( $last ) && in_array( (int) $last['type'], array( E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR, E_USER_ERROR ), true ) ) {
-			// Hard fatal happened; PHPUnit is committed. Don't fight it.
-			return;
-		}
-	}
-	// A non-fatal testbench-only destructor exception (logger with a
-	// stale log_dir) would otherwise throw "Uncaught" inside the
-	// shutdown sequence and exit 255. Force a clean 0 only if the
-	// pending exit code is the destructor-fatal sentinel.
-	$GLOBALS['_ss_test_force_clean_exit'] = true;
-};
-register_shutdown_function( $ss_wp_test_final_exit );
-
-// Catch the SScribe-specific InvalidArgumentException that bubbles out
-// of the logger destructor path during WordPress shutdown.
-// PHPUnit runs faster than this exception handler in normal execution;
-// here we just ensure the exception is logged instead of leaking.
-set_exception_handler(
-	static function ( \Throwable $e ): void {
-		fwrite( STDERR, "[tests-wp bootstrap] Caught post-shutdown exception (ignored): " . $e->getMessage() . "\n" );
-	}
-);
-
-// ----------------------------------------------------------------------------
 // Headers-already-sent warning guard.
 //
 // PHPUnit's CLI progress printer writes dots / W / S markers to STDOUT while
@@ -348,14 +302,20 @@ set_exception_handler(
 // this guard installed, `numberOfWarnings()` stays at zero and
 // `failOnWarning="true"` no longer escalates the run.
 // ----------------------------------------------------------------------------
+$_ss_prev_err_handler = null;
 $_ss_prev_err_handler = set_error_handler(
-	static function ( int $errno, string $errstr, string $errfile = '', int $errline = 0 ): bool {
+	static function ( int $errno, string $errstr, string $errfile = '', int $errline = 0 ) use ( &$_ss_prev_err_handler ): bool {
 		if ( E_WARNING === $errno
 			&& ( false !== strpos( $errstr, 'Cannot modify header information' )
 				|| false !== strpos( $errstr, 'headers already sent' ) )
 		) {
 			return true;
 		}
+
+		if ( is_callable( $_ss_prev_err_handler ) ) {
+			return (bool) $_ss_prev_err_handler( $errno, $errstr, $errfile, $errline );
+		}
+
 		return false;
 	}
 );
