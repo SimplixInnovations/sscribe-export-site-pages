@@ -958,6 +958,7 @@ class SScribe_Session {
 				)
 			);
 
+			$option_count = count( (array) $options );
 			foreach ( (array) $options as $option ) {
 				$cursor     = (string) $option->option_name;
 				$session_id = self::extract_session_id( $cursor );
@@ -986,7 +987,7 @@ class SScribe_Session {
 					++$deleted;
 				}
 			}
-		} while ( count( (array) $options ) === self::SESSION_CLEANUP_BATCH );
+		} while ( $option_count === self::SESSION_CLEANUP_BATCH );
 
 		if ( $deleted > 0 ) {
 			$this->invalidate_session_index();
