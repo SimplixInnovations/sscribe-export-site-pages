@@ -118,9 +118,12 @@ Build transformations are documented in docs/BUILD_TRANSFORMATIONS.md.
 == Changelog ==
 
 = 2.0.3 =
-* Fixed activation on hosting environments where the primary PHP temp directory cannot satisfy SScribe's private-storage policy by selecting the next validated private base.
-* Removed a dynamic global shutdown lock flagged by WordPress Plugin Check; the operational logger now uses class-scoped state.
-* Hardened cross-platform release tooling and exact-package certification.
+* Fixed activation on managed hosting and container environments by accepting validated writable private bases without weakening public-path or symlink protections.
+* Removed a dynamic global shutdown lock flagged by WordPress Plugin Check; the operational logger now uses class-scoped state and retains the documented five rotated logs plus the live log.
+* Hardened export finalization so archive publication stops when durable session state, locks, ZIP integrity, or export metadata cannot be safely committed.
+* Hardened admin-rendered dynamic HTML and URL attributes against attribute injection while preserving same-origin download and media URL checks.
+* Improved database portability, session/key persistence, lock renewal, stale-lock takeover, and concurrent export cleanup behavior.
+* Hardened cross-platform release tooling, real-WordPress compatibility coverage, and exact-package certification.
 
 = 2.0.2 =
 * Release-system hardening plus runtime reliability fixes, including storage/activation compatibility and export-path corrections.
@@ -149,7 +152,7 @@ Build transformations are documented in docs/BUILD_TRANSFORMATIONS.md.
 == Upgrade Notice ==
 
 = 2.0.3 =
-Fixes private-storage activation compatibility and a Plugin Check warning, with no manual data migration required.
+Fixes private-storage activation compatibility, Plugin Check compliance, export finalization reliability, and admin-output hardening. No manual data migration is required.
 
 = 2.0.2 =
 Release hardening and runtime reliability fixes; no manual migration action is required.
