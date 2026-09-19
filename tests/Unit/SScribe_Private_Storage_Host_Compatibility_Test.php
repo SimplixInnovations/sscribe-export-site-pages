@@ -67,4 +67,59 @@ final class SScribe_Private_Storage_Host_Compatibility_Test extends TestCase {
 			'The standard shared-host /tmp mode remains an accepted safe base.'
 		);
 	}
+
+	#[\PHPUnit\Framework\Attributes\RunInSeparateProcess]
+	#[\PHPUnit\Framework\Attributes\PreserveGlobalState( false )]
+	public function test_intermediate_symlink_inside_private_base_is_rejected(): void {
+		$base     = sys_get_temp_dir() . '/sscribe-host-base-' . uniqid();
+		$attacker = $base . '/attacker-target';
+		$link     = $base . '/sscribe-export-site-pages';
+
+		wp_mkdir_p( $attacker );
+		chmod( $base, 0700 );
+		chmod( $attacker, 0700 );
+
+		if ( ! @symlink( $attacker, $link ) ) {
+			@rmdir( $attacker );
+			@rmdir( $base );
+			$this->markTestSkipped( 'Symbolic links are unavailable in this environment.' );
+		}
+
+		$filter = static function () use ( $base ): array {
+			return array( $base );
+		};
+		add_filter( 'sscribe_private_storage_base_candidates', $filter );
+
+		try {
+			$this->assertSame(
+				'',
+				\SScribe_Private_Storage::get_export_dir(),
+				'Any symlink in SScribe-managed path components must be rejected even when its target remains inside the validated base.'
+			);
+		} finally {
+			remove_filter( 'sscribe_private_storage_base_candidates', $filter );
+			if ( is_link( $link ) ) {
+				@unlink( $link );
+			}
+			$entries = is_dir( $attacker ) ? ( scandir( $attacker ) ?: array() ) : array();
+			foreach ( array_diff( $entries, array( '.', '..' ) ) as $entry ) {
+				$path = $attacker . '/' . $entry;
+				if ( is_dir( $path ) && ! is_link( $path ) ) {
+					$it = new \RecursiveIteratorIterator(
+						new \RecursiveDirectoryIterator( $path, \FilesystemIterator::SKIP_DOTS ),
+						\RecursiveIteratorIterator::CHILD_FIRST
+					);
+					foreach ( $it as $child ) {
+						$child->isDir() && ! $child->isLink() ? @rmdir( $child->getPathname() ) : @unlink( $child->getPathname() );
+					}
+					@rmdir( $path );
+				} else {
+					@unlink( $path );
+				}
+			}
+			@rmdir( $attacker );
+			@rmdir( $base );
+		}
+	}
+
 }
