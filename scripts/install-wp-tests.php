@@ -357,14 +357,32 @@ function sscribe_install_wp_tests( array $argv ): void {
 		if ( $args['sqlite'] ) {
 			sscribe_log( SSCRIBE_INSTALL_TAG, 'Installing SQLite Database Integration drop-in...' );
 			$sqlite_dir = $core_dir . '/wp-content/plugins/sqlite-database-integration';
+
+			// SQLite Database Integration 2.2+ declares WordPress 6.4+ and its
+			// wpdb compatibility shim is not usable with WordPress 6.1. The
+			// declared-minimum SScribe matrix leg therefore uses the last upstream
+			// release explicitly tested with WordPress 6.1. Rolling current/previous
+			// WordPress legs continue to exercise the latest SQLite integration.
+			$sqlite_version = null;
+			if ( preg_match( '/^\\d+\\.\\d+(?:\\.\\d+)?$/D', $args['version'] ) && version_compare( $args['version'], '6.4', '<' ) ) {
+				$sqlite_version = '2.1.0';
+			}
+			$sqlite_cache_suffix = null === $sqlite_version ? 'latest' : $sqlite_version;
+
 			if ( ! is_dir( $sqlite_dir ) ) {
-				$sqlite_zip = $cache_dir . '/sqlite-database-integration.zip';
+				$sqlite_zip = $cache_dir . '/sqlite-database-integration-' . $sqlite_cache_suffix . '.zip';
 				if ( ! is_file( $sqlite_zip ) ) {
-					$releases = sscribe_http_get( 'https://api.github.com/repos/WordPress/sqlite-database-integration/releases/latest' );
-					if ( ! preg_match( '/"browser_download_url":\s*"([^"]+\.zip)"/', $releases, $m ) ) {
-						throw new RuntimeException( 'could not resolve SQLite Database Integration release URL' );
+					if ( null !== $sqlite_version ) {
+						$sqlite_url = 'https://downloads.wordpress.org/plugin/sqlite-database-integration.' . $sqlite_version . '.zip';
+						sscribe_log( SSCRIBE_INSTALL_TAG, 'Using SQLite Database Integration ' . $sqlite_version . ' for WordPress ' . $args['version'] . '.' );
+					} else {
+						$releases = sscribe_http_get( 'https://api.github.com/repos/WordPress/sqlite-database-integration/releases/latest' );
+						if ( ! preg_match( '/"browser_download_url":\\s*"([^"]+\\.zip)"/', $releases, $m ) ) {
+							throw new RuntimeException( 'could not resolve SQLite Database Integration release URL' );
+						}
+						$sqlite_url = $m[1];
 					}
-					sscribe_download_file( $m[1], $sqlite_zip );
+					sscribe_download_file( $sqlite_url, $sqlite_zip );
 				}
 				if ( ! class_exists( 'ZipArchive' ) ) {
 					throw new RuntimeException( 'PHP zip extension is required to install the SQLite drop-in (ZipArchive unavailable).' );
