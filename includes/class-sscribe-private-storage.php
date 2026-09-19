@@ -416,38 +416,27 @@ final class SScribe_Private_Storage {
 	}
 
 	/**
-	 * Reject the system temp default when another user owns the directory.
+	 * Validate a private-storage base when its Unix owner differs from PHP.
 	 *
-	 * Shared hosts expose `/tmp` (or the OS equivalent) to every PHP
-	 * process under the same path. A malicious co-tenant could plant a
-	 * symlink at the canonical SScribe subdirectory before the plugin
-	 * ever ran, redirecting exports, logs, and image staging to an
-	 * attacker-controlled target. When the operator has not explicitly
-	 * pinned `SSCRIBE_PRIVATE_STORAGE_DIR` we require the base directory
-	 * to be owned by the current PHP process so the first `mkdir` cannot
-	 * follow a foreign-owned symlink.
+	 * Ownership alone is not a reliable access signal on modern hosting:
+	 * ACLs, container bind mounts, and managed-volume mappings can make a
+	 * root-owned 0700/0755 directory writable by PHP without changing the
+	 * traditional mode bits. Rejecting every such path makes activation
+	 * fail even though PHP has a private, writable location.
 	 *
-	 * On shared hosts the OS-level temp directory is owned by root but
-	 * carries the world-writable sticky bit, so the previous "owner must
-	 * match the PHP UID" rule refused every safe install. We now treat a
-	 * foreign-owned directory as acceptable when it carries both the
-	 * other-writable bit (mode 0002) AND the restricted-deletion sticky
-	 * bit (mode 01000); the sticky bit still prevents non-owners from
-	 * deleting files they do not own. A bare 0777 (world-writable without
-	 * sticky) is rejected because it would let any local user delete or
-	 * rename the base directory itself.
+	 * We therefore combine effective writability with the mode boundary:
+	 * a foreign-owned base is acceptable when PHP can write it and the
+	 * Unix mode does not grant group/other write access. The standard
+	 * shared-host /tmp case (world-writable + sticky bit) remains an
+	 * explicit exception because sticky deletion protection prevents one
+	 * tenant from replacing another tenant's entries. Foreign-owned 0775
+	 * and 0777 directories without that protection remain rejected.
 	 *
-	 * Admins who want to opt out of the looser rule for a specific path
-	 * can return true from the
+	 * Admins can explicitly allow a provider-specific path with the
 	 * `sscribe_private_storage_allow_foreign_owner` filter.
 	 *
 	 * @param string $base Base directory to inspect.
-	 * @return bool True when posix/fileowner are unavailable on the
-	 *              platform, when the resolved owner equals the current
-	 *              process UID, when the directory is world-writable AND
-	 *              sticky-bit-protected, or when an admin filter forces
-	 *              acceptance. False when fileowner() fails on the path
-	 *              and no permissive signal applies.
+	 * @return bool True when the base satisfies the ownership/access policy.
 	 */
 	private static function is_owned_by_current_process( string $base ): bool {
 		if ( ! function_exists( 'posix_geteuid' ) || ! function_exists( 'fileowner' ) ) {
@@ -466,13 +455,47 @@ final class SScribe_Private_Storage {
 		if ( (int) posix_geteuid() === (int) $owner ) {
 			return true;
 		}
-		if ( function_exists( 'fileperms' ) ) {
-			$perms = @fileperms( $base );
-			if ( false !== $perms && ( $perms & 0002 ) && ( $perms & 01000 ) ) {
-				return true;
-			}
+		if ( ! function_exists( 'fileperms' ) ) {
+			return false;
 		}
-		return false;
+		$perms = @fileperms( $base );
+		if ( false === $perms ) {
+			return false;
+		}
+
+		return self::foreign_owned_base_permissions_are_safe( (int) $perms, wp_is_writable( $base ) );
+	}
+
+	/**
+	 * Apply the foreign-owner permission policy to already-resolved mode bits.
+	 *
+	 * This pure helper keeps the ACL/container-volume case deterministic in
+	 * tests without requiring privileged chown operations in CI.
+	 *
+	 * @param int  $permissions     fileperms()-style mode bits.
+	 * @param bool $writable_by_php Whether PHP has effective write access.
+	 * @return bool True when the foreign-owned base is safe to use.
+	 */
+	private static function foreign_owned_base_permissions_are_safe( int $permissions, bool $writable_by_php ): bool {
+		if ( ! $writable_by_php ) {
+			return false;
+		}
+
+		// Shared /tmp convention: world-writable is acceptable only with the
+		// sticky bit, which prevents non-owners from deleting/replacing entries.
+		if ( ( $permissions & 0002 ) && ( $permissions & 01000 ) ) {
+			return true;
+		}
+
+		// Any remaining group/other write bit lets another principal modify
+		// the base without sticky deletion protection.
+		if ( $permissions & 0022 ) {
+			return false;
+		}
+
+		// No group/other write bits are exposed; effective writability can be
+		// supplied by an ACL/container mapping without weakening POSIX access.
+		return true;
 	}
 
 	/**
