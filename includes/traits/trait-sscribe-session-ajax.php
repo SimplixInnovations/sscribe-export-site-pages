@@ -152,53 +152,59 @@ trait SScribe_Session_AJAX {
 			\SScribe_Lock_Response::emit_conflict( $session_id, 5000 );
 		}
 
-		try {
+		$response = array( 'message' => __( 'Export cancelled.', 'sscribe-export-site-pages' ) );
+		$error    = null;
 
+		try {
 			$session = $this->get( $session_id );
 			if ( ! $session ) {
-				SScribe_AJAX_Guard::success(
-					array( 'message' => __( 'Session already cleared.', 'sscribe-export-site-pages' ) )
-				);
-			}
-
-			if ( ! $this->validate_session_ownership( $session, $session_id ) ) {
-				SScribe_AJAX_Guard::error(
-					array(
+				$response = array( 'message' => __( 'Session already cleared.', 'sscribe-export-site-pages' ) );
+			} elseif ( ! $this->validate_session_ownership( $session, $session_id ) ) {
+				$error = array(
+					'data' => array(
 						'code'    => 'session_ownership',
 						'message' => __( 'Invalid session access.', 'sscribe-export-site-pages' ),
 					),
-					403
+					'status' => 403,
 				);
+			} else {
+				$session['cancelled'] = true;
+				$update_ok            = $this->update( $session_id, $session );
+				if ( ! $update_ok ) {
+					$this->get_logger()->warning(
+						'Cancel mutation: update returned false (concurrent writer won race)',
+						array( 'session_id' => $session_id )
+					);
+				}
+
+				try {
+					$this->cleanup_cancelled_export( $session );
+				} catch ( \Throwable $e ) {
+					$this->get_logger()->warning(
+						'Cancel cleanup: temp_dir teardown failed',
+						array(
+							'session_id' => $session_id,
+							'error'      => $e->getMessage(),
+						)
+					);
+				}
+
+				$this->delete( $session_id );
 			}
-
-			$session['cancelled'] = true;
-			$update_ok            = $this->update( $session_id, $session );
-			if ( ! $update_ok ) {
-
+		} finally {
+			if ( ! $this->get_lock_manager()->release_lock( $session_id, $lock_token ) ) {
 				$this->get_logger()->warning(
-					'Cancel mutation: update returned false (concurrent writer won race)',
+					'Cancel handler could not release its export lock cleanly',
 					array( 'session_id' => $session_id )
 				);
 			}
-
-			try {
-				$this->cleanup_cancelled_export( $session );
-			} catch ( \Throwable $e ) {
-				$this->get_logger()->warning(
-					'Cancel cleanup: temp_dir teardown failed',
-					array(
-						'session_id' => $session_id,
-						'error'      => $e->getMessage(),
-					)
-				);
-			}
-
-			$this->delete( $session_id );
-
-			SScribe_AJAX_Guard::success( array( 'message' => __( 'Export cancelled.', 'sscribe-export-site-pages' ) ) );
-		} finally {
-			$this->get_lock_manager()->release_lock( $session_id, $lock_token );
 		}
+
+		if ( is_array( $error ) ) {
+			SScribe_AJAX_Guard::error( $error['data'], $error['status'] );
+		}
+
+		SScribe_AJAX_Guard::success( $response );
 	}
 
 	/**
@@ -213,19 +219,59 @@ trait SScribe_Session_AJAX {
 
 		$user_id = get_current_user_id();
 		$force   = SScribe_AJAX_Guard::post_boolean( 'force' );
-
-		if ( $force ) {
-			$deleted = $this->clear_user_sessions( $user_id );
-			$this->get_logger()->debug(
-				'Force cleared all sessions for user',
+		if ( $user_id <= 0 ) {
+			SScribe_AJAX_Guard::error(
 				array(
-					'user_id'       => $user_id,
-					'deleted_count' => $deleted,
-				)
+					'code'    => 'invalid_user',
+					'message' => __( 'Unable to identify the current user.', 'sscribe-export-site-pages' ),
+				),
+				403
 			);
-		} else {
-			$this->clear_user_sessions( $user_id );
-			$this->get_logger()->debug( 'Cleared sessions for user', array( 'user_id' => $user_id ) );
+		}
+
+		$admission_lock_name  = 'session-create-user-' . $user_id;
+		$admission_lock_token = $this->get_lock_manager()->acquire_lock( $admission_lock_name, 30, 25 );
+		if ( null === $admission_lock_token ) {
+			SScribe_AJAX_Guard::error(
+				array(
+					'code'     => 'session_admission_busy',
+					'message'  => __( 'Another export session operation is in progress. Please retry.', 'sscribe-export-site-pages' ),
+					'retry'    => true,
+					'retry_in' => 1500,
+				),
+				409
+			);
+		}
+
+		$deleted      = 0;
+		$active_after = null;
+		try {
+			$deleted      = $this->clear_user_sessions( $user_id );
+			$active_after = $this->get_active_session_data( $user_id );
+		} finally {
+			$this->get_lock_manager()->release_lock( $admission_lock_name, $admission_lock_token );
+		}
+
+		$this->get_logger()->debug(
+			$force ? 'Force clear session request completed' : 'Clear session request completed',
+			array(
+				'user_id'       => $user_id,
+				'deleted_count' => $deleted,
+				'still_active'  => is_array( $active_after ),
+			)
+		);
+
+		if ( is_array( $active_after ) ) {
+			SScribe_AJAX_Guard::error(
+				array(
+					'code'       => 'batch_in_progress',
+					'message'    => __( 'The current export is still processing. Please retry shortly.', 'sscribe-export-site-pages' ),
+					'retry'      => true,
+					'retry_in'   => 1500,
+					'session_id' => sanitize_key( (string) ( $active_after['session_id'] ?? '' ) ),
+				),
+				409
+			);
 		}
 
 		SScribe_AJAX_Guard::success( array( 'message' => __( 'Session cleared.', 'sscribe-export-site-pages' ) ) );
