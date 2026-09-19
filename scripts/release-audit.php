@@ -146,14 +146,27 @@ function sscribe_release_audit(): void {
 		$wp_found = 'wp' !== $wp_bin;
 	}
 	if ( is_string( $wp_root ) && '' !== $wp_root && is_dir( $wp_root . '/wp-content/plugins/plugin-check' ) && $wp_found && '' !== $wp_bin ) {
-		$plugin_dir = $wp_root . '/wp-content/plugins/sscribe-export-site-pages';
-		if ( ! is_dir( $plugin_dir ) ) {
-			fwrite( STDERR, "Plugin Check runtime prerequisites are incomplete: exact plugin directory is missing.\n" );
+		$plugin_dir       = $wp_root . '/wp-content/plugins/sscribe-export-site-pages';
+		$plugin_check_cli = $wp_root . '/wp-content/plugins/plugin-check/cli.php';
+		if ( ! is_dir( $plugin_dir ) || ! is_file( $plugin_check_cli ) ) {
+			fwrite( STDERR, "Plugin Check runtime prerequisites are incomplete: exact plugin directory or runtime bootstrap is missing.\n" );
 			$summary[] = array( 'status' => 'FAIL', 'ms' => 0, 'name' => 'Plugin-Check' );
 			$fail++;
 			printf( "%s %-32s %6sms\n", 'FAIL', 'Plugin-Check', '0' );
 		} else {
-			$gate( 'Plugin-Check', array( $wp_bin, '--path=' . $wp_root, 'plugin', 'check', $plugin_dir, '--format=json', '--allow-root' ) );
+			$gate(
+				'Plugin-Check',
+				array(
+					$wp_bin,
+					'--path=' . $wp_root,
+					'plugin',
+					'check',
+					$plugin_dir,
+					'--format=json',
+					'--require=' . $plugin_check_cli,
+					'--allow-root',
+				)
+			);
 		}
 	} else {
 		fwrite( STDERR, "Plugin Check testbench unavailable. Set SSCRIBE_WP_ROOT to a WordPress install containing the official Plugin Check plugin and optionally SSCRIBE_WP_BIN to the wp-cli executable. release audit is fail-closed.\n" );
