@@ -656,8 +656,8 @@ trait SScribe_Export_Finalizer {
 				)
 			);
 
-			$this->release_lock( $session_id, $lock_token );
 			$this->session->update( $session_id, array( 'status' => 'finalizing' ) );
+			$this->release_lock( $session_id, $lock_token );
 
 			SScribe_AJAX_Guard::error(
 				array(
