@@ -196,7 +196,18 @@ trait SScribe_Export_Finalizer {
 				'completing_since' => time(),
 			)
 		) ) {
-			$this->logger->warning( 'Session status update failed', array( 'session_id' => $session_id ) );
+			$this->logger->error(
+				'Finalization aborted because completing session state could not be persisted',
+				array( 'session_id' => $session_id )
+			);
+			$this->release_lock( $session_id, $lock_token );
+			SScribe_AJAX_Guard::error(
+				array(
+					'code'    => 'session_state_persist_failed',
+					'message' => __( 'Export finalization failed. Please try again.', 'sscribe-export-site-pages' ),
+				),
+				500
+			);
 		}
 		$session['status']           = 'completing';
 		$session['completing_since'] = time();
