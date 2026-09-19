@@ -305,22 +305,16 @@ class SScribe_Private_Storage_Test extends TestCase {
 
 		$base = sys_get_temp_dir() . '/sscribe-bare-world-writable-' . uniqid();
 		wp_mkdir_p( $base );
-		// Force ownership to differ from the test runner so the owner-match
-		// branch is skipped and we exercise the world-writable branch.
 		chmod( $base, 0777 );
 
 		$method = ( new \ReflectionClass( \SScribe_Private_Storage::class ) )
 			->getMethod( 'is_owned_by_current_process' );
 		$result = $method->invoke( null, $base );
 
-		// On a shared-host test bench the foreign-owner branch is taken
-		// and 0777 without sticky must reject. On a developer machine the
-		// owner branch may short-circuit true; that's still a safe outcome.
-		if ( fileowner( $base ) === posix_geteuid() ) {
-			$this->assertTrue( $result, 'Owner-match branch must accept even without sticky.' );
-		} else {
-			$this->assertFalse( $result, 'Foreign-owned 0777 without sticky must be rejected.' );
-		}
+		$this->assertFalse(
+			$result,
+			'POSIX ownership must not bypass rejection of a 0777 base without sticky protection.'
+		);
 
 		chmod( $base, 0700 );
 		rmdir( $base );
