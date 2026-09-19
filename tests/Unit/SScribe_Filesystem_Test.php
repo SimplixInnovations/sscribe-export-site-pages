@@ -636,6 +636,36 @@ class SScribe_Filesystem_Test extends TestCase {
 			'Expected symlink escape to be REJECTed' );
 	}
 
+	public function test_write_check_rejects_intermediate_symlink_even_when_target_stays_inside_private_root(): void {
+		if ( ! function_exists( 'symlink' ) ) {
+			$this->markTestSkipped( 'symlink() not available' );
+		}
+
+		$fs         = new \SScribe_Filesystem();
+		$export_dir = \SScribe_Private_Storage::get_export_dir();
+		$real_dir   = $export_dir . '/symlink-safe-target-' . uniqid();
+		$link_name  = $export_dir . '/symlink-safe-link-' . uniqid();
+		wp_mkdir_p( $real_dir );
+
+		if ( ! @symlink( $real_dir, $link_name ) ) {
+			@rmdir( $real_dir );
+			$this->markTestSkipped( 'symlink() not permitted on this platform' );
+		}
+
+		try {
+			$this->assertSame(
+				\SScribe_Filesystem::SSCRIBE_PATH_REJECT,
+				$fs->is_path_safe_for_write( $link_name . '/file.txt' ),
+				'Writes must reject every symlink component, even when the current target remains inside private storage.'
+			);
+		} finally {
+			if ( is_link( $link_name ) ) {
+				@unlink( $link_name );
+			}
+			@rmdir( $real_dir );
+		}
+	}
+
 	public function test_write_check_rejects_missing_path_below_symlink_escape(): void {
 		if ( ! function_exists( 'symlink' ) ) {
 			$this->markTestSkipped( 'symlink() not available' );
