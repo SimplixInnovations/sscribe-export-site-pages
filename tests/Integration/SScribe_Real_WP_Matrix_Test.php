@@ -143,6 +143,26 @@ final class SScribe_Real_WP_Matrix_Test extends TestCase {
 		$this::assertStringContainsString( '--version', $source );
 	}
 
+	public function test_installer_pins_wp_phpunit_to_matching_wordpress_tree(): void {
+		$source = (string) file_get_contents( self::plugin_root() . '/' . self::INSTALLER );
+
+		$this::assertStringContainsString(
+			"'tree-'",
+			$source,
+			'The installer must derive the wp-phpunit branch from the resolved WordPress major/minor version.'
+		);
+		$this::assertStringContainsString(
+			"'--branch'",
+			$source,
+			'The wp-phpunit clone must pin a version-matched branch instead of cloning master.'
+		);
+		$this::assertStringContainsString(
+			"'/wp-phpunit-'",
+			$source,
+			'The wp-phpunit cache must be version-specific so sequential local matrix installs cannot reuse an incompatible test library.'
+		);
+	}
+
 	public function test_installer_supports_sqlite_dropin(): void {
 		$source = (string) file_get_contents( self::plugin_root() . '/' . self::INSTALLER );
 		$this::assertStringContainsString( '--sqlite', $source );
