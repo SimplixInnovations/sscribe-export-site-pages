@@ -143,6 +143,7 @@ class SScribe_Export_Lock_Manager {
 	 * @param string|null $lock_token Ownership token returned by acquire_lock().
 	 * @param int         $lock_ttl   Renewed lock TTL in seconds.
 	 * @return bool True only when the same owned lock row was renewed.
+	 * @phpstan-impure This method performs an ownership-conditional database update.
 	 */
 	public function renew_lock( string $session_id, ?string $lock_token, int $lock_ttl = 120 ): bool {
 		if ( null === $lock_token || '' === $lock_token ) {
