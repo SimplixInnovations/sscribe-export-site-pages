@@ -49,7 +49,7 @@ SScribe turns WordPress pages into portable documents for content handovers, aud
 
 = Which content can I export? =
 
-SScribe exports WordPress pages and registered public post types. You can select all available content or narrow the export by type, author, status, date, language, taxonomy, or individual item.
+SScribe exports WordPress pages, posts, and registered public custom post types. You can narrow an export by post type, post status, and, when WPML is active, language.
 
 = Does SScribe support RTL languages? =
 
@@ -73,7 +73,7 @@ Completed archives expire after 72 hours by default and are removed by scheduled
 
 = Who can download an export? =
 
-Only an authenticated user with the delegated export capability can download an archive that user owns. Download links use short-lived, single-use tokens and never expose the storage path.
+Only an authenticated user with the delegated export capability can download an archive that user owns. Download links use single-use tokens tied to the archive record and never expose the storage path. The archive itself expires automatically according to the configured retention window.
 
 = Does SScribe send content to an external service? =
 
@@ -123,6 +123,8 @@ Build transformations are documented in docs/BUILD_TRANSFORMATIONS.md.
 * Hardened export finalization so archive publication stops when durable session state, locks, ZIP integrity, or export metadata cannot be safely committed.
 * Hardened admin-rendered dynamic HTML and URL attributes against attribute injection while preserving same-origin download and media URL checks.
 * Improved database portability, session/key persistence, lock renewal, stale-lock takeover, and concurrent export cleanup behavior.
+* Fixed session-admission, cancellation, scheduled cleanup, and privacy-erasure races so live export locks cannot be removed by competing requests.
+* Fixed registered public custom post type exports so selectable custom content is hydrated and exported instead of being rejected after selection.
 * Hardened cross-platform release tooling, real-WordPress compatibility coverage, and exact-package certification.
 
 = 2.0.2 =
@@ -152,7 +154,7 @@ Build transformations are documented in docs/BUILD_TRANSFORMATIONS.md.
 == Upgrade Notice ==
 
 = 2.0.3 =
-Fixes private-storage activation compatibility, Plugin Check compliance, export finalization reliability, and admin-output hardening. No manual data migration is required.
+Fixes private-storage activation compatibility, Plugin Check compliance, export finalization reliability, custom post type exports, session concurrency safety, and admin-output hardening. No manual data migration is required.
 
 = 2.0.2 =
 Release hardening and runtime reliability fixes; no manual migration action is required.
