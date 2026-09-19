@@ -79,6 +79,36 @@ class SScribe_Export_Rate_Limiter_Test extends TestCase {
 		$this->assertSame( $successor, get_option( $lock_key ), 'Stale reclamation must never delete a successor lock.' );
 	}
 
+	public function test_database_lock_release_preserves_successor(): void {
+		$lock_key  = 'sscribe_rate_lock_release_regression';
+		$token     = 'original-owner';
+		$stored    = time() . '|' . $token;
+		$successor = time() . '|successor-owner';
+		add_option( $lock_key, $stored, '', false );
+
+		$GLOBALS['sscribe_test_before_wpdb_option_delete'] = static function ( array $where ) use ( $lock_key, $successor ): void {
+			if ( ( $where['option_name'] ?? '' ) === $lock_key ) {
+				$GLOBALS['sscribe_test_options'][ $lock_key ] = $successor;
+			}
+		};
+
+		$release = \Closure::bind(
+			static function ( \SScribe_Export_Rate_Limiter $limiter ) use ( $lock_key, $token ): void {
+				$limiter->release_lock( false, 'unused-cache-key', $lock_key, $token );
+			},
+			null,
+			\SScribe_Export_Rate_Limiter::class
+		);
+
+		$release( new \SScribe_Export_Rate_Limiter() );
+
+		$this->assertSame(
+			$successor,
+			get_option( $lock_key ),
+			'Releasing an old lock must never delete a successor acquired after ownership was observed.'
+		);
+	}
+
 	public function test_rate_limit_exceeded_after_max_requests(): void {
 		$limiter = new \SScribe_Export_Rate_Limiter();
 
