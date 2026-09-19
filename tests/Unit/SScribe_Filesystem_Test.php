@@ -113,7 +113,7 @@ class SScribe_Filesystem_Test extends TestCase {
 
 		$fs = new \SScribe_Filesystem();
 		$this->assertSame(
-			'SSCRIBE_PATH_REJECT',
+			\SScribe_Filesystem::SSCRIBE_PATH_REJECT,
 			$fs->is_path_safe_for_write( $link ),
 			'A write symlink must not be accepted merely because its target path begins with the private-root string.'
 		);
