@@ -225,7 +225,14 @@ trait SScribe_Batch_Step_Handler {
 			$real_allowed_base = realpath( $allowed_temp_base );
 
 			if ( ! empty( $temp_dir ) && ! is_dir( $temp_dir ) ) {
-				wp_mkdir_p( (string) $temp_dir );
+				if ( ! $filesystem->mkdir( (string) $temp_dir ) ) {
+					$this->release_lock( $session_id, $lock_token );
+					$this->restore_ob_level( $ob_level_before );
+					SScribe_AJAX_Guard::error(
+						array( 'message' => __( 'Unable to create the private export working directory.', 'sscribe-export-site-pages' ) ),
+						500
+					);
+				}
 			}
 			$real_temp_dir = realpath( (string) $temp_dir );
 
