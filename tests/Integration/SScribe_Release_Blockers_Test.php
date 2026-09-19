@@ -249,7 +249,7 @@ final class SScribe_Release_Blockers_Test extends TestCase {
 		$path = $this->repo_root . '/includes/traits/trait-sscribe-export-finalizer.php';
 		$src  = (string) file_get_contents( $path );
 
-		$branch_start = strpos( $src, "if ( null !== $lock_token && ! $this->get_lock_manager()->renew_lock( $session_id, $lock_token, 600 ) ) {" );
+		$branch_start = strpos( $src, 'if ( null !== $lock_token && ! $this->get_lock_manager()->renew_lock( $session_id, $lock_token, 600 ) ) {' );
 		$branch_end   = strpos( $src, '$zip_path = $this->zip_handler->create_zip', false === $branch_start ? 0 : $branch_start );
 		$this::assertNotFalse( $branch_start );
 		$this::assertNotFalse( $branch_end );
