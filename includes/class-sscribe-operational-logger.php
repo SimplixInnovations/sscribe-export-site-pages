@@ -381,15 +381,24 @@ final class SScribe_Operational_Logger {
 		$dir = dirname( $log_file );
 		$pattern = $dir . '/' . self::LOG_FILE_PREFIX . '*.log';
 		$files = glob( $pattern );
-		if ( ! is_array( $files ) || count( $files ) <= self::RETAIN_ROTATED ) {
+		if ( ! is_array( $files ) ) {
 			return;
 		}
-		sort( $files );
-		$excess = array_slice( $files, 0, count( $files ) - self::RETAIN_ROTATED );
+
+		$rotated = array_values(
+			array_filter(
+				$files,
+				static fn ( string $file ): bool => $file !== $log_file
+			)
+		);
+		if ( count( $rotated ) <= self::RETAIN_ROTATED ) {
+			return;
+		}
+
+		sort( $rotated );
+		$excess = array_slice( $rotated, 0, count( $rotated ) - self::RETAIN_ROTATED );
 		foreach ( $excess as $old ) {
-			if ( $old !== $log_file ) {
-				wp_delete_file( $old );
-			}
+			wp_delete_file( $old );
 		}
 	}
 }
