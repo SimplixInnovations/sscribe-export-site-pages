@@ -983,7 +983,7 @@ class SScribe_Filesystem {
 		// and the subsequent filesystem operation.
 		$relative_path = ltrim( substr( $file_abs, strlen( rtrim( $allowed_abs, '/' ) ) ), '/' );
 		$cursor        = rtrim( $allowed_root, '/\\' );
-		foreach ( array_filter( explode( '/', $relative_path ), 'strlen' ) as $segment ) {
+		foreach ( array_filter( explode( '/', $relative_path ), static fn ( string $segment ): bool => '' !== $segment ) as $segment ) {
 			$cursor .= DIRECTORY_SEPARATOR . $segment;
 			clearstatcache( true, $cursor );
 			if ( is_link( $cursor ) ) {
