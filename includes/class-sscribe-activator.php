@@ -410,13 +410,10 @@ class SScribe_Activator {
 				break;
 			}
 
-			$placeholders = implode( ', ', array_fill( 0, count( $option_ids ), '%d' ) );
+			$option_id_list = implode( ', ', array_map( 'strval', $option_ids ) );
 
-			// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Placeholder list is generated internally from integer IDs selected above and the resulting SQL is prepared before execution.
-			$delete_sql = $wpdb->prepare(
-				"DELETE FROM {$wpdb->options} WHERE option_id IN ({$placeholders})",
-				$option_ids
-			);
+			// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- IDs are normalized with absint() above and come from the bounded SELECT result; interpolation is therefore limited to canonical decimal integers.
+			$delete_sql = "DELETE FROM {$wpdb->options} WHERE option_id IN ({$option_id_list})";
 			$rows       = $wpdb->query( $delete_sql );
 			// phpcs:enable
 		} while ( false !== $rows && $rows > 0 );
