@@ -167,6 +167,27 @@ for (const target of targets) {
 
   writeFileSync(srcAbs, reverted, 'utf-8');
 
+  // E2E deliberately boots the exact release ZIP rather than mounting source.
+  // Rebuild that ZIP after each source mutation so the Playwright assertion
+  // actually exercises the reverted production behavior.
+  const buildResult = spawnSync(
+    'php',
+    ['scripts/build-release.php', '--skip-validation'],
+    {
+      cwd: ROOT,
+      stdio: 'inherit',
+      env: { ...process.env, CI: '1' },
+    }
+  );
+  if (buildResult.status !== 0) {
+    console.error(
+      `[fail] ${target.description}: mutated release ZIP could not be built`
+    );
+    writeFileSync(srcAbs, original, 'utf-8');
+    failures++;
+    continue;
+  }
+
   try {
     const result = spawnSync(
       'npx',
@@ -192,6 +213,22 @@ for (const target of targets) {
   } finally {
     writeFileSync(srcAbs, original, 'utf-8');
   }
+}
+
+// Restore the canonical artifact after the final mutation. Without this,
+ // later E2E/performance gates would inherit the last intentionally broken ZIP.
+const canonicalBuild = spawnSync(
+  'php',
+  ['scripts/build-release.php', '--skip-validation'],
+  {
+    cwd: ROOT,
+    stdio: 'inherit',
+    env: { ...process.env, CI: '1' },
+  }
+);
+if (canonicalBuild.status !== 0) {
+  console.error('[fail] regression-discipline: failed to rebuild canonical release ZIP');
+  failures++;
 }
 
 if (failures > 0 || exercised < targets.length) {
