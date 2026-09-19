@@ -496,9 +496,9 @@ final class SScribe_Private_Storage {
 	}
 
 	/**
-	 * Validate a private-storage base when its Unix owner differs from PHP.
+	 * Validate a private-storage base against its effective access boundary.
 	 *
-	 * Ownership alone is not a reliable access signal on modern hosting:
+	 * Ownership alone is not a sufficient access signal on modern hosting:
 	 * ACLs, container bind mounts, and managed-volume mappings can make a
 	 * root-owned 0700/0755 directory writable by PHP without changing the
 	 * traditional mode bits. Rejecting every such path makes activation
@@ -519,22 +519,26 @@ final class SScribe_Private_Storage {
 	 * @return bool True when the base satisfies the ownership/access policy.
 	 */
 	private static function is_owned_by_current_process( string $base ): bool {
-		if ( ! function_exists( 'posix_geteuid' ) || ! function_exists( 'fileowner' ) ) {
-			return true;
-		}
 		if ( function_exists( 'apply_filters' ) ) {
 			$forced = apply_filters( 'sscribe_private_storage_allow_foreign_owner', false, $base );
 			if ( true === $forced ) {
 				return true;
 			}
 		}
-		$owner = @fileowner( $base );
-		if ( false === $owner ) {
-			return false;
+
+		// Windows ACLs do not map reliably to POSIX mode bits. The candidate
+		// has already passed absolute-path, writability, symlink, and
+		// public-root checks, and every SScribe-managed descendant is hardened
+		// separately after creation.
+		if ( 'Windows' === PHP_OS_FAMILY ) {
+			return wp_is_writable( $base );
 		}
-		if ( (int) posix_geteuid() === (int) $owner ) {
-			return true;
-		}
+
+		// On POSIX, ownership must not bypass a writable-by-group/world parent.
+		// Another principal able to modify the candidate base could replace an
+		// SScribe child between validation and creation. Evaluate the effective
+		// write access and mode boundary consistently whether access comes from
+		// ownership, an ACL/container mapping, or the standard sticky /tmp mode.
 		if ( ! function_exists( 'fileperms' ) ) {
 			return false;
 		}
