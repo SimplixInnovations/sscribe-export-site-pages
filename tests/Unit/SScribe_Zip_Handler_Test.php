@@ -105,6 +105,47 @@ class SScribe_Zip_Handler_Test extends TestCase {
 		$this->assertFalse( $result );
 	}
 
+
+	public function test_create_zip_renews_index_lock_before_archive_and_metadata_publication(): void {
+		$source = (string) file_get_contents( SSCRIBE_PLUGIN_DIR . 'includes/class-sscribe-zip-handler.php' );
+
+		$first_renew = strpos( $source, '$lock_manager->renew_lock' );
+		$rename      = strpos( $source, '@rename( $tmp_zip, $zip_path )' );
+		$this->assertNotFalse( $first_renew );
+		$this->assertNotFalse( $rename );
+		$this->assertLessThan(
+			$rename,
+			$first_renew,
+			'ZIP publication must renew export-index ownership before the staging archive is renamed into its final path.'
+		);
+
+		$second_renew = strpos( $source, '$lock_manager->renew_lock', $first_renew + 1 );
+		$row_save     = strpos( $source, 'update_option( $row_option' );
+		$this->assertNotFalse( $second_renew );
+		$this->assertNotFalse( $row_save );
+		$this->assertLessThan(
+			$row_save,
+			$second_renew,
+			'Export-index ownership must be renewed again immediately before row/index metadata publication.'
+		);
+	}
+
+	public function test_zip_open_failure_releases_index_lock_before_return(): void {
+		$source = (string) file_get_contents( SSCRIBE_PLUGIN_DIR . 'includes/class-sscribe-zip-handler.php' );
+		$start  = strpos( $source, 'if ( $zip->open( $tmp_zip' );
+		$this->assertNotFalse( $start );
+
+		$return = strpos( $source, 'return false;', $start );
+		$this->assertNotFalse( $return );
+		$failure_branch = substr( $source, $start, $return - $start );
+
+		$this->assertStringContainsString(
+			'$lock_manager->release_lock( $lock_name, $lock_token );',
+			$failure_branch,
+			'An archive-open failure must not leak the already-acquired export-index lock until TTL expiry.'
+		);
+	}
+
 	public function test_create_zip_returns_false_with_no_files(): void {
 		if ( ! class_exists( 'ZipArchive' ) ) {
 			$this->markTestSkipped( 'ZipArchive extension not available' );
