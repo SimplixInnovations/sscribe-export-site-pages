@@ -192,7 +192,8 @@ trait SScribe_Session_AJAX {
 				$this->delete( $session_id );
 			}
 		} finally {
-			if ( ! $this->get_lock_manager()->release_lock( $session_id, $lock_token ) ) {
+			$lock_released = $this->get_lock_manager()->release_lock( $session_id, $lock_token );
+			if ( ! $lock_released ) {
 				$this->get_logger()->warning(
 					'Cancel handler could not release its export lock cleanly',
 					array( 'session_id' => $session_id )
