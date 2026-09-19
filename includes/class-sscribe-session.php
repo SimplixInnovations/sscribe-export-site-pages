@@ -892,19 +892,20 @@ class SScribe_Session {
 	public function cleanup_expired( int $max_age_seconds = 14400 ): int {
 		global $wpdb;
 
-		$pattern     = $wpdb->esc_like( self::OPTION_PREFIX ) . '%';
-		$now         = time();
-		$start_time  = microtime( true );
-		$max_seconds = 30;
+		$pattern         = $wpdb->esc_like( self::OPTION_PREFIX ) . '%';
+		$now             = time();
+		$start_time      = microtime( true );
+		$max_seconds     = 30;
+		$max_age_seconds = max( 0, $max_age_seconds );
 
 		$deleted = 0;
 		$cursor  = '';
 
 		do {
-
 			if ( ( microtime( true ) - $start_time ) > $max_seconds ) {
 				break;
 			}
+
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Cleanup operation scans session options in bounded batches; caching not applicable.
 			$options = $wpdb->get_results(
 				$wpdb->prepare(
@@ -915,51 +916,31 @@ class SScribe_Session {
 				)
 			);
 
-			foreach ( $options as $option ) {
+			foreach ( (array) $options as $option ) {
 				$cursor     = (string) $option->option_name;
 				$session_id = self::extract_session_id( $cursor );
 				if ( null === $session_id ) {
 					continue;
 				}
-				$data       = $this->decode_session_value( $option->option_value, $session_id );
+
+				$observed_raw = $option->option_value ?? '';
+				$data         = $this->decode_session_value( $observed_raw, $session_id );
 
 				if ( ! is_array( $data ) ) {
-					if ( is_string( $option->option_value ) && str_starts_with( $option->option_value, 'a:' ) ) {
-						if ( delete_option( self::OPTION_PREFIX . $session_id ) ) {
-							$this->delete_page_ids( $session_id );
-							$this->get_lock_manager()->discard_lock( $session_id );
-							++$deleted;
-						}
-					}
-					continue;
-				}
-
-				$created_at    = (int) ( $data['created_at'] ?? 0 );
-				$updated_at    = (int) ( $data['updated_at'] ?? $created_at );
-				$last_activity = max( $created_at, $updated_at );
-
-				if ( $last_activity <= 0 || $last_activity > $now ) {
-					$last_activity = 0;
-				}
-
-				$status = $data['status'] ?? '';
-				$age    = $now - $last_activity;
-				if ( 'finalizing' === $status && $age < HOUR_IN_SECONDS ) {
-					continue;
-				}
-
-				if ( isset( $data['created_at'] ) && $last_activity > 0 && ( $now - $last_activity ) > $max_age_seconds ) {
-					if ( delete_option( self::OPTION_PREFIX . $session_id ) ) {
-						$this->delete_page_ids( $session_id );
-						$this->get_lock_manager()->discard_lock( $session_id );
-						if ( isset( $data['user_id'] ) ) {
-							$this->delete_active_sid_transient( (int) $data['user_id'] );
-						}
+					if (
+						is_string( $observed_raw )
+						&& str_starts_with( $observed_raw, 'a:' )
+						&& $this->delete_malformed_session_if_unlocked( $session_id, $observed_raw )
+					) {
 						++$deleted;
 					}
-				} elseif ( ! isset( $data['created_at'] ) && delete_option( self::OPTION_PREFIX . $session_id ) ) {
-					$this->delete_page_ids( $session_id );
-					$this->get_lock_manager()->discard_lock( $session_id );
+					continue;
+				}
+
+				if (
+					$this->is_expired_cleanup_candidate( $data, $now, $max_age_seconds )
+					&& $this->delete_expired_session_if_unlocked( $session_id, $now, $max_age_seconds )
+				) {
 					++$deleted;
 				}
 			}
@@ -971,6 +952,93 @@ class SScribe_Session {
 		$this->cleanup_orphaned_page_ids( $now, $start_time, $max_seconds );
 
 		return $deleted;
+	}
+
+	/**
+	 * Determine whether a decoded session is old enough for cleanup.
+	 *
+	 * The decision is deliberately recomputed after the per-session lock is
+	 * acquired so a stale database scan cannot delete a session that another
+	 * request refreshed immediately before cleanup obtained ownership.
+	 *
+	 * @param array $data            Decoded session data.
+	 * @param int   $now             Current Unix timestamp.
+	 * @param int   $max_age_seconds Maximum allowed idle age.
+	 * @return bool Whether the session is eligible for deletion.
+	 */
+	private function is_expired_cleanup_candidate( array $data, int $now, int $max_age_seconds ): bool {
+		$created_at    = (int) ( $data['created_at'] ?? 0 );
+		$updated_at    = (int) ( $data['updated_at'] ?? $created_at );
+		$last_activity = max( $created_at, $updated_at );
+
+		if ( $last_activity <= 0 || $last_activity > $now ) {
+			return ! isset( $data['created_at'] );
+		}
+
+		$status = (string) ( $data['status'] ?? '' );
+		$age    = $now - $last_activity;
+		if ( 'finalizing' === $status && $age < HOUR_IN_SECONDS ) {
+			return false;
+		}
+
+		return $age > $max_age_seconds;
+	}
+
+	/**
+	 * Delete an expired session only after acquiring its processing lock.
+	 *
+	 * @param string $session_id      Session identifier.
+	 * @param int    $now             Current Unix timestamp.
+	 * @param int    $max_age_seconds Maximum allowed idle age.
+	 * @return bool True when this call deleted the session.
+	 */
+	private function delete_expired_session_if_unlocked( string $session_id, int $now, int $max_age_seconds ): bool {
+		$lock_token = $this->get_lock_manager()->acquire_lock( $session_id, 30, 25 );
+		if ( null === $lock_token ) {
+			return false;
+		}
+
+		try {
+			$fresh = $this->get( $session_id );
+			if ( ! is_array( $fresh ) || ! $this->is_expired_cleanup_candidate( $fresh, $now, $max_age_seconds ) ) {
+				return false;
+			}
+
+			return $this->delete( $session_id );
+		} finally {
+			$this->get_lock_manager()->release_lock( $session_id, $lock_token );
+		}
+	}
+
+	/**
+	 * Remove a legacy malformed session only when the observed row is unchanged
+	 * and no processing request owns the session lock.
+	 *
+	 * @param string $session_id   Session identifier.
+	 * @param string $observed_raw Raw option value seen by the cleanup scan.
+	 * @return bool True when the malformed row was deleted.
+	 */
+	private function delete_malformed_session_if_unlocked( string $session_id, string $observed_raw ): bool {
+		$lock_token = $this->get_lock_manager()->acquire_lock( $session_id, 30, 25 );
+		if ( null === $lock_token ) {
+			return false;
+		}
+
+		try {
+			$current = get_option( self::OPTION_PREFIX . $session_id, null );
+			if ( ! is_string( $current ) || ! hash_equals( $observed_raw, $current ) ) {
+				return false;
+			}
+
+			if ( ! delete_option( self::OPTION_PREFIX . $session_id ) ) {
+				return false;
+			}
+
+			$this->delete_page_ids( $session_id );
+			return true;
+		} finally {
+			$this->get_lock_manager()->release_lock( $session_id, $lock_token );
+		}
 	}
 
 	/**
