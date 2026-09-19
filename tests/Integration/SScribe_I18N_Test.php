@@ -99,13 +99,10 @@ final class SScribe_I18N_Test extends TestCase {
 		$this::assertSame( 0, $payload['wrong_domain_calls'] );
 		$this::assertSame( $payload['translation_calls_total'], $payload['translation_calls_with_domain'] );
 
-		// POT must contain at least as many msgids as the source
-		// has msgids (potentially more because some are listed in
-		// context headers or header banners).
-		$this::assertGreaterThanOrEqual(
-			$payload['source_msgids_checked'],
-			$payload['pot_msgid_count']
-		);
+		// Multiple source calls may reuse the same msgid, so the POT can
+		// legitimately contain fewer unique entries than translation calls.
+		// Completeness is proven by the explicit missing-msgid check below.
+		$this::assertGreaterThan( 0, $payload['pot_msgid_count'] );
 		$this::assertSame( 0, $payload['source_msgids_missing_in_pot'] );
 	}
 
