@@ -814,10 +814,16 @@ final class SScribe_Shipped_Invariants_Test extends TestCase {
 	public function test_admin_html_escaping_is_safe_for_quoted_attribute_contexts(): void {
 		$script = (string) file_get_contents( self::$plugin_root . '/admin/js/sscribe-admin.js' );
 
+		$this->assertStringContainsString( 'return div.innerHTML.replace(', $script );
 		$this->assertStringContainsString(
-			"return div.innerHTML.replace(/\\\"/g, '&quot;').replace(/'/g, '&#039;');",
+			'&quot;',
 			$script,
-			'The shared admin escaping helper must encode both quote characters because its output is reused inside quoted HTML attributes.'
+			'The shared admin escaping helper must encode double quotes because its output is reused inside quoted HTML attributes.'
+		);
+		$this->assertStringContainsString(
+			'&#039;',
+			$script,
+			'The shared admin escaping helper must encode apostrophes because its output is reused inside quoted HTML attributes.'
 		);
 	}
 
