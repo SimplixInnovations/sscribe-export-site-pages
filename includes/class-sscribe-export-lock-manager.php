@@ -305,16 +305,26 @@ class SScribe_Export_Lock_Manager {
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Bounded cleanup of expired plugin-owned transient rows.
 		$expired_locks = $wpdb->get_results(
 			$wpdb->prepare(
-				"SELECT option_name FROM {$wpdb->options} WHERE option_name LIKE %s AND option_value < %d",
+				"SELECT option_name, option_value FROM {$wpdb->options} WHERE option_name LIKE %s AND option_value < %d",
 				$lock_timeout_pattern,
 				$now
 			)
 		);
 
 		$deleted = 0;
-		foreach ( $expired_locks as $expired ) {
-			$session_id = str_replace( '_transient_timeout_sscribe_lock_', '', $expired->option_name );
-			if ( $this->discard_lock( $session_id ) ) {
+		foreach ( (array) $expired_locks as $expired ) {
+			$timeout_option = (string) ( $expired->option_name ?? '' );
+			$timeout_value  = (string) ( $expired->option_value ?? '' );
+			$session_id     = str_replace( '_transient_timeout_sscribe_lock_', '', $timeout_option );
+			if (
+				'' === $session_id
+				|| '_transient_timeout_sscribe_lock_' . sanitize_key( $session_id ) !== $timeout_option
+				|| '' === $timeout_value
+			) {
+				continue;
+			}
+
+			if ( $this->delete_observed_legacy_transient_lock( $session_id, $timeout_option, $timeout_value ) ) {
 				++$deleted;
 			}
 		}
