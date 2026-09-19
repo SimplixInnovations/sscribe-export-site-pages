@@ -68,7 +68,7 @@ class SScribe_Deactivator {
 
 		try {
 			self::cleanup_transients();
-		} catch ( \\Throwable $e ) {
+		} catch ( \Throwable $e ) {
 			if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
 				error_log( 'SScribe deactivation error: ' . $e->getMessage() ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
 			}
