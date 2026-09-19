@@ -226,7 +226,7 @@ final class SScribe_Plugin_Check_Test extends TestCase {
 			'Release audit must not depend on Plugin Check internal file layout.'
 		);
 		$this::assertStringContainsString(
-			"array( \\$wp_bin, '--path=' . \\$wp_root, 'plugin', 'check'",
+			"array( \$wp_bin, '--path=' . \$wp_root, 'plugin', 'check'",
 			$source,
 			'Release audit must invoke the wp plugin check command registered by the activated official Plugin Check plugin.'
 		);
