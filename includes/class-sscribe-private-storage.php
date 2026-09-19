@@ -78,16 +78,16 @@ final class SScribe_Private_Storage {
 			$site_key = 'site-' . get_current_blog_id() . '-' . substr( hash( 'sha256', self::normalize_path( ABSPATH ) ), 0, 12 );
 			$path     = $canonical_base . DIRECTORY_SEPARATOR . self::DIRECTORY_NAME . DIRECTORY_SEPARATOR . $site_key . DIRECTORY_SEPARATOR . self::get_directory_name();
 
-			// Resolve through any existing ancestor before creating children.
-			// A planted symlink must never redirect SScribe outside the
-			// validated base, even when the final export path does not exist yet.
-			if ( ! self::path_is_within( $path, $canonical_base, false ) || ! self::is_outside_public_roots( $path ) ) {
-				continue;
-			}
-			if ( is_link( $path ) ) {
-				continue;
-			}
-			if ( $create && ! is_dir( $path ) && ! wp_mkdir_p( $path ) ) {
+			// Containment alone is insufficient here: realpath() resolves a
+			// planted intermediate symlink, so a link that still points somewhere
+			// inside the validated base would otherwise be accepted. Walk every
+			// SScribe-managed component lexically and reject links before creating
+			// descendants, then verify the chain again after creation.
+			if (
+				! self::path_is_within( $path, $canonical_base, false )
+				|| ! self::is_outside_public_roots( $path )
+				|| ! self::prepare_managed_path( $path, $canonical_base, $create )
+			) {
 				continue;
 			}
 			if ( self::path_exists( $path ) ) {
@@ -99,12 +99,12 @@ final class SScribe_Private_Storage {
 					|| ! self::path_is_within( $real, $canonical_base, false )
 					|| ! self::is_outside_public_roots( $real )
 					|| ( $create && ! wp_is_writable( $real ) )
+					|| ! self::prepare_managed_path( $path, $canonical_base, false )
 				) {
 					continue;
 				}
 			}
 			if ( $create ) {
-				self::harden_directory( $path );
 				SScribe_Security::protect_directory( $path );
 				self::harden_file( $path . '/.htaccess' );
 				self::harden_file( $path . '/index.php' );
@@ -114,6 +114,94 @@ final class SScribe_Private_Storage {
 		}
 
 		return '';
+	}
+
+	/**
+	 * Validate and optionally create every SScribe-managed path component.
+	 *
+	 * The comparison is intentionally lexical from the already-canonical base.
+	 * Calling realpath() on the full target first would hide an intermediate
+	 * symlink whose destination remains inside the base. Existing components
+	 * are therefore inspected one by one before any child is created.
+	 *
+	 * @param string $path           Final managed path.
+	 * @param string $canonical_base Validated canonical base.
+	 * @param bool   $create         Create missing managed directories.
+	 * @return bool True when every component is a real directory and the path
+	 *              can be used safely.
+	 */
+	private static function prepare_managed_path( string $path, string $canonical_base, bool $create ): bool {
+		$base_normalized = rtrim( self::normalize_path( $canonical_base ), '/' );
+		$path_normalized = self::normalize_path( $path );
+		if (
+			'' === $base_normalized
+			|| '' === $path_normalized
+			|| ! str_starts_with( $path_normalized, $base_normalized . '/' )
+		) {
+			return false;
+		}
+
+		$relative = substr( $path_normalized, strlen( $base_normalized ) + 1 );
+		$segments = explode( '/', $relative );
+		$cursor   = rtrim( $canonical_base, '/\\' );
+
+		foreach ( $segments as $segment ) {
+			if ( '' === $segment || '.' === $segment || '..' === $segment ) {
+				return false;
+			}
+
+			$cursor .= DIRECTORY_SEPARATOR . $segment;
+			clearstatcache( true, $cursor );
+
+			// is_link() must be checked before file_exists(): dangling links return
+			// false from file_exists() and must never be treated as creatable paths.
+			if ( is_link( $cursor ) ) {
+				return false;
+			}
+
+			if ( ! file_exists( $cursor ) ) {
+				if ( ! $create ) {
+					continue;
+				}
+				if ( ! wp_mkdir_p( $cursor ) ) {
+					return false;
+				}
+				clearstatcache( true, $cursor );
+			}
+
+			if ( ! is_dir( $cursor ) || is_link( $cursor ) ) {
+				return false;
+			}
+
+			$real = realpath( $cursor );
+			if (
+				false === $real
+				|| ! self::path_is_within( $real, $canonical_base, false )
+				|| ! self::is_outside_public_roots( $real )
+			) {
+				return false;
+			}
+
+			if ( $create ) {
+				if ( ! wp_is_writable( $real ) ) {
+					return false;
+				}
+				self::harden_directory( $real );
+				clearstatcache( true, $real );
+
+				// On POSIX, a managed directory must not remain group/other
+				// writable after hardening. Unlike the candidate base, managed
+				// descendants never need shared-sticky semantics.
+				if ( 'Windows' !== PHP_OS_FAMILY && function_exists( 'fileperms' ) ) {
+					$permissions = @fileperms( $real );
+					if ( false === $permissions || ( (int) $permissions & 0022 ) ) {
+						return false;
+					}
+				}
+			}
+		}
+
+		return true;
 	}
 
 	/**
