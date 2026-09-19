@@ -2955,8 +2955,8 @@
 				return '';
 			}
 			const div = document.createElement('div');
-			div.textContent = str;
-			return div.innerHTML;
+			div.textContent = String(str);
+			return div.innerHTML.replace(/"/g, '&quot;').replace(/'/g, '&#039;');
 		},
 		/**
 		 * Accept only same-origin HTTP(S) URLs before placing server data in a URL attribute.
