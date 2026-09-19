@@ -148,6 +148,59 @@ final class SScribe_Real_WP_Matrix_Test extends TestCase {
 		$this::assertStringContainsString( '--sqlite', $source );
 	}
 
+
+	public function test_matrix_declares_both_sqlite_and_mysql_database_modes(): void {
+		$source = (string) file_get_contents( self::plugin_root() . '/' . self::CI_PATH );
+
+		$this::assertMatchesRegularExpression(
+			"/database:\\s*\\[[^\\]]*['\"]sqlite['\"][^\\]]*\\]/m",
+			$source,
+			'Rolling real-WordPress legs must explicitly declare SQLite as a database mode.'
+		);
+		$this::assertMatchesRegularExpression(
+			"/database:\\s*['\"]mysql['\"]/m",
+			$source,
+			'The real-WordPress matrix must include at least one MySQL leg.'
+		);
+	}
+
+	public function test_declared_wp61_php82_floor_uses_mysql_not_sqlite(): void {
+		$source = (string) file_get_contents( self::plugin_root() . '/' . self::CI_PATH );
+
+		$this::assertMatchesRegularExpression(
+			"/-\\s+php-version:\\s*['\"]8\\.2['\"][\\s\\S]{0,220}?wp-version:\\s*['\"]6\\.1['\"][\\s\\S]{0,220}?database:\\s*['\"]mysql['\"]/",
+			$source,
+			'The WordPress 6.1 / PHP 8.2 floor must use MySQL because maintained SQLite Database Integration releases require newer WordPress.'
+		);
+	}
+
+	public function test_real_wp_job_provisions_mysql_and_selects_installer_by_database_mode(): void {
+		$source = (string) file_get_contents( self::plugin_root() . '/' . self::CI_PATH );
+
+		$this::assertMatchesRegularExpression(
+			"/real-wp-tests:[\\s\\S]{0,700}?services:[\\s\\S]{0,350}?mysql:/m",
+			$source,
+			'The real-WP job must provision a real MySQL service for its MySQL matrix leg.'
+		);
+		$this::assertStringContainsString( "matrix.database == 'sqlite'", $source );
+		$this::assertStringContainsString( "matrix.database == 'mysql'", $source );
+	}
+
+	public function test_installer_refuses_sqlite_for_pre_64_wordpress_instead_of_pinning_dead_release(): void {
+		$source = (string) file_get_contents( self::plugin_root() . '/' . self::INSTALLER );
+
+		$this::assertStringNotContainsString(
+			"array( '2', '1', '0' )",
+			$source,
+			'The installer must not pin the removed SQLite Database Integration 2.1.0 archive.'
+		);
+		$this::assertMatchesRegularExpression(
+			"/version_compare\\([^\\n]+['\"]6\\.4['\"]\\s*,\\s*['\"]<['\"]\\s*\\)[\\s\\S]{0,500}?RuntimeException/",
+			$source,
+			'SQLite mode must fail explicitly for WordPress versions below the integration plugin compatibility floor.'
+		);
+	}
+
 	public function test_branch_protection_doc_lists_real_wp_matrix_label(): void {
 		$doc_src = (string) file_get_contents( self::plugin_root() . '/' . self::DOC_PATH );
 		$this::assertStringContainsString( 'Real WordPress Integration Suite', $doc_src );
