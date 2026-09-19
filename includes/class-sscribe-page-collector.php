@@ -644,7 +644,10 @@ class SScribe_Page_Collector {
 		}
 
 		$post_object = get_post( $page_id );
-		if ( ! $post_object instanceof WP_Post || ! in_array( $post_object->post_type, array( 'page', 'post' ), true ) ) {
+		if (
+			! $post_object instanceof WP_Post
+			|| ! in_array( $post_object->post_type, $this->get_selectable_post_types(), true )
+		) {
 			return false;
 		}
 
