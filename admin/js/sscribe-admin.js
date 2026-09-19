@@ -4099,15 +4099,16 @@
 		},
 		downloadExport: function (e) {
 			const $link = $(e.currentTarget);
-			const href = $link.attr('href');
-			if (href && href !== '#') {
+			const href = $link.attr('href') || '';
+			const safeHref = this.getSafeSameOriginUrl(href);
+			if (safeHref) {
 				return;
 			}
+
+			// History rows are rendered only with a validated same-origin
+			// download URL. If markup is stale or tampered with, fail closed
+			// instead of treating a filename/data attribute as a navigation URL.
 			e.preventDefault();
-			const filename = $link.data('filename') || $link.attr('href');
-			if (filename && filename !== '#') {
-				window.location.href = filename;
-			}
 		},
 		retry: function (e) {
 			e.preventDefault();
