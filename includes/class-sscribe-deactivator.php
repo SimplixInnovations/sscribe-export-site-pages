@@ -26,14 +26,49 @@ class SScribe_Deactivator {
 	 * User options and data are removed only via uninstall.php when the user
 	 * explicitly deletes the plugin through the admin plugin management screen.
 	 */
-	public static function deactivate(): void {
+	public static function deactivate( bool $network_wide = false ): void {
+		if ( $network_wide && is_multisite() ) {
+			$offset = 0;
+			$limit  = 100;
+
+			do {
+				$site_ids = get_sites(
+					array(
+						'fields' => 'ids',
+						'number' => $limit,
+						'offset' => $offset,
+					)
+				);
+
+				foreach ( $site_ids as $site_id ) {
+					switch_to_blog( (int) $site_id );
+					try {
+						self::deactivate_site();
+					} finally {
+						restore_current_blog();
+					}
+				}
+
+				$offset += count( $site_ids );
+			} while ( count( $site_ids ) === $limit );
+
+			return;
+		}
+
+		self::deactivate_site();
+	}
+
+	/**
+	 * Clear runtime state for the current site without deleting user data.
+	 */
+	private static function deactivate_site(): void {
 		wp_clear_scheduled_hook( 'sscribe_cleanup_exports' );
 		wp_clear_scheduled_hook( 'sscribe_cleanup_sessions' );
 		wp_clear_scheduled_hook( 'sscribe_cleanup_audit_trail' );
 
 		try {
 			self::cleanup_transients();
-		} catch ( \Throwable $e ) {
+		} catch ( \\Throwable $e ) {
 			if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
 				error_log( 'SScribe deactivation error: ' . $e->getMessage() ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
 			}
