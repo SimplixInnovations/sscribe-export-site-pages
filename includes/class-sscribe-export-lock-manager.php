@@ -275,11 +275,12 @@ class SScribe_Export_Lock_Manager {
 				continue;
 			}
 
-			$parts     = explode( '|', (string) ( $lock->option_value ?? '' ), 3 );
-			$lock_time = isset( $parts[0] ) && ctype_digit( $parts[0] ) ? (int) $parts[0] : 0;
-			$expires   = isset( $parts[2] ) && ctype_digit( $parts[2] ) ? (int) $parts[2] : 0;
+			$observed_value = (string) ( $lock->option_value ?? '' );
+			$parts          = explode( '|', $observed_value, 3 );
+			$lock_time      = isset( $parts[0] ) && ctype_digit( $parts[0] ) ? (int) $parts[0] : 0;
+			$expires        = isset( $parts[2] ) && ctype_digit( $parts[2] ) ? (int) $parts[2] : 0;
 			if ( 0 === $lock_time || ( $expires > 0 ? $expires <= $now : $now - $lock_time > 600 ) || $now - $lock_time < -300 ) {
-				if ( delete_option( $option_name ) ) {
+				if ( $this->delete_owned_option_lock( $option_name, $observed_value ) ) {
 					++$deleted;
 				}
 			}
