@@ -205,6 +205,43 @@ class SScribe_Zip_Handler_Test extends TestCase {
 		$this->assertFileDoesNotExist( $this->test_export_dir . '/' . $filename );
 	}
 
+
+	public function test_index_persistence_failure_does_not_delete_existing_bounded_history(): void {
+		if ( ! class_exists( 'ZipArchive' ) ) {
+			$this->markTestSkipped( 'ZipArchive extension not available' );
+		}
+
+		$export_dir = $this->handler->get_export_dir();
+		$old_index  = array();
+		for ( $i = 0; $i < 50; ++$i ) {
+			$old_index[] = sprintf( 'existing-%02d.zip', $i );
+		}
+		$oldest     = $old_index[0];
+		$oldest_row = array( 'user_id' => 77, 'created_at' => time() - 3600 );
+		file_put_contents( $export_dir . '/' . $oldest, 'existing archive' );
+		update_option( 'sscribe_export_row_' . md5( $oldest ), $oldest_row, false );
+		update_option( 'sscribe_export_index', $old_index, false );
+
+		$source_dir = $this->handler->create_temp_dir();
+		wp_mkdir_p( $source_dir . '/EN' );
+		file_put_contents( $source_dir . '/EN/P001-Test.docx', 'new archive content' );
+
+		$GLOBALS['sscribe_test_update_option_failure'] = 'sscribe_export_index';
+		$this->assertFalse( $this->handler->create_zip( $source_dir, 'index-save-failure-' . uniqid(), array( 'docx' ) ) );
+
+		$this->assertFileExists(
+			$export_dir . '/' . $oldest,
+			'Existing bounded-history files must not be deleted until the replacement index has persisted.'
+		);
+		$this->assertSame( $oldest_row, get_option( 'sscribe_export_row_' . md5( $oldest ), null ) );
+		$this->assertSame( $old_index, get_option( 'sscribe_export_index', array() ) );
+
+		unset( $GLOBALS['sscribe_test_update_option_failure'] );
+		wp_delete_file( $export_dir . '/' . $oldest );
+		delete_option( 'sscribe_export_row_' . md5( $oldest ) );
+		delete_option( 'sscribe_export_index' );
+	}
+
 	public function test_create_zip_normalizes_long_non_ascii_archive_name(): void {
 		if ( ! class_exists( 'ZipArchive' ) ) {
 			$this->markTestSkipped( 'ZipArchive extension not available' );
