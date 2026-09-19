@@ -192,7 +192,7 @@ class SScribe_Page_Collector {
 		$cache_key  = "sscribe_page_ids_v2_{$post_status}_{$generation}_" . md5( "{$language}_{$post_type}_{$limit}" );
 		$cached     = get_transient( $cache_key );
 		if ( false !== $cached && is_array( $cached ) ) {
-			return $cached;
+			return $this->filter_readable_page_ids( $cached );
 		}
 
 		$effective_limit = $limit > 0 ? min( $limit, 10000 ) : 10000;
@@ -253,7 +253,33 @@ class SScribe_Page_Collector {
 
 		set_transient( $cache_key, $page_ids, 5 * MINUTE_IN_SECONDS );
 
-		return $page_ids;
+		return $this->filter_readable_page_ids( $page_ids );
+	}
+
+	/**
+	 * Keep only posts the current user may read through WordPress's canonical
+	 * per-post capability mapping.
+	 *
+	 * The export capability controls access to SScribe itself; it must never
+	 * bypass a post type's own read/private/read_others permissions. Raw query
+	 * results may be shared through the short-lived ID cache, so filtering is
+	 * deliberately applied after cache retrieval on every request.
+	 *
+	 * @param array<int|string> $page_ids Candidate post IDs.
+	 * @return array<int> Readable post IDs.
+	 */
+	private function filter_readable_page_ids( array $page_ids ): array {
+		$readable = array();
+
+		foreach ( $page_ids as $page_id ) {
+			$page_id = absint( $page_id );
+			if ( $page_id <= 0 || ! current_user_can( 'read_post', $page_id ) ) {
+				continue;
+			}
+			$readable[] = $page_id;
+		}
+
+		return array_values( array_unique( $readable ) );
 	}
 
 	/**
@@ -369,7 +395,10 @@ class SScribe_Page_Collector {
 			$fetched = count( $query->posts );
 
 			if ( $fetched > 0 ) {
-				yield $query->posts;
+				$readable_ids = $this->filter_readable_page_ids( $query->posts );
+				if ( ! empty( $readable_ids ) ) {
+					yield $readable_ids;
+				}
 			}
 
 			++$page;
@@ -648,6 +677,10 @@ class SScribe_Page_Collector {
 			! $post_object instanceof WP_Post
 			|| ! in_array( $post_object->post_type, $this->get_selectable_post_types(), true )
 		) {
+			return false;
+		}
+
+		if ( ! current_user_can( 'read_post', $page_id ) ) {
 			return false;
 		}
 
