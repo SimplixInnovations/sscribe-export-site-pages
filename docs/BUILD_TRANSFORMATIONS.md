@@ -175,11 +175,18 @@ would fail the build.
 
 ---
 
-## 4. Files present in ZIP but not in the working tree
+## 4. Distribution paths created under a different relative name
 
-None. Every file in `dist/sscribe-export-site-pages/` traces back
-to a file in the working tree. (No synthesized files, no template
-generation.)
+One release path differs from its tracked source path:
+
+- `vendor-prefixed/phpoffice/phpword/COPYING.LESSER.txt` is copied
+  byte-for-byte from
+  `vendor-prefixed/phpoffice/phpword/COPYING.LESSER`. The renamed
+  `.txt` path preserves the required LGPL notice while avoiding the
+  unexpected-extension warning emitted by WordPress Plugin Check.
+
+Every other file in `dist/sscribe-export-site-pages/` retains the
+same relative path as its tracked source.
 
 ---
 
@@ -196,9 +203,11 @@ Examples (illustrative — full list varies per release):
 
 ---
 
-## 6. Files in the ZIP that are NOT in the working tree
+## 6. Files in the ZIP that do not exist at the same tracked path
 
-None.
+Only `vendor-prefixed/phpoffice/phpword/COPYING.LESSER.txt`; it is the
+byte-for-byte renamed copy documented in Sections 3 and 4. No file
+content is synthesized.
 
 ---
 
