@@ -79,6 +79,27 @@ final class SScribe_Real_WP_Testbench_Test extends TestCase {
 		}
 	}
 
+
+	public function test_wp_bootstrap_does_not_mask_unrelated_runtime_failures(): void {
+		$bootstrap = (string) file_get_contents( self::plugin_root() . '/' . self::WP_BOOTSTRAP );
+
+		$this->assertStringNotContainsString(
+			'set_exception_handler(',
+			$bootstrap,
+			'The real-WordPress bootstrap must not swallow arbitrary uncaught throwables.'
+		);
+		$this->assertStringNotContainsString(
+			'_ss_test_force_clean_exit',
+			$bootstrap,
+			'The testbench must not carry a dead clean-exit bypass.'
+		);
+		$this->assertStringContainsString(
+			'is_callable( $_ss_prev_err_handler )',
+			$bootstrap,
+			'Non-header runtime errors must be delegated to PHPUnit\'s previous error handler.'
+		);
+	}
+
 	public function test_sscribe_wp_testcase_extends_wp_unit_testcase(): void {
 		$path = self::plugin_root() . '/tests-wp/WordPress/SScribe_WP_TestCase.php';
 		$this->assertFileExists($path);
