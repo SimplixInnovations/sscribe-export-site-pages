@@ -3285,6 +3285,18 @@ msgstr ""
 msgid "Session already cleared."
 msgstr ""
 
+#: includes/traits/trait-sscribe-session-ajax.php:226
+msgid "Unable to identify the current user."
+msgstr ""
+
+#: includes/traits/trait-sscribe-session-ajax.php:238
+msgid "Another export session operation is in progress. Please retry."
+msgstr ""
+
+#: includes/traits/trait-sscribe-session-ajax.php:268
+msgid "The current export is still processing. Please retry shortly."
+msgstr ""
+
 #: includes/traits/trait-sscribe-session-ajax.php:231
 msgid "Session cleared."
 msgstr ""
