@@ -207,6 +207,25 @@ class SScribe_Export_Lock_Manager_Test extends TestCase {
 		);
 	}
 
+	public function test_expired_legacy_cleanup_cannot_delete_modern_successor_lock(): void {
+		$manager    = new \SScribe_Export_Lock_Manager();
+		$session_id = 'legacy-successor';
+		$now        = time();
+
+		$GLOBALS['sscribe_test_options'][ '_transient_timeout_sscribe_lock_' . $session_id ] = $now - 10;
+		$GLOBALS['sscribe_test_options'][ '_transient_sscribe_lock_' . $session_id ]         = ( $now - 100 ) . '|legacy-token';
+		$successor = $now . '|successor-token|' . ( $now + 60 );
+		update_option( 'sscribe_export_lock_' . $session_id, $successor, false );
+
+		$manager->cleanup_expired_locks();
+
+		$this::assertSame(
+			$successor,
+			get_option( 'sscribe_export_lock_' . $session_id, false ),
+			'Expired legacy-transient cleanup must never delete a live modern database-backed successor lock.'
+		);
+	}
+
 	public function test_discard_lock_removes_database_and_legacy_storage(): void {
 		$manager = new \SScribe_Export_Lock_Manager();
 		$this->assertNotNull( $manager->acquire_lock( 'test-discard' ) );
