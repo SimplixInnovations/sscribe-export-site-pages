@@ -147,8 +147,9 @@ function sscribe_release_audit(): void {
 	}
 	if ( is_string( $wp_root ) && '' !== $wp_root && is_dir( $wp_root . '/wp-content/plugins/plugin-check' ) && $wp_found && '' !== $wp_bin ) {
 		$plugin_dir       = $wp_root . '/wp-content/plugins/sscribe-export-site-pages';
-		$plugin_check_cli = $wp_root . '/wp-content/plugins/plugin-check/cli.php';
-		if ( ! is_dir( $plugin_dir ) || ! is_file( $plugin_check_cli ) ) {
+		$plugin_check_cli       = $wp_root . '/wp-content/plugins/plugin-check/cli.php';
+		$plugin_check_bootstrap = __DIR__ . '/plugin-check-cli-bootstrap.php';
+		if ( ! is_dir( $plugin_dir ) || ! is_file( $plugin_check_cli ) || ! is_file( $plugin_check_bootstrap ) ) {
 			fwrite( STDERR, "Plugin Check runtime prerequisites are incomplete: exact plugin directory or runtime bootstrap is missing.\n" );
 			$summary[] = array( 'status' => 'FAIL', 'ms' => 0, 'name' => 'Plugin-Check' );
 			$fail++;
@@ -163,7 +164,7 @@ function sscribe_release_audit(): void {
 					'check',
 					$plugin_dir,
 					'--format=json',
-					'--require=' . $plugin_check_cli,
+					'--require=' . $plugin_check_bootstrap,
 					'--allow-root',
 				)
 			);
