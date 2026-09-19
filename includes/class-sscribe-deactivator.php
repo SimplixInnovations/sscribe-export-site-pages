@@ -25,6 +25,8 @@ class SScribe_Deactivator {
 	 * Only cron hooks, transients, and temporary runtime data are cleared.
 	 * User options and data are removed only via uninstall.php when the user
 	 * explicitly deletes the plugin through the admin plugin management screen.
+	 *
+	 * @param bool $network_wide Whether the plugin is being network-deactivated.
 	 */
 	public static function deactivate( bool $network_wide = false ): void {
 		if ( $network_wide && is_multisite() ) {
@@ -49,8 +51,9 @@ class SScribe_Deactivator {
 					}
 				}
 
-				$offset += count( $site_ids );
-			} while ( count( $site_ids ) === $limit );
+				$site_count = count( $site_ids );
+				$offset    += $site_count;
+			} while ( $site_count === $limit );
 
 			return;
 		}
