@@ -245,6 +245,26 @@ final class SScribe_Privacy_With_Data_Test extends TestCase {
 		$this::assertIsBool( $result['done'] );
 	}
 
+	public function test_erase_personal_data_retains_locked_live_session(): void {
+		$session_id   = (string) ( $GLOBALS['sscribe_test_last_session_id'] ?? '' );
+		$lock_manager = new \SScribe_Export_Lock_Manager();
+		$lock_token   = $lock_manager->acquire_lock( $session_id, 30, 25 );
+		$this::assertNotNull( $lock_token );
+
+		try {
+			$privacy = new \SScribe_Privacy();
+			$result  = $privacy->erase_personal_data( 'known-user@example.test' );
+
+			$this::assertTrue( $result['items_retained'] );
+			$this::assertFalse( $result['done'] );
+			$this::assertNotEmpty( $result['messages'] );
+			$this::assertNotNull( ( new \SScribe_Session() )->get( $session_id ) );
+			$this::assertIsString( get_option( 'sscribe_export_lock_' . $session_id, false ) );
+		} finally {
+			$lock_manager->release_lock( $session_id, $lock_token );
+		}
+	}
+
 	public function test_erase_personal_data_with_page_param_uses_initial_chunk(): void {
 		$privacy = new \SScribe_Privacy();
 		$result  = $privacy->erase_personal_data( 'known-user@example.test', 1 );
