@@ -302,9 +302,8 @@ class SScribe_Privacy {
 				continue;
 			}
 
-			SScribe_Export_Log::delete_by_session( $session_id );
-
-			if ( $this->session->delete( $session_id ) ) {
+			if ( $this->session->delete_owned_if_unlocked( $session_id, $user_id ) ) {
+				SScribe_Export_Log::delete_by_session( $session_id );
 				++$removed_items;
 			} else {
 				++$session_failures;
