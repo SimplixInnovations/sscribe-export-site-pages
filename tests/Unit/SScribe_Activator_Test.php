@@ -51,6 +51,59 @@ class SScribe_Activator_Test extends TestCase {
 		$this->assertFileExists( $export_path . '/index.php' );
 	}
 
+
+	public function test_cleanup_orphaned_data_uses_mysql_compatible_two_step_batches(): void {
+		$original_wpdb = $GLOBALS['wpdb'];
+
+		$wpdb = new class() extends \wpdb {
+			public array $selects = array();
+			public array $deletes = array();
+
+			private int $select_calls = 0;
+
+			public function get_col( $query ) {
+				$this->selects[] = (string) $query;
+				++$this->select_calls;
+
+				return 1 === ( $this->select_calls % 2 )
+					? array( '101', '102' )
+					: array();
+			}
+
+			public function query( $query ) {
+				$this->deletes[] = (string) $query;
+
+				// The pre-fix DELETE ... IN (SELECT ... LIMIT ...) query must not
+				// loop forever while this regression test is RED.
+				return false !== strpos( (string) $query, 'SELECT option_id FROM' ) ? 0 : 2;
+			}
+		};
+
+		$GLOBALS['wpdb'] = $wpdb;
+
+		try {
+			$method = new \ReflectionMethod( \SScribe_Activator::class, 'cleanup_orphaned_data' );
+			$method->setAccessible( true );
+			$method->invoke( null );
+		} finally {
+			$GLOBALS['wpdb'] = $original_wpdb;
+		}
+
+		$this->assertCount( 16, $wpdb->selects, 'Each of the eight cleanup patterns must select one batch and then confirm exhaustion.' );
+		$this->assertCount( 8, $wpdb->deletes );
+
+		foreach ( $wpdb->selects as $select ) {
+			$this->assertStringContainsString( 'SELECT option_id FROM wp_options', $select );
+			$this->assertStringContainsString( 'LIMIT 1000', $select );
+			$this->assertStringNotContainsString( 'DELETE FROM', $select );
+		}
+
+		foreach ( $wpdb->deletes as $delete ) {
+			$this->assertSame( 'DELETE FROM wp_options WHERE option_id IN (101, 102)', $delete );
+			$this->assertStringNotContainsString( 'SELECT ', $delete );
+		}
+	}
+
 	/**
 	 * The Settings API whitelist must be populated on every admin
 	 * request, not just on activation. Cover the admin_init hook so a
