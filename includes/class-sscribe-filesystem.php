@@ -981,8 +981,17 @@ class SScribe_Filesystem {
 		// to resolve inside the private root. Besides preventing prefix-sibling
 		// containment mistakes, this removes a target-swap race between validation
 		// and the subsequent filesystem operation.
-		if ( is_link( $file ) ) {
-			return self::SSCRIBE_PATH_REJECT;
+		$relative_path = ltrim( substr( $file_abs, strlen( rtrim( $allowed_abs, '/' ) ) ), '/' );
+		$cursor        = rtrim( $allowed_root, '/\\' );
+		foreach ( array_filter( explode( '/', $relative_path ), 'strlen' ) as $segment ) {
+			$cursor .= DIRECTORY_SEPARATOR . $segment;
+			clearstatcache( true, $cursor );
+			if ( is_link( $cursor ) ) {
+				return self::SSCRIBE_PATH_REJECT;
+			}
+			if ( ! file_exists( $cursor ) ) {
+				break;
+			}
 		}
 
 		$parent = dirname( $file );
