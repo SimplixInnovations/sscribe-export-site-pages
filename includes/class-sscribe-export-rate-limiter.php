@@ -317,7 +317,7 @@ class SScribe_Export_Rate_Limiter {
 
 		$parts = explode( '|', $stored, 2 );
 		if ( isset( $parts[1] ) && hash_equals( $lock_token, $parts[1] ) ) {
-			delete_option( $option_key );
+			$this->delete_owned_option_lock( $option_key, $stored );
 		}
 	}
 
