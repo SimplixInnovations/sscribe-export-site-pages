@@ -35,7 +35,7 @@ $config = array(
 		'package.json', 'package-lock.json', 'opencode.json', 'CONTRIBUTING.md', 'CHANGELOG.md',
 		'phpunit.xml', 'phpunit.xml.dist', 'phpstan.neon', 'phpstan.neon.dist',
 		'phpcs.xml', 'phpstan-bootstrap.php', '.editorconfig', '.wp-env.json',
-		'tests', 'tests-wp', 'tests-e2e', 'scripts', '.github', '.gitattributes', 'docs', 'examples', 'samples',
+		'tests', 'tests-wp', 'tests-js', 'tests-e2e', 'scripts', '.github', '.gitattributes', 'docs', 'examples', 'samples',
 		// bin/ holds real-WP testbench shell helpers (install-wp-tests.sh etc.)
 		// added in 14379d2. Never ship them in the release ZIP.
 		'bin',
@@ -975,7 +975,7 @@ echo "===========================================\n\n";
 echo "Build transformations applied (working tree -> shipped ZIP):\n\n";
 echo "  Excluded paths:\n";
 echo "    - All base_excludes entries (dev-only dirs: tests, tests-wp,\n";
-echo "      tests-e2e, scripts, .github, docs, examples, samples,\n";
+echo "      tests-js, tests-e2e, scripts, .github, docs, examples, samples,\n";
 echo "      .superpowers, .audit, .agent, .claude, .opencode, .cursor,\n";
 echo "      .windsurf, .continue, .codeium, .aider*, .mimosa, .omo,\n";
 echo "      node_modules, vendor-prefixed/.github, vendor-prefixed/.git,\n";

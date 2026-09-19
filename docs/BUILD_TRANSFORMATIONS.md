@@ -26,7 +26,7 @@ continue to work alongside wildcard rules such as `*.log`.
 
 ### Dev-only directories
 
-`tests/`, `tests-wp/`, `tests-e2e/`, `scripts/`, `.github/`,
+`tests/`, `tests-wp/`, `tests-js/`, `tests-e2e/`, `scripts/`, `.github/`,
 `docs/`, `examples/`, `samples/`, `.audit/`, `.agent/`,
 `.claude/`, `.opencode/`, `.cursor/`, `.windsurf/`, `.continue/`,
 `.codeium/`, `.mimosa/`, `.omo/`, `.aider*`, `.aider.chat.history`,

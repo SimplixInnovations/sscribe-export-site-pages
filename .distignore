@@ -20,6 +20,7 @@ composer.lock
 # Testing
 tests/
 tests-wp/
+tests-js/
 fake-wp/
 tests-e2e/
 test-results/
