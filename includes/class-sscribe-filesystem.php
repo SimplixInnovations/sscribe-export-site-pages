@@ -975,12 +975,12 @@ class SScribe_Filesystem {
 
 			return self::SSCRIBE_PATH_REJECT;
 		}
+		// Never write through a symlink, even when its current target appears
+		// to resolve inside the private root. Besides preventing prefix-sibling
+		// containment mistakes, this removes a target-swap race between validation
+		// and the subsequent filesystem operation.
 		if ( is_link( $file ) ) {
-			$target = realpath( $file );
-			if ( false === $target || 0 !== strpos( self::normalize_path( $target ), self::normalize_path( $allowed_root ) ) ) {
-
-				return self::SSCRIBE_PATH_REJECT;
-			}
+			return self::SSCRIBE_PATH_REJECT;
 		}
 
 		$parent = dirname( $file );
