@@ -86,6 +86,45 @@ class SScribe_Filesystem_Test extends TestCase {
 		$this->assertEquals( 'Hello World', file_get_contents( $file ) );
 	}
 
+	public function test_put_contents_rejects_symlink_destination_to_prefix_sibling_root(): void {
+		if ( ! function_exists( 'symlink' ) ) {
+			$this->markTestSkipped( 'symlink() not available on this platform' );
+		}
+
+		$root = \SScribe_Private_Storage::get_export_dir();
+		if ( '' === $root ) {
+			$this->markTestSkipped( 'Private export root is unavailable.' );
+		}
+
+		$outside_dir = rtrim( $root, '/\\' ) . '-prefix-sibling-' . uniqid();
+		if ( ! @mkdir( $outside_dir, 0700, true ) && ! is_dir( $outside_dir ) ) {
+			$this->markTestSkipped( 'Could not create a prefix-sibling directory for the symlink regression.' );
+		}
+
+		$outside_file = $outside_dir . '/target.txt';
+		$link         = $this->in_export_dir( 'write-link-' . uniqid() . '.txt' );
+		file_put_contents( $outside_file, 'original' );
+
+		if ( ! @symlink( $outside_file, $link ) ) {
+			@unlink( $outside_file );
+			@rmdir( $outside_dir );
+			$this->markTestSkipped( 'symlink() not permitted on this platform' );
+		}
+
+		$fs = new \SScribe_Filesystem();
+		$this->assertSame(
+			'SSCRIBE_PATH_REJECT',
+			$fs->is_path_safe_for_write( $link ),
+			'A write symlink must not be accepted merely because its target path begins with the private-root string.'
+		);
+		$this->assertFalse( $fs->put_contents( $link, 'overwrite-attempt' ) );
+		$this->assertSame( 'original', file_get_contents( $outside_file ) );
+
+		@unlink( $link );
+		@unlink( $outside_file );
+		@rmdir( $outside_dir );
+	}
+
 	public function test_get_contents_reads_file(): void {
 		$fs   = new \SScribe_Filesystem();
 		$file = $this->in_export_dir( 'test-read.txt' );
