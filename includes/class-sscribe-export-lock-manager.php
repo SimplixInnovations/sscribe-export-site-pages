@@ -265,6 +265,74 @@ class SScribe_Export_Lock_Manager {
 		return 1 === $deleted;
 	}
 
+
+	/**
+	 * Delete an observed expired legacy transient lock without touching a
+	 * database-backed successor.
+	 *
+	 * Both legacy transient rows are removed with exact-value predicates. If a
+	 * competing request replaces either row after the cleanup scan, the
+	 * compare-and-delete fails closed and the successor remains intact.
+	 *
+	 * @param string $session_id     Sanitized legacy lock identifier.
+	 * @param string $timeout_option Observed transient-timeout option name.
+	 * @param string $timeout_value  Observed transient-timeout option value.
+	 * @return bool Whether stale legacy lock state was removed.
+	 */
+	private function delete_observed_legacy_transient_lock(
+		string $session_id,
+		string $timeout_option,
+		string $timeout_value
+	): bool {
+		$sanitized = sanitize_key( $session_id );
+		if (
+			'' === $sanitized
+			|| ! hash_equals( $session_id, $sanitized )
+			|| '_transient_timeout_sscribe_lock_' . $sanitized !== $timeout_option
+			|| '' === $timeout_value
+		) {
+			return false;
+		}
+
+		global $wpdb;
+
+		$lock_option = '_transient_sscribe_lock_' . $sanitized;
+		$lock_value  = get_option( $lock_option, null );
+		$deleted_any = false;
+
+		if ( is_string( $lock_value ) ) {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Exact-value compare-and-delete prevents stale cleanup from deleting a successor legacy lock.
+			$deleted_lock = $wpdb->delete(
+				$wpdb->options,
+				array(
+					'option_name'  => $lock_option,
+					'option_value' => $lock_value,
+				),
+				array( '%s', '%s' )
+			);
+			wp_cache_delete( $lock_option, 'options' );
+
+			if ( 1 !== $deleted_lock ) {
+				return false;
+			}
+			$deleted_any = true;
+		}
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Exact-value compare-and-delete preserves a successor timeout written after the cleanup scan.
+		$deleted_timeout = $wpdb->delete(
+			$wpdb->options,
+			array(
+				'option_name'  => $timeout_option,
+				'option_value' => $timeout_value,
+			),
+			array( '%s', '%s' )
+		);
+		wp_cache_delete( $timeout_option, 'options' );
+		wp_cache_delete( 'sscribe_lock_' . $sanitized, 'transient' );
+
+		return $deleted_any || 1 === $deleted_timeout;
+	}
+
 	/**
 	 * Remove a session lock during an explicit session cleanup.
 	 *
