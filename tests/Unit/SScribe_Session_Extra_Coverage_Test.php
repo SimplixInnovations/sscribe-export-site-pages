@@ -232,6 +232,33 @@ final class SScribe_Session_Extra_Coverage_Test extends TestCase {
 		$this::assertCount( 1, $s->get_sessions_for_user( 8 ) );
 	}
 
+	public function test_clear_user_sessions_preserves_session_and_lock_when_processing_lock_is_held(): void {
+		$session = $this->new_session();
+		$sid     = $session->create(
+			array(
+				'user_id'   => 7,
+				'page_ids'  => array( 1 ),
+				'total'     => 2,
+				'processed' => 0,
+				'status'    => 'processing',
+			)
+		);
+		$this::assertNotSame( '', $sid );
+
+		$lock_manager = new \SScribe_Export_Lock_Manager();
+		$lock_token   = $lock_manager->acquire_lock( $sid, 30, 25 );
+		$this::assertNotNull( $lock_token );
+
+		try {
+			$this::assertSame( 0, $session->clear_user_sessions( 7 ) );
+			$this::assertNotNull( $session->get( $sid ) );
+			$this::assertIsString( get_option( 'sscribe_export_lock_' . $sid, false ) );
+		} finally {
+			$lock_manager->release_lock( $sid, $lock_token );
+			$session->delete( $sid );
+		}
+	}
+
 	public function test_create_with_user_id_fails_closed_when_admission_lock_is_held(): void {
 		$lock_manager = new \SScribe_Export_Lock_Manager();
 		$lock_name    = 'session-create-user-7';
