@@ -132,11 +132,16 @@ class SScribe_Export_Rate_Limiter {
 				$locked = wp_cache_add( $cache_lock_key, $lock_token, self::LOCK_CACHE_GROUP, 5 );
 			} else {
 				$existing_lock = get_option( $option_lock_key, false );
-				if ( is_string( $existing_lock ) ) {
+				if ( false !== $existing_lock ) {
+					if ( ! is_string( $existing_lock ) ) {
+						return SScribe_Rate_Limit_Decision::limiter_contention( $bucket, $rate_limit, 750 );
+					}
 					$parts     = explode( '|', $existing_lock, 2 );
 					$lock_time = isset( $parts[0] ) && ctype_digit( $parts[0] ) ? (int) $parts[0] : 0;
 					if ( 0 === $lock_time || $now - $lock_time > 5 || $now - $lock_time < -5 ) {
-						delete_option( $option_lock_key );
+						if ( ! $this->delete_owned_option_lock( $option_lock_key, $existing_lock ) ) {
+							return SScribe_Rate_Limit_Decision::limiter_contention( $bucket, $rate_limit, 750 );
+						}
 					}
 				}
 
@@ -259,6 +264,32 @@ class SScribe_Export_Rate_Limiter {
 			return $bucket;
 		}
 		return self::BUCKET_DEFAULT;
+	}
+
+	/**
+	 * Delete an option-backed micro-lock only when its complete observed value
+	 * still owns the row. This prevents a stale reclaimer from deleting a live
+	 * successor acquired between observation and deletion.
+	 *
+	 * @param string $option_key Lock option name.
+	 * @param string $lock_value Complete observed lock value.
+	 * @return bool True only when the exact row was deleted.
+	 */
+	private function delete_owned_option_lock( string $option_key, string $lock_value ): bool {
+		global $wpdb;
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Ownership-conditional deletion cannot be expressed through delete_option().
+		$deleted = $wpdb->delete(
+			$wpdb->options,
+			array(
+				'option_name'  => $option_key,
+				'option_value' => $lock_value,
+			),
+			array( '%s', '%s' )
+		);
+		wp_cache_delete( $option_key, 'options' );
+
+		return 1 === $deleted;
 	}
 
 	/**
