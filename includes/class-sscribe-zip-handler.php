@@ -353,7 +353,6 @@ class SScribe_Zip_Handler {
 			}
 		}
 
-
 		if ( ! $lock_manager->renew_lock( $lock_name, $lock_token, 120 ) ) {
 			$this->logger->error(
 				'Export package lost export-index ownership before archive publication',
@@ -405,7 +404,6 @@ class SScribe_Zip_Handler {
 			$lock_manager->release_lock( $lock_name, $lock_token );
 			return false;
 		}
-
 
 		if ( ! $lock_manager->renew_lock( $lock_name, $lock_token, 120 ) ) {
 			$this->logger->error(
