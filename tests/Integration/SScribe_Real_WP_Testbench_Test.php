@@ -60,6 +60,25 @@ final class SScribe_Real_WP_Testbench_Test extends TestCase {
 		$this->assertStringContainsString('sscribe-export-site-pages.php', $contents);
 	}
 
+
+	public function test_wp61_phpunit11_legacy_alias_shim_is_loaded_before_wp_bootstrap(): void {
+		$shim = self::plugin_root() . '/tests-wp/phpunit-legacy-compat.php';
+		$this->assertFileExists( $shim );
+
+		$bootstrap = (string) file_get_contents( self::plugin_root() . '/' . self::WP_BOOTSTRAP );
+		$shim_pos  = strpos( $bootstrap, "phpunit-legacy-compat.php" );
+		$wp_pos    = strpos( $bootstrap, "includes/bootstrap.php" );
+
+		$this->assertNotFalse( $shim_pos );
+		$this->assertNotFalse( $wp_pos );
+		$this->assertLessThan( $wp_pos, $shim_pos, 'The PHPUnit compatibility shim must load before wp-phpunit.' );
+
+		$contents = (string) file_get_contents( $shim );
+		foreach ( array( 'Deprecated', 'Notice', 'Warning', 'TestListener' ) as $symbol ) {
+			$this->assertStringContainsString( $symbol, $contents );
+		}
+	}
+
 	public function test_sscribe_wp_testcase_extends_wp_unit_testcase(): void {
 		$path = self::plugin_root() . '/tests-wp/WordPress/SScribe_WP_TestCase.php';
 		$this->assertFileExists($path);
