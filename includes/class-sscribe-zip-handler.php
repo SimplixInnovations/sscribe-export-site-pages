@@ -446,24 +446,16 @@ class SScribe_Zip_Handler {
 			$index   = get_option( 'sscribe_export_index', array() );
 			$index[] = $basename;
 			$index   = array_values( array_unique( $index ) );
+			$removed = array();
 
 			if ( count( $index ) > 50 ) {
 				$removed = array_slice( $index, 0, count( $index ) - 50 );
 				$index   = array_slice( $index, -50 );
-				foreach ( $removed as $removed_basename ) {
-					$removed_basename = (string) $removed_basename;
-					delete_option( 'sscribe_export_row_' . md5( $removed_basename ) );
-					$removed_basename = $this->normalize_zip_filename( $removed_basename );
-					if ( '' === $removed_basename ) {
-						continue;
-					}
-					$file_path = $this->export_dir . '/' . $removed_basename;
-					if ( file_exists( $file_path ) ) {
-						wp_delete_file( $file_path );
-					}
-				}
 			}
 
+			// Commit the replacement bounded index before destroying any history
+			// it evicts. If persistence fails, the previous index and its files
+			// remain intact and only this newly-created archive is rolled back.
 			$index_saved = update_option( 'sscribe_export_index', $index, false );
 			if ( ! $index_saved && get_option( 'sscribe_export_index', array() ) !== $index ) {
 				$this->logger->error(
@@ -473,6 +465,19 @@ class SScribe_Zip_Handler {
 				delete_option( $row_option );
 				wp_delete_file( $zip_path );
 				return false;
+			}
+
+			foreach ( $removed as $removed_basename ) {
+				$removed_basename = (string) $removed_basename;
+				delete_option( 'sscribe_export_row_' . md5( $removed_basename ) );
+				$removed_basename = $this->normalize_zip_filename( $removed_basename );
+				if ( '' === $removed_basename ) {
+					continue;
+				}
+				$file_path = $this->export_dir . '/' . $removed_basename;
+				if ( file_exists( $file_path ) ) {
+					wp_delete_file( $file_path );
+				}
 			}
 		} finally {
 			$lock_manager->release_lock( $lock_name, $lock_token );
