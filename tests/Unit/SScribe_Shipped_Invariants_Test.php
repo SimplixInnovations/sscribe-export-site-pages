@@ -828,4 +828,20 @@ final class SScribe_Shipped_Invariants_Test extends TestCase {
 	}
 
 
+	public function test_release_transparency_names_the_renamed_phpword_license_path(): void {
+		$build = (string) file_get_contents( self::$plugin_root . '/scripts/build-release.php' );
+		$docs  = (string) file_get_contents( self::$plugin_root . '/docs/BUILD_TRANSFORMATIONS.md' );
+
+		$this->assertStringContainsString( 'Distribution paths created under a different relative name:', $build );
+		$this->assertStringContainsString( 'COPYING.LESSER.txt is copied byte-for-byte from', $build );
+		$this->assertStringContainsString( 'COPYING.LESSER.txt', $docs );
+		$this->assertStringContainsString( 'COPYING.LESSER', $docs );
+		$this->assertStringNotContainsString(
+			'Source files added to the ZIP that are NOT in the working tree:',
+			$build,
+			'The build report must not mislabel tracked root files as out-of-tree additions.'
+		);
+	}
+
+
 }
