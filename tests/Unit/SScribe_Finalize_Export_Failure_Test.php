@@ -186,6 +186,22 @@ class SScribe_Finalize_Export_Failure_Test extends TestCase {
 	 * accidental removals from either location.
 	 */
 
+	public function test_finalizer_fails_closed_when_completing_state_cannot_persist(): void {
+		$trait_source = file_get_contents( SSCRIBE_PLUGIN_DIR . 'includes/traits/trait-sscribe-export-finalizer.php' );
+
+		$this->assertNotFalse( $trait_source );
+		$this->assertStringContainsString(
+			"'code'    => 'session_state_persist_failed'",
+			$trait_source,
+			'Finalization must abort before ZIP publication when the completing session state cannot be persisted.'
+		);
+		$this->assertStringContainsString(
+			'Finalization aborted because completing session state could not be persisted',
+			$trait_source,
+			'The persistence failure must remain an explicit operational diagnostic.'
+		);
+	}
+
 	public function test_finalizer_renews_session_lock_before_heavy_zip_assembly(): void {
 		$trait_source = file_get_contents( SSCRIBE_PLUGIN_DIR . 'includes/traits/trait-sscribe-export-finalizer.php' );
 
