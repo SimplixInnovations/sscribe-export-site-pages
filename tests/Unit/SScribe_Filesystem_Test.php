@@ -382,6 +382,33 @@ class SScribe_Filesystem_Test extends TestCase {
 	 *
 	 * Symlink() requires Developer Mode on Windows; skip otherwise.
 	 */
+	public function test_mkdir_under_private_root_rejects_intermediate_symlink_before_write(): void {
+		if ( ! function_exists( 'symlink' ) ) {
+			$this->markTestSkipped( 'symlink() not available on this platform' );
+		}
+
+		$fs          = new \SScribe_Filesystem();
+		$export_root = \SScribe_Private_Storage::get_export_dir();
+		$outside     = $this->test_dir . '/mkdir-intermediate-outside';
+		$link        = $export_root . '/mkdir-intermediate-' . uniqid();
+		wp_mkdir_p( $outside );
+
+		if ( ! @symlink( $outside, $link ) ) {
+			$this->markTestSkipped( 'symlink() not permitted on this platform' );
+		}
+
+		$relative = basename( $link ) . '/nested/child';
+		$result   = $fs->mkdir_under_private_root( $relative );
+
+		$this->assertSame( '', $result );
+		$this->assertDirectoryDoesNotExist(
+			$outside . '/nested',
+			'Rejected intermediate symlinks must not create descendants outside private storage.'
+		);
+
+		@unlink( $link );
+	}
+
 	public function test_mkdir_under_private_root_rejects_existing_symlink(): void {
 		if ( ! function_exists( 'symlink' ) ) {
 			$this::markTestSkipped( 'symlink() not available on this platform' );
