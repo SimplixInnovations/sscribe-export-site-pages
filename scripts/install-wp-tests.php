@@ -111,6 +111,25 @@ function sscribe_resolve_previous_wp(): string {
 }
 
 /**
+ * Resolve the wp-phpunit branch matching a WordPress release line.
+ *
+ * wp-phpunit mirrors WordPress core test libraries on tree-X.Y branches.
+ * Mixing the repository's master branch with an older WordPress core tree
+ * can make the testbench fail before plugin tests even start.
+ *
+ * @param string $wp_version Resolved WordPress version.
+ * @return string Version-matched wp-phpunit branch.
+ * @throws RuntimeException When the version cannot be mapped safely.
+ */
+function sscribe_wp_phpunit_branch( string $wp_version ): string {
+	if ( ! preg_match( '/^(\\d+)\\.(\\d+)(?:\\.\\d+)?(?:[-+].*)?$/', $wp_version, $matches ) ) {
+		throw new RuntimeException( "cannot map WordPress version {$wp_version} to a wp-phpunit release tree" );
+	}
+
+	return 'tree-' . $matches[1] . '.' . $matches[2];
+}
+
+/**
  * Extract a .tar.gz archive using only ext-zlib (no phar.readonly dependency).
  *
  * Handles regular files, directories, and GNU longname/longlink headers.
@@ -322,18 +341,34 @@ function sscribe_install_wp_tests( array $argv ): void {
 		sscribe_rmdir( $src_dir );
 
 		// 2. WordPress test suite.
-		sscribe_log( SSCRIBE_INSTALL_TAG, 'Downloading WordPress test suite from wp-phpunit/wp-phpunit...' );
-		$suite_cache = $cache_dir . '/wp-phpunit';
+		$wp_phpunit_branch = sscribe_wp_phpunit_branch( $wp_version );
+		sscribe_log(
+			SSCRIBE_INSTALL_TAG,
+			"Downloading WordPress test suite from wp-phpunit/wp-phpunit ({$wp_phpunit_branch})..."
+		);
+		$suite_cache = $cache_dir . '/wp-phpunit-' . str_replace( '.', '-', $wp_phpunit_branch );
 		if ( ! is_dir( $suite_cache . '/includes' ) ) {
 			sscribe_rmdir( $suite_cache );
 			$git = sscribe_which( 'git' );
-			$res = sscribe_run_argv( array( $git, 'clone', '--depth', '1', 'https://github.com/wp-phpunit/wp-phpunit.git', $suite_cache ) );
+			$res = sscribe_run_argv(
+				array(
+					$git,
+					'clone',
+					'--depth',
+					'1',
+					'--branch',
+					$wp_phpunit_branch,
+					'--single-branch',
+					'https://github.com/wp-phpunit/wp-phpunit.git',
+					$suite_cache,
+				)
+			);
 			if ( 0 !== $res['code'] || ! is_dir( $suite_cache . '/includes' ) ) {
-				throw new RuntimeException( 'wp-phpunit clone has no includes/ directory' );
+				throw new RuntimeException( "wp-phpunit {$wp_phpunit_branch} clone has no includes/ directory" );
 			}
 		}
 		if ( ! is_dir( $suite_cache . '/includes' ) ) {
-			throw new RuntimeException( 'wp-phpunit clone has no includes/ directory' );
+			throw new RuntimeException( "wp-phpunit {$wp_phpunit_branch} clone has no includes/ directory" );
 		}
 		sscribe_log( SSCRIBE_INSTALL_TAG, "Copying test suite into {$tests_dir}..." );
 		sscribe_rmdir( $tests_dir );
@@ -357,14 +392,26 @@ function sscribe_install_wp_tests( array $argv ): void {
 		if ( $args['sqlite'] ) {
 			sscribe_log( SSCRIBE_INSTALL_TAG, 'Installing SQLite Database Integration drop-in...' );
 			$sqlite_dir = $core_dir . '/wp-content/plugins/sqlite-database-integration';
+
+			// Maintained SQLite Database Integration releases require WordPress 6.4+.
+			// Do not pin removed or unsupported historical plugin archives merely to
+			// keep the declared WordPress 6.1 floor green. Older supported WordPress
+			// versions are exercised against the real MySQL service in CI instead.
+			if ( version_compare( $wp_version, '6.4', '<' ) ) {
+				throw new RuntimeException( 'SQLite Database Integration requires WordPress 6.4 or newer; use MySQL for older supported WordPress versions.' );
+			}
+
+			$sqlite_cache_suffix = 'latest';
+
 			if ( ! is_dir( $sqlite_dir ) ) {
-				$sqlite_zip = $cache_dir . '/sqlite-database-integration.zip';
+				$sqlite_zip = $cache_dir . '/sqlite-database-integration-' . $sqlite_cache_suffix . '.zip';
 				if ( ! is_file( $sqlite_zip ) ) {
 					$releases = sscribe_http_get( 'https://api.github.com/repos/WordPress/sqlite-database-integration/releases/latest' );
-					if ( ! preg_match( '/"browser_download_url":\s*"([^"]+\.zip)"/', $releases, $m ) ) {
+					if ( ! preg_match( '/"browser_download_url":\\s*"([^"]+\\.zip)"/', $releases, $m ) ) {
 						throw new RuntimeException( 'could not resolve SQLite Database Integration release URL' );
 					}
-					sscribe_download_file( $m[1], $sqlite_zip );
+					$sqlite_url = $m[1];
+					sscribe_download_file( $sqlite_url, $sqlite_zip );
 				}
 				if ( ! class_exists( 'ZipArchive' ) ) {
 					throw new RuntimeException( 'PHP zip extension is required to install the SQLite drop-in (ZipArchive unavailable).' );

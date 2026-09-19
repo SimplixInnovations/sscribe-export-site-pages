@@ -132,6 +132,38 @@ class SScribe_Operational_Logger_Test extends TestCase {
 		) );
 		$this->assertLessThanOrEqual( 204, strlen( $out['msg'] ) );
 	}
+	public function test_prune_retains_five_rotated_copies_plus_current_log(): void {
+		$dir = sys_get_temp_dir() . '/sscribe-ops-prune-' . bin2hex( random_bytes( 6 ) );
+		$this->assertTrue( mkdir( $dir, 0700, true ) );
+
+		$current = $dir . '/sscribe_ops_2099-01-01.log';
+		file_put_contents( $current, "current\n" );
+		for ( $i = 1; $i <= 7; $i++ ) {
+			file_put_contents( $dir . '/sscribe_ops_2098-12-31_00-00-0' . $i . '-abcdef.log', "rotated\n" );
+		}
+
+		$prune = \Closure::bind(
+			static function ( string $path ): void {
+				\SScribe_Operational_Logger::prune( $path );
+			},
+			null,
+			\SScribe_Operational_Logger::class
+		);
+
+		try {
+			$prune( $current );
+			$files = glob( $dir . '/sscribe_ops_*.log' );
+			$this->assertIsArray( $files );
+			$this->assertCount( 6, $files, 'Retention means five rotated copies plus the current live log.' );
+			$this->assertContains( $current, $files );
+		} finally {
+			foreach ( (array) glob( $dir . '/*' ) as $path ) {
+				@unlink( $path );
+			}
+			@rmdir( $dir );
+		}
+	}
+
 	public function test_shutdown_recursion_lock_is_class_scoped_not_dynamic_global(): void {
 		$source = (string) file_get_contents(
 			dirname( __DIR__, 2 ) . '/includes/class-sscribe-operational-logger.php'

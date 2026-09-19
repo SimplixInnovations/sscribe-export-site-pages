@@ -21,6 +21,7 @@ class SScribe_Export_Rate_Limiter_Test extends TestCase {
 		$GLOBALS['sscribe_test_current_user_can'] = null;
 		$GLOBALS['sscribe_test_current_user_id']  = null;
 		$GLOBALS['sscribe_test_filters']          = array();
+		unset( $GLOBALS['sscribe_test_before_wpdb_option_delete'] );
 	}
 
 	protected function tearDown(): void {
@@ -30,6 +31,7 @@ class SScribe_Export_Rate_Limiter_Test extends TestCase {
 		$GLOBALS['sscribe_test_current_user_can'] = null;
 		$GLOBALS['sscribe_test_current_user_id']  = null;
 		$GLOBALS['sscribe_test_filters']          = array();
+		unset( $GLOBALS['sscribe_test_before_wpdb_option_delete'] );
 		parent::tearDown();
 	}
 
@@ -47,6 +49,64 @@ class SScribe_Export_Rate_Limiter_Test extends TestCase {
 		$limiter = new \SScribe_Export_Rate_Limiter();
 		$this->assertFalse( $limiter->check_rate_limit() );
 		$this->assertSame( $lock_value, get_option( $lock_key ) );
+	}
+
+	/**
+	 * Regression: stale DB-lock reclamation must not delete a successor lock.
+	 *
+	 * Simulate another request replacing the stale row after this request has
+	 * observed it but before the ownership-conditional delete executes. The
+	 * limiter must fail closed and preserve the successor's value.
+	 */
+	public function test_stale_database_lock_reclamation_preserves_successor(): void {
+		$bucket_key = 'sscribe_rate_export_1';
+		$lock_key   = 'sscribe_rate_lock_' . substr( hash( 'sha256', $bucket_key ), 0, 32 );
+		$stale      = ( time() - 10 ) . '|stale-owner';
+		$successor  = time() . '|successor-owner';
+		add_option( $lock_key, $stale, '', false );
+
+		$GLOBALS['sscribe_test_before_wpdb_option_delete'] = static function ( array $where ) use ( $lock_key, $successor ): void {
+			if ( ( $where['option_name'] ?? '' ) === $lock_key ) {
+				$GLOBALS['sscribe_test_options'][ $lock_key ] = $successor;
+			}
+		};
+
+		$limiter  = new \SScribe_Export_Rate_Limiter();
+		$decision = $limiter->check_rate_limit_decision();
+
+		$this->assertFalse( $decision->allowed, 'A changed stale lock must fail closed instead of admitting a concurrent request.' );
+		$this->assertSame( 'limiter_contention', $decision->reason );
+		$this->assertSame( $successor, get_option( $lock_key ), 'Stale reclamation must never delete a successor lock.' );
+	}
+
+	public function test_database_lock_release_preserves_successor(): void {
+		$lock_key  = 'sscribe_rate_lock_release_regression';
+		$token     = 'original-owner';
+		$stored    = time() . '|' . $token;
+		$successor = time() . '|successor-owner';
+		add_option( $lock_key, $stored, '', false );
+
+		$GLOBALS['sscribe_test_before_wpdb_option_delete'] = static function ( array $where ) use ( $lock_key, $successor ): void {
+			if ( ( $where['option_name'] ?? '' ) === $lock_key ) {
+				$GLOBALS['sscribe_test_options'][ $lock_key ] = $successor;
+			}
+		};
+
+		$release = \Closure::bind(
+			static function ( \SScribe_Export_Rate_Limiter $limiter ) use ( $lock_key, $token ): void {
+				$limiter->release_lock( false, 'unused-cache-key', $lock_key, $token );
+			},
+			null,
+			\SScribe_Export_Rate_Limiter::class
+		);
+
+		$release( new \SScribe_Export_Rate_Limiter() );
+
+		$this->assertSame(
+			$successor,
+			get_option( $lock_key ),
+			'Releasing an old lock must never delete a successor acquired after ownership was observed.'
+		);
 	}
 
 	public function test_rate_limit_exceeded_after_max_requests(): void {

@@ -245,10 +245,64 @@ final class SScribe_Privacy_With_Data_Test extends TestCase {
 		$this::assertIsBool( $result['done'] );
 	}
 
+	public function test_erase_personal_data_retains_locked_live_session(): void {
+		$session_id   = (string) ( $GLOBALS['sscribe_test_last_session_id'] ?? '' );
+		$lock_manager = new \SScribe_Export_Lock_Manager();
+		$lock_token   = $lock_manager->acquire_lock( $session_id, 30, 25 );
+		$this::assertNotNull( $lock_token );
+
+		try {
+			$privacy = new \SScribe_Privacy();
+			$result  = $privacy->erase_personal_data( 'known-user@example.test' );
+
+			$this::assertTrue( $result['items_retained'] );
+			$this::assertFalse( $result['done'] );
+			$this::assertNotEmpty( $result['messages'] );
+			$this::assertNotNull( ( new \SScribe_Session() )->get( $session_id ) );
+			$this::assertIsString( get_option( 'sscribe_export_lock_' . $session_id, false ) );
+		} finally {
+			$lock_manager->release_lock( $session_id, $lock_token );
+		}
+	}
+
 	public function test_erase_personal_data_with_page_param_uses_initial_chunk(): void {
 		$privacy = new \SScribe_Privacy();
 		$result  = $privacy->erase_personal_data( 'known-user@example.test', 1 );
 		$this::assertIsBool( $result['done'] );
+	}
+
+	public function test_erase_personal_data_processes_sessions_in_bounded_batches(): void {
+		\SScribe_Session::test_reset();
+		\SScribe_Session::enable_test_mode();
+
+		$session = new \SScribe_Session();
+		for ( $i = 0; $i < 101; ++$i ) {
+			$session_id = $session->create(
+				array(
+					'user_id'   => 1,
+					'page_ids'  => array( $i + 1 ),
+					'total'     => 1,
+					'processed' => 1,
+					'status'    => 'completed',
+				)
+			);
+			$this::assertMatchesRegularExpression( '/^[a-f0-9]{16}$/', $session_id );
+		}
+
+		$privacy = new \SScribe_Privacy();
+		$first   = $privacy->erase_personal_data( 'known-user@example.test', 1 );
+
+		$this::assertTrue( $first['items_removed'] );
+		$this::assertFalse( $first['items_retained'] );
+		$this::assertFalse( $first['done'], 'The eraser must yield after a bounded session batch so Core can continue on the next request.' );
+		$this::assertCount( 1, $session->get_sessions_for_user( 1 ) );
+
+		$second = $privacy->erase_personal_data( 'known-user@example.test', 2 );
+
+		$this::assertTrue( $second['items_removed'] );
+		$this::assertFalse( $second['items_retained'] );
+		$this::assertTrue( $second['done'] );
+		$this::assertCount( 0, $session->get_sessions_for_user( 1 ) );
 	}
 
 	public function test_export_personal_data_for_known_user_with_empty_data_returns_empty(): void {

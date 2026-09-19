@@ -92,7 +92,6 @@ trait SScribe_Batch_Step_Handler {
 			);
 
 			if ( ! $session ) {
-				$this->get_lock_manager()->discard_lock( $session_id );
 				$this->logger->debug(
 					'ERROR: Session not found, cleared orphaned lock',
 					array(

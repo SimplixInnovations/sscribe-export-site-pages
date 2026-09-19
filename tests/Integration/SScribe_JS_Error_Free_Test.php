@@ -151,6 +151,17 @@ final class SScribe_JS_Error_Free_Test extends TestCase {
 		$this::assertSame( array(), $violations, 'Shipped JS must not declare `var ` (use const/let): ' . implode( ', ', $violations ) );
 	}
 
+
+	public function test_history_download_handler_never_navigates_to_unvalidated_filename_data(): void {
+		$src = (string) file_get_contents( self::plugin_root() . '/admin/js/sscribe-admin.js' );
+
+		$this::assertStringNotContainsString(
+			'window.location.href = filename',
+			$src,
+			'History downloads must use the same-origin href already validated during rendering; a data-filename value is not a navigation URL.'
+		);
+	}
+
 	public function test_every_shipped_js_file_declares_strict_mode(): void {
 		$root  = self::plugin_root();
 		$files = glob( $root . '/' . self::JS_DIR . '/*.js' );

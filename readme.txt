@@ -49,7 +49,7 @@ SScribe turns WordPress pages into portable documents for content handovers, aud
 
 = Which content can I export? =
 
-SScribe exports WordPress pages and registered public post types. You can select all available content or narrow the export by type, author, status, date, language, taxonomy, or individual item.
+SScribe exports WordPress pages, posts, and registered public custom post types. You can narrow an export by post type, post status, and, when WPML is active, language.
 
 = Does SScribe support RTL languages? =
 
@@ -65,7 +65,7 @@ Yes. Export progress and the complete normalized page-ID queue are stored in exp
 
 = Where are exported files stored? =
 
-Archives, temporary files, and logs use a plugin-owned directory below the operating system's temporary directory, outside WordPress and public upload paths. The directory is isolated per WordPress site. Existing archives from older versions are copied, hash-verified, and only then removed from the old location.
+Archives, temporary files, and logs use a site-isolated private directory outside WordPress and public upload paths. SScribe prefers validated PHP/operating-system temporary locations and can fall back to another validated non-public base or an administrator-defined private base. Existing archives from older versions are copied, hash-verified, and only then removed from the old location.
 
 = How long are archives kept? =
 
@@ -73,11 +73,11 @@ Completed archives expire after 72 hours by default and are removed by scheduled
 
 = Who can download an export? =
 
-Only an authenticated user with the delegated export capability can download an archive that user owns. Download links use short-lived, single-use tokens and never expose the storage path.
+Only an authenticated user with the delegated export capability can download an archive that user owns. Download links use single-use tokens tied to the archive record and never expose the storage path. The archive itself expires automatically according to the configured retention window.
 
 = Does SScribe send content to an external service? =
 
-No. SScribe does not send exported content to Simplix Innovations or another content-processing service. Local Media Library files are read from the site. Same-site images that cannot be resolved locally may be fetched through the WordPress safe HTTP API; other hosts are blocked unless a developer explicitly allows them.
+No. SScribe does not send exported content to Simplix Innovations or another content-processing service. Local Media Library files are read from the site. Same-site images that cannot be resolved locally may be fetched through the WordPress safe HTTP API. These requests go from your WordPress server to your own configured site/media host and can expose standard HTTP request metadata, such as the server IP address, to that host. Other hosts are blocked by default. If a developer explicitly adds hosts through the `sscribe_allowed_image_hosts` filter, image embedding may send HTTP GET requests to those administrator-approved hosts; the site operator is responsible for reviewing the terms and privacy policy of any host they add.
 
 = What happens when the plugin is uninstalled? =
 
@@ -118,9 +118,14 @@ Build transformations are documented in docs/BUILD_TRANSFORMATIONS.md.
 == Changelog ==
 
 = 2.0.3 =
-* Fixed activation on hosting environments where the primary PHP temp directory cannot satisfy SScribe's private-storage policy by selecting the next validated private base.
-* Removed a dynamic global shutdown lock flagged by WordPress Plugin Check; the operational logger now uses class-scoped state.
-* Hardened cross-platform release tooling and exact-package certification.
+* Fixed activation on managed hosting and container environments by accepting validated writable private bases without weakening public-path or symlink protections.
+* Removed a dynamic global shutdown lock flagged by WordPress Plugin Check; the operational logger now uses class-scoped state and retains the documented five rotated logs plus the live log.
+* Hardened export finalization so archive publication stops when durable session state, locks, ZIP integrity, or export metadata cannot be safely committed.
+* Hardened admin-rendered dynamic HTML and URL attributes against attribute injection while preserving same-origin download and media URL checks.
+* Improved database portability, session/key persistence, lock renewal, stale-lock takeover, and concurrent export cleanup behavior.
+* Fixed session-admission, cancellation, scheduled cleanup, and privacy-erasure races so live export locks cannot be removed by competing requests.
+* Fixed registered public custom post type exports so selectable custom content is hydrated and exported instead of being rejected after selection.
+* Hardened cross-platform release tooling, real-WordPress compatibility coverage, and exact-package certification.
 
 = 2.0.2 =
 * Release-system hardening plus runtime reliability fixes, including storage/activation compatibility and export-path corrections.
@@ -149,7 +154,7 @@ Build transformations are documented in docs/BUILD_TRANSFORMATIONS.md.
 == Upgrade Notice ==
 
 = 2.0.3 =
-Fixes private-storage activation compatibility and a Plugin Check warning, with no manual data migration required.
+Fixes private-storage activation compatibility, Plugin Check compliance, export finalization reliability, custom post type exports, session concurrency safety, and admin-output hardening. No manual data migration is required.
 
 = 2.0.2 =
 Release hardening and runtime reliability fixes; no manual migration action is required.

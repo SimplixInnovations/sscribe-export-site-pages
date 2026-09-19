@@ -212,23 +212,33 @@ final class SScribe_Plugin_Check_Test extends TestCase {
 		$this::assertStringContainsString( 'scripts/release-audit.php', $wrapper );
 	}
 
-	public function test_release_audit_uses_registered_plugin_check_cli_command(): void {
-		$source = (string) file_get_contents( self::plugin_root() . '/scripts/release-audit.php' );
+	public function test_release_audit_bootstraps_plugin_check_runtime_checks(): void {
+		$source    = (string) file_get_contents( self::plugin_root() . '/scripts/release-audit.php' );
+		$bootstrap = (string) @file_get_contents( self::plugin_root() . '/scripts/plugin-check-cli-bootstrap.php' );
 
-		$this::assertStringNotContainsString(
-			'--require=',
-			$source,
-			'Plugin Check must bootstrap as an activated WordPress plugin; requiring cli.php directly bypasses constants/hooks required by current Plugin Check.'
-		);
-		$this::assertStringNotContainsString(
-			'plugin-check/cli.php',
-			$source,
-			'Release audit must not depend on Plugin Check internal file layout.'
-		);
 		$this::assertStringContainsString(
-			"array( \\$wp_bin, '--path=' . \\$wp_root, 'plugin', 'check'",
+			"'--require=' . " . '$plugin_check_bootstrap',
 			$source,
-			'Release audit must invoke the wp plugin check command registered by the activated official Plugin Check plugin.'
+			'Release audit must load the SScribe-owned Plugin Check bootstrap before WordPress starts.'
+		);
+		$this::assertStringNotContainsString(
+			"'--require=' . " . '$plugin_check_cli',
+			$source,
+			'Release audit must not require Plugin Check cli.php directly because the CLI can reach PHPCS checks before its directory constant is defined.'
+		);
+		$this::assertStringContainsString( "define( 'WP_PLUGIN_CHECK_PLUGIN_DIR_PATH'", $bootstrap );
+		$this::assertStringContainsString(
+			'require ' . '$plugin_check_cli' . ';',
+			$bootstrap,
+			'The compatibility bootstrap must delegate to the official Plugin Check CLI entry point after defining the missing runtime constant.'
+		);
+		$this::assertStringContainsString( '$wp_bin,', $source );
+		$this::assertStringContainsString( "'--path=' . " . '$wp_root', $source );
+		$this::assertStringContainsString( "'plugin',", $source );
+		$this::assertStringContainsString(
+			"'check',",
+			$source,
+			'Release audit must still invoke the official wp plugin check command.'
 		);
 	}
 

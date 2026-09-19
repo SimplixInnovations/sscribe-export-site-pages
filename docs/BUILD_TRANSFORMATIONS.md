@@ -19,13 +19,14 @@ script's end-of-run summary is updated in the same commit.
 ## 1. Excluded paths (not shipped)
 
 These paths are present in the working tree but do not appear in
-the release ZIP. The matching is segment-level (per the
-`is_release_path_excluded` matcher in `scripts/build-release.php`)
-— patterns are **not** globs; filenames and full segments only.
+the release ZIP. The `is_release_path_excluded` matcher in `scripts/build-release.php`
+supports `*` and `?` wildcards. Rules without a slash also match individual
+path segments, so exact development-directory exclusions such as `tests/`
+continue to work alongside wildcard rules such as `*.log`.
 
 ### Dev-only directories
 
-`tests/`, `tests-wp/`, `tests-e2e/`, `scripts/`, `.github/`,
+`tests/`, `tests-wp/`, `tests-js/`, `tests-e2e/`, `scripts/`, `.github/`,
 `docs/`, `examples/`, `samples/`, `.audit/`, `.agent/`,
 `.claude/`, `.opencode/`, `.cursor/`, `.windsurf/`, `.continue/`,
 `.codeium/`, `.mimosa/`, `.omo/`, `.aider*`, `.aider.chat.history`,
@@ -174,11 +175,18 @@ would fail the build.
 
 ---
 
-## 4. Files present in ZIP but not in the working tree
+## 4. Distribution paths created under a different relative name
 
-None. Every file in `dist/sscribe-export-site-pages/` traces back
-to a file in the working tree. (No synthesized files, no template
-generation.)
+One release path differs from its tracked source path:
+
+- `vendor-prefixed/phpoffice/phpword/COPYING.LESSER.txt` is copied
+  byte-for-byte from
+  `vendor-prefixed/phpoffice/phpword/COPYING.LESSER`. The renamed
+  `.txt` path preserves the required LGPL notice while avoiding the
+  unexpected-extension warning emitted by WordPress Plugin Check.
+
+Every other file in `dist/sscribe-export-site-pages/` retains the
+same relative path as its tracked source.
 
 ---
 
@@ -195,9 +203,11 @@ Examples (illustrative — full list varies per release):
 
 ---
 
-## 6. Files in the ZIP that are NOT in the working tree
+## 6. Files in the ZIP that do not exist at the same tracked path
 
-None.
+Only `vendor-prefixed/phpoffice/phpword/COPYING.LESSER.txt`; it is the
+byte-for-byte renamed copy documented in Sections 3 and 4. No file
+content is synthesized.
 
 ---
 
@@ -212,9 +222,9 @@ arrays at the top of `scripts/build-release.php`.
 ## How to verify a build
 
 ```bash
-rm -rf dist/sscribe-export-site-pages dist/sscribe-export-site-pages-2.0.0.zip
+rm -rf dist/sscribe-export-site-pages dist/sscribe-export-site-pages-2.0.3.zip
 composer release 2>&1 | tee build.log
-diff <(unzip -l dist/sscribe-export-site-pages-2.0.0.zip | awk '{print $4}' | sort) \
+diff <(unzip -l dist/sscribe-export-site-pages-2.0.3.zip | awk '{print $4}' | sort) \
      <(find dist/sscribe-export-site-pages -type f | sed 's|dist/sscribe-export-site-pages/||' | sort)
 # Last command should produce no output (ZIP listing == dist listing).
 ```

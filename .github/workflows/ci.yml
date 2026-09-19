@@ -1032,6 +1032,24 @@ jobs:
         name: Real WordPress Integration Suite (matrix)
         runs-on: ubuntu-latest
         needs: test
+        services:
+            mysql:
+                image: mysql:8.0
+                env:
+                    MYSQL_DATABASE: wordpress_test
+                    MYSQL_ALLOW_EMPTY_PASSWORD: 'yes'
+                ports:
+                    - 3306:3306
+                options: >-
+                    --health-cmd="mysqladmin ping --silent"
+                    --health-interval=10s
+                    --health-timeout=5s
+                    --health-retries=10
+        env:
+            WP_TEST_DB_NAME: wordpress_test
+            WP_TEST_DB_USER: root
+            WP_TEST_DB_PASSWORD: ''
+            WP_TEST_DB_HOST: 127.0.0.1
         strategy:
             fail-fast: false
             matrix:
@@ -1047,12 +1065,15 @@ jobs:
                 # that drops a recently-removed WP API or assumes a
                 # not-yet-shipped WP API is caught.
                 wp-version: ['latest', 'previous']
+                database: ['sqlite']
                 include:
-                    # Explicit declared-minimum compatibility leg. The rolling
-                    # latest/previous matrix proves current WordPress support;
-                    # this leg proves the published WP 6.1 + PHP 8.2 floor.
+                    # Explicit declared-minimum compatibility leg. Maintained
+                    # SQLite Database Integration releases require newer
+                    # WordPress, so the published WP 6.1 + PHP 8.2 floor is
+                    # exercised against a real MySQL service instead.
                     - php-version: '8.2'
                       wp-version: '6.1'
+                      database: 'mysql'
         steps:
             - name: Checkout code
               uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
@@ -1078,7 +1099,12 @@ jobs:
               run: composer install --no-progress
 
             - name: Install WordPress testbench (SQLite drop-in, WP ${{ matrix.wp-version }})
-              run: composer test:wp:install -- --version ${{ matrix.wp-version }}
+              if: matrix.database == 'sqlite'
+              run: php scripts/install-wp-tests.php --sqlite --version ${{ matrix.wp-version }}
+
+            - name: Install WordPress testbench (MySQL, WP ${{ matrix.wp-version }})
+              if: matrix.database == 'mysql'
+              run: php scripts/install-wp-tests.php --version ${{ matrix.wp-version }}
 
             - name: Generate prefixed vendor tree
               run: composer vendor:prefix

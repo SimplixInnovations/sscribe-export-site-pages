@@ -131,6 +131,65 @@ class SScribe_Export_Lock_Manager {
 		return null;
 	}
 
+
+	/**
+	 * Renew an owned database-backed lock without overwriting a successor.
+	 *
+	 * The update is a compare-and-swap against the complete observed option
+	 * value. If the lock expired and another request reclaimed it between the
+	 * read and update, the WHERE clause no longer matches and renewal fails.
+	 *
+	 * @param string      $session_id Session identifier.
+	 * @param string|null $lock_token Ownership token returned by acquire_lock().
+	 * @param int         $lock_ttl   Renewed lock TTL in seconds.
+	 * @return bool True only when the same owned lock row was renewed.
+	 * @phpstan-impure This method performs an ownership-conditional database update.
+	 */
+	public function renew_lock( string $session_id, ?string $lock_token, int $lock_ttl = 120 ): bool {
+		if ( null === $lock_token || '' === $lock_token ) {
+			return false;
+		}
+
+		$sanitized = sanitize_key( $session_id );
+		if ( '' === $sanitized || strlen( $sanitized ) > 64 || ! hash_equals( $session_id, $sanitized ) ) {
+			return false;
+		}
+
+		$option_key = self::OPTION_PREFIX . $sanitized;
+		$raw        = get_option( $option_key, false );
+		if ( ! is_string( $raw ) ) {
+			return false;
+		}
+
+		$parts  = explode( '|', $raw, 3 );
+		$stored = $parts[1] ?? '';
+		if ( '' === $stored || ! hash_equals( $lock_token, $stored ) ) {
+			return false;
+		}
+
+		$lock_ttl     = max( 5, min( 1800, $lock_ttl ) );
+		$current_time = time();
+		$old_expires  = isset( $parts[2] ) && ctype_digit( $parts[2] ) ? (int) $parts[2] : 0;
+		$new_expires  = max( $current_time + $lock_ttl, $old_expires + 1 );
+		$new_value    = $current_time . '|' . $lock_token . '|' . $new_expires;
+
+		global $wpdb;
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Exact-value compare-and-swap is required so renewal cannot overwrite a successor lock.
+		$updated = $wpdb->update(
+			$wpdb->options,
+			array( 'option_value' => $new_value ),
+			array(
+				'option_name'  => $option_key,
+				'option_value' => $raw,
+			),
+			array( '%s' ),
+			array( '%s', '%s' )
+		);
+		wp_cache_delete( $option_key, 'options' );
+
+		return 1 === $updated;
+	}
+
 	/**
 	 * Release a processing lock.
 	 *
@@ -246,16 +305,26 @@ class SScribe_Export_Lock_Manager {
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Bounded cleanup of expired plugin-owned transient rows.
 		$expired_locks = $wpdb->get_results(
 			$wpdb->prepare(
-				"SELECT option_name FROM {$wpdb->options} WHERE option_name LIKE %s AND option_value < %d",
+				"SELECT option_name, option_value FROM {$wpdb->options} WHERE option_name LIKE %s AND option_value < %d",
 				$lock_timeout_pattern,
 				$now
 			)
 		);
 
 		$deleted = 0;
-		foreach ( $expired_locks as $expired ) {
-			$session_id = str_replace( '_transient_timeout_sscribe_lock_', '', $expired->option_name );
-			if ( $this->discard_lock( $session_id ) ) {
+		foreach ( (array) $expired_locks as $expired ) {
+			$timeout_option = (string) ( $expired->option_name ?? '' );
+			$timeout_value  = (string) ( $expired->option_value ?? '' );
+			$session_id     = str_replace( '_transient_timeout_sscribe_lock_', '', $timeout_option );
+			if (
+				'' === $session_id
+				|| '_transient_timeout_sscribe_lock_' . sanitize_key( $session_id ) !== $timeout_option
+				|| '' === $timeout_value
+			) {
+				continue;
+			}
+
+			if ( $this->delete_observed_legacy_transient_lock( $session_id, $timeout_option, $timeout_value ) ) {
 				++$deleted;
 			}
 		}
@@ -275,11 +344,12 @@ class SScribe_Export_Lock_Manager {
 				continue;
 			}
 
-			$parts     = explode( '|', (string) ( $lock->option_value ?? '' ), 3 );
-			$lock_time = isset( $parts[0] ) && ctype_digit( $parts[0] ) ? (int) $parts[0] : 0;
-			$expires   = isset( $parts[2] ) && ctype_digit( $parts[2] ) ? (int) $parts[2] : 0;
+			$observed_value = (string) ( $lock->option_value ?? '' );
+			$parts          = explode( '|', $observed_value, 3 );
+			$lock_time      = isset( $parts[0] ) && ctype_digit( $parts[0] ) ? (int) $parts[0] : 0;
+			$expires        = isset( $parts[2] ) && ctype_digit( $parts[2] ) ? (int) $parts[2] : 0;
 			if ( 0 === $lock_time || ( $expires > 0 ? $expires <= $now : $now - $lock_time > 600 ) || $now - $lock_time < -300 ) {
-				if ( delete_option( $option_name ) ) {
+				if ( $this->delete_owned_option_lock( $option_name, $observed_value ) ) {
 					++$deleted;
 				}
 			}

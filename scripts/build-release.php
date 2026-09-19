@@ -35,7 +35,7 @@ $config = array(
 		'package.json', 'package-lock.json', 'opencode.json', 'CONTRIBUTING.md', 'CHANGELOG.md',
 		'phpunit.xml', 'phpunit.xml.dist', 'phpstan.neon', 'phpstan.neon.dist',
 		'phpcs.xml', 'phpstan-bootstrap.php', '.editorconfig', '.wp-env.json',
-		'tests', 'tests-wp', 'tests-e2e', 'scripts', '.github', '.gitattributes', 'docs', 'examples', 'samples',
+		'tests', 'tests-wp', 'tests-js', 'tests-e2e', 'scripts', '.github', '.gitattributes', 'docs', 'examples', 'samples',
 		// bin/ holds real-WP testbench shell helpers (install-wp-tests.sh etc.)
 		// added in 14379d2. Never ship them in the release ZIP.
 		'bin',
@@ -975,7 +975,7 @@ echo "===========================================\n\n";
 echo "Build transformations applied (working tree -> shipped ZIP):\n\n";
 echo "  Excluded paths:\n";
 echo "    - All base_excludes entries (dev-only dirs: tests, tests-wp,\n";
-echo "      tests-e2e, scripts, .github, docs, examples, samples,\n";
+echo "      tests-js, tests-e2e, scripts, .github, docs, examples, samples,\n";
 echo "      .superpowers, .audit, .agent, .claude, .opencode, .cursor,\n";
 echo "      .windsurf, .continue, .codeium, .aider*, .mimosa, .omo,\n";
 echo "      node_modules, vendor-prefixed/.github, vendor-prefixed/.git,\n";
@@ -1034,10 +1034,10 @@ echo "      SScribe code).\n";
 echo "    - includes/sscribe-vendor-compat.php removed (local-dev\n";
 echo "      shim — release code uses only prefixed vendors).\n\n";
 
-echo "  Source files added to the ZIP that are NOT in the working tree:\n";
-echo "    - dist/sscribe-export-site-pages/license.txt is a verbatim\n";
-echo "      copy of ./license.txt (already tracked in git).\n";
-echo "    - dist/sscribe-export-site-pages/readme.txt is a verbatim\n";
-echo "      copy of ./readme.txt (already tracked in git).\n\n";
+echo "  Distribution paths created under a different relative name:\n";
+echo "    - vendor-prefixed/phpoffice/phpword/COPYING.LESSER.txt is copied byte-for-byte from\n";
+echo "      vendor-prefixed/phpoffice/phpword/COPYING.LESSER so the required LGPL notice\n";
+echo "      ships under an extension accepted by WordPress Plugin Check.\n";
+echo "    - All other distribution files retain their source-relative path.\n\n";
 
 echo "Build successful. No development files or unused fonts included.\n\n";

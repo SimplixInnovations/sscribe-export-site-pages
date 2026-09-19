@@ -99,13 +99,10 @@ final class SScribe_I18N_Test extends TestCase {
 		$this::assertSame( 0, $payload['wrong_domain_calls'] );
 		$this::assertSame( $payload['translation_calls_total'], $payload['translation_calls_with_domain'] );
 
-		// POT must contain at least as many msgids as the source
-		// has msgids (potentially more because some are listed in
-		// context headers or header banners).
-		$this::assertGreaterThanOrEqual(
-			$payload['source_msgids_checked'],
-			$payload['pot_msgid_count']
-		);
+		// Multiple source calls may reuse the same msgid, so the POT can
+		// legitimately contain fewer unique entries than translation calls.
+		// Completeness is proven by the explicit missing-msgid check below.
+		$this::assertGreaterThan( 0, $payload['pot_msgid_count'] );
 		$this::assertSame( 0, $payload['source_msgids_missing_in_pot'] );
 	}
 
@@ -287,6 +284,24 @@ final class SScribe_I18N_Test extends TestCase {
 				@unlink( $backup_path );
 			}
 		}
+	}
+
+
+	public function test_pot_excludes_test_and_fixture_trees(): void {
+		$root = self::plugin_root();
+		$pot  = (string) file_get_contents( $root . '/languages/sscribe-export-site-pages.pot' );
+
+		$this::assertStringNotContainsString( '#: tests-wp/', $pot );
+		$this::assertStringNotContainsString( '#: tests-e2e/', $pot );
+		$this::assertStringNotContainsString( '#: stubs/', $pot );
+	}
+
+	public function test_make_pot_excludes_nonproduction_trees(): void {
+		$source = (string) file_get_contents( self::plugin_root() . '/scripts/make-pot.php' );
+
+		$this::assertStringContainsString( 'tests-wp', $source );
+		$this::assertStringContainsString( 'tests-e2e', $source );
+		$this::assertStringContainsString( 'stubs', $source );
 	}
 
 	public function test_mainfile_header_constants(): void {

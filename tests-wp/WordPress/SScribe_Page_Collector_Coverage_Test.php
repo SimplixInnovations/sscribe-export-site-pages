@@ -453,6 +453,36 @@ final class SScribe_Page_Collector_Coverage_Test extends SScribe_WP_TestCase {
 		$this::assertFalse( $this->collector->get_page_data( $cpt_id ) );
 	}
 
+	public function test_get_page_data_supports_selectable_public_custom_post_type(): void {
+		register_post_type(
+			'sscribe_portfolio',
+			array(
+				'public' => true,
+				'label'  => 'Portfolio',
+			)
+		);
+
+		try {
+			$post_id = $this->factory()->post->create(
+				array(
+					'post_type'    => 'sscribe_portfolio',
+					'post_status'  => 'publish',
+					'post_title'   => 'Portfolio Entry',
+					'post_content' => '<p>Custom post type export body</p>',
+				)
+			);
+
+			$this::assertContains( 'sscribe_portfolio', $this->collector->get_selectable_post_types() );
+			$data = $this->collector->get_page_data( $post_id );
+
+			$this::assertIsArray( $data );
+			$this::assertSame( $post_id, $data['id'] );
+			$this::assertStringContainsString( 'Custom post type export body', $data['content'] );
+		} finally {
+			unregister_post_type( 'sscribe_portfolio' );
+		}
+	}
+
 	public function test_get_page_data_returns_protected_shape_for_password_protected_page(): void {
 		$pages   = $this->make_pages( 1, 'page', 'publish' );
 		$page_id = (int) $pages[0];

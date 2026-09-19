@@ -2955,8 +2955,8 @@
 				return '';
 			}
 			const div = document.createElement('div');
-			div.textContent = str;
-			return div.innerHTML;
+			div.textContent = String(str);
+			return div.innerHTML.replace(/"/g, '&quot;').replace(/'/g, '&#039;');
 		},
 		/**
 		 * Accept only same-origin HTTP(S) URLs before placing server data in a URL attribute.
@@ -4099,15 +4099,16 @@
 		},
 		downloadExport: function (e) {
 			const $link = $(e.currentTarget);
-			const href = $link.attr('href');
-			if (href && href !== '#') {
+			const href = $link.attr('href') || '';
+			const safeHref = this.getSafeSameOriginUrl(href);
+			if (safeHref) {
 				return;
 			}
+
+			// History rows are rendered only with a validated same-origin
+			// download URL. If markup is stale or tampered with, fail closed
+			// instead of treating a filename/data attribute as a navigation URL.
 			e.preventDefault();
-			const filename = $link.data('filename') || $link.attr('href');
-			if (filename && filename !== '#') {
-				window.location.href = filename;
-			}
 		},
 		retry: function (e) {
 			e.preventDefault();

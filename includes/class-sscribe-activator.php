@@ -360,53 +360,73 @@ class SScribe_Activator {
 	private static function cleanup_orphaned_data(): void {
 		global $wpdb;
 
-		$session_pattern = $wpdb->esc_like( '_transient_sscribe_session_' ) . '%';
-		$lock_pattern    = $wpdb->esc_like( '_transient_sscribe_lock_' ) . '%';
-		$rate_pattern    = $wpdb->esc_like( '_transient_sscribe_rate_' ) . '%';
-
 		$patterns = array(
-			$session_pattern,
-			$lock_pattern,
-			$rate_pattern,
+			$wpdb->esc_like( '_transient_sscribe_session_' ) . '%',
+			$wpdb->esc_like( '_transient_sscribe_lock_' ) . '%',
+			$wpdb->esc_like( '_transient_sscribe_rate_' ) . '%',
 			$wpdb->esc_like( 'sscribe_export_lock_' ) . '%',
 			$wpdb->esc_like( 'sscribe_rate_lock_' ) . '%',
-		);
-
-		foreach ( $patterns as $pattern ) {
-
-			do {
-				// SQLite rejects `DELETE ... LIMIT N` without a wrapping subquery;
-				// the `option_id IN (SELECT option_id ... LIMIT N)` form works on
-				// both MySQL and SQLite and keeps the bounded chunk-delete loop
-				// semantics from the original implementation.
-				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Cleanup operation during activation.
-				$rows = $wpdb->query(
-					$wpdb->prepare(
-						"DELETE FROM {$wpdb->options} WHERE option_id IN (SELECT option_id FROM {$wpdb->options} WHERE option_name LIKE %s LIMIT 1000)",
-						$pattern
-					)
-				);
-			} while ( false !== $rows && $rows > 0 );
-		}
-
-		$timeout_patterns = array(
 			$wpdb->esc_like( '_transient_timeout_sscribe_session_' ) . '%',
 			$wpdb->esc_like( '_transient_timeout_sscribe_lock_' ) . '%',
 			$wpdb->esc_like( '_transient_timeout_sscribe_rate_' ) . '%',
 		);
 
-		foreach ( $timeout_patterns as $pattern ) {
-			do {
-				// SQLite-compatible form: see comment in the primary loop above.
-				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Cleanup operation during activation.
-				$rows = $wpdb->query(
-					$wpdb->prepare(
-						"DELETE FROM {$wpdb->options} WHERE option_id IN (SELECT option_id FROM {$wpdb->options} WHERE option_name LIKE %s LIMIT 1000)",
-						$pattern
-					)
-				);
-			} while ( false !== $rows && $rows > 0 );
+		foreach ( $patterns as $pattern ) {
+			self::delete_option_pattern_in_batches( $pattern );
 		}
+	}
+
+	/**
+	 * Delete matching options in bounded, cross-database batches.
+	 *
+	 * MySQL rejects LIMIT inside an IN/ALL/ANY/SOME subquery, while SQLite
+	 * does not consistently support DELETE ... LIMIT. Selecting the option
+	 * IDs first and deleting that bounded ID set keeps activation cleanup
+	 * portable across both database engines without an unbounded delete.
+	 *
+	 * @param string $pattern Escaped SQL LIKE pattern.
+	 */
+	private static function delete_option_pattern_in_batches( string $pattern ): void {
+		global $wpdb;
+
+		do {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Bounded activation cleanup against the options table.
+			$option_ids = $wpdb->get_col(
+				$wpdb->prepare(
+					"SELECT option_id FROM {$wpdb->options} WHERE option_name LIKE %s LIMIT 1000",
+					$pattern
+				)
+			);
+
+			$option_ids = array_values(
+				array_unique(
+					array_filter(
+						array_map( 'absint', is_array( $option_ids ) ? $option_ids : array() )
+					)
+				)
+			);
+
+			if ( empty( $option_ids ) ) {
+				break;
+			}
+
+			$rows = 0;
+			foreach ( $option_ids as $option_id ) {
+				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Bounded activation cleanup by canonical option_id; wpdb::delete() prepares the integer predicate.
+				$deleted = $wpdb->delete(
+					$wpdb->options,
+					array( 'option_id' => $option_id ),
+					array( '%d' )
+				);
+
+				if ( false === $deleted ) {
+					$rows = false;
+					break;
+				}
+
+				$rows += (int) $deleted;
+			}
+		} while ( false !== $rows && $rows > 0 );
 	}
 
 	/**

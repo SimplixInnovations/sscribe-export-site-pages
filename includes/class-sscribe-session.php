@@ -313,102 +313,116 @@ class SScribe_Session {
 		$max_retries = 5;
 		$attempt     = 0;
 
-		while ( $attempt < $max_retries ) {
-			$session_id = sanitize_key( bin2hex( random_bytes( 8 ) ) );
-			$session_id = strtolower( $session_id );
+		$user_id              = isset( $data['user_id'] ) ? (int) $data['user_id'] : 0;
+		$admission_lock_name  = $user_id > 0 ? 'session-create-user-' . $user_id : '';
+		$admission_lock_token = null;
 
-			$data['created_at'] = time();
-			$data['session_id'] = $session_id;
-			$data['_sig']       = $this->sign_session_id( $session_id );
-			$data['updated_at'] = time();
-
-			$encoded_data = wp_json_encode( $data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES );
-
-			if ( false === $encoded_data ) {
-				$this->logger->error(
-					'Failed to JSON-encode session data',
-					array( 'session_id' => $session_id )
-				);
-				return '';
-			}
-
-			if ( isset( $data['user_id'] ) ) {
-				$transient_key = 'sscribe_active_sid_' . $data['user_id'];
-				$existing      = get_transient( $transient_key );
-				if ( false !== $existing && '0' !== $existing && is_string( $existing ) ) {
-					$existing_data = $this->get( $existing );
-					if ( $existing_data && $this->is_active_session_data( $existing_data ) ) {
-						$this->logger->warning(
-							'Blocked duplicate session creation : user has active session',
-							array(
-								'user_id'          => $data['user_id'],
-								'existing_session' => $existing,
-								'blocked_attempt'  => $session_id,
-							)
-						);
-						return '';
-					}
-
-					delete_transient( $transient_key );
-				}
-			}
-
-			$encrypted_data = self::$test_mode ? $encoded_data : $this->encrypt_session_data( $encoded_data );
-			$result = add_option( self::OPTION_PREFIX . $session_id, $encrypted_data, '', 'no' );
-			if ( $result ) {
-				$this->invalidate_session_index();
-			}
-
-			if ( $result ) {
-
-				if ( isset( $data['user_id'] ) ) {
-
-					$active_sid_user_id = (int) $data['user_id'];
-					$this->set_active_sid_transient( $active_sid_user_id, $session_id, DAY_IN_SECONDS );
-
-					if ( $this->get_active_sid_transient( $active_sid_user_id ) !== $session_id ) {
-						$this->logger->error(
-							'Active-session transient verification failed : rolling back',
-							array(
-								'user_id'    => $data['user_id'],
-								'session_id' => $session_id,
-							)
-						);
-						delete_option( self::OPTION_PREFIX . $session_id );
-						++$attempt;
-						continue;
-					}
-				}
-
-				break;
-			}
-
-			$this->logger->warning(
-				'Session ID collision detected, retrying',
-				array(
-					'session_id' => $session_id,
-					'attempt'    => $attempt + 1,
-					'max'        => $max_retries,
-				)
-			);
-			++$attempt;
-
-			if ( $attempt >= $max_retries ) {
-				$this->logger->error(
-					'Failed to create session after max retries (collision)',
-					array(
-						'attempts' => $max_retries,
-						'data'     => array(
-							'user_id' => $data['user_id'] ?? null,
-							'action'  => $data['action'] ?? 'unknown',
-						),
-					)
+		if ( '' !== $admission_lock_name ) {
+			$admission_lock_token = $this->get_lock_manager()->acquire_lock( $admission_lock_name, 30, 25 );
+			if ( null === $admission_lock_token ) {
+				$this->logger->warning(
+					'Session admission is already in progress for this user',
+					array( 'user_id' => $user_id )
 				);
 				return '';
 			}
 		}
 
-		return $session_id;
+		try {
+			while ( $attempt < $max_retries ) {
+				$session_id = sanitize_key( bin2hex( random_bytes( 8 ) ) );
+				$session_id = strtolower( $session_id );
+
+				$data['created_at'] = time();
+				$data['session_id'] = $session_id;
+				$data['_sig']       = $this->sign_session_id( $session_id );
+				$data['updated_at'] = time();
+
+				$encoded_data = wp_json_encode( $data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES );
+
+				if ( false === $encoded_data ) {
+					$this->logger->error(
+						'Failed to JSON-encode session data',
+						array( 'session_id' => $session_id )
+					);
+					return '';
+				}
+
+				if ( $user_id > 0 ) {
+					$existing = $this->get_active_sid_transient( $user_id );
+					if ( false !== $existing && '0' !== $existing && is_string( $existing ) ) {
+						$existing_data = $this->get( $existing );
+						if ( $existing_data && $this->is_active_session_data( $existing_data ) ) {
+							$this->logger->warning(
+								'Blocked duplicate session creation : user has active session',
+								array(
+									'user_id'          => $user_id,
+									'existing_session' => $existing,
+									'blocked_attempt'  => $session_id,
+								)
+							);
+							return '';
+						}
+
+						$this->delete_active_sid_transient( $user_id );
+					}
+				}
+
+				$encrypted_data = self::$test_mode ? $encoded_data : $this->encrypt_session_data( $encoded_data );
+				$result         = add_option( self::OPTION_PREFIX . $session_id, $encrypted_data, '', 'no' );
+				if ( $result ) {
+					$this->invalidate_session_index();
+				}
+
+				if ( $result ) {
+					if ( $user_id > 0 ) {
+						$this->set_active_sid_transient( $user_id, $session_id, DAY_IN_SECONDS );
+
+						if ( $this->get_active_sid_transient( $user_id ) !== $session_id ) {
+							$this->logger->error(
+								'Active-session transient verification failed : rolling back',
+								array(
+									'user_id'    => $user_id,
+									'session_id' => $session_id,
+								)
+							);
+							delete_option( self::OPTION_PREFIX . $session_id );
+							$this->invalidate_session_index();
+							++$attempt;
+							continue;
+						}
+					}
+
+					return $session_id;
+				}
+
+				$this->logger->warning(
+					'Session ID collision detected, retrying',
+					array(
+						'session_id' => $session_id,
+						'attempt'    => $attempt + 1,
+						'max'        => $max_retries,
+					)
+				);
+				++$attempt;
+			}
+
+			$this->logger->error(
+				'Failed to create session after max retries (collision)',
+				array(
+					'attempts' => $max_retries,
+					'data'     => array(
+						'user_id' => $data['user_id'] ?? null,
+						'action'  => $data['action'] ?? 'unknown',
+					),
+				)
+			);
+			return '';
+		} finally {
+			if ( null !== $admission_lock_token ) {
+				$this->get_lock_manager()->release_lock( $admission_lock_name, $admission_lock_token );
+			}
+		}
 	}
 
 	/**
@@ -674,6 +688,48 @@ class SScribe_Session {
 	}
 
 	/**
+	 * Delete a user-owned session only when its processing lock is available.
+	 *
+	 * This is the cleanup boundary for privacy and other trusted lifecycle
+	 * callers that must never remove live batch state concurrently.
+	 *
+	 * @param string $session_id       Session identifier.
+	 * @param int    $expected_user_id Expected owning user ID.
+	 * @return bool True when this call deleted the session.
+	 */
+	public function delete_owned_if_unlocked( string $session_id, int $expected_user_id ): bool {
+		$sanitized = sanitize_key( $session_id );
+		if (
+			$expected_user_id <= 0
+			|| '' === $sanitized
+			|| ! hash_equals( $session_id, $sanitized )
+			|| ! self::is_valid_session_id( $sanitized )
+		) {
+			return false;
+		}
+
+		$lock_token = $this->get_lock_manager()->acquire_lock( $sanitized, 30, 25 );
+		if ( null === $lock_token ) {
+			return false;
+		}
+
+		try {
+			$fresh = $this->get( $sanitized );
+			if (
+				! is_array( $fresh )
+				|| ! isset( $fresh['user_id'] )
+				|| (int) $fresh['user_id'] !== $expected_user_id
+			) {
+				return false;
+			}
+
+			return $this->delete( $sanitized );
+		} finally {
+			$this->get_lock_manager()->release_lock( $sanitized, $lock_token );
+		}
+	}
+
+	/**
 	 * Store page IDs in a durable, non-autoloaded option.
 	 *
 	 * External object caches accelerate reads but are never authoritative.
@@ -878,19 +934,20 @@ class SScribe_Session {
 	public function cleanup_expired( int $max_age_seconds = 14400 ): int {
 		global $wpdb;
 
-		$pattern     = $wpdb->esc_like( self::OPTION_PREFIX ) . '%';
-		$now         = time();
-		$start_time  = microtime( true );
-		$max_seconds = 30;
+		$pattern         = $wpdb->esc_like( self::OPTION_PREFIX ) . '%';
+		$now             = time();
+		$start_time      = microtime( true );
+		$max_seconds     = 30;
+		$max_age_seconds = max( 0, $max_age_seconds );
 
 		$deleted = 0;
 		$cursor  = '';
 
 		do {
-
 			if ( ( microtime( true ) - $start_time ) > $max_seconds ) {
 				break;
 			}
+
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Cleanup operation scans session options in bounded batches; caching not applicable.
 			$options = $wpdb->get_results(
 				$wpdb->prepare(
@@ -901,51 +958,31 @@ class SScribe_Session {
 				)
 			);
 
-			foreach ( $options as $option ) {
+			foreach ( (array) $options as $option ) {
 				$cursor     = (string) $option->option_name;
 				$session_id = self::extract_session_id( $cursor );
 				if ( null === $session_id ) {
 					continue;
 				}
-				$data       = $this->decode_session_value( $option->option_value, $session_id );
+
+				$observed_raw = $option->option_value ?? '';
+				$data         = $this->decode_session_value( $observed_raw, $session_id );
 
 				if ( ! is_array( $data ) ) {
-					if ( is_string( $option->option_value ) && str_starts_with( $option->option_value, 'a:' ) ) {
-						if ( delete_option( self::OPTION_PREFIX . $session_id ) ) {
-							$this->delete_page_ids( $session_id );
-							$this->get_lock_manager()->discard_lock( $session_id );
-							++$deleted;
-						}
-					}
-					continue;
-				}
-
-				$created_at    = (int) ( $data['created_at'] ?? 0 );
-				$updated_at    = (int) ( $data['updated_at'] ?? $created_at );
-				$last_activity = max( $created_at, $updated_at );
-
-				if ( $last_activity <= 0 || $last_activity > $now ) {
-					$last_activity = 0;
-				}
-
-				$status = $data['status'] ?? '';
-				$age    = $now - $last_activity;
-				if ( 'finalizing' === $status && $age < HOUR_IN_SECONDS ) {
-					continue;
-				}
-
-				if ( isset( $data['created_at'] ) && $last_activity > 0 && ( $now - $last_activity ) > $max_age_seconds ) {
-					if ( delete_option( self::OPTION_PREFIX . $session_id ) ) {
-						$this->delete_page_ids( $session_id );
-						$this->get_lock_manager()->discard_lock( $session_id );
-						if ( isset( $data['user_id'] ) ) {
-							$this->delete_active_sid_transient( (int) $data['user_id'] );
-						}
+					if (
+						is_string( $observed_raw )
+						&& str_starts_with( $observed_raw, 'a:' )
+						&& $this->delete_malformed_session_if_unlocked( $session_id, $observed_raw )
+					) {
 						++$deleted;
 					}
-				} elseif ( ! isset( $data['created_at'] ) && delete_option( self::OPTION_PREFIX . $session_id ) ) {
-					$this->delete_page_ids( $session_id );
-					$this->get_lock_manager()->discard_lock( $session_id );
+					continue;
+				}
+
+				if (
+					$this->is_expired_cleanup_candidate( $data, $now, $max_age_seconds )
+					&& $this->delete_expired_session_if_unlocked( $session_id, $now, $max_age_seconds )
+				) {
 					++$deleted;
 				}
 			}
@@ -957,6 +994,93 @@ class SScribe_Session {
 		$this->cleanup_orphaned_page_ids( $now, $start_time, $max_seconds );
 
 		return $deleted;
+	}
+
+	/**
+	 * Determine whether a decoded session is old enough for cleanup.
+	 *
+	 * The decision is deliberately recomputed after the per-session lock is
+	 * acquired so a stale database scan cannot delete a session that another
+	 * request refreshed immediately before cleanup obtained ownership.
+	 *
+	 * @param array $data            Decoded session data.
+	 * @param int   $now             Current Unix timestamp.
+	 * @param int   $max_age_seconds Maximum allowed idle age.
+	 * @return bool Whether the session is eligible for deletion.
+	 */
+	private function is_expired_cleanup_candidate( array $data, int $now, int $max_age_seconds ): bool {
+		$created_at    = (int) ( $data['created_at'] ?? 0 );
+		$updated_at    = (int) ( $data['updated_at'] ?? $created_at );
+		$last_activity = max( $created_at, $updated_at );
+
+		if ( $last_activity <= 0 || $last_activity > $now ) {
+			return ! isset( $data['created_at'] );
+		}
+
+		$status = (string) ( $data['status'] ?? '' );
+		$age    = $now - $last_activity;
+		if ( 'finalizing' === $status && $age < HOUR_IN_SECONDS ) {
+			return false;
+		}
+
+		return $age > $max_age_seconds;
+	}
+
+	/**
+	 * Delete an expired session only after acquiring its processing lock.
+	 *
+	 * @param string $session_id      Session identifier.
+	 * @param int    $now             Current Unix timestamp.
+	 * @param int    $max_age_seconds Maximum allowed idle age.
+	 * @return bool True when this call deleted the session.
+	 */
+	private function delete_expired_session_if_unlocked( string $session_id, int $now, int $max_age_seconds ): bool {
+		$lock_token = $this->get_lock_manager()->acquire_lock( $session_id, 30, 25 );
+		if ( null === $lock_token ) {
+			return false;
+		}
+
+		try {
+			$fresh = $this->get( $session_id );
+			if ( ! is_array( $fresh ) || ! $this->is_expired_cleanup_candidate( $fresh, $now, $max_age_seconds ) ) {
+				return false;
+			}
+
+			return $this->delete( $session_id );
+		} finally {
+			$this->get_lock_manager()->release_lock( $session_id, $lock_token );
+		}
+	}
+
+	/**
+	 * Remove a legacy malformed session only when the observed row is unchanged
+	 * and no processing request owns the session lock.
+	 *
+	 * @param string $session_id   Session identifier.
+	 * @param string $observed_raw Raw option value seen by the cleanup scan.
+	 * @return bool True when the malformed row was deleted.
+	 */
+	private function delete_malformed_session_if_unlocked( string $session_id, string $observed_raw ): bool {
+		$lock_token = $this->get_lock_manager()->acquire_lock( $session_id, 30, 25 );
+		if ( null === $lock_token ) {
+			return false;
+		}
+
+		try {
+			$current = get_option( self::OPTION_PREFIX . $session_id, null );
+			if ( ! is_string( $current ) || ! hash_equals( $observed_raw, $current ) ) {
+				return false;
+			}
+
+			if ( ! delete_option( self::OPTION_PREFIX . $session_id ) ) {
+				return false;
+			}
+
+			$this->delete_page_ids( $session_id );
+			return true;
+		} finally {
+			$this->get_lock_manager()->release_lock( $session_id, $lock_token );
+		}
 	}
 
 	/**
@@ -1042,13 +1166,35 @@ class SScribe_Session {
 				if ( null === $session_id ) {
 					continue;
 				}
+
 				$data = $this->decode_session_value( $option->option_value ?? '', $session_id );
-				if ( is_array( $data ) && isset( $data['user_id'] ) && (int) $data['user_id'] === $user_id ) {
-					if ( delete_option( self::OPTION_PREFIX . $session_id ) ) {
-						$this->delete_page_ids( $session_id );
-						$this->get_lock_manager()->discard_lock( $session_id );
+				if ( ! is_array( $data ) || ! isset( $data['user_id'] ) || (int) $data['user_id'] !== $user_id ) {
+					continue;
+				}
+
+				$lock_token = $this->get_lock_manager()->acquire_lock( $session_id, 30, 25 );
+				if ( null === $lock_token ) {
+					$this->logger->debug(
+						'Skipped session clear because processing lock is owned by another request',
+						array(
+							'user_id'    => $user_id,
+							'session_id' => $session_id,
+						)
+					);
+					continue;
+				}
+
+				try {
+					$fresh = $this->get( $session_id );
+					if ( ! is_array( $fresh ) || ! isset( $fresh['user_id'] ) || (int) $fresh['user_id'] !== $user_id ) {
+						continue;
+					}
+
+					if ( $this->delete( $session_id ) ) {
 						++$deleted;
 					}
+				} finally {
+					$this->get_lock_manager()->release_lock( $session_id, $lock_token );
 				}
 			}
 		} while ( $option_count === $limit );
@@ -1404,7 +1550,9 @@ class SScribe_Session {
 	 * @return bool True on success, false if a new key could not be generated.
 	 */
 	public function rotate_signing_key(): bool {
-		$current = $this->get_signing_key();
+		$current          = $this->get_signing_key();
+		$previous_before  = get_option( 'sscribe_session_signing_key_prev', null );
+		$rotated_before   = get_option( 'sscribe_session_signing_key_prev_rotated_at', null );
 
 		try {
 			$candidate = bin2hex( random_bytes( 32 ) );
@@ -1416,9 +1564,36 @@ class SScribe_Session {
 			return false;
 		}
 
-		update_option( 'sscribe_session_signing_key_prev', $current, false );
-		update_option( 'sscribe_session_signing_key', $candidate, false );
-		update_option( 'sscribe_session_signing_key_prev_rotated_at', time(), false );
+		$restore_option = static function ( string $name, mixed $value ): void {
+			if ( null === $value ) {
+				delete_option( $name );
+				return;
+			}
+			update_option( $name, $value, false );
+		};
+
+		$persisted_previous = update_option( 'sscribe_session_signing_key_prev', $current, false );
+		if ( ! $persisted_previous && (string) get_option( 'sscribe_session_signing_key_prev', '' ) !== $current ) {
+			$this->logger->error( 'Failed to persist previous SScribe session signing key during rotation' );
+			return false;
+		}
+
+		$persisted_current = update_option( 'sscribe_session_signing_key', $candidate, false );
+		if ( ! $persisted_current && (string) get_option( 'sscribe_session_signing_key', '' ) !== $candidate ) {
+			$restore_option( 'sscribe_session_signing_key_prev', $previous_before );
+			$this->logger->error( 'Failed to persist new SScribe session signing key during rotation' );
+			return false;
+		}
+
+		$rotated_at         = time();
+		$persisted_rotated = update_option( 'sscribe_session_signing_key_prev_rotated_at', $rotated_at, false );
+		if ( ! $persisted_rotated && (int) get_option( 'sscribe_session_signing_key_prev_rotated_at', 0 ) !== $rotated_at ) {
+			$restore_option( 'sscribe_session_signing_key', $current );
+			$restore_option( 'sscribe_session_signing_key_prev', $previous_before );
+			$restore_option( 'sscribe_session_signing_key_prev_rotated_at', $rotated_before );
+			$this->logger->error( 'Failed to persist SScribe session signing-key rotation timestamp; rotation rolled back' );
+			return false;
+		}
 
 		$this->logger->info( 'Rotated SScribe session signing key' );
 

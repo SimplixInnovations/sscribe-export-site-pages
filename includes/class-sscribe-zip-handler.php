@@ -210,12 +210,10 @@ class SScribe_Zip_Handler {
 			return false;
 		}
 
-		// Acquire the export-index lock BEFORE the build. Building a
-		// multi-format archive can take longer than the lock TTL, so the
-		// lock serves as a fast-fail gate rather than a strict critical
-		// section: if another export is currently mid-index-update, we
-		// bail out before doing minutes of build work that would be
-		// discarded. The lock_manager reclaims stale locks on its own.
+		// Acquire the export-index lock BEFORE the build as a fast-fail gate.
+		// Long archive assembly can outlive this initial lease, so ownership
+		// is renewed with an exact-value compare-and-swap before the archive
+		// is published and again before row/index metadata is committed.
 		$lock_manager = new SScribe_Export_Lock_Manager( $this->logger );
 		$lock_name    = 'export-index';
 		$lock_token   = $lock_manager->acquire_lock( $lock_name, 120, 115 );
@@ -255,6 +253,7 @@ class SScribe_Zip_Handler {
 				if ( file_exists( $tmp_zip ) ) {
 					wp_delete_file( $tmp_zip );
 				}
+				$lock_manager->release_lock( $lock_name, $lock_token );
 				return false;
 			}
 			$zip_opened = true;
@@ -354,6 +353,19 @@ class SScribe_Zip_Handler {
 			}
 		}
 
+		if ( ! $lock_manager->renew_lock( $lock_name, $lock_token, 120 ) ) {
+			$this->logger->error(
+				'Export package lost export-index ownership before archive publication',
+				array( 'zip' => basename( $zip_path ) )
+			);
+			if ( file_exists( $tmp_zip ) ) {
+				wp_delete_file( $tmp_zip );
+			}
+			$this->delete_directory( $source_dir );
+			$lock_manager->release_lock( $lock_name, $lock_token );
+			return false;
+		}
+
 		if ( file_exists( $tmp_zip ) && filesize( $tmp_zip ) > 0 ) {
 			// Both staging and final paths live in $this->export_dir, so
 			// the rename stays on one filesystem. No cross-drive move,
@@ -393,6 +405,16 @@ class SScribe_Zip_Handler {
 			return false;
 		}
 
+		if ( ! $lock_manager->renew_lock( $lock_name, $lock_token, 120 ) ) {
+			$this->logger->error(
+				'Export package lost export-index ownership before metadata publication',
+				array( 'zip' => basename( $zip_path ) )
+			);
+			wp_delete_file( $zip_path );
+			$lock_manager->release_lock( $lock_name, $lock_token );
+			return false;
+		}
+
 		try {
 			$basename = basename( $zip_path );
 			$row      = array(
@@ -422,24 +444,16 @@ class SScribe_Zip_Handler {
 			$index   = get_option( 'sscribe_export_index', array() );
 			$index[] = $basename;
 			$index   = array_values( array_unique( $index ) );
+			$removed = array();
 
 			if ( count( $index ) > 50 ) {
 				$removed = array_slice( $index, 0, count( $index ) - 50 );
 				$index   = array_slice( $index, -50 );
-				foreach ( $removed as $removed_basename ) {
-					$removed_basename = (string) $removed_basename;
-					delete_option( 'sscribe_export_row_' . md5( $removed_basename ) );
-					$removed_basename = $this->normalize_zip_filename( $removed_basename );
-					if ( '' === $removed_basename ) {
-						continue;
-					}
-					$file_path = $this->export_dir . '/' . $removed_basename;
-					if ( file_exists( $file_path ) ) {
-						wp_delete_file( $file_path );
-					}
-				}
 			}
 
+			// Commit the replacement bounded index before destroying any history
+			// it evicts. If persistence fails, the previous index and its files
+			// remain intact and only this newly-created archive is rolled back.
 			$index_saved = update_option( 'sscribe_export_index', $index, false );
 			if ( ! $index_saved && get_option( 'sscribe_export_index', array() ) !== $index ) {
 				$this->logger->error(
@@ -449,6 +463,19 @@ class SScribe_Zip_Handler {
 				delete_option( $row_option );
 				wp_delete_file( $zip_path );
 				return false;
+			}
+
+			foreach ( $removed as $removed_basename ) {
+				$removed_basename = (string) $removed_basename;
+				delete_option( 'sscribe_export_row_' . md5( $removed_basename ) );
+				$removed_basename = $this->normalize_zip_filename( $removed_basename );
+				if ( '' === $removed_basename ) {
+					continue;
+				}
+				$file_path = $this->export_dir . '/' . $removed_basename;
+				if ( file_exists( $file_path ) ) {
+					wp_delete_file( $file_path );
+				}
 			}
 		} finally {
 			$lock_manager->release_lock( $lock_name, $lock_token );

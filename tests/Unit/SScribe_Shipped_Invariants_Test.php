@@ -811,4 +811,37 @@ final class SScribe_Shipped_Invariants_Test extends TestCase {
 			'Status names must wrap inside compact desktop tracks when translations are longer than English.'
 		);
 	}
+	public function test_admin_html_escaping_is_safe_for_quoted_attribute_contexts(): void {
+		$script = (string) file_get_contents( self::$plugin_root . '/admin/js/sscribe-admin.js' );
+
+		$this->assertStringContainsString( 'return div.innerHTML.replace(', $script );
+		$this->assertStringContainsString(
+			'&quot;',
+			$script,
+			'The shared admin escaping helper must encode double quotes because its output is reused inside quoted HTML attributes.'
+		);
+		$this->assertStringContainsString(
+			'&#039;',
+			$script,
+			'The shared admin escaping helper must encode apostrophes because its output is reused inside quoted HTML attributes.'
+		);
+	}
+
+
+	public function test_release_transparency_names_the_renamed_phpword_license_path(): void {
+		$build = (string) file_get_contents( self::$plugin_root . '/scripts/build-release.php' );
+		$docs  = (string) file_get_contents( self::$plugin_root . '/docs/BUILD_TRANSFORMATIONS.md' );
+
+		$this->assertStringContainsString( 'Distribution paths created under a different relative name:', $build );
+		$this->assertStringContainsString( 'COPYING.LESSER.txt is copied byte-for-byte from', $build );
+		$this->assertStringContainsString( 'COPYING.LESSER.txt', $docs );
+		$this->assertStringContainsString( 'COPYING.LESSER', $docs );
+		$this->assertStringNotContainsString(
+			'Source files added to the ZIP that are NOT in the working tree:',
+			$build,
+			'The build report must not mislabel tracked root files as out-of-tree additions.'
+		);
+	}
+
+
 }

@@ -748,6 +748,12 @@ if ( ! function_exists( 'wp_clear_scheduled_hook' ) ) {
 	function wp_clear_scheduled_hook( $hook, $args = array() ) {
 		global $sscribe_test_scheduled_events;
 		unset( $args );
+
+		$blog_id = get_current_blog_id();
+		if ( isset( $GLOBALS['sscribe_test_scheduled_events_by_blog'] ) && is_array( $GLOBALS['sscribe_test_scheduled_events_by_blog'] ) ) {
+			unset( $GLOBALS['sscribe_test_scheduled_events_by_blog'][ $blog_id ][ $hook ] );
+		}
+
 		unset( $sscribe_test_scheduled_events[ $hook ] );
 		return true;
 	}
@@ -755,7 +761,7 @@ if ( ! function_exists( 'wp_clear_scheduled_hook' ) ) {
 
 if ( ! function_exists( 'is_multisite' ) ) {
 	function is_multisite() {
-		return false;
+		return ! empty( $GLOBALS['sscribe_test_is_multisite'] );
 	}
 }
 
@@ -781,21 +787,57 @@ if ( ! function_exists( 'wp_is_post_revision' ) ) {
 
 if ( ! function_exists( 'switch_to_blog' ) ) {
 	function switch_to_blog( $blog_id ) {
-		unset( $blog_id );
+		$GLOBALS['sscribe_test_blog_stack']   = isset( $GLOBALS['sscribe_test_blog_stack'] ) && is_array( $GLOBALS['sscribe_test_blog_stack'] )
+			? $GLOBALS['sscribe_test_blog_stack']
+			: array();
+		$GLOBALS['sscribe_test_blog_stack'][] = get_current_blog_id();
+		$GLOBALS['sscribe_test_blog_id']      = (int) $blog_id;
 		return true;
 	}
 }
 
 if ( ! function_exists( 'restore_current_blog' ) ) {
 	function restore_current_blog() {
+		if ( empty( $GLOBALS['sscribe_test_blog_stack'] ) || ! is_array( $GLOBALS['sscribe_test_blog_stack'] ) ) {
+			return false;
+		}
+		$GLOBALS['sscribe_test_blog_id'] = (int) array_pop( $GLOBALS['sscribe_test_blog_stack'] );
 		return true;
 	}
 }
 
 if ( ! function_exists( 'get_sites' ) ) {
 	function get_sites( $args = array() ) {
-		unset( $args );
-		return array();
+		$sites = isset( $GLOBALS['sscribe_test_sites'] ) && is_array( $GLOBALS['sscribe_test_sites'] )
+			? array_values( $GLOBALS['sscribe_test_sites'] )
+			: array();
+
+		$offset = isset( $args['offset'] ) ? max( 0, (int) $args['offset'] ) : 0;
+		$number = isset( $args['number'] ) ? (int) $args['number'] : 100;
+		if ( 0 === $number ) {
+			$page = array_slice( $sites, $offset );
+		} else {
+			$page = array_slice( $sites, $offset, max( 0, $number ) );
+		}
+
+		if ( isset( $args['fields'] ) && 'ids' === $args['fields'] ) {
+			return array_map(
+				static function ( $site ) {
+					return is_object( $site ) && isset( $site->blog_id ) ? (int) $site->blog_id : (int) $site;
+				},
+				$page
+			);
+		}
+
+		return array_map(
+			static function ( $site ) {
+				if ( is_object( $site ) && isset( $site->blog_id ) ) {
+					return $site;
+				}
+				return (object) array( 'blog_id' => (int) $site );
+			},
+			$page
+		);
 	}
 }
 
@@ -1142,6 +1184,12 @@ $sscribe_test_ajax_nonce_valid = true;
 			return 0;
 		}
 
+
+		public function get_col( $query ) {
+			unset( $query );
+			return array();
+		}
+
 		public function get_results( $query, $output = null ) {
 			global $sscribe_test_options, $sscribe_test_db_tables;
 
@@ -1252,7 +1300,23 @@ $sscribe_test_ajax_nonce_valid = true;
 		}
 
 		public function update( $table, $data, $where, $format = null, $where_format = null ) {
-			global $sscribe_test_db_tables;
+			global $sscribe_test_db_tables, $sscribe_test_options;
+
+			if ( $table === $this->options && isset( $where['option_name'], $where['option_value'], $data['option_value'] ) ) {
+				if ( isset( $GLOBALS['sscribe_test_before_wpdb_option_update'] ) && is_callable( $GLOBALS['sscribe_test_before_wpdb_option_update'] ) ) {
+					$callback = $GLOBALS['sscribe_test_before_wpdb_option_update'];
+					unset( $GLOBALS['sscribe_test_before_wpdb_option_update'] );
+					$callback( $where, $data );
+				}
+
+				$option_name = (string) $where['option_name'];
+				if ( ! array_key_exists( $option_name, $sscribe_test_options ) || (string) $sscribe_test_options[ $option_name ] !== (string) $where['option_value'] ) {
+					return 0;
+				}
+
+				$sscribe_test_options[ $option_name ] = $data['option_value'];
+				return 1;
+			}
 
 			if ( ! isset( $sscribe_test_db_tables[ $table ] ) || ! is_array( $sscribe_test_db_tables[ $table ] ) ) {
 				return false;

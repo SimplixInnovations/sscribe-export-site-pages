@@ -86,6 +86,45 @@ class SScribe_Filesystem_Test extends TestCase {
 		$this->assertEquals( 'Hello World', file_get_contents( $file ) );
 	}
 
+	public function test_put_contents_rejects_symlink_destination_to_prefix_sibling_root(): void {
+		if ( ! function_exists( 'symlink' ) ) {
+			$this->markTestSkipped( 'symlink() not available on this platform' );
+		}
+
+		$root = \SScribe_Private_Storage::get_export_dir();
+		if ( '' === $root ) {
+			$this->markTestSkipped( 'Private export root is unavailable.' );
+		}
+
+		$outside_dir = rtrim( $root, '/\\' ) . '-prefix-sibling-' . uniqid();
+		if ( ! @mkdir( $outside_dir, 0700, true ) && ! is_dir( $outside_dir ) ) {
+			$this->markTestSkipped( 'Could not create a prefix-sibling directory for the symlink regression.' );
+		}
+
+		$outside_file = $outside_dir . '/target.txt';
+		$link         = $this->in_export_dir( 'write-link-' . uniqid() . '.txt' );
+		file_put_contents( $outside_file, 'original' );
+
+		if ( ! @symlink( $outside_file, $link ) ) {
+			@unlink( $outside_file );
+			@rmdir( $outside_dir );
+			$this->markTestSkipped( 'symlink() not permitted on this platform' );
+		}
+
+		$fs = new \SScribe_Filesystem();
+		$this->assertSame(
+			\SScribe_Filesystem::SSCRIBE_PATH_REJECT,
+			$fs->is_path_safe_for_write( $link ),
+			'A write symlink must not be accepted merely because its target path begins with the private-root string.'
+		);
+		$this->assertFalse( $fs->put_contents( $link, 'overwrite-attempt' ) );
+		$this->assertSame( 'original', file_get_contents( $outside_file ) );
+
+		@unlink( $link );
+		@unlink( $outside_file );
+		@rmdir( $outside_dir );
+	}
+
 	public function test_get_contents_reads_file(): void {
 		$fs   = new \SScribe_Filesystem();
 		$file = $this->in_export_dir( 'test-read.txt' );
@@ -382,6 +421,33 @@ class SScribe_Filesystem_Test extends TestCase {
 	 *
 	 * Symlink() requires Developer Mode on Windows; skip otherwise.
 	 */
+	public function test_mkdir_under_private_root_rejects_intermediate_symlink_before_write(): void {
+		if ( ! function_exists( 'symlink' ) ) {
+			$this->markTestSkipped( 'symlink() not available on this platform' );
+		}
+
+		$fs          = new \SScribe_Filesystem();
+		$export_root = \SScribe_Private_Storage::get_export_dir();
+		$outside     = $this->test_dir . '/mkdir-intermediate-outside';
+		$link        = $export_root . '/mkdir-intermediate-' . uniqid();
+		wp_mkdir_p( $outside );
+
+		if ( ! @symlink( $outside, $link ) ) {
+			$this->markTestSkipped( 'symlink() not permitted on this platform' );
+		}
+
+		$relative = basename( $link ) . '/nested/child';
+		$result   = $fs->mkdir_under_private_root( $relative );
+
+		$this->assertSame( '', $result );
+		$this->assertDirectoryDoesNotExist(
+			$outside . '/nested',
+			'Rejected intermediate symlinks must not create descendants outside private storage.'
+		);
+
+		@unlink( $link );
+	}
+
 	public function test_mkdir_under_private_root_rejects_existing_symlink(): void {
 		if ( ! function_exists( 'symlink' ) ) {
 			$this::markTestSkipped( 'symlink() not available on this platform' );
@@ -438,11 +504,29 @@ class SScribe_Filesystem_Test extends TestCase {
 		$this->assertEquals( 'simple-file.txt', $safe );
 	}
 
-	public function test_sanitize_path_strips_null_bytes(): void {
+	public function test_sanitize_path_rejects_null_bytes(): void {
 		$unsafe = $this->test_dir . "/file\x00name.txt";
 		$safe   = \SScribe_Filesystem::sanitize_path( $unsafe );
 
-		$this->assertStringNotContainsString( "\0", $safe );
+		$this->assertSame( '', $safe );
+	}
+
+
+	public function test_put_contents_rejects_nul_path_instead_of_rewriting_filename(): void {
+		$fs      = new \SScribe_Filesystem();
+		$rewritten = $this->in_export_dir( 'filename.txt' );
+		$unsafe    = $this->in_export_dir( "file\x00name.txt" );
+
+		$this->assertFalse( $fs->put_contents( $unsafe, 'must-not-write' ) );
+		$this->assertFileDoesNotExist( $rewritten );
+	}
+
+	public function test_get_contents_rejects_nul_path_instead_of_reading_rewritten_filename(): void {
+		$fs        = new \SScribe_Filesystem();
+		$rewritten = $this->in_export_dir( 'secret.txt' );
+		file_put_contents( $rewritten, 'secret' );
+
+		$this->assertFalse( $fs->get_contents( $this->in_export_dir( "sec\x00ret.txt" ) ) );
 	}
 
 	public function test_put_contents_sanitizes_traversal_in_path(): void {
@@ -550,6 +634,36 @@ class SScribe_Filesystem_Test extends TestCase {
 
 		$this->assertEquals( \SScribe_Filesystem::SSCRIBE_PATH_REJECT, $safe,
 			'Expected symlink escape to be REJECTed' );
+	}
+
+	public function test_write_check_rejects_intermediate_symlink_even_when_target_stays_inside_private_root(): void {
+		if ( ! function_exists( 'symlink' ) ) {
+			$this->markTestSkipped( 'symlink() not available' );
+		}
+
+		$fs         = new \SScribe_Filesystem();
+		$export_dir = \SScribe_Private_Storage::get_export_dir();
+		$real_dir   = $export_dir . '/symlink-safe-target-' . uniqid();
+		$link_name  = $export_dir . '/symlink-safe-link-' . uniqid();
+		wp_mkdir_p( $real_dir );
+
+		if ( ! @symlink( $real_dir, $link_name ) ) {
+			@rmdir( $real_dir );
+			$this->markTestSkipped( 'symlink() not permitted on this platform' );
+		}
+
+		try {
+			$this->assertSame(
+				\SScribe_Filesystem::SSCRIBE_PATH_REJECT,
+				$fs->is_path_safe_for_write( $link_name . '/file.txt' ),
+				'Writes must reject every symlink component, even when the current target remains inside private storage.'
+			);
+		} finally {
+			if ( is_link( $link_name ) ) {
+				@unlink( $link_name );
+			}
+			@rmdir( $real_dir );
+		}
 	}
 
 	public function test_write_check_rejects_missing_path_below_symlink_escape(): void {
