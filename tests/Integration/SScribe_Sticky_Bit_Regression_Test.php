@@ -5,7 +5,8 @@
  * SScribe refuses a private-storage base directory that doesn't pass
  * its containment invariant:
  *
- *   - Current process UID owns the directory → ACCEPT.
+ *   - Current-owned mode 0700/0755 → ACCEPT when PHP can write it.
+ *   - Current-owned group/world-writable without sticky protection → REJECT.
  *   - Foreign-owned + mode 0700/0755 → ACCEPT only when PHP has
  *     effective write access (for example via ACL/container mapping)
  *     and group/other write bits remain clear.
@@ -86,6 +87,28 @@ final class SScribe_Sticky_Bit_Regression_Test extends TestCase {
 
 		chmod( $base, 0700 );
 		rmdir( $base );
+	}
+
+	#[RunInSeparateProcess]
+	#[PreserveGlobalState( false )]
+	public function test_current_owned_0777_without_sticky_is_rejected(): void {
+		if ( 'Windows' === PHP_OS_FAMILY ) {
+			$this->markTestSkipped( 'POSIX mode-bit policy is exercised on non-Windows hosts.' );
+		}
+
+		$base = sys_get_temp_dir() . '/sscribe-phase39-current-world-' . uniqid();
+		wp_mkdir_p( $base );
+		chmod( $base, 0777 );
+
+		try {
+			$this->assertFalse(
+				self::invoke_ownership_check( $base ),
+				'Ownership must not bypass group/world-write protection on a candidate private-storage base.'
+			);
+		} finally {
+			chmod( $base, 0700 );
+			rmdir( $base );
+		}
 	}
 
 	#[RunInSeparateProcess]
