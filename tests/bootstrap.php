@@ -1142,6 +1142,12 @@ $sscribe_test_ajax_nonce_valid = true;
 			return 0;
 		}
 
+
+		public function get_col( $query ) {
+			unset( $query );
+			return array();
+		}
+
 		public function get_results( $query, $output = null ) {
 			global $sscribe_test_options, $sscribe_test_db_tables;
 
