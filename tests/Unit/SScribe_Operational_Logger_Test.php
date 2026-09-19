@@ -142,12 +142,12 @@ class SScribe_Operational_Logger_Test extends TestCase {
 			file_put_contents( $dir . '/sscribe_ops_2098-12-31_00-00-0' . $i . '-abcdef.log', "rotated\n" );
 		}
 
-		$prune = \\Closure::bind(
+		$prune = \Closure::bind(
 			static function ( string $path ): void {
-				\\SScribe_Operational_Logger::prune( $path );
+				\SScribe_Operational_Logger::prune( $path );
 			},
 			null,
-			\\SScribe_Operational_Logger::class
+			\SScribe_Operational_Logger::class
 		);
 
 		try {
