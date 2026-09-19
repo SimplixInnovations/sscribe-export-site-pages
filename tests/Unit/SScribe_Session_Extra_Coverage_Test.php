@@ -34,12 +34,14 @@ final class SScribe_Session_Extra_Coverage_Test extends TestCase {
 		\SScribe_Session::enable_test_mode();
 		$GLOBALS['sscribe_test_options']   = array();
 		$GLOBALS['sscribe_test_db_tables'] = array();
+		unset( $GLOBALS['sscribe_test_update_option_failure'] );
 	}
 
 	protected function tearDown(): void {
 		\SScribe_Session::test_reset();
 		$GLOBALS['sscribe_test_options']   = array();
 		$GLOBALS['sscribe_test_db_tables'] = array();
+		unset( $GLOBALS['sscribe_test_update_option_failure'] );
 		parent::tearDown();
 	}
 
@@ -312,6 +314,19 @@ final class SScribe_Session_Extra_Coverage_Test extends TestCase {
 		$s = $this->new_session();
 		$ok = $s->rotate_signing_key();
 		$this::assertTrue( $ok );
+	}
+
+	public function test_rotate_signing_key_reports_failure_when_new_key_cannot_persist(): void {
+		$s = $this->new_session();
+		$GLOBALS['sscribe_test_options']['sscribe_session_signing_key']      = 'current-key';
+		$GLOBALS['sscribe_test_options']['sscribe_session_signing_key_prev'] = 'older-key';
+		$GLOBALS['sscribe_test_options']['sscribe_session_signing_key_prev_rotated_at'] = 123;
+		$GLOBALS['sscribe_test_update_option_failure'] = 'sscribe_session_signing_key';
+
+		$this::assertFalse( $s->rotate_signing_key() );
+		$this::assertSame( 'current-key', get_option( 'sscribe_session_signing_key' ) );
+		$this::assertSame( 'older-key', get_option( 'sscribe_session_signing_key_prev' ) );
+		$this::assertSame( 123, get_option( 'sscribe_session_signing_key_prev_rotated_at' ) );
 	}
 
 	public function test_maybe_rotate_signing_key_runs_without_error(): void {
