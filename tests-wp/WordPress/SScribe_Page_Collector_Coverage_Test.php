@@ -285,6 +285,41 @@ final class SScribe_Page_Collector_Coverage_Test extends SScribe_WP_TestCase {
 		);
 	}
 
+	public function test_delegated_export_user_counts_exclude_unreadable_nonpublic_content(): void {
+		$owner_id  = (int) $this->factory()->user->create( array( 'role' => 'administrator' ) );
+		$reader_id = (int) $this->factory()->user->create( array( 'role' => 'subscriber' ) );
+		$reader    = get_user_by( 'id', $reader_id );
+		$this::assertInstanceOf( WP_User::class, $reader );
+		$reader->add_cap( 'sscribe_export' );
+
+		$private_id = (int) $this->factory()->post->create(
+			array(
+				'post_type'   => 'page',
+				'post_status' => 'private',
+				'post_author' => $owner_id,
+			)
+		);
+		$draft_id = (int) $this->factory()->post->create(
+			array(
+				'post_type'   => 'page',
+				'post_status' => 'draft',
+				'post_author' => $owner_id,
+			)
+		);
+
+		wp_set_current_user( $reader_id );
+		$this::assertTrue( current_user_can( 'sscribe_export' ) );
+		$this::assertFalse( current_user_can( 'read_post', $private_id ) );
+		$this::assertFalse( current_user_can( 'read_post', $draft_id ) );
+
+		$this::assertSame( 0, $this->collector->get_page_count_only( '', 'private', 'page' ) );
+		$this::assertSame( 0, $this->collector->get_page_count_only( '', 'draft', 'page' ) );
+
+		$counts = $this->collector->get_post_status_counts( '', 'page' );
+		$this::assertSame( 0, (int) ( $counts['private'] ?? -1 ) );
+		$this::assertSame( 0, (int) ( $counts['draft'] ?? -1 ) );
+	}
+
 	public function test_get_page_data_rejects_nonpublic_content_current_user_cannot_read(): void {
 		$owner_id = (int) $this->factory()->user->create( array( 'role' => 'administrator' ) );
 		$reader_id = (int) $this->factory()->user->create( array( 'role' => 'subscriber' ) );
