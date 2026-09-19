@@ -71,7 +71,7 @@ class SScribe_Export_Rate_Limiter_Test extends TestCase {
 			}
 		};
 
-		$limiter  = new \\SScribe_Export_Rate_Limiter();
+		$limiter  = new \SScribe_Export_Rate_Limiter();
 		$decision = $limiter->check_rate_limit_decision();
 
 		$this->assertFalse( $decision->allowed, 'A changed stale lock must fail closed instead of admitting a concurrent request.' );
