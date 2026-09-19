@@ -19,9 +19,10 @@ script's end-of-run summary is updated in the same commit.
 ## 1. Excluded paths (not shipped)
 
 These paths are present in the working tree but do not appear in
-the release ZIP. The matching is segment-level (per the
-`is_release_path_excluded` matcher in `scripts/build-release.php`)
-— patterns are **not** globs; filenames and full segments only.
+the release ZIP. The `is_release_path_excluded` matcher in `scripts/build-release.php`
+supports `*` and `?` wildcards. Rules without a slash also match individual
+path segments, so exact development-directory exclusions such as `tests/`
+continue to work alongside wildcard rules such as `*.log`.
 
 ### Dev-only directories
 
@@ -212,9 +213,9 @@ arrays at the top of `scripts/build-release.php`.
 ## How to verify a build
 
 ```bash
-rm -rf dist/sscribe-export-site-pages dist/sscribe-export-site-pages-2.0.0.zip
+rm -rf dist/sscribe-export-site-pages dist/sscribe-export-site-pages-2.0.3.zip
 composer release 2>&1 | tee build.log
-diff <(unzip -l dist/sscribe-export-site-pages-2.0.0.zip | awk '{print $4}' | sort) \
+diff <(unzip -l dist/sscribe-export-site-pages-2.0.3.zip | awk '{print $4}' | sort) \
      <(find dist/sscribe-export-site-pages -type f | sed 's|dist/sscribe-export-site-pages/||' | sort)
 # Last command should produce no output (ZIP listing == dist listing).
 ```
