@@ -410,12 +410,22 @@ class SScribe_Activator {
 				break;
 			}
 
-			$option_id_list = implode( ', ', array_map( 'strval', $option_ids ) );
+			$rows = 0;
+			foreach ( $option_ids as $option_id ) {
+				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Bounded activation cleanup by canonical option_id; wpdb::delete() prepares the integer predicate.
+				$deleted = $wpdb->delete(
+					$wpdb->options,
+					array( 'option_id' => $option_id ),
+					array( '%d' )
+				);
 
-			// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- IDs are normalized with absint() above and come from the bounded SELECT result; interpolation is therefore limited to canonical decimal integers.
-			$delete_sql = "DELETE FROM {$wpdb->options} WHERE option_id IN ({$option_id_list})";
-			$rows       = $wpdb->query( $delete_sql );
-			// phpcs:enable
+				if ( false === $deleted ) {
+					$rows = false;
+					break;
+				}
+
+				$rows += (int) $deleted;
+			}
 		} while ( false !== $rows && $rows > 0 );
 	}
 

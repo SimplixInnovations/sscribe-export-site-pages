@@ -70,12 +70,14 @@ class SScribe_Activator_Test extends TestCase {
 					: array();
 			}
 
-			public function query( $query ) {
-				$this->deletes[] = (string) $query;
+			public function delete( $table, $where, $where_format = null ) {
+				$this->deletes[] = array(
+					'table'  => $table,
+					'where'  => $where,
+					'format' => $where_format,
+				);
 
-				// The pre-fix DELETE ... IN (SELECT ... LIMIT ...) query must not
-				// loop forever while this regression test is RED.
-				return false !== strpos( (string) $query, 'SELECT option_id FROM' ) ? 0 : 2;
+				return 1;
 			}
 		};
 
@@ -90,7 +92,7 @@ class SScribe_Activator_Test extends TestCase {
 		}
 
 		$this->assertCount( 16, $wpdb->selects, 'Each of the eight cleanup patterns must select one batch and then confirm exhaustion.' );
-		$this->assertCount( 8, $wpdb->deletes );
+		$this->assertCount( 16, $wpdb->deletes );
 
 		foreach ( $wpdb->selects as $select ) {
 			$this->assertStringContainsString( 'SELECT option_id FROM wp_options', $select );
@@ -98,9 +100,10 @@ class SScribe_Activator_Test extends TestCase {
 			$this->assertStringNotContainsString( 'DELETE FROM', $select );
 		}
 
-		foreach ( $wpdb->deletes as $delete ) {
-			$this->assertSame( 'DELETE FROM wp_options WHERE option_id IN (101, 102)', $delete );
-			$this->assertStringNotContainsString( 'SELECT ', $delete );
+		foreach ( $wpdb->deletes as $index => $delete ) {
+			$this->assertSame( 'wp_options', $delete['table'] );
+			$this->assertSame( array( 'option_id' => 0 === ( $index % 2 ) ? 101 : 102 ), $delete['where'] );
+			$this->assertSame( array( '%d' ), $delete['format'] );
 		}
 	}
 
