@@ -3,7 +3,7 @@
  * Plugin Check WP-CLI compatibility bootstrap.
  *
  * Plugin Check's cli.php is intentionally loaded before normal plugins so
- * runtime checks can prepare WordPress early. Plugin Check 2.1.0 can reach
+ * runtime checks can prepare WordPress early. The CLI can reach
  * PHPCS checks before plugin.php has defined WP_PLUGIN_CHECK_PLUGIN_DIR_PATH.
  * Define only that missing path constant, then delegate to the official CLI
  * entry point without modifying or suppressing any Plugin Check check.
