@@ -688,6 +688,48 @@ class SScribe_Session {
 	}
 
 	/**
+	 * Delete a user-owned session only when its processing lock is available.
+	 *
+	 * This is the cleanup boundary for privacy and other trusted lifecycle
+	 * callers that must never remove live batch state concurrently.
+	 *
+	 * @param string $session_id       Session identifier.
+	 * @param int    $expected_user_id Expected owning user ID.
+	 * @return bool True when this call deleted the session.
+	 */
+	public function delete_owned_if_unlocked( string $session_id, int $expected_user_id ): bool {
+		$sanitized = sanitize_key( $session_id );
+		if (
+			$expected_user_id <= 0
+			|| '' === $sanitized
+			|| ! hash_equals( $session_id, $sanitized )
+			|| ! self::is_valid_session_id( $sanitized )
+		) {
+			return false;
+		}
+
+		$lock_token = $this->get_lock_manager()->acquire_lock( $sanitized, 30, 25 );
+		if ( null === $lock_token ) {
+			return false;
+		}
+
+		try {
+			$fresh = $this->get( $sanitized );
+			if (
+				! is_array( $fresh )
+				|| ! isset( $fresh['user_id'] )
+				|| (int) $fresh['user_id'] !== $expected_user_id
+			) {
+				return false;
+			}
+
+			return $this->delete( $sanitized );
+		} finally {
+			$this->get_lock_manager()->release_lock( $sanitized, $lock_token );
+		}
+	}
+
+	/**
 	 * Store page IDs in a durable, non-autoloaded option.
 	 *
 	 * External object caches accelerate reads but are never authoritative.
