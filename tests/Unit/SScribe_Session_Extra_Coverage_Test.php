@@ -285,6 +285,30 @@ final class SScribe_Session_Extra_Coverage_Test extends TestCase {
 		}
 	}
 
+	public function test_cleanup_expired_preserves_locked_processing_session(): void {
+		$session = $this->new_session();
+		$sid     = $this->make_session( 9, 'processing', 0, 2 );
+		$option  = 'sscribe_session_' . $sid;
+		$decoded = json_decode( (string) ( $GLOBALS['sscribe_test_options'][ $option ] ?? '' ), true );
+		$this::assertIsArray( $decoded );
+		$decoded['created_at'] = time() - 3600;
+		$decoded['updated_at'] = time() - 3600;
+		$GLOBALS['sscribe_test_options'][ $option ] = wp_json_encode( $decoded );
+
+		$lock_manager = new \SScribe_Export_Lock_Manager();
+		$lock_token   = $lock_manager->acquire_lock( $sid, 30, 25 );
+		$this::assertNotNull( $lock_token );
+
+		try {
+			$this::assertSame( 0, $session->cleanup_expired( 1 ) );
+			$this::assertNotNull( $session->get( $sid ) );
+			$this::assertIsString( get_option( 'sscribe_export_lock_' . $sid, false ) );
+		} finally {
+			$lock_manager->release_lock( $sid, $lock_token );
+			$session->delete( $sid );
+		}
+	}
+
 	public function test_cleanup_expired_with_no_sessions_returns_zero(): void {
 		$s = $this->new_session();
 		$this::assertIsInt( $s->cleanup_expired( 0 ) );
