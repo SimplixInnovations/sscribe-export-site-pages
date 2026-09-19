@@ -1404,7 +1404,9 @@ class SScribe_Session {
 	 * @return bool True on success, false if a new key could not be generated.
 	 */
 	public function rotate_signing_key(): bool {
-		$current = $this->get_signing_key();
+		$current          = $this->get_signing_key();
+		$previous_before  = get_option( 'sscribe_session_signing_key_prev', null );
+		$rotated_before   = get_option( 'sscribe_session_signing_key_prev_rotated_at', null );
 
 		try {
 			$candidate = bin2hex( random_bytes( 32 ) );
@@ -1416,9 +1418,36 @@ class SScribe_Session {
 			return false;
 		}
 
-		update_option( 'sscribe_session_signing_key_prev', $current, false );
-		update_option( 'sscribe_session_signing_key', $candidate, false );
-		update_option( 'sscribe_session_signing_key_prev_rotated_at', time(), false );
+		$restore_option = static function ( string $name, mixed $value ): void {
+			if ( null === $value ) {
+				delete_option( $name );
+				return;
+			}
+			update_option( $name, $value, false );
+		};
+
+		$persisted_previous = update_option( 'sscribe_session_signing_key_prev', $current, false );
+		if ( ! $persisted_previous && (string) get_option( 'sscribe_session_signing_key_prev', '' ) !== $current ) {
+			$this->logger->error( 'Failed to persist previous SScribe session signing key during rotation' );
+			return false;
+		}
+
+		$persisted_current = update_option( 'sscribe_session_signing_key', $candidate, false );
+		if ( ! $persisted_current && (string) get_option( 'sscribe_session_signing_key', '' ) !== $candidate ) {
+			$restore_option( 'sscribe_session_signing_key_prev', $previous_before );
+			$this->logger->error( 'Failed to persist new SScribe session signing key during rotation' );
+			return false;
+		}
+
+		$rotated_at         = time();
+		$persisted_rotated = update_option( 'sscribe_session_signing_key_prev_rotated_at', $rotated_at, false );
+		if ( ! $persisted_rotated && (int) get_option( 'sscribe_session_signing_key_prev_rotated_at', 0 ) !== $rotated_at ) {
+			$restore_option( 'sscribe_session_signing_key', $current );
+			$restore_option( 'sscribe_session_signing_key_prev', $previous_before );
+			$restore_option( 'sscribe_session_signing_key_prev_rotated_at', $rotated_before );
+			$this->logger->error( 'Failed to persist SScribe session signing-key rotation timestamp; rotation rolled back' );
+			return false;
+		}
 
 		$this->logger->info( 'Rotated SScribe session signing key' );
 
