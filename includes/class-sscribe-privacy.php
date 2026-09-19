@@ -288,25 +288,44 @@ class SScribe_Privacy {
 			);
 		}
 
-		$user_id = (int) $user->ID;
-		for ( $offset = 0; $offset < 5000; $offset += 500 ) {
-			$user_sessions = $this->session->get_sessions_for_user( $user_id, 500, $offset );
-			foreach ( $user_sessions as $user_session ) {
-				$session_id = sanitize_key( (string) ( $user_session['session_id'] ?? '' ) );
-				if ( 1 === preg_match( '/^[a-f0-9]{16}$/D', $session_id ) ) {
-					SScribe_Export_Log::delete_by_session( $session_id );
-				}
+		$user_id          = (int) $user->ID;
+		$items_limit      = 100;
+		$session_page     = $this->session->get_sessions_for_user( $user_id, $items_limit + 1, 0 );
+		$session_batch    = array_slice( $session_page, 0, $items_limit );
+		$removed_items    = 0;
+		$retained_items   = 0;
+		$session_failures = 0;
+
+		foreach ( $session_batch as $user_session ) {
+			$session_id = sanitize_key( (string) ( $user_session['session_id'] ?? '' ) );
+			if ( 1 !== preg_match( '/^[a-f0-9]{16}$/D', $session_id ) ) {
+				continue;
 			}
-			if ( count( $user_sessions ) < 500 ) {
-				break;
+
+			SScribe_Export_Log::delete_by_session( $session_id );
+
+			if ( $this->session->delete( $session_id ) ) {
+				++$removed_items;
+			} else {
+				++$session_failures;
 			}
 		}
 
-		$removed_items  = $this->audit_trail->erase_user_data( $user_id );
-		$removed_items += $this->export_stats->erase_user_data( $user_id );
-		$removed_items += $this->session->delete_sessions_for_user( $user_id );
+		$has_more_sessions = count( $session_page ) > $items_limit;
+		if ( $has_more_sessions || $session_failures > 0 ) {
+			return array(
+				'items_removed'  => $removed_items > 0,
+				'items_retained' => $session_failures > 0,
+				'messages'       => $session_failures > 0
+					? array( esc_html__( 'Some export sessions could not be removed. Please run the eraser again.', 'sscribe-export-site-pages' ) )
+					: array(),
+				'done'           => false,
+			);
+		}
 
-		$retained_items = 0;
+		$removed_items += $this->audit_trail->erase_user_data( $user_id );
+		$removed_items += $this->export_stats->erase_user_data( $user_id );
+
 		foreach ( $this->zip_handler->list_export_entries() as $filename => $entry ) {
 			if ( (int) ( $entry['user_id'] ?? 0 ) !== $user_id ) {
 				continue;
