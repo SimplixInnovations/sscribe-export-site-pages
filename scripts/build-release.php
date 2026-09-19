@@ -1034,10 +1034,10 @@ echo "      SScribe code).\n";
 echo "    - includes/sscribe-vendor-compat.php removed (local-dev\n";
 echo "      shim — release code uses only prefixed vendors).\n\n";
 
-echo "  Source files added to the ZIP that are NOT in the working tree:\n";
-echo "    - dist/sscribe-export-site-pages/license.txt is a verbatim\n";
-echo "      copy of ./license.txt (already tracked in git).\n";
-echo "    - dist/sscribe-export-site-pages/readme.txt is a verbatim\n";
-echo "      copy of ./readme.txt (already tracked in git).\n\n";
+echo "  Distribution paths created under a different relative name:\n";
+echo "    - vendor-prefixed/phpoffice/phpword/COPYING.LESSER.txt is copied byte-for-byte from\n";
+echo "      vendor-prefixed/phpoffice/phpword/COPYING.LESSER so the required LGPL notice\n";
+echo "      ships under an extension accepted by WordPress Plugin Check.\n";
+echo "    - All other distribution files retain their source-relative path.\n\n";
 
 echo "Build successful. No development files or unused fonts included.\n\n";
