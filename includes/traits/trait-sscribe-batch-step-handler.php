@@ -229,7 +229,7 @@ trait SScribe_Batch_Step_Handler {
 					$this->release_lock( $session_id, $lock_token );
 					$this->restore_ob_level( $ob_level_before );
 					SScribe_AJAX_Guard::error(
-						array( 'message' => __( 'Unable to create the private export working directory.', 'sscribe-export-site-pages' ) ),
+						array( 'message' => __( 'Private export storage is unavailable.', 'sscribe-export-site-pages' ) ),
 						500
 					);
 				}
