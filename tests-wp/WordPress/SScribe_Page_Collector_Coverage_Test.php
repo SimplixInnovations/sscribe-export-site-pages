@@ -257,6 +257,60 @@ final class SScribe_Page_Collector_Coverage_Test extends SScribe_WP_TestCase {
 		}
 	}
 
+	public function test_get_page_ids_excludes_private_content_current_user_cannot_read(): void {
+		$owner_id = (int) $this->factory()->user->create( array( 'role' => 'administrator' ) );
+		$reader_id = (int) $this->factory()->user->create( array( 'role' => 'subscriber' ) );
+		$reader = get_user_by( 'id', $reader_id );
+		$this::assertInstanceOf( WP_User::class, $reader );
+		$reader->add_cap( 'sscribe_export' );
+
+		$private_id = (int) $this->factory()->post->create(
+			array(
+				'post_type'   => 'page',
+				'post_status' => 'private',
+				'post_author' => $owner_id,
+				'post_title'  => 'Private owner-only page',
+			)
+		);
+
+		wp_set_current_user( $reader_id );
+		$this::assertTrue( current_user_can( 'sscribe_export' ) );
+		$this::assertFalse( current_user_can( 'read_post', $private_id ) );
+
+		$ids = $this->collector->get_page_ids( '', 'private', 'page' );
+		$this::assertNotContains(
+			$private_id,
+			$ids,
+			'Export capability must not bypass WordPress per-post read permission.'
+		);
+	}
+
+	public function test_get_page_data_rejects_nonpublic_content_current_user_cannot_read(): void {
+		$owner_id = (int) $this->factory()->user->create( array( 'role' => 'administrator' ) );
+		$reader_id = (int) $this->factory()->user->create( array( 'role' => 'subscriber' ) );
+		$reader = get_user_by( 'id', $reader_id );
+		$this::assertInstanceOf( WP_User::class, $reader );
+		$reader->add_cap( 'sscribe_export' );
+
+		$draft_id = (int) $this->factory()->post->create(
+			array(
+				'post_type'    => 'page',
+				'post_status'  => 'draft',
+				'post_author'  => $owner_id,
+				'post_title'   => 'Unpublished owner-only page',
+				'post_content' => '<p>restricted draft body</p>',
+			)
+		);
+
+		wp_set_current_user( $reader_id );
+		$this::assertTrue( current_user_can( 'sscribe_export' ) );
+		$this::assertFalse( current_user_can( 'read_post', $draft_id ) );
+		$this::assertFalse(
+			$this->collector->get_page_data( $draft_id ),
+			'Direct hydration must fail closed when WordPress says the current user cannot read the post.'
+		);
+	}
+
 	public function test_get_page_ids_skips_chunked_branch_when_filter_returns_false(): void {
 		// Install a filter that returns false → must drive the direct
 		// `get_page_ids_direct()` branch (line 154-156) instead of the
