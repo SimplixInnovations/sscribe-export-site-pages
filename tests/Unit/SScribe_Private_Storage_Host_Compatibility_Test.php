@@ -122,4 +122,60 @@ final class SScribe_Private_Storage_Host_Compatibility_Test extends TestCase {
 		}
 	}
 
+
+	#[\PHPUnit\Framework\Attributes\RunInSeparateProcess]
+	#[\PHPUnit\Framework\Attributes\PreserveGlobalState( false )]
+	public function test_nested_subdirectory_rejects_intermediate_symlink_before_creating_descendants(): void {
+		$base     = sys_get_temp_dir() . '/sscribe-subdir-base-' . uniqid();
+		$attacker = $base . '/attacker-target';
+		wp_mkdir_p( $base );
+		wp_mkdir_p( $attacker );
+		chmod( $base, 0700 );
+		chmod( $attacker, 0700 );
+
+		$filter = static function () use ( $base ): array {
+			return array( $base );
+		};
+		add_filter( 'sscribe_private_storage_base_candidates', $filter );
+
+		$link = '';
+		try {
+			$root = \SScribe_Private_Storage::get_export_dir();
+			$this->assertNotSame( '', $root );
+
+			$link = $root . '/logs';
+			if ( ! @symlink( $attacker, $link ) ) {
+				$this->markTestSkipped( 'Symbolic links are unavailable in this environment.' );
+			}
+
+			$this->assertSame(
+				'',
+				\SScribe_Private_Storage::get_subdirectory( 'logs/nested' ),
+				'An intermediate symlink must be rejected before nested private-storage creation.'
+			);
+			$this->assertDirectoryDoesNotExist(
+				$attacker . '/nested',
+				'Rejected intermediate symlinks must not cause writes in their target.'
+			);
+		} finally {
+			remove_filter( 'sscribe_private_storage_base_candidates', $filter );
+			if ( '' !== $link && is_link( $link ) ) {
+				@unlink( $link );
+			}
+
+			if ( is_dir( $base ) ) {
+				$it = new \RecursiveIteratorIterator(
+					new \RecursiveDirectoryIterator( $base, \FilesystemIterator::SKIP_DOTS ),
+					\RecursiveIteratorIterator::CHILD_FIRST
+				);
+				foreach ( $it as $child ) {
+					$child->isDir() && ! $child->isLink()
+						? @rmdir( $child->getPathname() )
+						: @unlink( $child->getPathname() );
+				}
+				@rmdir( $base );
+			}
+		}
+	}
+
 }
