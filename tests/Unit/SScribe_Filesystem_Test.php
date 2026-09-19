@@ -504,11 +504,11 @@ class SScribe_Filesystem_Test extends TestCase {
 		$this->assertEquals( 'simple-file.txt', $safe );
 	}
 
-	public function test_sanitize_path_strips_null_bytes(): void {
+	public function test_sanitize_path_rejects_null_bytes(): void {
 		$unsafe = $this->test_dir . "/file\x00name.txt";
 		$safe   = \SScribe_Filesystem::sanitize_path( $unsafe );
 
-		$this->assertStringNotContainsString( "\0", $safe );
+		$this->assertSame( '', $safe );
 	}
 
 
