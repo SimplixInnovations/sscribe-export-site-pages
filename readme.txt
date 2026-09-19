@@ -65,7 +65,7 @@ Yes. Export progress and the complete normalized page-ID queue are stored in exp
 
 = Where are exported files stored? =
 
-Archives, temporary files, and logs use a plugin-owned directory below the operating system's temporary directory, outside WordPress and public upload paths. The directory is isolated per WordPress site. Existing archives from older versions are copied, hash-verified, and only then removed from the old location.
+Archives, temporary files, and logs use a site-isolated private directory outside WordPress and public upload paths. SScribe prefers validated PHP/operating-system temporary locations and can fall back to another validated non-public base or an administrator-defined private base. Existing archives from older versions are copied, hash-verified, and only then removed from the old location.
 
 = How long are archives kept? =
 
