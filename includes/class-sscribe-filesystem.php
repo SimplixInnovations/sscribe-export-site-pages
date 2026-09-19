@@ -153,12 +153,14 @@ class SScribe_Filesystem {
 			return $file;
 		}
 
-		if ( false === strpos( $file, '..' ) && false === strpos( $file, "\0" ) ) {
-			return $file;
+		// A NUL-bearing path is invalid input. Never turn it into a different
+		// valid filename by stripping bytes: callers must fail closed instead.
+		if ( false !== strpos( $file, "\0" ) ) {
+			return '';
 		}
 
 		if ( false === strpos( $file, '..' ) ) {
-			return str_replace( "\0", '', $file );
+			return $file;
 		}
 
 		$is_unix_absolute = '/' === $file[0];
