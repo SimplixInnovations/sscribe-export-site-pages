@@ -341,6 +341,7 @@ trait SScribe_Export_Finalizer {
 					'Finalize session lock ownership was lost before ZIP assembly',
 					array( 'session_id' => $session_id )
 				);
+				$this->release_lock( $session_id, $lock_token );
 				SScribe_AJAX_Guard::error(
 					array(
 						'code'    => 'race_detected',
