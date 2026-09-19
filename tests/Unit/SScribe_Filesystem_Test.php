@@ -511,6 +511,24 @@ class SScribe_Filesystem_Test extends TestCase {
 		$this->assertStringNotContainsString( "\0", $safe );
 	}
 
+
+	public function test_put_contents_rejects_nul_path_instead_of_rewriting_filename(): void {
+		$fs      = new \SScribe_Filesystem();
+		$rewritten = $this->in_export_dir( 'filename.txt' );
+		$unsafe    = $this->in_export_dir( "file\x00name.txt" );
+
+		$this->assertFalse( $fs->put_contents( $unsafe, 'must-not-write' ) );
+		$this->assertFileDoesNotExist( $rewritten );
+	}
+
+	public function test_get_contents_rejects_nul_path_instead_of_reading_rewritten_filename(): void {
+		$fs        = new \SScribe_Filesystem();
+		$rewritten = $this->in_export_dir( 'secret.txt' );
+		file_put_contents( $rewritten, 'secret' );
+
+		$this->assertFalse( $fs->get_contents( $this->in_export_dir( "sec\x00ret.txt" ) ) );
+	}
+
 	public function test_put_contents_sanitizes_traversal_in_path(): void {
 		$fs     = new \SScribe_Filesystem();
 		// Construct a path INSIDE the export dir, then inject a traversal
