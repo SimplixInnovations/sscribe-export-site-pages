@@ -321,6 +321,25 @@ trait SScribe_Export_Finalizer {
 				);
 			}
 
+			// The initial finalize lease can be as short as 120 seconds, while
+			// archive assembly is intentionally allowed to run for several minutes.
+			// Extend the per-session lease before the heavy ZIP operation so a
+			// second finalize request cannot reclaim the same session mid-build.
+			if ( null !== $lock_token && ! $this->get_lock_manager()->renew_lock( $session_id, $lock_token, 600 ) ) {
+				$this->logger->warning(
+					'Finalize session lock ownership was lost before ZIP assembly',
+					array( 'session_id' => $session_id )
+				);
+				SScribe_AJAX_Guard::error(
+					array(
+						'code'    => 'race_detected',
+						'message' => __( 'Export finalization ownership changed. Please retry.', 'sscribe-export-site-pages' ),
+					),
+					409
+				);
+				return;
+			}
+
 			$zip_path = $this->zip_handler->create_zip( $session['temp_dir'], $zip_name, $formats, $has_language, $lang_metadata, $session_id );
 
 			if ( ! $zip_path ) {
