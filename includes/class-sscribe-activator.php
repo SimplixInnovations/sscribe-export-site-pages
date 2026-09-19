@@ -412,7 +412,7 @@ class SScribe_Activator {
 
 			$placeholders = implode( ', ', array_fill( 0, count( $option_ids ), '%d' ) );
 
-			// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Placeholder list is generated internally from integer IDs selected above.
+			// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Placeholder list is generated internally from integer IDs selected above and the resulting SQL is prepared before execution.
 			$delete_sql = $wpdb->prepare(
 				"DELETE FROM {$wpdb->options} WHERE option_id IN ({$placeholders})",
 				$option_ids
