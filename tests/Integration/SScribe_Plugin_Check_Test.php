@@ -226,7 +226,7 @@ final class SScribe_Plugin_Check_Test extends TestCase {
 			'Release audit must resolve the runtime bootstrap from the exact provisioned Plugin Check installation.'
 		);
 		$this::assertStringContainsString( '$wp_bin,', $source );
-		$this::assertStringContainsString( "'--path=' . \\$wp_root", $source );
+		$this::assertStringContainsString( "'--path=' . \$wp_root", $source );
 		$this::assertStringContainsString( "'plugin',", $source );
 		$this::assertStringContainsString(
 			"'check',",
