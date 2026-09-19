@@ -17,6 +17,7 @@ class SScribe_Export_Lock_Manager_Test extends TestCase {
 		parent::setUp();
 		$GLOBALS['sscribe_test_transients'] = array();
 		$GLOBALS['sscribe_test_options']    = array();
+		unset( $GLOBALS['sscribe_test_before_wpdb_option_delete'] );
 	}
 
 	protected function tearDown(): void {
@@ -146,6 +147,27 @@ class SScribe_Export_Lock_Manager_Test extends TestCase {
 
 		$this->assertFalse( $manager->release_lock( 'test-atomic-release', $token ) );
 		$this->assertSame( $successor, get_option( $option, false ) );
+	}
+
+	public function test_cleanup_expired_locks_cannot_delete_successor(): void {
+		$manager   = new \SScribe_Export_Lock_Manager();
+		$option    = 'sscribe_export_lock_cleanup-race';
+		$expired   = ( time() - 100 ) . '|expired-token|' . ( time() - 1 );
+		$successor = time() . '|successor-token|' . ( time() + 30 );
+		update_option( $option, $expired, false );
+
+		$GLOBALS['sscribe_test_before_wpdb_option_delete'] = static function ( array $where ) use ( $option, $successor ): void {
+			if ( $option === ( $where['option_name'] ?? '' ) ) {
+				update_option( $option, $successor, false );
+			}
+		};
+
+		$this->assertSame( 0, $manager->cleanup_expired_locks() );
+		$this->assertSame(
+			$successor,
+			get_option( $option, false ),
+			'Expired-lock cleanup must not delete a successor that replaced the observed row.'
+		);
 	}
 
 	public function test_discard_lock_removes_database_and_legacy_storage(): void {
