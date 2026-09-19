@@ -77,7 +77,7 @@ Only an authenticated user with the delegated export capability can download an 
 
 = Does SScribe send content to an external service? =
 
-No. SScribe does not send exported content to Simplix Innovations or another content-processing service. Local Media Library files are read from the site. Same-site images that cannot be resolved locally may be fetched through the WordPress safe HTTP API; other hosts are blocked unless a developer explicitly allows them.
+No. SScribe does not send exported content to Simplix Innovations or another content-processing service. Local Media Library files are read from the site. Same-site images that cannot be resolved locally may be fetched through the WordPress safe HTTP API. These requests go from your WordPress server to your own configured site/media host and can expose standard HTTP request metadata, such as the server IP address, to that host. Other hosts are blocked by default. If a developer explicitly adds hosts through the `sscribe_allowed_image_hosts` filter, image embedding may send HTTP GET requests to those administrator-approved hosts; the site operator is responsible for reviewing the terms and privacy policy of any host they add.
 
 = What happens when the plugin is uninstalled? =
 
