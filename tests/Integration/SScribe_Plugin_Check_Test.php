@@ -233,7 +233,7 @@ final class SScribe_Plugin_Check_Test extends TestCase {
 			'The compatibility bootstrap must delegate to the official Plugin Check CLI entry point after defining the missing runtime constant.'
 		);
 		$this::assertStringContainsString( '$wp_bin,', $source );
-		$this::assertStringContainsString( "'--path=' . \\$wp_root", $source );
+		$this::assertStringContainsString( "'--path=' . " . '$wp_root', $source );
 		$this::assertStringContainsString( "'plugin',", $source );
 		$this::assertStringContainsString(
 			"'check',",
