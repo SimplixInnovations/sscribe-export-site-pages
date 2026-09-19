@@ -202,6 +202,49 @@ final class SScribe_Release_Blockers_Test extends TestCase {
 		);
 	}
 
+	public function test_cancel_handler_never_terminates_ajax_while_export_lock_is_held(): void {
+		$path = $this->repo_root . '/includes/traits/trait-sscribe-session-ajax.php';
+		$src  = (string) file_get_contents( $path );
+
+		$method_start = strpos( $src, 'public function ajax_cancel_export(): void {' );
+		$method_end   = strpos( $src, 'public function ajax_clear_session(): void {', $method_start );
+		$this::assertNotFalse( $method_start );
+		$this::assertNotFalse( $method_end );
+
+		$method         = substr( $src, $method_start, $method_end - $method_start );
+		$acquire_marker = '$lock_token = $this->get_lock_manager()->acquire_lock( $session_id, 30, 25 );';
+		$release_marker = '$this->get_lock_manager()->release_lock( $session_id, $lock_token );';
+		$acquire        = strpos( $method, $acquire_marker );
+		$release        = strpos( $method, $release_marker, false === $acquire ? 0 : $acquire );
+
+		$this::assertNotFalse( $acquire, 'Cancel handler must acquire the per-session export lock.' );
+		$this::assertNotFalse( $release, 'Cancel handler must release the per-session export lock.' );
+		$this::assertGreaterThan( $acquire, $release, 'Cancel handler must release only after lock acquisition.' );
+
+		$critical_section = substr( $method, $acquire, $release - $acquire );
+		$this::assertStringNotContainsString(
+			'SScribe_AJAX_Guard::success',
+			$critical_section,
+			'Cancel handler must not terminate through a success response before releasing the export lock.'
+		);
+		$this::assertStringNotContainsString(
+			'SScribe_AJAX_Guard::error',
+			$critical_section,
+			'Cancel handler must not terminate through an error response before releasing the export lock.'
+		);
+	}
+
+	public function test_missing_session_batch_path_never_discards_an_unowned_lock(): void {
+		$path = $this->repo_root . '/includes/traits/trait-sscribe-batch-step-handler.php';
+		$src  = (string) file_get_contents( $path );
+
+		$this::assertStringNotContainsString(
+			'$this->get_lock_manager()->discard_lock( $session_id );',
+			$src,
+			'A missing session does not prove lock ownership; batch handling must leave any extant lock to its owner or TTL cleanup.'
+		);
+	}
+
 	public function test_release_blocker_verifier_script_exists(): void {
 		$this::assertFileExists(
 			$this->repo_root . '/scripts/verify-release-blockers.php',
