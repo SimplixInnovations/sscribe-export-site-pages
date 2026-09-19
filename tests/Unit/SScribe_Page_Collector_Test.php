@@ -15,6 +15,12 @@ use ReflectionMethod;
 
 class SScribe_Page_Collector_Test extends TestCase
 {
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $GLOBALS['sscribe_test_current_user_can'] = true;
+    }
+
     public function test_get_page_ids_method_exists(): void
     {
         $collector = new SScribe_Page_Collector();
@@ -130,7 +136,10 @@ class SScribe_Page_Collector_Test extends TestCase
 
     protected function tearDown(): void
     {
-        unset($GLOBALS['sscribe_test_registered_post_types']);
+        unset(
+            $GLOBALS['sscribe_test_registered_post_types'],
+            $GLOBALS['sscribe_test_current_user_can']
+        );
         parent::tearDown();
     }
 
