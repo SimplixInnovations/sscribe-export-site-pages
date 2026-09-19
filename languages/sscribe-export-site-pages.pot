@@ -2884,6 +2884,10 @@ msgstr ""
 msgid "Archive filename"
 msgstr ""
 
+#: includes/class-sscribe-privacy.php:320
+msgid "Some export sessions could not be removed. Please run the eraser again."
+msgstr ""
+
 #: includes/class-sscribe-privacy.php:325
 msgid "Some export archives could not be removed because another export operation is using the archive index. Please run the eraser again."
 msgstr ""
