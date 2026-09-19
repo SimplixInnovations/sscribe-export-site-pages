@@ -987,7 +987,7 @@ class SScribe_Session {
 					++$deleted;
 				}
 			}
-		} while ( $option_count === self::SESSION_CLEANUP_BATCH );
+		} while ( self::SESSION_CLEANUP_BATCH === $option_count );
 
 		if ( $deleted > 0 ) {
 			$this->invalidate_session_index();
