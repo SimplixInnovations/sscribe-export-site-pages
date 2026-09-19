@@ -313,102 +313,116 @@ class SScribe_Session {
 		$max_retries = 5;
 		$attempt     = 0;
 
-		while ( $attempt < $max_retries ) {
-			$session_id = sanitize_key( bin2hex( random_bytes( 8 ) ) );
-			$session_id = strtolower( $session_id );
+		$user_id              = isset( $data['user_id'] ) ? (int) $data['user_id'] : 0;
+		$admission_lock_name  = $user_id > 0 ? 'session-create-user-' . $user_id : '';
+		$admission_lock_token = null;
 
-			$data['created_at'] = time();
-			$data['session_id'] = $session_id;
-			$data['_sig']       = $this->sign_session_id( $session_id );
-			$data['updated_at'] = time();
-
-			$encoded_data = wp_json_encode( $data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES );
-
-			if ( false === $encoded_data ) {
-				$this->logger->error(
-					'Failed to JSON-encode session data',
-					array( 'session_id' => $session_id )
-				);
-				return '';
-			}
-
-			if ( isset( $data['user_id'] ) ) {
-				$transient_key = 'sscribe_active_sid_' . $data['user_id'];
-				$existing      = get_transient( $transient_key );
-				if ( false !== $existing && '0' !== $existing && is_string( $existing ) ) {
-					$existing_data = $this->get( $existing );
-					if ( $existing_data && $this->is_active_session_data( $existing_data ) ) {
-						$this->logger->warning(
-							'Blocked duplicate session creation : user has active session',
-							array(
-								'user_id'          => $data['user_id'],
-								'existing_session' => $existing,
-								'blocked_attempt'  => $session_id,
-							)
-						);
-						return '';
-					}
-
-					delete_transient( $transient_key );
-				}
-			}
-
-			$encrypted_data = self::$test_mode ? $encoded_data : $this->encrypt_session_data( $encoded_data );
-			$result = add_option( self::OPTION_PREFIX . $session_id, $encrypted_data, '', 'no' );
-			if ( $result ) {
-				$this->invalidate_session_index();
-			}
-
-			if ( $result ) {
-
-				if ( isset( $data['user_id'] ) ) {
-
-					$active_sid_user_id = (int) $data['user_id'];
-					$this->set_active_sid_transient( $active_sid_user_id, $session_id, DAY_IN_SECONDS );
-
-					if ( $this->get_active_sid_transient( $active_sid_user_id ) !== $session_id ) {
-						$this->logger->error(
-							'Active-session transient verification failed : rolling back',
-							array(
-								'user_id'    => $data['user_id'],
-								'session_id' => $session_id,
-							)
-						);
-						delete_option( self::OPTION_PREFIX . $session_id );
-						++$attempt;
-						continue;
-					}
-				}
-
-				break;
-			}
-
-			$this->logger->warning(
-				'Session ID collision detected, retrying',
-				array(
-					'session_id' => $session_id,
-					'attempt'    => $attempt + 1,
-					'max'        => $max_retries,
-				)
-			);
-			++$attempt;
-
-			if ( $attempt >= $max_retries ) {
-				$this->logger->error(
-					'Failed to create session after max retries (collision)',
-					array(
-						'attempts' => $max_retries,
-						'data'     => array(
-							'user_id' => $data['user_id'] ?? null,
-							'action'  => $data['action'] ?? 'unknown',
-						),
-					)
+		if ( '' !== $admission_lock_name ) {
+			$admission_lock_token = $this->get_lock_manager()->acquire_lock( $admission_lock_name, 30, 25 );
+			if ( null === $admission_lock_token ) {
+				$this->logger->warning(
+					'Session admission is already in progress for this user',
+					array( 'user_id' => $user_id )
 				);
 				return '';
 			}
 		}
 
-		return $session_id;
+		try {
+			while ( $attempt < $max_retries ) {
+				$session_id = sanitize_key( bin2hex( random_bytes( 8 ) ) );
+				$session_id = strtolower( $session_id );
+
+				$data['created_at'] = time();
+				$data['session_id'] = $session_id;
+				$data['_sig']       = $this->sign_session_id( $session_id );
+				$data['updated_at'] = time();
+
+				$encoded_data = wp_json_encode( $data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES );
+
+				if ( false === $encoded_data ) {
+					$this->logger->error(
+						'Failed to JSON-encode session data',
+						array( 'session_id' => $session_id )
+					);
+					return '';
+				}
+
+				if ( $user_id > 0 ) {
+					$existing = $this->get_active_sid_transient( $user_id );
+					if ( false !== $existing && '0' !== $existing && is_string( $existing ) ) {
+						$existing_data = $this->get( $existing );
+						if ( $existing_data && $this->is_active_session_data( $existing_data ) ) {
+							$this->logger->warning(
+								'Blocked duplicate session creation : user has active session',
+								array(
+									'user_id'          => $user_id,
+									'existing_session' => $existing,
+									'blocked_attempt'  => $session_id,
+								)
+							);
+							return '';
+						}
+
+						$this->delete_active_sid_transient( $user_id );
+					}
+				}
+
+				$encrypted_data = self::$test_mode ? $encoded_data : $this->encrypt_session_data( $encoded_data );
+				$result         = add_option( self::OPTION_PREFIX . $session_id, $encrypted_data, '', 'no' );
+				if ( $result ) {
+					$this->invalidate_session_index();
+				}
+
+				if ( $result ) {
+					if ( $user_id > 0 ) {
+						$this->set_active_sid_transient( $user_id, $session_id, DAY_IN_SECONDS );
+
+						if ( $this->get_active_sid_transient( $user_id ) !== $session_id ) {
+							$this->logger->error(
+								'Active-session transient verification failed : rolling back',
+								array(
+									'user_id'    => $user_id,
+									'session_id' => $session_id,
+								)
+							);
+							delete_option( self::OPTION_PREFIX . $session_id );
+							$this->invalidate_session_index();
+							++$attempt;
+							continue;
+						}
+					}
+
+					return $session_id;
+				}
+
+				$this->logger->warning(
+					'Session ID collision detected, retrying',
+					array(
+						'session_id' => $session_id,
+						'attempt'    => $attempt + 1,
+						'max'        => $max_retries,
+					)
+				);
+				++$attempt;
+			}
+
+			$this->logger->error(
+				'Failed to create session after max retries (collision)',
+				array(
+					'attempts' => $max_retries,
+					'data'     => array(
+						'user_id' => $data['user_id'] ?? null,
+						'action'  => $data['action'] ?? 'unknown',
+					),
+				)
+			);
+			return '';
+		} finally {
+			if ( null !== $admission_lock_token ) {
+				$this->get_lock_manager()->release_lock( $admission_lock_name, $admission_lock_token );
+			}
+		}
 	}
 
 	/**
@@ -1042,13 +1056,35 @@ class SScribe_Session {
 				if ( null === $session_id ) {
 					continue;
 				}
+
 				$data = $this->decode_session_value( $option->option_value ?? '', $session_id );
-				if ( is_array( $data ) && isset( $data['user_id'] ) && (int) $data['user_id'] === $user_id ) {
-					if ( delete_option( self::OPTION_PREFIX . $session_id ) ) {
-						$this->delete_page_ids( $session_id );
-						$this->get_lock_manager()->discard_lock( $session_id );
+				if ( ! is_array( $data ) || ! isset( $data['user_id'] ) || (int) $data['user_id'] !== $user_id ) {
+					continue;
+				}
+
+				$lock_token = $this->get_lock_manager()->acquire_lock( $session_id, 30, 25 );
+				if ( null === $lock_token ) {
+					$this->logger->debug(
+						'Skipped session clear because processing lock is owned by another request',
+						array(
+							'user_id'    => $user_id,
+							'session_id' => $session_id,
+						)
+					);
+					continue;
+				}
+
+				try {
+					$fresh = $this->get( $session_id );
+					if ( ! is_array( $fresh ) || ! isset( $fresh['user_id'] ) || (int) $fresh['user_id'] !== $user_id ) {
+						continue;
+					}
+
+					if ( $this->delete( $session_id ) ) {
 						++$deleted;
 					}
+				} finally {
+					$this->get_lock_manager()->release_lock( $session_id, $lock_token );
 				}
 			}
 		} while ( $option_count === $limit );
