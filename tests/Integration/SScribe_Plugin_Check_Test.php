@@ -212,23 +212,23 @@ final class SScribe_Plugin_Check_Test extends TestCase {
 		$this::assertStringContainsString( 'scripts/release-audit.php', $wrapper );
 	}
 
-	public function test_release_audit_uses_registered_plugin_check_cli_command(): void {
+	public function test_release_audit_bootstraps_plugin_check_runtime_checks(): void {
 		$source = (string) file_get_contents( self::plugin_root() . '/scripts/release-audit.php' );
 
-		$this::assertStringNotContainsString(
-			'--require=',
+		$this::assertStringContainsString(
+			"'--require=' . \$plugin_check_cli",
 			$source,
-			'Plugin Check must bootstrap as an activated WordPress plugin; requiring cli.php directly bypasses constants/hooks required by current Plugin Check.'
+			'Release audit must load Plugin Check cli.php early so runtime checks execute under WP-CLI, matching the official Plugin Check action.'
 		);
-		$this::assertStringNotContainsString(
-			'plugin-check/cli.php',
+		$this::assertStringContainsString(
+			"'/wp-content/plugins/plugin-check/cli.php'",
 			$source,
-			'Release audit must not depend on Plugin Check internal file layout.'
+			'Release audit must resolve the runtime bootstrap from the exact provisioned Plugin Check installation.'
 		);
 		$this::assertStringContainsString(
 			"array( \$wp_bin, '--path=' . \$wp_root, 'plugin', 'check'",
 			$source,
-			'Release audit must invoke the wp plugin check command registered by the activated official Plugin Check plugin.'
+			'Release audit must invoke the official wp plugin check command after bootstrapping the runtime environment.'
 		);
 	}
 
