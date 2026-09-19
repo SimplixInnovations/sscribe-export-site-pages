@@ -217,18 +217,18 @@ final class SScribe_Plugin_Check_Test extends TestCase {
 		$bootstrap = (string) @file_get_contents( self::plugin_root() . '/scripts/plugin-check-cli-bootstrap.php' );
 
 		$this::assertStringContainsString(
-			"'--require=' . \\$plugin_check_bootstrap",
+			"'--require=' . " . '$plugin_check_bootstrap',
 			$source,
 			'Release audit must load the SScribe-owned Plugin Check bootstrap before WordPress starts.'
 		);
 		$this::assertStringNotContainsString(
-			"'--require=' . \\$plugin_check_cli",
+			"'--require=' . " . '$plugin_check_cli',
 			$source,
-			'Release audit must not require Plugin Check cli.php directly because Plugin Check 2.1.0 can reach PHPCS checks before its directory constant is defined.'
+			'Release audit must not require Plugin Check cli.php directly because the CLI can reach PHPCS checks before its directory constant is defined.'
 		);
 		$this::assertStringContainsString( "define( 'WP_PLUGIN_CHECK_PLUGIN_DIR_PATH'", $bootstrap );
 		$this::assertStringContainsString(
-			"require \\$plugin_check_cli;",
+			'require ' . '$plugin_check_cli' . ';',
 			$bootstrap,
 			'The compatibility bootstrap must delegate to the official Plugin Check CLI entry point after defining the missing runtime constant.'
 		);
