@@ -202,6 +202,11 @@ if ( file_exists( $autoload ) ) {
 	require_once $autoload;
 }
 
+$legacy_phpunit_compat = $plugin_dir . '/tests-wp/phpunit-legacy-compat.php';
+if ( file_exists( $legacy_phpunit_compat ) ) {
+	require_once $legacy_phpunit_compat;
+}
+
 $wp_php_binary_env = getenv( 'WP_PHP_BINARY' );
 if ( false !== $wp_php_binary_env && '' !== $wp_php_binary_env ) {
 	// WP_PHP_BINARY is supplied as an environment variable from
