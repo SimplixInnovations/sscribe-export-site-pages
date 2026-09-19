@@ -262,6 +262,23 @@ final class SScribe_Release_Blockers_Test extends TestCase {
 		);
 	}
 
+	public function test_start_export_enforces_declared_page_id_cap_at_collection_boundary(): void {
+		$path = $this->repo_root . '/includes/class-sscribe-batch-processor.php';
+		$src  = (string) file_get_contents( $path );
+
+		$cap_marker   = '$page_id_cap    = 10000;';
+		$query_marker = '$page_ids      = $this->collector->get_page_ids( $language, $post_status, $post_type, $page_id_cap );';
+		$cap_pos      = strpos( $src, $cap_marker );
+		$query_pos    = strpos( $src, $query_marker );
+
+		$this::assertNotFalse( $cap_pos, 'Start-export must declare its hard page-ID cap.' );
+		$this::assertNotFalse(
+			$query_pos,
+			'Start-export must pass the declared cap into page-ID collection so the chunked path cannot become unbounded.'
+		);
+		$this::assertLessThan( $query_pos, $cap_pos, 'The cap must be defined before the bounded collection call.' );
+	}
+
 	public function test_release_blocker_verifier_script_exists(): void {
 		$this::assertFileExists(
 			$this->repo_root . '/scripts/verify-release-blockers.php',
