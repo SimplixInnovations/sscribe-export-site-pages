@@ -1252,7 +1252,23 @@ $sscribe_test_ajax_nonce_valid = true;
 		}
 
 		public function update( $table, $data, $where, $format = null, $where_format = null ) {
-			global $sscribe_test_db_tables;
+			global $sscribe_test_db_tables, $sscribe_test_options;
+
+			if ( $table === $this->options && isset( $where['option_name'], $where['option_value'], $data['option_value'] ) ) {
+				if ( isset( $GLOBALS['sscribe_test_before_wpdb_option_update'] ) && is_callable( $GLOBALS['sscribe_test_before_wpdb_option_update'] ) ) {
+					$callback = $GLOBALS['sscribe_test_before_wpdb_option_update'];
+					unset( $GLOBALS['sscribe_test_before_wpdb_option_update'] );
+					$callback( $where, $data );
+				}
+
+				$option_name = (string) $where['option_name'];
+				if ( ! array_key_exists( $option_name, $sscribe_test_options ) || (string) $sscribe_test_options[ $option_name ] !== (string) $where['option_value'] ) {
+					return 0;
+				}
+
+				$sscribe_test_options[ $option_name ] = $data['option_value'];
+				return 1;
+			}
 
 			if ( ! isset( $sscribe_test_db_tables[ $table ] ) || ! is_array( $sscribe_test_db_tables[ $table ] ) ) {
 				return false;
