@@ -163,9 +163,10 @@ final class SScribe_Filesystem_Branches_Test extends TestCase {
 		$this::assertSame( 'foo/bar.txt', $this->call_static( 'sanitize_path', 'foo/bar.txt' ) );
 	}
 
-	public function test_sanitize_path_strips_nul_byte(): void {
-		// Contains NUL but no `..`. Hits the "no `..`, has `\0`" branch.
-		$this::assertSame( 'foo/bar.txt', $this->call_static( 'sanitize_path', "foo\0/bar.txt" ) );
+	public function test_sanitize_path_rejects_nul_byte(): void {
+		// NUL-bearing paths must fail closed rather than being rewritten
+		// into a different valid path.
+		$this::assertSame( '', $this->call_static( 'sanitize_path', "foo\0/bar.txt" ) );
 	}
 
 	public function test_sanitize_path_collapses_traversal_segments(): void {
