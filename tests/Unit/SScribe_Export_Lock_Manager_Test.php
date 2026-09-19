@@ -25,6 +25,7 @@ class SScribe_Export_Lock_Manager_Test extends TestCase {
 		$GLOBALS['sscribe_test_transients'] = array();
 		$GLOBALS['sscribe_test_options']    = array();
 		unset( $GLOBALS['sscribe_test_before_wpdb_option_delete'] );
+		unset( $GLOBALS['sscribe_test_before_wpdb_option_update'] );
 		parent::tearDown();
 	}
 
