@@ -18,6 +18,7 @@ class SScribe_Export_Lock_Manager_Test extends TestCase {
 		$GLOBALS['sscribe_test_transients'] = array();
 		$GLOBALS['sscribe_test_options']    = array();
 		unset( $GLOBALS['sscribe_test_before_wpdb_option_delete'] );
+		unset( $GLOBALS['sscribe_test_before_wpdb_option_update'] );
 	}
 
 	protected function tearDown(): void {
@@ -99,6 +100,41 @@ class SScribe_Export_Lock_Manager_Test extends TestCase {
 		};
 
 		$this->assertNull( $manager->acquire_lock( 'stale-race', 30, 25 ) );
+		$this->assertSame( $successor, get_option( $option, false ) );
+	}
+
+
+	public function test_renew_lock_extends_owned_database_lock(): void {
+		$manager = new \SScribe_Export_Lock_Manager();
+		$token   = $manager->acquire_lock( 'renew-owned', 30, 25 );
+
+		$this->assertIsString( $token );
+		$before = (string) get_option( 'sscribe_export_lock_renew-owned', '' );
+
+		$this->assertTrue( $manager->renew_lock( 'renew-owned', $token, 120 ) );
+
+		$after = (string) get_option( 'sscribe_export_lock_renew-owned', '' );
+		$this->assertNotSame( $before, $after );
+		$parts = explode( '|', $after, 3 );
+		$this->assertCount( 3, $parts );
+		$this->assertSame( $token, $parts[1] );
+		$this->assertGreaterThan( time() + 100, (int) $parts[2] );
+	}
+
+	public function test_renew_lock_cannot_overwrite_successor_during_conditional_update(): void {
+		$manager   = new \SScribe_Export_Lock_Manager();
+		$token     = $manager->acquire_lock( 'renew-race', 30, 25 );
+		$option    = 'sscribe_export_lock_renew-race';
+		$successor = time() . '|successor-token|' . ( time() + 300 );
+
+		$this->assertIsString( $token );
+		$GLOBALS['sscribe_test_before_wpdb_option_update'] = static function ( array $where ) use ( $option, $successor ): void {
+			if ( $option === ( $where['option_name'] ?? '' ) ) {
+				update_option( $option, $successor, false );
+			}
+		};
+
+		$this->assertFalse( $manager->renew_lock( 'renew-race', $token, 120 ) );
 		$this->assertSame( $successor, get_option( $option, false ) );
 	}
 
