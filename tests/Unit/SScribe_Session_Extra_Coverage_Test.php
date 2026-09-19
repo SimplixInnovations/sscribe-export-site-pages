@@ -233,7 +233,7 @@ final class SScribe_Session_Extra_Coverage_Test extends TestCase {
 	}
 
 	public function test_create_with_user_id_fails_closed_when_admission_lock_is_held(): void {
-		$lock_manager = new \\SScribe_Export_Lock_Manager();
+		$lock_manager = new \SScribe_Export_Lock_Manager();
 		$lock_name    = 'session-create-user-7';
 		$lock_token   = $lock_manager->acquire_lock( $lock_name, 30, 25 );
 
