@@ -22,7 +22,7 @@ $result = sscribe_run_argv(
 		'.',
 		'languages/sscribe-export-site-pages.pot',
 		'--domain=sscribe-export-site-pages',
-		'--exclude=vendor,vendor-prefixed,node_modules,tests,scripts,.github,coverage,dist,build,.cache',
+		'--exclude=vendor,vendor-prefixed,node_modules,tests,tests-wp,tests-e2e,stubs,scripts,.github,coverage,dist,build,.cache',
 	),
 	sscribe_repo_root(),
 	array( 'WP_CLI_PHP_ARGS' => '-d memory_limit=1G' )
