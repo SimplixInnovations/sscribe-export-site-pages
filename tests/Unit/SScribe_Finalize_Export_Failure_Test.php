@@ -185,6 +185,18 @@ class SScribe_Finalize_Export_Failure_Test extends TestCase {
 	 * look at both the class file AND the trait file to catch
 	 * accidental removals from either location.
 	 */
+
+	public function test_finalizer_renews_session_lock_before_heavy_zip_assembly(): void {
+		$trait_source = file_get_contents( SSCRIBE_PLUGIN_DIR . 'includes/traits/trait-sscribe-export-finalizer.php' );
+
+		$this->assertNotFalse( $trait_source );
+		$this->assertStringContainsString(
+			'renew_lock( $session_id, $lock_token, 600 )',
+			$trait_source,
+			'Finalization must extend the per-session lease before a ZIP build that may run for several minutes.'
+		);
+	}
+
 	public function test_failure_branches_present_in_production_source(): void {
 		$class_source = file_get_contents( SSCRIBE_PLUGIN_DIR . 'includes/class-sscribe-batch-processor.php' );
 		$trait_source = file_get_contents( SSCRIBE_PLUGIN_DIR . 'includes/traits/trait-sscribe-export-finalizer.php' );
