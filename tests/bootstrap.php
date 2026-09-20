@@ -900,6 +900,11 @@ if ( ! function_exists( 'get_role' ) ) {
 
 if ( ! function_exists( 'wp_cache_delete' ) ) {
 	function wp_cache_delete( $key, $group = '' ) {
+		if ( isset( $GLOBALS['sscribe_test_before_wp_cache_delete'] ) && is_callable( $GLOBALS['sscribe_test_before_wp_cache_delete'] ) ) {
+			$callback = $GLOBALS['sscribe_test_before_wp_cache_delete'];
+			unset( $GLOBALS['sscribe_test_before_wp_cache_delete'] );
+			$callback( $key, $group );
+		}
 		unset( $GLOBALS['sscribe_test_wp_cache'][ $key ] );
 		return true;
 	}
