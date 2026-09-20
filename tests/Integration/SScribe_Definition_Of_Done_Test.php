@@ -12,7 +12,7 @@
  *
  *   - DoD doc exists.
  *   - Doc declares the canonical sections.
- *   - All 34 canonical DoD criteria are listed.
+ *   - All 36 canonical DoD criteria are listed.
  *   - The companion verifier script exists.
  *
  * @package SScribe_Export_Site_Pages
@@ -107,8 +107,10 @@ final class SScribe_Definition_Of_Done_Test extends TestCase {
 			'Agent final report produced',
 			'Auditor handoff protocol holds',
 			'Release invariants declared',
+			'Branch topology policy holds',
 			'Tag is cut on origin/main HEAD',
 			'WP.org submission is made',
+			'Public maintained exact source/build inputs are available',
 		);
 
 		$haystack = str_replace( '`', '', $src );
@@ -120,6 +122,21 @@ final class SScribe_Definition_Of_Done_Test extends TestCase {
 				"Canonical DoD criterion '{$expected}' must appear in the Definition of Done doc."
 			);
 		}
+	}
+
+	public function test_definition_of_done_tag_wording_matches_canonical_tag_policy(): void {
+		$src = (string) file_get_contents( $this->dod_doc_path );
+
+		$this->assertStringNotContainsString(
+			'signed via `gh release create --verify-tag`',
+			$src,
+			'Definition of Done must not describe --verify-tag as cryptographic signing.'
+		);
+		$this->assertStringContainsString(
+			'cryptographic tag signing is recommended, not required',
+			strtolower( $src ),
+			'Definition of Done must match the canonical tag-policy distinction between annotated tags and optional cryptographic signing.'
+		);
 	}
 
 	public function test_definition_of_done_verifier_script_exists(): void {
