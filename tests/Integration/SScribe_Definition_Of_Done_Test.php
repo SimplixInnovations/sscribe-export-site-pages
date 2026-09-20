@@ -124,6 +124,14 @@ final class SScribe_Definition_Of_Done_Test extends TestCase {
 		}
 	}
 
+	public function test_definition_of_done_has_exactly_36_numbered_criteria(): void {
+		$src = (string) file_get_contents( $this->dod_doc_path );
+		$rows = array();
+		preg_match_all( '/^\\|\\s*([0-9]+)\\s*\\|/m', $src, $rows );
+
+		$this->assertSame( range( 1, 36 ), array_map( 'intval', $rows[1] ?? array() ) );
+	}
+
 	public function test_definition_of_done_tag_wording_matches_canonical_tag_policy(): void {
 		$src = (string) file_get_contents( $this->dod_doc_path );
 
