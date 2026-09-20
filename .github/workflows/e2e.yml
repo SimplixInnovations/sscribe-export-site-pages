@@ -5,9 +5,9 @@ permissions:
 
 on:
   push:
-    branches: [main, develop]
+    branches: [main]
   pull_request:
-    branches: [main, develop]
+    branches: [main]
 
 # Browser certification is candidate-specific; superseded PR/branch runs must
 # not occupy runners after a newer commit has replaced their evidence.
