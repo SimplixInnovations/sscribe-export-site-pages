@@ -435,6 +435,7 @@ failure looks like**, **how to debug**, **what manifest it writes**.
 ### `composer test:agent-final-report`
 
 - **Script:** `php scripts/verify-agent-final-report.php`
+- **Gates:** validates the tracked final-report contract in normal mode; in strict release certification it requires Phase 70/71/72 evidence bound to the exact current HEAD and produces a placeholder-free final release report for the exact package.
 - **Normal source gate:** validates `docs/AGENT_FINAL_REPORT_v2.0.0.md`
   and `docs/RELEASE_REPORT_TEMPLATE_v2.0.0.md`; the tracked template is
   explicitly not final proof.
@@ -452,6 +453,7 @@ failure looks like**, **how to debug**, **what manifest it writes**.
 ### `composer test:auditor-handoff`
 
 - **Script:** `php scripts/verify-auditor-handoff.php`
+- **Gates:** validates the tracked auditor handoff, exact ZIP/SHA pairing, and main-only release topology; strict release certification additionally requires the generated final release report and its HEAD-bound release-ready manifest.
 - **Normal source gate:** validates the tracked Phase 74 handoff contract,
   tracked handoff artifacts, ZIP/SHA naming, and main-only branch topology.
 - **Strict release gate:** with `SSCRIBE_RELEASE_CERTIFICATION=1`, additionally
