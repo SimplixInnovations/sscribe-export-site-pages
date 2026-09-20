@@ -159,7 +159,7 @@ Fixes private-storage activation compatibility, Plugin Check compliance, export 
 Release hardening and runtime reliability fixes; no manual migration action is required.
 
 = 2.0.1 =
-Release-system corrections only. No behavioural, security, or compatibility changes for end users. Historical v2.0.0 release was not publicly shipped; v2.0.1 contained release-system corrections only.
+Release-system corrections only. No behavioural, security, or compatibility changes for end users. Historical v2.0.0 was not shipped to WordPress.org; v2.0.1 contained release-system corrections only.
 
 = 2.0.0 =
 Moves export data to private storage with verified legacy migration, makes large multilingual exports durable, and fixes shared-host activation when the temp directory is root-owned but world-writable.
