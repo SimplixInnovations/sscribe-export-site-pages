@@ -651,6 +651,7 @@
 						const pageTotal = self.parseLocalizedInt(pageCounts.all) || 0;
 						const postTotal = self.parseLocalizedInt(postCounts.all) || 0;
 						const anyTotal = self.parseLocalizedInt(anyCounts.all) || 0;
+						const selectedTypeTotal = self.parseLocalizedInt(allCounts.all) || 0;
 						$('[data-sscribe-count-for="page"]')
 							.text(pageTotal.toLocaleString())
 							.attr('data-count', pageTotal);
@@ -660,6 +661,13 @@
 						$('[data-sscribe-count-for="any"]')
 							.text(anyTotal.toLocaleString())
 							.attr('data-count', anyTotal);
+						if (postType !== 'page' && postType !== 'post' && postType !== 'any') {
+							$('[data-sscribe-count-for]').filter(function () {
+								return $(this).attr('data-sscribe-count-for') === postType;
+							})
+								.text(selectedTypeTotal.toLocaleString())
+								.attr('data-count', selectedTypeTotal);
+						}
 						// Phase 3: authoritative countsState — written ONLY
 						// on a successful response whose generation, post_type,
 						// and language all match the current selection.
@@ -673,6 +681,9 @@
 							post: postTotal,
 							any: anyTotal,
 						};
+						if (postType !== 'page' && postType !== 'post' && postType !== 'any') {
+							self.countsState.typeCounts[postType] = selectedTypeTotal;
+						}
 						self.countsState.loaded = true;
 						self.countsState.error = null;
 						self.countsState.errorCode = null;
@@ -832,12 +843,16 @@
 							const pageTotal = self.parseLocalizedInt(pageCounts.all) || 0;
 							const postTotal = self.parseLocalizedInt(postCounts.all) || 0;
 							const anyTotal = self.parseLocalizedInt(anyCounts.all) || 0;
+							const selectedCounts = entry.counts || {};
+							const selectedTotal = self.parseLocalizedInt(selectedCounts.all) || 0;
 							const displayTotal =
-								'post' === currentPostType
-									? postTotal
-									: 'any' === currentPostType
-										? anyTotal
-										: pageTotal;
+								'page' === currentPostType
+									? pageTotal
+									: 'post' === currentPostType
+										? postTotal
+										: 'any' === currentPostType
+											? anyTotal
+											: selectedTotal;
 							const $langLabel = $('input[name="sscribe_language"][value="' + langCode + '"]').closest(
 								'.sscribe-lang-card-label'
 							);
