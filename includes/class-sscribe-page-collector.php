@@ -273,13 +273,38 @@ class SScribe_Page_Collector {
 
 		foreach ( $page_ids as $page_id ) {
 			$page_id = absint( $page_id );
-			if ( $page_id <= 0 || ! current_user_can( 'read_post', $page_id ) ) {
+			if ( $page_id <= 0 || ! $this->is_post_readable_for_export( $page_id ) ) {
 				continue;
 			}
 			$readable[] = $page_id;
 		}
 
 		return array_values( array_unique( $readable ) );
+	}
+
+	/**
+	 * Decide whether one post may be exposed through an export.
+	 *
+	 * Published content on selectable public post types is public by
+	 * definition and does not require a logged-in WordPress capability check.
+	 * Every non-public status is delegated to WordPress's canonical read_post
+	 * meta-capability so private, draft, pending, and scheduled content keeps
+	 * the post type's native ownership/read-private policy.
+	 *
+	 * @param int $page_id Post ID.
+	 * @return bool Whether the current request may read the post.
+	 */
+	private function is_post_readable_for_export( int $page_id ): bool {
+		$post = get_post( $page_id );
+		if ( ! $post instanceof WP_Post ) {
+			return false;
+		}
+
+		if ( 'publish' === (string) $post->post_status ) {
+			return in_array( (string) $post->post_type, $this->get_selectable_post_types(), true );
+		}
+
+		return current_user_can( 'read_post', $page_id );
 	}
 
 	/**
@@ -559,54 +584,52 @@ class SScribe_Page_Collector {
 	public function get_page_count_only( string $language = '', string $post_status = 'publish', string $post_type = 'page' ): int {
 		$post_status = $this->validate_post_status( $post_status );
 
-		$args = array(
-			'post_type'      => $this->resolve_post_type_for_query( $post_type ),
-			'post_status'    => $post_status,
-			'posts_per_page' => 1,
-			'fields'         => 'ids',
-			'no_found_rows'  => false,
-		);
-
-		$switched = false;
-
-		try {
-			if ( $this->is_wpml_active() ) {
-				$target_lang = ! empty( $language ) ? $language : 'all';
-
-				$this->debug_log(
-					'WPML get_page_count_only: Switching language',
-					array(
-						'requested_language' => $language,
-						'target_lang'        => $target_lang,
-					)
-				);
-
-				// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WPML hook.
-				do_action( 'wpml_switch_language', $target_lang );
-				$args['suppress_filters'] = false;
-				$switched                 = true;
-			}
-
-			$query = new WP_Query( $args );
-			$count = (int) $query->found_posts;
-			wp_reset_postdata();
-
-			$this->debug_log(
-				'get_page_count_only result',
-				array(
-					'language'    => $language,
-					'post_status' => $post_status,
-					'count'       => $count,
-				)
-			);
-		} finally {
-			if ( $switched ) {
-				// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WPML hook.
-				do_action( 'wpml_switch_language', null );
-			}
+		if ( 'all' === $post_status ) {
+			$counts = $this->get_post_status_counts( $language, $post_type );
+			return (int) ( $counts['all'] ?? 0 );
 		}
 
-		return $count;
+		// Published content is public on the selectable post-type allow-list, so
+		// WordPress's found_posts count is safe and avoids hydrating thousands of
+		// IDs only to re-affirm public visibility.
+		if ( 'publish' === $post_status ) {
+			$args = array(
+				'post_type'      => $this->resolve_post_type_for_query( $post_type ),
+				'post_status'    => 'publish',
+				'posts_per_page' => 1,
+				'fields'         => 'ids',
+				'no_found_rows'  => false,
+			);
+
+			$switched = false;
+			try {
+				if ( $this->is_wpml_active() ) {
+					$target_lang = ! empty( $language ) ? $language : 'all';
+					// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WPML hook.
+					do_action( 'wpml_switch_language', $target_lang );
+					$args['suppress_filters'] = false;
+					$switched                 = true;
+				}
+
+				$query = new WP_Query( $args );
+				$count = (int) $query->found_posts;
+				wp_reset_postdata();
+			} finally {
+				if ( $switched ) {
+					// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WPML hook.
+					do_action( 'wpml_switch_language', null );
+				}
+			}
+
+			return $count;
+		}
+
+		// Non-public counts are permission-sensitive. Reuse the same bounded ID
+		// collection path as export admission so delegated users cannot infer
+		// unreadable private/draft content from aggregate counts. 10,001 is a
+		// deliberate sentinel: it is enough to prove that the 10,000-item export
+		// cap has been exceeded without turning a UI count into an unbounded scan.
+		return count( $this->get_page_ids( $language, $post_status, $post_type, 10001 ) );
 	}
 
 	/**
@@ -680,7 +703,7 @@ class SScribe_Page_Collector {
 			return false;
 		}
 
-		if ( ! current_user_can( 'read_post', $page_id ) ) {
+		if ( ! $this->is_post_readable_for_export( $page_id ) ) {
 			return false;
 		}
 
@@ -1183,9 +1206,9 @@ class SScribe_Page_Collector {
 	 * @return array Status counts.
 	 */
 	public function get_post_status_counts( string $language = '', string $post_type = 'page' ): array {
-
+		$user_id    = get_current_user_id();
 		$generation = $this->get_content_cache_generation();
-		$cache_key  = 'sscribe_status_counts_' . $generation . '_' . md5( $language . '_' . $post_type );
+		$cache_key  = 'sscribe_status_counts_' . $generation . '_' . $user_id . '_' . md5( $language . '_' . $post_type );
 		$cached     = get_transient( $cache_key );
 
 		if ( false !== $cached && is_array( $cached ) ) {
@@ -1195,67 +1218,12 @@ class SScribe_Page_Collector {
 		$statuses = $this->get_valid_post_statuses();
 		$counts   = array_fill_keys( array_keys( $statuses ), 0 );
 
-		if ( ! $this->is_wpml_active() && empty( $language ) ) {
-			if ( 'any' === $post_type ) {
-				$count_page = wp_count_posts( 'page' );
-				$count_post = wp_count_posts( 'post' );
-
-				foreach ( $statuses as $status => $label ) {
-					$page_count        = isset( $count_page->$status ) ? (int) $count_page->$status : 0;
-					$post_count        = isset( $count_post->$status ) ? (int) $count_post->$status : 0;
-					$counts[ $status ] = $page_count + $post_count;
-				}
-			} else {
-				$count = wp_count_posts( $post_type );
-
-				if ( $count ) {
-					foreach ( $statuses as $status => $label ) {
-						if ( isset( $count->$status ) ) {
-							$counts[ $status ] = (int) $count->$status;
-						}
-					}
-				}
-			}
-
-			$counts['all'] = array_sum( $counts );
-			set_transient( $cache_key, $counts, 60 );
-
-			return $counts;
-		}
-
-		$switched = false;
-
-		try {
-			if ( $this->is_wpml_active() ) {
-				$target_lang = ! empty( $language ) ? $language : 'all';
-				// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WPML hook.
-				do_action( 'wpml_switch_language', $target_lang );
-				$switched = true;
-			}
-
-			foreach ( array_keys( $statuses ) as $status ) {
-				$query = new WP_Query(
-					array(
-						'post_type'        => $this->resolve_post_type_for_query( $post_type ),
-						'post_status'      => $status,
-						'posts_per_page'   => 1,
-						'no_found_rows'    => false,
-						'fields'           => 'ids',
-						'suppress_filters' => false,
-					)
-				);
-				$counts[ $status ] = (int) $query->found_posts;
-			}
-		} finally {
-			if ( $switched ) {
-				// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WPML hook.
-				do_action( 'wpml_switch_language', null );
-			}
+		foreach ( array_keys( $statuses ) as $status ) {
+			$counts[ $status ] = $this->get_page_count_only( $language, $status, $post_type );
 		}
 
 		$counts['all'] = array_sum( $counts );
-
-		set_transient( $cache_key, $counts, 60 );
+		set_transient( $cache_key, $counts, MINUTE_IN_SECONDS );
 
 		return $counts;
 	}
