@@ -54,7 +54,7 @@ criterion references the Phase gate that enforces it.
 | 28 | Final execution state holds (every required signal SUCCESS or documented LOCAL_PASS on the final SHA). | Phase 71 final execution state. | green |
 | 29 | Strict exact-artifact evidence matches the actual ZIP, sidecar, and source SHA (SHA-256, byte size, file count, source SHA, builder identity, Plugin Check evidence, build timestamp). | Phase 72 exact artifact evidence. | green |
 | 30 | Agent final report produced in the canonical format (6 sections, 7 format rules).| Phase 73 agent final report.            | green           |
-| 31 | Auditor handoff protocol holds (13 artifacts listed, every artifact present).| Phase 74 auditor handoff.               | green           |
+| 31 | Auditor handoff protocol holds (14 artifacts listed, every artifact present).| Phase 74 auditor handoff.               | green           |
 | 32 | Release invariants declared + enforced (33 invariants, each with enforcing Phase gate).| Phase 75 release invariants.            | green           |
 | 33 | Branch topology policy holds (`main` is the only persistent long-lived branch; local main matches origin/main; no authoritative local-only refs; CI-tolerant).| Phase 77 branch topology policy.        | green           |
 | 34 | Tag is cut on `origin/main` HEAD as an immutable annotated tag for v2.0.3+; cryptographic tag signing is recommended, not required. | Manual (Phase 54 gate). | green |
