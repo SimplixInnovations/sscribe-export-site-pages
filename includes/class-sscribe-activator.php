@@ -36,6 +36,28 @@ class SScribe_Activator {
 			delete_option( 'sscribe_version' );
 		}
 
+		$missing_extensions = SScribe_Vendor_Bootstrap::get_missing_extensions();
+		if ( ! empty( $missing_extensions ) ) {
+			$message = sprintf(
+				/* translators: %s: comma-separated PHP extension names. */
+				__( 'Activation aborted: required PHP extensions are missing: %s.', 'sscribe-export-site-pages' ),
+				implode( ', ', array_map( 'sanitize_key', $missing_extensions ) )
+			);
+			set_transient(
+				'sscribe_boot_error',
+				array(
+					'message' => $message,
+					'time'    => gmdate( 'Y-m-d H:i:s \\U\\T\\C' ),
+				),
+				MINUTE_IN_SECONDS * 10
+			);
+			wp_die(
+				esc_html( $message ),
+				esc_html__( 'SScribe activation failed', 'sscribe-export-site-pages' ),
+				array( 'back_link' => true )
+			);
+		}
+
 		if ( ! SScribe_Vendor_Bootstrap::is_available() ) {
 			$message = sprintf(
 				/* translators: %s: plugin version */
