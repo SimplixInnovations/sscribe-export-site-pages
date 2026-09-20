@@ -36,7 +36,7 @@ criterion references the Phase gate that enforces it.
 | 10 | NPM audit is clean (no HIGH/CRITICAL CVE).                             | Phase 32 frontend-quality job.             | green           |
 | 11 | AI-artifact scan finds zero AI markers (em-dash, en-dash, LLM phrasings).| Phase 32 audit job.                       | green           |
 | 12 | Branch protection rules documented in `docs/BRANCH_PROTECTION_v2.0.0.md` match GitHub UI.| Phase 55 branch protection.| green           |
-| 13 | Tag policy contract holds: tag equals SSCRIBE_VERSION, points at origin/main HEAD, signed via `gh release create --verify-tag`.| Phase 54 tag policy.        | green           |
+| 13 | Tag policy contract holds: tag equals SSCRIBE_VERSION, points at origin/main HEAD, is annotated for v2.0.3+, and `gh release create --verify-tag` verifies the remote tag exists; cryptographic tag signing is recommended, not required. | Phase 54 tag policy. | green |
 | 14 | Release pipeline contract holds: build-after-test, Plugin Check after build, certify-then-publish split.| Phase 53 release pipeline + Phase 62 build order.| green |
 | 15 | Acceptance matrix ≥ 25 cells, every cell's `ci_command` + `ci_step` is wired. | Phase 58 acceptance matrix.        | green           |
 | 16 | Debug log redaction contract holds (sensitive keys redacted, IP HMAC-hashed, JWT redacted, length-bounded, canonical shape preserved).| Phase 59 debug log.            | green           |
@@ -57,11 +57,11 @@ criterion references the Phase gate that enforces it.
 | 31 | Auditor handoff protocol holds (13 artifacts listed, every artifact present).| Phase 74 auditor handoff.               | green           |
 | 32 | Release invariants declared + enforced (33 invariants, each with enforcing Phase gate).| Phase 75 release invariants.            | green           |
 | 33 | Branch topology policy holds (`main` is the only persistent long-lived branch; local main matches origin/main; no authoritative local-only refs; CI-tolerant).| Phase 77 branch topology policy.        | green           |
-| 34 | Tag is cut on `origin/main` HEAD, signed via `gh release create --verify-tag`.| Manual (Phase 54 gate).                  | green           |
+| 34 | Tag is cut on `origin/main` HEAD as an immutable annotated tag for v2.0.3+; cryptographic tag signing is recommended, not required. | Manual (Phase 54 gate). | green |
 | 35 | WP.org submission is made via the Plugin Check action's `release-zip` artifact, with the audit-trail attached.| Manual (after Phase 33).                | submitted       |
 | 36 | Public maintained exact source/build inputs are available for WordPress.org because build tooling is omitted from the deployed ZIP. | Phase 70 blocker 18 / WordPress.org source guideline. | public |
 
-The verifier asserts all 35 criteria are declared AND each
+The verifier asserts all 36 criteria are declared AND each
 declares the enforcing Phase in its row.
 
 ## How an independent auditor verifies this
