@@ -501,7 +501,7 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 					return '';
 				}
 				$tag = $matches[0];
-				if ( 1 !== preg_match( '/\\bsrc\\s*=\\s*(?:"([^"]*)"|\\'([^\\']*)\\'|([^\\s>]+))/i', $tag, $source_match ) ) {
+				if ( 1 !== preg_match( '/\\bsrc\\s*=\\s*(?:"([^"]*)"|\'([^\']*)\'|([^\\s>]+))/i', $tag, $source_match ) ) {
 					return '';
 				}
 				$source = '';
@@ -517,7 +517,7 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 					return '';
 				}
 				$tag = str_replace( $source_match[0], 'src="' . esc_attr( $canonical ) . '"', $tag );
-				$tag = preg_replace( '/\\s+srcset\\s*=\\s*(?:"[^"]*"|\\'[^\\']*\\'|[^\\s>]+)/i', '', $tag ) ?? $tag;
+				$tag = preg_replace( '/\\s+srcset\\s*=\\s*(?:"[^"]*"|\'[^\']*\'|[^\\s>]+)/i', '', $tag ) ?? $tag;
 				return $tag;
 			},
 			$html_content
@@ -588,7 +588,7 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 	 */
 	private function prepare_html_for_pdf_engine( string $html_content, bool $is_rtl ): string {
 		$html_content = (string) preg_replace_callback(
-			'/\\s*style=("([^"]*)"|\\'([^\\']*)\\')/i',
+			'/\\s*style=("([^"]*)"|\'([^\']*)\')/i',
 			function ( array $matches ) use ( $is_rtl ): string {
 				$declarations = '' !== ( $matches[2] ?? '' ) ? (string) $matches[2] : (string) ( $matches[3] ?? '' );
 				$filtered     = $this->filter_style_attribute( $declarations, $is_rtl );
