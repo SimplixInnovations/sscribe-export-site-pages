@@ -53,9 +53,11 @@ The verifier checks that:
 3. `origin/main` exists;
 4. local `main`, when present, matches `origin/main`;
 5. local refs used as release evidence are mirrored by origin;
-6. CI uses the authenticated `refs/remotes/origin/main` ref rather than relying on an unauthenticated late network lookup.
+6. CI uses the authenticated `refs/remotes/origin/main` ref rather than relying on an unauthenticated late network lookup;
+7. remote non-main branches are reported as transient review state in normal mode and become release-blocking in strict certification mode;
+8. the remote default branch resolves to `main` in strict certification mode.
 
-A pull-request CI checkout may be detached and may have no local named branch. In that case the authenticated remote-tracking `origin/main` ref is authoritative.
+A pull-request CI checkout may be detached and may have no local named branch. In that case the authenticated remote-tracking `origin/main` ref is authoritative. Final release certification must be run from a network-capable local checkout so the verifier can resolve the remote default branch and complete remote-branch cleanup checks.
 
 ## How to recover from a violation
 
