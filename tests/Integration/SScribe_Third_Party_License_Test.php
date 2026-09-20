@@ -154,17 +154,19 @@ final class SScribe_Third_Party_License_Test extends TestCase {
 		$this::assertStringContainsString( 'SPDX identifier could not be determined', $output );
 	}
 
-	public function test_amiri_font_missing_license_fails(): void {
-		$paths = array(
-			self::DIST_TREE . '/assets/fonts/amiri/OFL.txt',
-			self::INVENTORY_PATH,
-		);
-		list( $code, $output ) = $this->run_with_state( $paths, array(), array(
-			self::DIST_TREE . '/assets/fonts/amiri/OFL.txt',
-		) );
-		$this::assertSame( 1, $code, 'Missing Amiri OFL.txt must fail. Output:' . "\n" . $output );
-		$this::assertStringContainsString( 'amiri', $output );
-		$this::assertStringContainsString( 'no license file', $output );
+	public function test_legacy_amiri_bundle_is_not_part_of_source_tree(): void {
+		$root = self::plugin_root();
+		foreach (
+			array(
+				'assets/fonts/amiri/Amiri-Regular.ttf',
+				'assets/fonts/amiri/Amiri-Bold.ttf',
+				'assets/fonts/amiri/OFL.txt',
+				'assets/fonts/amiri/index.php',
+				'assets/fonts/index.php',
+			) as $relative
+		) {
+			$this::assertFileDoesNotExist( $root . '/' . $relative, $relative . ' is obsolete after the TCPDF migration.' );
+		}
 	}
 
 	public function test_inventory_json_persisted(): void {

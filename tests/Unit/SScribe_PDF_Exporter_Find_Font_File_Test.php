@@ -20,7 +20,7 @@ final class SScribe_PDF_Exporter_Find_Font_File_Test extends TestCase {
 		);
 	}
 
-	public function test_pdf_exporter_does_not_reference_plugin_amiri_files(): void {
+	public function test_pdf_exporter_does_not_reference_or_ship_legacy_amiri_files(): void {
 		$path = \SSCRIBE_PLUGIN_DIR . 'includes/exporters/class-sscribe-pdf-exporter.php';
 		$source = file_get_contents( $path );
 
@@ -29,6 +29,9 @@ final class SScribe_PDF_Exporter_Find_Font_File_Test extends TestCase {
 		$this::assertStringNotContainsString( 'Amiri-Bold.ttf', $source );
 		$this::assertStringNotContainsString( 'find_font_file', $source );
 		$this::assertStringContainsString( "'dejavusans'", $source );
+		$this::assertFileDoesNotExist( \\SSCRIBE_PLUGIN_DIR . 'assets/fonts/amiri/Amiri-Regular.ttf' );
+		$this::assertFileDoesNotExist( \\SSCRIBE_PLUGIN_DIR . 'assets/fonts/amiri/Amiri-Bold.ttf' );
+		$this::assertFileDoesNotExist( \\SSCRIBE_PLUGIN_DIR . 'assets/fonts/amiri/OFL.txt' );
 	}
 
 	public function test_tcpdf_prune_policy_is_closed_to_declared_files(): void {

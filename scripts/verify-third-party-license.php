@@ -256,7 +256,7 @@ if ( is_dir( $fonts_root ) ) {
 			'name'            => $family . ' (font family)',
 			'version'         => 'n/a',
 			'reference'       => '',
-			'source_url'      => 'https://fonts.google.com/specimen/Amiri',
+			'source_url'      => '',
 			'license'         => (string) $spdx,
 			'license_file'    => $license_file,
 			'license_detected'=> $spdx,
