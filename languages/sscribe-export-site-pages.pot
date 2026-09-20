@@ -3367,3 +3367,6 @@ msgstr ""
 msgid "Required PHP extensions are missing: %s. Ask your hosting provider to enable them before using SScribe."
 msgstr ""
 
+#: includes/class-sscribe-diagnostics.php
+msgid "Reinstall the complete plugin package to restore the bundled TCPDF renderer"
+msgstr ""

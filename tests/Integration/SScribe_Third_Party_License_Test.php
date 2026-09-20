@@ -203,7 +203,7 @@ final class SScribe_Third_Party_License_Test extends TestCase {
 		}
 		$this::assertNotNull( $tcpdf, 'tecnickcom/tcpdf must appear in the inventory' );
 		$this::assertSame( 'LGPL-3.0-or-later', $tcpdf['license'] );
-		$this::assertSame( 'https://github.com/tecnickcom/tcpdf', $tcpdf['source_url'] );
+		$this::assertSame( 'https://github.com/tecnickcom/TCPDF', $tcpdf['source_url'] );
 		$this::assertSame( 'yes (Strauss namespace/class prefix)', $tcpdf['modified'] );
 		$this::assertNotEmpty( $tcpdf['runtime_purpose'] );
 	}

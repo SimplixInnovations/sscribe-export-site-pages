@@ -62,6 +62,7 @@ final class SScribe_Diagnostics_Categorize_Coverage_Test extends TestCase {
 	}
 
 	public function test_categorize_error_returns_pdf_for_pdf_keywords(): void {
+		$this::assertSame( 'pdf', $this->call( 'categorize_error', array( 'TCPDF rendering failed' ) ) );
 		$this::assertSame( 'pdf', $this->call( 'categorize_error', array( 'mPDF rendering failed' ) ) );
 		$this::assertSame( 'pdf', $this->call( 'categorize_error', array( 'pdf file unreadable' ) ) );
 	}

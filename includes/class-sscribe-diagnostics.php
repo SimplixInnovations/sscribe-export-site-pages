@@ -21,16 +21,29 @@ if ( ! defined( 'ABSPATH' ) ) {
 class SScribe_Diagnostics {
 
 	/**
-	 * Minimum expected mPDF font files in the shipped vendor tree.
+	 * TCPDF font assets required by SScribe's pinned DejaVu Sans renderer.
 	 *
-	 * The plugin ships 17 font files in
-	 * vendor-prefixed/mpdf/mpdf/ttfonts/ (16 TTF + DejaVuinfo.txt). A lower
-	 * bound of 15 leaves room for one or two expected file additions without
-	 * firing false-positive warnings on healthy installs. Values higher than
-	 * the shipped count produce a "warning" on every install, which is the
-	 * bug this constant was guarding against.
+	 * TCPDF initializes with Helvetica, then SScribe selects DejaVu Sans for
+	 * Unicode/RTL rendering. The release builder prunes the unused general
+	 * font catalog, so diagnostics verify this exact reachable set.
+	 *
+	 * @var array<int, string>
 	 */
-	private const MIN_MPDF_FONT_COUNT = 15;
+	private const TCPDF_REQUIRED_FONT_FILES = array(
+		'helvetica.php',
+		'dejavusans.php',
+		'dejavusans.z',
+		'dejavusans.ctg.z',
+		'dejavusansb.php',
+		'dejavusansb.z',
+		'dejavusansb.ctg.z',
+		'dejavusansi.php',
+		'dejavusansi.z',
+		'dejavusansi.ctg.z',
+		'dejavusansbi.php',
+		'dejavusansbi.z',
+		'dejavusansbi.ctg.z',
+	);
 
 	/**
 	 * Logger instance.
@@ -172,7 +185,7 @@ class SScribe_Diagnostics {
 		// Pre-warm the prefixed vendor autoloader before the class_exists()
 		// probes below. The autoloader is lazy-loaded by
 		// SScribe_Exporter_Factory so that frontend page requests don't pay
-		// the PhpWord/mPDF parse cost on every load. The export flow works
+		// the PhpWord/TCPDF parse cost on every load. The export flow works
 		// because it triggers the autoloader before instantiating the
 		// exporter; this Support snapshot can be requested from any admin
 		// page (settings, history, support itself) without an exporter ever
@@ -192,7 +205,7 @@ class SScribe_Diagnostics {
 				'zip_extension'      => class_exists( 'ZipArchive' ) ? __( 'Available', 'sscribe-export-site-pages' ) : __( 'Missing', 'sscribe-export-site-pages' ),
 				'dom_extension'      => class_exists( 'DOMDocument' ) ? __( 'Available', 'sscribe-export-site-pages' ) : __( 'Missing', 'sscribe-export-site-pages' ),
 				'mbstring'           => function_exists( 'mb_convert_encoding' ) ? __( 'Available', 'sscribe-export-site-pages' ) : __( 'Missing', 'sscribe-export-site-pages' ),
-				'mpdf'               => class_exists( '\SScribeVendor\Mpdf\Mpdf' ) ? __( 'Available', 'sscribe-export-site-pages' ) : __( 'Missing', 'sscribe-export-site-pages' ),
+				'tcpdf'              => class_exists( '\\SScribeVendor_TCPDF' ) ? __( 'Available', 'sscribe-export-site-pages' ) : __( 'Missing', 'sscribe-export-site-pages' ),
 				'phpword'            => class_exists( '\SScribeVendor\PhpOffice\PhpWord\PhpWord' ) ? __( 'Available', 'sscribe-export-site-pages' ) : __( 'Missing', 'sscribe-export-site-pages' ),
 			),
 		);
@@ -282,12 +295,12 @@ class SScribe_Diagnostics {
 		$has_error = false;
 		$warnings  = array();
 
-		// Pre-warm the prefixed vendor autoloader BEFORE the mPDF / PHPWord
+		// Pre-warm the prefixed vendor autoloader BEFORE the TCPDF / PHPWord
 		// checks below. The preflight runs over AJAX (admin-ajax.php), which
 		// never fires admin_notices; the only other path that calls
 		// check_vendor_dependencies(). Without this call, the very first
-		// preflight on a fresh install reports a false-positive "mPDF
-		// library not found. Run: composer install" because the prefixed
+		// preflight on a fresh install reports a false-positive "TCPDF
+		// library not found" because the prefixed
 		// autoloader has never been registered in this request. Idempotent:
 		// the inner check is a one-shot via SSCRIBE_VENDOR_AUTOLDED, and
 		// later calls become a no-op once defined.
@@ -298,7 +311,7 @@ class SScribe_Diagnostics {
 		$checks['execution']   = $this->check_execution_time( $page_count );
 		$checks['upload_dir']  = $this->check_upload_directory();
 		$checks['zip']         = $this->check_zip_extension();
-		$checks['mpdf']        = $this->check_mpdf();
+		$checks['tcpdf']       = $this->check_tcpdf();
 		$checks['phpword']     = $this->check_phpword();
 		$checks['permissions'] = $this->check_file_permissions();
 		$checks['wp_cron']     = $this->check_wp_cron();
@@ -331,7 +344,7 @@ class SScribe_Diagnostics {
 	public function check_vendor_dependencies(): array {
 		// Pre-warm the prefixed vendor autoloader BEFORE class_exists()
 		// checks. The autoloader is lazy-loaded by SScribe_Exporter_Factory
-		// so frontend page loads don't pay the PhpWord/mPDF parse cost at
+		// so frontend page loads don't pay the PhpWord/TCPDF parse cost at
 		// boot. The admin notice is gated on this same dependency list,
 		// so without the pre-warm it would always fire a false-positive on
 		// admin pages where no exporter has yet exercised
@@ -356,7 +369,7 @@ class SScribe_Diagnostics {
 			} else {
 
 				if ( ! defined( 'SSCRIBE_PLUGIN_DIR' ) ) {
-					$missing = array( 'SScribeVendor\Mpdf\Mpdf', 'SScribeVendor\PhpOffice\PhpWord\PhpWord' );
+					$missing = array( 'SScribeVendor_TCPDF', 'SScribeVendor\\PhpOffice\\PhpWord\\PhpWord' );
 					return $missing;
 				}
 				$vendor_prefixed = SSCRIBE_PLUGIN_DIR . 'vendor-prefixed/autoload.php';
@@ -369,8 +382,8 @@ class SScribe_Diagnostics {
 
 		$missing = array();
 
-		if ( ! class_exists( '\SScribeVendor\Mpdf\Mpdf' ) ) {
-			$missing[] = 'SScribeVendor\Mpdf\Mpdf';
+		if ( ! class_exists( '\\SScribeVendor_TCPDF' ) ) {
+			$missing[] = 'SScribeVendor_TCPDF';
 		}
 
 		if ( ! class_exists( '\SScribeVendor\PhpOffice\PhpWord\PhpWord' ) ) {
@@ -685,80 +698,44 @@ class SScribe_Diagnostics {
 	}
 
 	/**
-	 * Check mPDF library availability.
+	 * Check TCPDF library availability and the exact font assets SScribe uses.
 	 *
 	 * @return array
 	 */
-	private function check_mpdf(): array {
-		// Defense in depth: prewarm vendor before class_exists() so any caller
-		// (not just run_preflight()) resolves the prefixed class.
+	private function check_tcpdf(): array {
 		$this->check_vendor_dependencies();
 
-		if ( ! class_exists( '\SScribeVendor\Mpdf\Mpdf' ) ) {
+		if ( ! class_exists( '\\SScribeVendor_TCPDF' ) ) {
 			return array(
-				'name'    => 'mPDF Library',
+				'name'    => 'TCPDF Library',
 				'status'  => 'error',
-				'message' => 'mPDF library files are missing from the plugin install. The vendor-prefixed/ directory must be present for PDF exports.',
+				'message' => 'TCPDF library files are missing from the plugin install. The vendor-prefixed/ directory must be present for PDF exports.',
 				'fix'     => 'Deactivate the plugin, then reinstall it from the Plugins screen to restore the bundled libraries.',
 			);
 		}
 
-		$amiri_dir   = SSCRIBE_PLUGIN_DIR . 'assets/fonts/amiri';
-		$amiri_fonts = is_dir( $amiri_dir ) ? glob( $amiri_dir . '/Amiri-*.ttf' ) : array();
-		if ( empty( $amiri_fonts ) ) {
-			return array(
-				'name'    => 'mPDF Library',
-				'status'  => 'warning',
-				'message' => 'mPDF loaded, but Amiri font files missing',
-				'fix'     => 'Reinstall the plugin to restore font files',
-			);
-		}
-
-		$ttfonts_dir = SSCRIBE_PLUGIN_DIR . 'vendor-prefixed/mpdf/mpdf/ttfonts';
-		if ( is_dir( $ttfonts_dir ) ) {
-			$font_files = $this->find_mpdf_font_files( $ttfonts_dir );
-			$count      = count( $font_files );
-			if ( $count < self::MIN_MPDF_FONT_COUNT ) {
-				return array(
-					'name'    => 'mPDF Library',
-					'status'  => 'warning',
-					'message' => sprintf( 'mPDF loaded, but bundled fonts are incomplete (%d files found). Fallback rendering may fail.', $count ),
-					'fix'     => 'Run "composer vendor:prefix" to restore all bundled fonts',
-				);
+		$font_dir = SSCRIBE_PLUGIN_DIR . 'vendor-prefixed/tecnickcom/tcpdf/fonts';
+		$missing  = array();
+		foreach ( self::TCPDF_REQUIRED_FONT_FILES as $font_file ) {
+			if ( ! is_file( $font_dir . '/' . $font_file ) ) {
+				$missing[] = $font_file;
 			}
 		}
 
+		if ( ! empty( $missing ) ) {
+			return array(
+				'name'    => 'TCPDF Library',
+				'status'  => 'error',
+				'message' => sprintf( 'TCPDF is loaded, but required DejaVu font assets are missing (%d file(s)).', count( $missing ) ),
+				'fix'     => 'Reinstall the complete plugin package to restore the bundled TCPDF font assets.',
+			);
+		}
+
 		return array(
-			'name'    => 'mPDF Library',
+			'name'    => 'TCPDF Library',
 			'status'  => 'ok',
-			'message' => 'mPDF loaded with full font support',
+			'message' => 'TCPDF loaded with required DejaVu Sans font assets',
 		);
-	}
-
-	/**
-	 * Find packaged mPDF font assets without relying on GLOB_BRACE.
-	 *
-	 * @param string $directory Font directory.
-	 * @return array<string> Absolute font paths.
-	 */
-	private function find_mpdf_font_files( string $directory ): array {
-		$ttf_files = glob( $directory . '/*.ttf' );
-		$otf_files = glob( $directory . '/*.otf' );
-		$txt_files = glob( $directory . '/*.txt' );
-
-		$font_files = array();
-		if ( is_array( $ttf_files ) ) {
-			$font_files = array_merge( $font_files, $ttf_files );
-		}
-		if ( is_array( $otf_files ) ) {
-			$font_files = array_merge( $font_files, $otf_files );
-		}
-		if ( is_array( $txt_files ) ) {
-			$font_files = array_merge( $font_files, $txt_files );
-		}
-		sort( $font_files, SORT_STRING );
-
-		return $font_files;
 	}
 
 	/**
@@ -1007,10 +984,10 @@ class SScribe_Diagnostics {
 				__( 'Check owner permissions on the private storage directory', 'sscribe-export-site-pages' ),
 				__( 'Check that the PHP process can write to the configured private storage base', 'sscribe-export-site-pages' ),
 			);
-		} elseif ( str_contains( $lower_error, 'mpdf' ) || str_contains( $lower_error, 'pdf' ) ) {
+		} elseif ( str_contains( $lower_error, 'tcpdf' ) || str_contains( $lower_error, 'mpdf' ) || str_contains( $lower_error, 'pdf' ) ) {
 			$diagnosis['category'] = 'pdf_generation';
 			$diagnosis['fix']      = array(
-				__( 'Run composer install to ensure mPDF is installed', 'sscribe-export-site-pages' ),
+				__( 'Reinstall the complete plugin package to restore the bundled TCPDF renderer', 'sscribe-export-site-pages' ),
 				__( 'Check that the page content does not contain invalid HTML', 'sscribe-export-site-pages' ),
 			);
 		} elseif ( str_contains( $lower_error, 'phpword' ) || str_contains( $lower_error, 'docx' ) ) {
@@ -1041,7 +1018,7 @@ class SScribe_Diagnostics {
 			'timeout'    => array( 'timeout', 'time limit', 'execution' ),
 			'permission' => array( 'permission', 'writable', 'denied' ),
 			'zip'        => array( 'zip', 'ziparchive', 'archive' ),
-			'pdf'        => array( 'mpdf', 'pdf' ),
+			'pdf'        => array( 'tcpdf', 'mpdf', 'pdf' ),
 			'docx'       => array( 'phpword', 'docx', 'word' ),
 			'network'    => array( 'network', 'connection', 'ajax' ),
 			'session'    => array( 'session', 'expired', 'not found' ),
@@ -1349,7 +1326,7 @@ class SScribe_Diagnostics {
 			'loaded'           => $loaded && empty( $boot_errors ),
 			'version'          => defined( 'SSCRIBE_VERSION' ) ? SSCRIBE_VERSION : 'unknown',
 			'dependencies'     => array(
-				'mpdf_loaded'    => class_exists( '\\SScribeVendor\\Mpdf\\Mpdf' ),
+				'tcpdf_loaded'   => class_exists( '\\SScribeVendor_TCPDF' ),
 				'phpword_loaded' => class_exists( '\\SScribeVendor\\PhpOffice\\PhpWord\\PhpWord' ),
 				'zip_extension'  => class_exists( 'ZipArchive' ),
 			),
