@@ -186,7 +186,7 @@
         "ceilings": 8,
         "expected_bools": 14
     },
-    "pass_criteria": "All 25 acceptance cells must hold on every commit to release/2.0.0-final-hardening.",
+    "pass_criteria": "All 25 acceptance cells must hold for every release candidate before it is merged to the canonical main branch.",
     "enforcement": [
         "scripts/verify-acceptance-matrix.php (this verifier)",
         "tests/Integration/SScribe_Acceptance_Matrix_Test.php (PHPUnit boundary)",
