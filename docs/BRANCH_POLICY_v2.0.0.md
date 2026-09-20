@@ -1,121 +1,68 @@
-# SScribe v2.0.0 — Branch Topology Policy
+# SScribe v2.x — Branch Topology Policy
 
-This file pins the canonical long-lived branch set for the SScribe
-Export Site Pages plugin. Its sole purpose is to prevent the
-multi-branch divergence problem we hit during the v2.0.0 release
-hardening cycle (see the "Why this exists" section).
+This file defines the canonical branch topology for SScribe Export Site Pages.
 
 ## Why this exists
 
-During the v2.0.0 work, two long-lived branches (`develop` and
-`release/2.0.0-final-hardening`) accumulated ~2600 unique commits
-between them on the same critical files (`composer.json`,
-`bin/release-audit.sh`, `.github/workflows/ci.yml`,
-`docs/CI_COMMANDS.md`, the verifier scripts). When we finally tried
-to merge them, the diff was so large that a clean three-way merge was
-not practical — every shared file became a conflict candidate, and
-the auditor's "are these two branches shippable in isolation?" check
-became unanswerable.
+Earlier release work kept multiple long-lived integration/release branches alive at the same time. They drifted across release scripts, workflow files, documentation, and runtime code, making it difficult to prove which ref was actually shippable.
 
-The fix: **only two long-lived branches exist at any time, and they
-must always point to the same SHA**. New work always lands on the
-single tip; promotion is `develop` → `main` by fast-forward only, never by history rewriting or parallel development.
+The corrected model is deliberately smaller: **main is the only canonical long-lived branch**. Review work may use temporary pull-request branches, but those branches are disposable and must be deleted after their work is merged or abandoned.
 
 ## Canonical long-lived branches
 
-Exactly two branches are allowed to persist between releases:
+Exactly one long-lived branch is allowed:
 
-| Branch  | Role                                   | Always at SHA |
-|---------|----------------------------------------|---------------|
-| `main`  | Release branch — every commit is shippable | identical to `develop` between releases |
-| `develop` | Integration branch — work lands here first | identical to `main` between releases |
+| Branch | Role |
+|---|---|
+| `main` | Reviewed integration and release branch; every merged commit must be shippable. |
 
-Between releases, the two branches are aliases of the same commit. At a release tag cut, both branches must already point to the certified release SHA; the immutable tag is created from that shared SHA. Force-pushing either long-lived branch is prohibited.
+A feature, audit, hotfix, or release branch is transient work state, not part of the persistent topology.
 
 ## Forbidden patterns
 
-The following are forbidden by `scripts/verify-branch-policy.php` and
-must fail CI if introduced:
+The following states are non-canonical:
 
-1. A third long-lived branch (`release/*`, `feature/*`, `hotfix/*`,
-   `support/*`) checked into the repo between releases.
-2. Any local-only ref that is not a remote-tracking branch
-   (`refs/original/*`, orphan tags, dangling refs).
-3. `main` and `develop` pointing to different SHAs between releases.
-4. `main` ahead of `develop` (a release was cut but `develop` was
-   not advanced past the release SHA).
-5. `develop` more than one commit ahead of `main` between releases
-   (would mean work landed on `develop` without being promoted to
-   `main`, which violates the "all commits are shippable" guarantee
-   on `main`).
+1. Any persistent long-lived branch other than `main`.
+2. A completed pull-request, audit, feature, hotfix, support, or release branch left behind after merge/abandonment.
+3. A local `main` that diverges from `origin/main` when cutting a release tag.
+4. A release tag cut from any commit other than the certified `origin/main` HEAD.
+5. Local-only release tags or recovery refs treated as authoritative repository state.
+
+Transient review branches are allowed while their pull request is active. They must not survive the final release cleanup.
 
 ## Promotion rules
 
-- **Day-to-day work**: commit on `develop`, push to origin.
-- **Release cut**: before a release tag is applied:
-  1. `develop` contains the certified release SHA.
-  2. `main` is advanced to that SHA using a verified fast-forward update only.
-  3. The release tag is cut from the shared `origin/main == origin/develop` SHA.
-- **Hotfixes**: a hotfix branch may exist transiently, but it must be merged into `develop`, then `main` must be fast-forwarded to the same SHA before the hotfix branch is deleted. No hotfix branch may survive a release tag cut.
+- **Day-to-day work:** create a transient branch, open a pull request to `main`, pass required checks/review, merge, then delete the transient branch.
+- **Release preparation:** prepare release changes on a transient release branch and merge them to `main` through the same review path.
+- **Release tag:** fetch `origin/main`, require local `main` to match it exactly, then cut the immutable annotated release tag from that SHA.
+- **Hotfix:** use a transient hotfix branch, merge it to `main`, verify the merged SHA, then delete the branch.
+- **History:** published `main` and release tags are never rewritten to repair drift.
 
 ## How an independent auditor verifies this
 
-Run, from a clean clone at any commit on `main` or `develop`:
+Run:
 
 ```bash
 composer test:branch-policy
 ```
 
-The verifier checks:
+The verifier checks that:
 
-1. **Policy doc exists** — `docs/BRANCH_POLICY_v2.0.0.md` is present.
-2. **Doc declares canonical sections** — "Why this exists",
-   "Canonical long-lived branches", "Forbidden patterns",
-   "Promotion rules", "How an independent auditor verifies this".
-3. **Only `main` and `develop` are local branches** — no other
-   long-lived branch name appears in `git branch`.
-4. **Both branches exist on `origin`** — `git ls-remote origin
-   refs/heads/*` lists exactly `main` and `develop`.
-5. **`main` and `develop` point to the same SHA** — `git rev-parse`
-   reports identical SHAs for both refs locally and remotely.
-6. **No local-only refs** — every local ref is mirrored on origin
-   (with the trivial exception of the current branch's working state).
+1. this policy document exists with its canonical sections;
+2. no non-main local long-lived branch is present in a normal local checkout;
+3. `origin/main` exists;
+4. local `main`, when present, matches `origin/main`;
+5. local refs used as release evidence are mirrored by origin;
+6. CI uses the authenticated `refs/remotes/origin/main` ref rather than relying on an unauthenticated late network lookup.
 
-If any check fails, the auditor knows the repo is in a non-canonical
-state and must be corrected before further work continues.
+A pull-request CI checkout may be detached and may have no local named branch. In that case the authenticated remote-tracking `origin/main` ref is authoritative.
 
 ## How to recover from a violation
 
-If the verifier fails because a third long-lived branch exists:
+If a transient branch still contains unique work, merge or cherry-pick that work through a reviewed pull request to `main`. After the work is reachable from `main`, delete the transient local and remote branch.
 
-```bash
-# 1. Identify the branch
-git branch -a
-
-# 2. Confirm the work is reachable from develop
-git log --oneline <offending-branch> --not develop | head -20
-
-# 3. If yes — merge or cherry-pick into develop before deleting
-git checkout develop
-git merge --no-ff <offending-branch>
-git branch -D <offending-branch>
-git push origin --delete <offending-branch>
-
-# 4. If no — the branch had unique work that is now lost; restore
-#    from the reflog if the SHA is still known
-git reflog | grep <offending-branch>
-git update-ref refs/heads/develop <recovered-sha>
-```
-
-If the verifier fails because `main` and `develop` diverge, stop release work and reconcile the unique commits on `develop` using an ordinary merge or reviewed cherry-picks. Once `develop` contains the complete intended history, advance `main` with `git merge --ff-only origin/develop` and a normal push. Never repair branch drift by rewriting a published long-lived branch.
+If local `main` differs from `origin/main`, stop release work and reconcile without rewriting published history. Do not force-push `main`.
 
 ## Living document
 
-This file is part of the v2.0.0 release hardening audit. Any change
-to the branch topology rules must:
-
-1. Update `docs/BRANCH_POLICY_v2.0.0.md`.
-2. Update `scripts/verify-branch-policy.php` to enforce the new rule.
-3. Add a PHPUnit integration test in
-   `tests/Integration/SScribe_Branch_Policy_Test.php`.
-4. Document the change in a commit message.
+Any branch-topology change must update this document, `scripts/verify-branch-policy.php`, its PHPUnit integration test, release helpers, and workflow branch filters together.
