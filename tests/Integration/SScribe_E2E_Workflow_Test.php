@@ -80,6 +80,16 @@ final class SScribe_E2E_Workflow_Test extends TestCase {
 		);
 	}
 
+	public function test_e2e_job_timeout_covers_regression_discipline_budget(): void {
+		$workflow = $this->workflow();
+		$this->assertMatchesRegularExpression(
+			'/timeout-minutes:\\s*(?:6[0-9]|[7-9][0-9]|[1-9][0-9]{2,})/',
+			$workflow,
+			'e2e.yml must allow at least 60 minutes: the exact-ZIP full suite plus eight mutation checks has exceeded the old 30-minute ceiling in hosted CI.'
+		);
+		$this->assertStringContainsString('node tests-e2e/regression-discipline.mjs', $workflow);
+	}
+
 	public function test_e2e_requires_full_playwright_suite_on_pull_requests(): void {
 		$workflow = $this->workflow();
 		$this->assertStringContainsString('npm run test:e2e:full', $workflow);
