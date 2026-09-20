@@ -54,7 +54,7 @@ if ( '' !== $cm_prefix && 'SScribeVendor_' !== $cm_prefix ) {
 	$errors[] = sprintf( 'composer.json `extra.strauss.classmap_prefix` is %s; expected `SScribeVendor_`.', $cm_prefix );
 }
 
-$expected_packages = array( 'mpdf/mpdf', 'phpoffice/phpword', 'psr/container' );
+$expected_packages = array( 'tecnickcom/tcpdf', 'phpoffice/phpword', 'psr/container' );
 $missing_packages  = array_diff( $expected_packages, $packages );
 if ( ! empty( $missing_packages ) ) {
 	$errors[] = sprintf( 'composer.json `extra.strauss.packages` is missing the canonical libraries: %s.', implode( ', ', $missing_packages ) );
@@ -71,7 +71,7 @@ $prefix_script = isset( $scripts['vendor:prefix'] ) ? (string) $scripts['vendor:
 if ( '' === $prefix_script ) {
 	$errors[] = 'composer.json is missing the `vendor:prefix` script entry.';
 } else {
-	foreach ( array( 'run-strauss.php', 'fix-prefixed-safe.php', 'fix-phpword-style-deprecation.php' ) as $script_name ) {
+	foreach ( array( 'prune-tcpdf-for-strauss.php', 'run-strauss.php', 'fix-prefixed-safe.php', 'fix-phpword-style-deprecation.php' ) as $script_name ) {
 		if ( ! str_contains( $prefix_script, $script_name ) ) {
 			$errors[] = sprintf( 'composer.json `vendor:prefix` script is missing the `%s` step.', $script_name );
 		}
@@ -90,7 +90,7 @@ if ( $verify_built ) {
 		}
 
 		$expected_dirs = array(
-			'mpdf/mpdf'         => 'mpdf',
+			'tecnickcom/tcpdf'    => 'tecnickcom',
 			'phpoffice/phpword' => 'phpoffice',
 			'psr/container'     => 'psr',
 		);
@@ -101,7 +101,7 @@ if ( $verify_built ) {
 		}
 
 		$forbidden_namespaces = array(
-			'namespace Mpdf;',
+			'class TCPDF'
 			'namespace PhpOffice\\PhpWord;',
 			'namespace Psr\\Container;',
 		);
