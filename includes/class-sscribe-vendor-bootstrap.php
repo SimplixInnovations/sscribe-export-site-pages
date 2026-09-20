@@ -32,6 +32,31 @@ if ( ! defined( 'ABSPATH' ) ) {
 final class SScribe_Vendor_Bootstrap {
 
 	/**
+	 * PHP extensions required by bundled runtime libraries and export formats.
+	 *
+	 * @var array<int, string>
+	 */
+	private const REQUIRED_EXTENSIONS = array( 'curl', 'dom', 'gd', 'xml', 'zip' );
+
+	/**
+	 * Return required PHP extensions that are unavailable on this host.
+	 *
+	 * This check runs before the Composer autoloader so a missing extension is
+	 * reported through WordPress instead of becoming a Composer platform fatal.
+	 *
+	 * @return array<int, string>
+	 */
+	public static function get_missing_extensions(): array {
+		$missing = array();
+		foreach ( self::REQUIRED_EXTENSIONS as $extension ) {
+			if ( ! extension_loaded( $extension ) ) {
+				$missing[] = $extension;
+			}
+		}
+		return $missing;
+	}
+
+	/**
 	 * Tracks whether {@see require()} has loaded the vendor autoloader
 	 * in the current process.
 	 *
