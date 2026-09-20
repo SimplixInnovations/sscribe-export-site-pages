@@ -222,7 +222,7 @@ The exact artifact must now be:
 
 ```text
 dist/sscribe-export-site-pages-{VERSION}.zip
-dist/sscribe-export-site-pages-2.0.0.sha256
+dist/sscribe-export-site-pages-{VERSION}.sha256
 ```
 
 Now run and save the remaining required signal evidence against this same
