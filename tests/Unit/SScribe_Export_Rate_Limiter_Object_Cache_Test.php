@@ -38,7 +38,7 @@ final class SScribe_Export_Rate_Limiter_Object_Cache_Test extends TestCase {
 		$GLOBALS['sscribe_test_current_user_id']         = 1;
 		$GLOBALS['sscribe_test_current_user_can']        = null;
 		$GLOBALS['sscribe_test_filters']                 = array();
-		unset( $GLOBALS['sscribe_test_before_wp_cache_delete'] );
+		unset( $GLOBALS['sscribe_test_before_wpdb_option_delete'] );
 		$GLOBALS['sscribe_test_using_ext_object_cache']  = true;
 	}
 
@@ -49,7 +49,7 @@ final class SScribe_Export_Rate_Limiter_Object_Cache_Test extends TestCase {
 		$GLOBALS['sscribe_test_current_user_id']         = null;
 		$GLOBALS['sscribe_test_current_user_can']        = null;
 		$GLOBALS['sscribe_test_filters']                 = array();
-		unset( $GLOBALS['sscribe_test_before_wp_cache_delete'] );
+		unset( $GLOBALS['sscribe_test_before_wpdb_option_delete'] );
 		$GLOBALS['sscribe_test_using_ext_object_cache']  = false;
 		parent::tearDown();
 	}
@@ -60,35 +60,29 @@ final class SScribe_Export_Rate_Limiter_Object_Cache_Test extends TestCase {
 	 * counter monotonically and never store an array on the
 	 * :count key.
 	 */
-	public function test_cache_lock_release_never_deletes_successor_owner(): void {
-		$limiter    = new \SScribe_Export_Rate_Limiter();
-		$cache_key  = 'sscribe_rate_export_1_lock';
-		$old_token  = 'old-owner-token';
-		$successor  = 'successor-owner-token';
-		$GLOBALS['sscribe_test_wp_cache'][ $cache_key ] = $old_token;
+	public function test_persistent_cache_counter_uses_cas_database_serialization_lock(): void {
+		$bucket_key = 'sscribe_rate_export_1';
+		$lock_key   = 'sscribe_rate_lock_' . substr( hash( 'sha256', $bucket_key ), 0, 32 );
+		$successor  = time() . '|successor-owner-token';
 
-		$GLOBALS['sscribe_test_before_wp_cache_delete'] = static function ( string $key, string $group ) use ( $cache_key, $successor ): void {
-			if ( $cache_key === $key && 'sscribe_rate_limit_locks' === $group ) {
-				$GLOBALS['sscribe_test_wp_cache'][ $cache_key ] = $successor;
+		$GLOBALS['sscribe_test_before_wpdb_option_delete'] = static function ( array $where ) use ( $lock_key, $successor ): void {
+			if ( ( $where['option_name'] ?? '' ) === $lock_key ) {
+				$GLOBALS['sscribe_test_options'][ $lock_key ] = $successor;
 			}
 		};
 
-		$release = \Closure::bind(
-			static function ( \SScribe_Export_Rate_Limiter $subject ) use ( $cache_key, $old_token ): void {
-				$subject->release_lock( true, $cache_key, 'unused-option-key', $old_token );
-			},
-			null,
-			\SScribe_Export_Rate_Limiter::class
-		);
+		$limiter  = new \SScribe_Export_Rate_Limiter();
+		$decision = $limiter->check_rate_limit_decision();
 
-		$release( $limiter );
-
+		$this::assertTrue( $decision->allowed );
 		$this::assertSame(
 			$successor,
-			$GLOBALS['sscribe_test_wp_cache'][ $cache_key ] ?? null,
-			'A stale persistent-cache lock owner must never delete a successor acquired after ownership was observed.'
+			get_option( $lock_key ),
+			'Persistent-cache counters must still serialize through ownership-conditional database locks.'
 		);
+		$this::assertSame( 1, $GLOBALS['sscribe_test_wp_cache'][ $bucket_key . ':count' ] ?? null );
 	}
+
 
 	public function test_persistent_cache_path_advances_counter_monotonically(): void {
 		$limiter = new \SScribe_Export_Rate_Limiter();
