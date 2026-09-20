@@ -510,7 +510,7 @@ $filter = new RecursiveCallbackFilterIterator(
 		}
 		$relative = str_replace( $root . DIRECTORY_SEPARATOR, '', $current->getPathname() );
 		$relative = str_replace( $root . '/', '', $relative );
-		$relative_norm = str_replace( '\\', '/', $relative );
+	$relative_norm      = str_replace( '\\', '/', $relative );
 
 		return ! is_release_path_excluded( $relative_norm, $excludes );
 	}
@@ -522,7 +522,7 @@ $copied     = 0;
 foreach ( $iterator as $file ) {
 	$relative           = str_replace( $root . DIRECTORY_SEPARATOR, '', $file->getPathname() );
 	$relative           = str_replace( $root . '/', '', $relative );
-	$relative_norm      = str_replace( '\\\\', '/', $relative );
+	$relative_norm      = str_replace( '\\', '/', $relative );
 	$dest               = $plugin_dir . '/' . $relative;
 	$is_vendor_prefixed = str_starts_with( $relative_norm, 'vendor-prefixed/' );
 
