@@ -108,20 +108,19 @@ $sscribe_has_dependencies     = SScribe_Vendor_Bootstrap::is_available();
 $sscribe_missing_extensions = SScribe_Vendor_Bootstrap::get_missing_extensions();
 
 if ( ! $sscribe_has_dependencies || ! empty( $sscribe_missing_extensions ) ) {
-	$GLOBALS['sscribe_missing_extensions'] = $sscribe_missing_extensions;
 	add_action(
 		'admin_notices',
-		static function () {
+		static function () use ( $sscribe_missing_extensions ) {
 			printf(
 				'<div class="error"><p><strong>%s</strong> %s</p></div>',
 				esc_html__( 'SScribe Export Site Pages:', 'sscribe-export-site-pages' ),
 				esc_html(
-					empty( $GLOBALS['sscribe_missing_extensions'] )
+					empty( $sscribe_missing_extensions )
 						? __( 'Required runtime files are missing. Please reinstall the plugin from a complete release package.', 'sscribe-export-site-pages' )
 						: sprintf(
 							/* translators: %s: comma-separated PHP extension names. */
 							__( 'Required PHP extensions are missing: %s. Ask your hosting provider to enable them before using SScribe.', 'sscribe-export-site-pages' ),
-							implode( ', ', array_map( 'sanitize_key', (array) $GLOBALS['sscribe_missing_extensions'] ) )
+							implode( ', ', array_map( 'sanitize_key', $sscribe_missing_extensions ) )
 						)
 				)
 			);
