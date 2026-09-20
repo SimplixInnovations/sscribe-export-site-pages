@@ -9,7 +9,7 @@
  * helpers it composes — `process_images_in_page_data`,
  * `collect_temp_image_paths`, `sanitize_pdf_image_sources`,
  * `create_tcpdf_document`, `resolve_pdf_page_size`,
- * `prepare_html_for_pdf_engine`, `filter_style_attribute`, `find_font_file`,
+ * `prepare_html_for_pdf_engine`, `filter_style_attribute`,
  * and the memory-pressure check.
  *
  * Strategy: drive the pure helpers via direct calls + reflection, plus
