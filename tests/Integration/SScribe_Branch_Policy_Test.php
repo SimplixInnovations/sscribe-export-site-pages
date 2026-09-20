@@ -234,6 +234,11 @@ final class SScribe_Branch_Policy_Test extends TestCase {
 			'scripts/release-audit.php must invoke `composer test:branch-policy` for Phase 77.'
 		);
 		$this->assertStringContainsString(
+			"array( 'Agent-Final-Report', 'Branch-Policy', 'Auditor-Handoff' )",
+			$audit_src,
+			'Strict release certification must propagate SSCRIBE_RELEASE_CERTIFICATION into the Branch-Policy gate.'
+		);
+		$this->assertStringContainsString(
 			'release-audit-',
 			$audit_src,
 			'scripts/release-audit.php must persist per-gate release-audit logs.'
