@@ -95,6 +95,18 @@ final class SScribe_Branch_Policy_Test extends TestCase {
 		);
 	}
 
+	public function test_active_maintainer_docs_do_not_restore_obsolete_develop_topology(): void {
+		foreach ( array( 'README.md', 'CONTRIBUTING.md', 'SECURITY.md' ) as $relative ) {
+			$src = (string) file_get_contents( $this->repo_root . '/' . $relative );
+			$this->assertDoesNotMatchRegularExpression(
+				'/\b(?:work|commit|developed|lands?|development)\s+(?:on|in|happens on)\s+`?develop`?|main\s+and\s+develop|main\s*\/\s*develop|origin\/develop/i',
+				$src,
+				$relative . ' must not instruct maintainers to use the retired develop branch or the old main/develop alias model.'
+			);
+			$this->assertStringContainsString( 'main', $src );
+		}
+	}
+
 	public function test_branch_policy_verifier_script_exists(): void {
 		$this->assertFileExists(
 			$this->repo_root . '/scripts/verify-branch-policy.php',
