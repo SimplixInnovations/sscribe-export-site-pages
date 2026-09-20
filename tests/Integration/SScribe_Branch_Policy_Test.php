@@ -74,17 +74,24 @@ final class SScribe_Branch_Policy_Test extends TestCase {
 		}
 	}
 
-	public function test_branch_policy_doc_lists_only_canonical_branches(): void {
+	public function test_branch_policy_doc_lists_main_as_the_only_canonical_branch(): void {
 		$this->assertFileExists( $this->policy_doc_path );
 		$src = (string) file_get_contents( $this->policy_doc_path );
 
-		// The doc must call out only `main` and `develop` as the
-		// canonical long-lived branches. A table row with both
-		// branch names is sufficient.
-		$this->assertMatchesRegularExpression(
-			'/\|\s*`?main`?\s*\|.*\|\s*`?develop`?\s*\|/s',
+		$this->assertStringContainsString(
+			'Exactly one long-lived branch is allowed',
 			$src,
-			'Branch-policy doc must declare `main` and `develop` as the canonical long-lived branches.'
+			'Branch-policy doc must declare a single long-lived branch.'
+		);
+		$this->assertMatchesRegularExpression(
+			'/\\|\\s*`?main`?\\s*\\|/',
+			$src,
+			'Branch-policy doc must declare `main` as the canonical long-lived branch.'
+		);
+		$this->assertDoesNotMatchRegularExpression(
+			'/\\|\\s*`?develop`?\\s*\\|/',
+			$src,
+			'Branch-policy table must not retain `develop` as a canonical long-lived branch.'
 		);
 	}
 
@@ -230,7 +237,7 @@ final class SScribe_Branch_Policy_Test extends TestCase {
 		);
 	}
 
-	public function test_only_main_and_develop_branches_locally(): void {
+	public function test_only_main_branch_locally(): void {
 		// This is the most important rule: there must be no third
 		// long-lived branch checked out locally. Run git from the
 		// repo root via subprocess so PHPUnit does not need a
@@ -251,16 +258,16 @@ final class SScribe_Branch_Policy_Test extends TestCase {
 		// CI mode (GITHUB_ACTIONS=true) intentionally checks out
 		// only the trigger branch. The origin-side rules
 		// enforced by the verifier are the real contract in CI.
-		// In local dev we still demand exactly {main, develop}.
+		// In local dev we demand exactly {main}.
 		$is_ci = ( getenv( 'GITHUB_ACTIONS' ) === 'true' );
 		if ( $is_ci ) {
 			// Pull-request workflows are checked out at GitHub's synthetic
 			// refs/pull/<n>/merge in detached-HEAD mode. In that valid state
 			// refs/heads/ is empty; the verifier's authenticated
-			// refs/remotes/origin/{main,develop} checks are the authoritative
+			// refs/remotes/origin/main checks are the authoritative
 			// CI contract. If any local named branches are present, however,
 			// they must still be canonical.
-			$disallowed = array_diff( $branches, array( 'main', 'develop' ) );
+			$disallowed = array_diff( $branches, array( 'main' ) );
 			$this->assertSame(
 				array(),
 				array_values( $disallowed ),
@@ -270,9 +277,9 @@ final class SScribe_Branch_Policy_Test extends TestCase {
 		}
 
 		$this->assertSame(
-			array( 'develop', 'main' ),
+			array( 'main' ),
 			$branches,
-			'Only `main` and `develop` are allowed as local long-lived branches. Found: ' . implode( ', ', $branches )
+			'Only `main` is allowed as a local long-lived branch. Found: ' . implode( ', ', $branches )
 		);
 	}
 }

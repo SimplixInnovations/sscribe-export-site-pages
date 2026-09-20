@@ -183,6 +183,21 @@ final class SScribe_Third_Party_License_Test extends TestCase {
 		}
 	}
 
+	public function test_readme_does_not_claim_removed_amiri_bundle(): void {
+		$readme = (string) file_get_contents( self::plugin_root() . '/readme.txt' );
+
+		$this::assertStringNotContainsString(
+			'assets/fonts/amiri/',
+			$readme,
+			'readme.txt must not advertise the removed Amiri bundle after the TCPDF migration.'
+		);
+		$this::assertStringNotContainsString(
+			'bundled Amiri',
+			$readme,
+			'readme.txt license disclosures must describe only assets that actually ship.'
+		);
+	}
+
 	public function test_inventory_json_persisted(): void {
 		$paths = array( self::INVENTORY_PATH );
 		list( $code ) = $this->run_with_state( $paths );
