@@ -122,7 +122,8 @@ function sscribe_release_audit(): void {
 	);
 	foreach ( $tail_gates as $name => $script ) {
 		fwrite( STDOUT, "== {$name} ==\n" );
-		$gate( $name, array( $composer, $script ) );
+		$tail_env = in_array( $name, array( 'Agent-Final-Report', 'Auditor-Handoff' ), true ) ? $cert : array();
+		$gate( $name, array( $composer, $script ), $tail_env );
 	}
 
 	fwrite( STDOUT, "== PHPStan ==\n" );
