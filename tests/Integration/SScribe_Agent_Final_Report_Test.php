@@ -89,6 +89,33 @@ final class SScribe_Agent_Final_Report_Test extends TestCase {
 		}
 	}
 
+	public function test_current_release_report_template_is_separate_from_historical_closeout(): void {
+		$template_path   = $this->repo_root . '/docs/RELEASE_REPORT_TEMPLATE_v2.0.0.md';
+		$historical_path = $this->repo_root . '/docs/RELEASE_REPORT_v2.0.0.md';
+
+		$this->assertFileExists( $template_path );
+		$this->assertFileExists( $historical_path );
+
+		$template   = (string) file_get_contents( $template_path );
+		$historical = (string) file_get_contents( $historical_path );
+		foreach ( array( '## Executive summary', '## Release evidence', '## Blocker status', '## CI state', '## Open items', '## Verification recipe' ) as $section ) {
+			$this->assertStringContainsString( $section, $template );
+		}
+		$this->assertStringContainsString( 'HISTORICAL', $historical );
+		$this->assertStringNotContainsString( 'Historical Closeout Report', $template );
+	}
+
+	public function test_agent_final_report_verifier_has_strict_exact_sha_report_mode(): void {
+		$source = (string) file_get_contents( $this->repo_root . '/scripts/verify-agent-final-report.php' );
+
+		$this->assertStringContainsString( 'SSCRIBE_RELEASE_CERTIFICATION', $source );
+		$this->assertStringContainsString( 'dist/final-release-report.md', $source );
+		$this->assertStringContainsString( 'dist/exact-artifact-evidence-manifest.json', $source );
+		$this->assertStringContainsString( 'dist/final-ci-state-manifest.json', $source );
+		$this->assertStringContainsString( 'dist/release-blockers-manifest.json', $source );
+		$this->assertStringContainsString( 'git rev-parse HEAD', $source );
+	}
+
 	public function test_agent_final_report_verifier_script_exists(): void {
 		$this->assertFileExists(
 			$this->repo_root . '/scripts/verify-agent-final-report.php',
