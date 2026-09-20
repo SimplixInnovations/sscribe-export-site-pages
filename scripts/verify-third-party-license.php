@@ -188,6 +188,10 @@ foreach ( $installed_data['versions'] as $name => $meta ) {
 		++$license_unknown;
 		$license_display = $detected ?? 'unknown';
 	} else {
+		if ( null !== $detected && ! in_array( $detected, $declared, true ) ) {
+			$errors[] = "[{$name}] shipped license text identifies as {$detected}, which does not match composer.lock declaration(s): " . implode( ', ', $declared ) . '.';
+			++$license_unknown;
+		}
 		$known = array_values( array_intersect( $declared, $individually_compatible ) );
 		if ( empty( $known ) ) {
 			$errors[] = "[{$name}] declared license(s) " . implode( ', ', $declared ) . ' are not classified as GPL-compatible for this release.';
