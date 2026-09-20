@@ -607,7 +607,7 @@ if ( is_file( $lgpl_source ) ) {
 }
 
 if ( $config['strip_comments'] ) {
-	echo "  🧹 Stripping non-docblock comments from PHP / CSS / JS files...\n";
+	echo "  🧹 Stripping non-docblock comments from first-party PHP / CSS / JS files...\n";
 }
 
 echo "  Pruning vendor development files...\n";
@@ -930,13 +930,13 @@ echo "    - .distignore entries (segment-level match against\n";
 echo "      vendor-prefixed/*/tests, vendor-prefixed/*/docs,\n";
 echo "      vendor-prefixed/phpoffice/phpword/COPYING.LESSER,\n";
 echo "      vendor-prefixed/phpoffice/phpword/phpword.ini.dist, etc.).\n";
-echo "      UnBatang, Aegyptus, Aegean, Akkadian, Jomolhari, KhmerOS,\n";
-echo "      Abyssinica SIL, etc.; XB Riyaz Bold/Italic/BoldItalic;\n";
-echo "      Dhyana; Garuda; DejaVuSans variants not registered).\n";
-echo "      parent-landmine memory).\n\n";
+echo "    - TCPDF release pruning removes unreachable generated font assets,\n";
+echo "      retaining core metrics plus DejaVu Sans regular/bold/italic/\n";
+echo "      bold-italic and their upstream license files.\n";
+echo "    - TCPDF development metadata Makefile and VERSION are removed.\n\n";
 
-echo "  In-place transformations (each shipped PHP/CSS/JS file is\n";
-echo "  rewritten before being written to dist/):\n";
+echo "  First-party in-place transformations (vendor-prefixed/ bypasses\n";
+echo "  these rewriters and is copied byte-for-byte before explicit pruning):\n";
 echo "    - PHP: T_DOC_COMMENT preserved (for @preserve/@var/@type);\n";
 echo "      T_COMMENT stripped unless pragma-annotated (phpcs:|@preserve);\n";
 echo "      T_OPEN_TAG / T_STRING / T_VARIABLE untouched.\n";
@@ -954,7 +954,10 @@ echo "      leaked Unicode into the ZIP. Known text assets also pass\n";
 echo "      through the sanitizer as a backstop; binary assets (fonts,\n";
 echo "      images, compiled translations) are copied byte-for-byte.\n\n";
 
-echo "  Vendor-specific rewrites:\n";
+echo "  Vendor-specific handling:\n";
+echo "    - vendor-prefixed/ files are copied byte-for-byte after Strauss\n";
+echo "      namespace isolation; first-party comment/Unicode sanitizers do\n";
+echo "      not rewrite third-party source or notices.\n";
 echo "    - vendor-prefixed/phpoffice/phpword/COPYING.LESSER renamed to\n";
 echo "      COPYING.LESSER.txt (WP.org plugin-check rejects the bare\n";
 echo "      .lesser extension as an unexpected file type).\n";
