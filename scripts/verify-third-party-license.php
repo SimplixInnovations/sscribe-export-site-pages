@@ -267,7 +267,7 @@ $inventory_path = $root_dir . '/dist/third-party-license-inventory.json';
 // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- Build-time artifact generation.
 file_put_contents(
 	$inventory_path,
-	wp_json_encode(
+	json_encode(
 		array(
 			'plugin_license' => 'GPL-2.0-or-later',
 			'generated_at'   => gmdate( 'c' ),
