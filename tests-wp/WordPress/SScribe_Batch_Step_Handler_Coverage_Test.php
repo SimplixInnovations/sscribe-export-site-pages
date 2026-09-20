@@ -90,11 +90,12 @@ final class SScribe_Batch_Step_Handler_Coverage_Test extends SScribe_WP_Ajax_Tes
 		$this::assertSame( 'invalid_session_id', $data['code'] ?? null, "Raw: {$raw}" );
 	}
 
-	public function test_returns_session_expired_when_session_unknown_and_clears_lock(): void {
-		// Pre-seed a lock under the same id so we can verify the
-		// `discard_lock` call at line 95 clears it.
-		$sid = '0123456789abcdef';
-		set_transient( 'sscribe_lock_' . $sid, time() . '|orphan|9999999999' );
+	public function test_returns_session_expired_when_session_unknown_without_deleting_unowned_lock(): void {
+		// A missing session row does not establish ownership of an extant lock.
+		// Pre-seed one and verify the request fails closed without deleting it.
+		$sid        = '0123456789abcdef';
+		$lock_value = time() . '|orphan|9999999999';
+		set_transient( 'sscribe_lock_' . $sid, $lock_value );
 
 		$_POST['nonce']      = wp_create_nonce( self::NONCE_ACTION );
 		$_POST['session_id'] = $sid;
@@ -103,11 +104,10 @@ final class SScribe_Batch_Step_Handler_Coverage_Test extends SScribe_WP_Ajax_Tes
 
 		$this::assertFalse( $success, "Raw: {$raw}" );
 		$this::assertSame( 'session_expired', $data['code'] ?? null, "Raw: {$raw}" );
-
-		// The orphaned lock must have been disposed.
-		$this::assertFalse(
-			(bool) get_transient( 'sscribe_lock_' . $sid ),
-			'Orphaned lock must be discarded when the session row is missing.'
+		$this::assertSame(
+			$lock_value,
+			get_transient( 'sscribe_lock_' . $sid ),
+			'Missing session state must never authorize deletion of a lock owned by another request.'
 		);
 	}
 
