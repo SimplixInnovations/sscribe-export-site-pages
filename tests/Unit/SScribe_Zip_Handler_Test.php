@@ -130,6 +130,34 @@ class SScribe_Zip_Handler_Test extends TestCase {
 		);
 	}
 
+	public function test_create_zip_fails_closed_on_partial_archive_assembly_contract(): void {
+		$source = (string) file_get_contents( SSCRIBE_PLUGIN_DIR . 'includes/class-sscribe-zip-handler.php' );
+
+		$add_start = strpos( $source, 'if ( ! $zip->addFile( $file, $archive_entry ) )' );
+		$this->assertNotFalse( $add_start );
+		$add_end = strpos( $source, '$zip_entries[]', $add_start );
+		$this->assertNotFalse( $add_end );
+		$add_branch = substr( $source, $add_start, $add_end - $add_start );
+		$this->assertStringContainsString( '$assembly_failed = true;', $add_branch );
+		$this->assertStringContainsString( 'break 2;', $add_branch );
+
+		$manifest_start = strpos( $source, 'if ( ! $zip->addFromString( $manifest_name, $failure_msg ) )' );
+		$this->assertNotFalse( $manifest_start );
+		$manifest_end = strpos( $source, '$this->logger->debug(', $manifest_start );
+		$this->assertNotFalse( $manifest_end );
+		$manifest_branch = substr( $source, $manifest_start, $manifest_end - $manifest_start );
+		$this->assertStringContainsString( '$assembly_failed = true;', $manifest_branch );
+
+		$close_start = strpos( $source, '$close_ok = $zip->close();' );
+		$this->assertNotFalse( $close_start );
+		$renew_start = strpos( $source, '$lock_manager->renew_lock', $close_start );
+		$this->assertNotFalse( $renew_start );
+		$close_branch = substr( $source, $close_start, $renew_start - $close_start );
+		$this->assertStringContainsString( 'if ( ! $close_ok )', $close_branch );
+		$this->assertStringContainsString( 'if ( $assembly_failed )', $close_branch );
+		$this->assertStringContainsString( 'return false;', $close_branch );
+	}
+
 	public function test_zip_open_failure_releases_index_lock_before_return(): void {
 		$source = (string) file_get_contents( SSCRIBE_PLUGIN_DIR . 'includes/class-sscribe-zip-handler.php' );
 		$start  = strpos( $source, 'if ( $zip->open( $tmp_zip' );

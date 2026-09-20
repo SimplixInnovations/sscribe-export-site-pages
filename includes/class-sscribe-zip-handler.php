@@ -297,15 +297,16 @@ class SScribe_Zip_Handler {
 					}
 
 					if ( ! $zip->addFile( $file, $archive_entry ) ) {
-						$this->logger->warning(
-							'Failed to add file to ZIP',
+						$this->logger->error(
+							'Failed to add file to ZIP; archive assembly aborted',
 							array(
 								'file'  => $file,
 								'entry' => $archive_entry,
 								'zip'   => basename( $zip_path ),
 							)
 						);
-						continue;
+						$assembly_failed = true;
+						break 2;
 					}
 					$zip_entries[] = array(
 						'source'    => $basename,
@@ -327,7 +328,17 @@ class SScribe_Zip_Handler {
 					$failure_msg .= "Status: FAILED : no files generated for this format.\n";
 					$failure_msg .= 'Please check the debug log for error details.';
 					$manifest_name = strtoupper( $format ) . '_EXPORT_FAILED.txt';
-					$zip->addFromString( $manifest_name, $failure_msg );
+					if ( ! $zip->addFromString( $manifest_name, $failure_msg ) ) {
+						$this->logger->error(
+							'Failed to add export-failure manifest to ZIP; archive assembly aborted',
+							array(
+								'manifest' => $manifest_name,
+								'zip'      => basename( $zip_path ),
+							)
+						);
+						$assembly_failed = true;
+						break;
+					}
 				}
 			}
 
@@ -345,12 +356,25 @@ class SScribe_Zip_Handler {
 		} finally {
 
 			if ( $zip_opened ) {
-				$zip->close();
+				$close_ok = $zip->close();
+				if ( ! $close_ok ) {
+					$assembly_failed = true;
+					$this->logger->error(
+						'Failed to finalize ZIP archive; archive assembly aborted',
+						array( 'zip' => basename( $zip_path ) )
+					);
+				}
 			}
 
 			if ( $assembly_failed && file_exists( $tmp_zip ) ) {
 				wp_delete_file( $tmp_zip );
 			}
+		}
+
+		if ( $assembly_failed ) {
+			$this->delete_directory( $source_dir );
+			$lock_manager->release_lock( $lock_name, $lock_token );
+			return false;
 		}
 
 		if ( ! $lock_manager->renew_lock( $lock_name, $lock_token, 120 ) ) {
