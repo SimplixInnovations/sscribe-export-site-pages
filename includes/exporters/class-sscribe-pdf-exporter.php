@@ -200,7 +200,7 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 				);
 			}
 
-			$filename    = \\SScribe_Exporter_Factory::build_filename( $page_data, $index, $total, 'pdf' );
+			$filename    = \SScribe_Exporter_Factory::build_filename( $page_data, $index, $total, 'pdf' );
 			$output_path = trailingslashit( $output_dir ) . $filename;
 			if ( SScribe_Filesystem::SSCRIBE_PATH_ALLOWED !== $this->filesystem->is_path_safe_for_write( $output_path ) ) {
 				return SScribe_Result::failure(
@@ -251,7 +251,7 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 			}
 
 			return SScribe_Result::success( array( 'path' => $output_path, 'size' => $bytes_written ) );
-		} catch ( \\Throwable $e ) {
+		} catch ( \Throwable $e ) {
 			if ( ! empty( $output_path ) && file_exists( $output_path ) ) {
 				wp_delete_file( $output_path );
 			}
@@ -556,7 +556,7 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 		if ( in_array( $page_size, array( 'Letter', 'Legal' ), true ) ) {
 			$page_size = strtoupper( $page_size );
 		}
-		$pdf = new \\SScribeVendor_TCPDF( 'P', 'mm', $page_size, true, 'UTF-8', false );
+		$pdf = new \SScribeVendor_TCPDF( 'P', 'mm', $page_size, true, 'UTF-8', false );
 		$pdf->setPrintHeader( false );
 		$pdf->setPrintFooter( '1' === (string) $this->get_format_option( 'sscribe_pdf_include_page_numbers', '1' ) );
 		$pdf->SetMargins( 15, 15, 15 );
