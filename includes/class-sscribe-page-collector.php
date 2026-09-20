@@ -300,11 +300,30 @@ class SScribe_Page_Collector {
 			return false;
 		}
 
-		if ( 'publish' === (string) $post->post_status ) {
-			return in_array( (string) $post->post_type, $this->get_selectable_post_types(), true );
+		if (
+			'publish' === (string) $post->post_status
+			&& in_array( (string) $post->post_type, $this->get_selectable_post_types(), true )
+			&& $this->is_post_type_public( (string) $post->post_type )
+		) {
+			return true;
 		}
 
 		return current_user_can( 'read_post', $page_id );
+	}
+
+	/**
+	 * Determine whether a registered post type is publicly readable.
+	 *
+	 * The selectable-post-type filter may intentionally add non-public types.
+	 * Such types stay selectable for authorized workflows, but they must never
+	 * inherit the published-content public shortcut.
+	 *
+	 * @param string $post_type Post type name.
+	 * @return bool Whether the registered type is public.
+	 */
+	private function is_post_type_public( string $post_type ): bool {
+		$post_type_object = get_post_type_object( $post_type );
+		return is_object( $post_type_object ) && ! empty( $post_type_object->public );
 	}
 
 	/**
@@ -589,12 +608,25 @@ class SScribe_Page_Collector {
 			return (int) ( $counts['all'] ?? 0 );
 		}
 
-		// Published content is public on the selectable post-type allow-list, so
-		// WordPress's found_posts count is safe and avoids hydrating thousands of
-		// IDs only to re-affirm public visibility.
+		// The found_posts fast path is safe only when every resolved post type
+		// is actually registered public=true. The filter may add non-public CPTs;
+		// those counts remain permission-sensitive and must use readable IDs.
 		if ( 'publish' === $post_status ) {
+			$resolved_post_types = $this->resolve_post_type_for_query( $post_type );
+			$post_types_to_check = is_array( $resolved_post_types ) ? $resolved_post_types : array( $resolved_post_types );
+			$all_public          = ! empty( $post_types_to_check );
+			foreach ( $post_types_to_check as $resolved_post_type ) {
+				if ( ! $this->is_post_type_public( (string) $resolved_post_type ) ) {
+					$all_public = false;
+					break;
+				}
+			}
+			if ( ! $all_public ) {
+				return count( $this->get_page_ids( $language, $post_status, $post_type, 10001 ) );
+			}
+
 			$args = array(
-				'post_type'      => $this->resolve_post_type_for_query( $post_type ),
+				'post_type'      => $resolved_post_types,
 				'post_status'    => 'publish',
 				'posts_per_page' => 1,
 				'fields'         => 'ids',
@@ -932,6 +964,9 @@ class SScribe_Page_Collector {
 		$children_by_parent = array();
 
 		foreach ( $query->posts as $child ) {
+			if ( ! $this->is_post_readable_for_export( (int) $child->ID ) ) {
+				continue;
+			}
 			$parent_id = $child->post_parent;
 			if ( ! isset( $children_by_parent[ $parent_id ] ) ) {
 				$children_by_parent[ $parent_id ] = array();
@@ -964,7 +999,7 @@ class SScribe_Page_Collector {
 	 */
 	private function get_child_pages( int $page_id, string $post_type = 'page' ): array {
 		if ( isset( $this->child_pages_cache[ $page_id ] ) ) {
-			return $this->child_pages_cache[ $page_id ];
+			return $this->filter_readable_child_rows( $this->child_pages_cache[ $page_id ] );
 		}
 
 		$cache_key   = 'sscribe_child_pages_' . get_current_blog_id() . '_' . $page_id;
@@ -972,7 +1007,7 @@ class SScribe_Page_Collector {
 		$cached      = wp_cache_get( $cache_key, $cache_group );
 		if ( is_array( $cached ) ) {
 			$this->child_pages_cache[ $page_id ] = $cached;
-			return $cached;
+			return $this->filter_readable_child_rows( $cached );
 		}
 
 		$children    = array();
@@ -998,7 +1033,24 @@ class SScribe_Page_Collector {
 
 		wp_cache_set( $cache_key, $children, $cache_group, MINUTE_IN_SECONDS * 5 );
 		$this->child_pages_cache[ $page_id ] = $children;
-		return $children;
+		return $this->filter_readable_child_rows( $children );
+	}
+
+	/**
+	 * Filter cached child metadata through the current user's post permissions.
+	 *
+	 * @param array<int, array<string, mixed>> $children Child metadata rows.
+	 * @return array<int, array<string, mixed>> Readable child rows.
+	 */
+	private function filter_readable_child_rows( array $children ): array {
+		return array_values(
+			array_filter(
+				$children,
+				fn( $child ): bool => is_array( $child )
+					&& isset( $child['id'] )
+					&& $this->is_post_readable_for_export( absint( $child['id'] ) )
+			)
+		);
 	}
 
 	/**
@@ -1069,7 +1121,10 @@ class SScribe_Page_Collector {
 
 			$ancestors_by_lang = array();
 			foreach ( $ancestors as $ancestor_id ) {
-				if ( ! isset( $ancestor_map[ $ancestor_id ] ) ) {
+				if (
+					! isset( $ancestor_map[ $ancestor_id ] )
+					|| ! $this->is_post_readable_for_export( (int) $ancestor_id )
+				) {
 					continue;
 				}
 				$ancestor_lang = $this->get_page_language( $ancestor_id );
