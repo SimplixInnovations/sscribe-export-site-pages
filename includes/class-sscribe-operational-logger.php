@@ -248,13 +248,8 @@ final class SScribe_Operational_Logger {
 	public static function sanitize_context( array $context ): array {
 		$deny_keys = array(
 			'nonce',
-			'password',
 			'pass',
 			'pwd',
-			'cookie',
-			'cookies',
-			'token',
-			'download_token',
 			'auth',
 			'request_body',
 			'body',
@@ -266,11 +261,34 @@ final class SScribe_Operational_Logger {
 			'export_content',
 			'raw_html',
 		);
+		$sensitive_parts = array(
+			'password',
+			'token',
+			'secret',
+			'credential',
+			'private_key',
+			'cookie',
+			'bearer',
+			'api_key',
+			'apikey',
+			'access_key',
+			'session_key',
+			'authorization',
+		);
 
 		$allowed = array();
 		foreach ( $context as $key => $value ) {
 			$key_lc = strtolower( (string) $key );
-			if ( in_array( $key_lc, $deny_keys, true ) ) {
+			$sensitive = in_array( $key_lc, $deny_keys, true );
+			if ( ! $sensitive ) {
+				foreach ( $sensitive_parts as $part ) {
+					if ( str_contains( $key_lc, $part ) ) {
+						$sensitive = true;
+						break;
+					}
+				}
+			}
+			if ( $sensitive ) {
 				continue;
 			}
 			if ( ! preg_match( '/^[a-zA-Z][a-zA-Z0-9_]{0,63}$/', (string) $key ) ) {
