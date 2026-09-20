@@ -72,27 +72,18 @@ continue to work alongside wildcard rules such as `*.log`.
   `vendor-prefixed/phpoffice/phpword/phpword.ini.dist`,
   `vendor-prefixed/phpoffice/phpword/phpmd.xml.dist`.
 
-### mPDF font exclusions (unused variants)
+### TCPDF runtime pruning
 
-Sun-ExtA.ttf, Sun-ExtB.ttf, UnBatang_0613.ttf, Aegyptus.otf,
-Aegean.otf, Akkadian.otf, Jomolhari.ttf, KhmerOS.ttf,
-Abyssinica_SIL.ttf, AboriginalSansREGULAR.ttf, Padauk-book.ttf,
-SundaneseUnicode-1.0.5.ttf, SyrCOMEdessa.otf, TaameyDavidCLM-Medium.ttf,
-Tharlon-Regular.ttf, ayar.ttf, damase_v.2.ttf, kaputaunicode.ttf,
-lannaalif-v1-03.ttf, ZawgyiOne.ttf, DBSILBR.ttf, Eeyek-Regular.ttf,
-Pothana2000.ttf, Lohit-Kannada.ttf, Quivira.otf, TaiHeritagePro.ttf,
-Garuda.ttf, Garuda-Bold.ttf, Garuda-Oblique.ttf, Garuda-BoldOblique.ttf,
-XB RiyazBd.ttf, XB RiyazIt.ttf, XB RiyazBdIt.ttf,
-Dhyana-Regular.ttf, Dhyana-Bold.ttf.
+TCPDF ships a large general-purpose font catalog. SScribe's PDF exporter is
+pinned to TCPDF's built-in DejaVu Sans family (regular, bold, italic, and
+bold-italic) plus the initial Helvetica core metrics required during TCPDF
+construction. The release builder removes every other TCPDF font artifact and
+retains the DejaVu license files. This keeps the WordPress.org ZIP bounded
+without introducing runtime-generated font files.
 
-### FPDI parent-class exclusions
-
-`fpdi-fpdf-parent-landmine` memory: classes that extend FPDF must
-not ship because the parent class is not vendored. The
-`fpdi_excludes` configuration in `scripts/build-release.php` lists
-these by filename.
-
----
+The release tree also removes upstream examples, tests, tools, package-manager
+metadata, and other development-only vendor artifacts. TCPDF's `LICENSE.TXT`
+remains alongside its source.
 
 ## 2. In-place file transformations
 
@@ -169,7 +160,7 @@ would fail the build.
   These are configuration samples never read by SScribe code.
 - `includes/sscribe-vendor-compat.php` is removed. This is a
   local-development compatibility shim that re-exposes the
-  unprefixed `PhpWord` / `Mpdf` class names so non-prefixed
+  unprefixed `PhpWord` / `TCPDF` class names so non-prefixed
   examples work in the dev environment. The release code only
   uses prefixed vendors.
 
