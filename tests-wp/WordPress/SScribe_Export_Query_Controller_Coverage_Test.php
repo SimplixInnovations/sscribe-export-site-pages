@@ -146,6 +146,40 @@ final class SScribe_Export_Query_Controller_Coverage_Test extends SScribe_WP_Aja
 		$this::assertSame( 'post', $data['post_type'] ?? null );
 	}
 
+	public function test_ajax_get_status_counts_supports_selectable_public_custom_post_type(): void {
+		register_post_type(
+			'sscribe_portfolio',
+			array(
+				'public'       => true,
+				'show_ui'      => true,
+				'show_in_rest' => true,
+			)
+		);
+
+		try {
+			$post_id = (int) $this->factory()->post->create(
+				array(
+					'post_type'   => 'sscribe_portfolio',
+					'post_status' => 'publish',
+					'post_title'  => 'Portfolio export candidate',
+				)
+			);
+			$this::assertGreaterThan( 0, $post_id );
+
+			$_POST['nonce']     = wp_create_nonce( 'sscribe_export_nonce' );
+			$_POST['post_type'] = 'sscribe_portfolio';
+
+			list( $success, $data, $raw ) = $this->dispatch_ajax( 'sscribe_get_status_counts' );
+
+			$this::assertTrue( $success, "Raw: {$raw}" );
+			$this::assertSame( 'sscribe_portfolio', $data['post_type'] ?? null );
+			$this::assertGreaterThanOrEqual( 1, (int) ( $data['counts']['publish'] ?? 0 ) );
+			$this::assertGreaterThanOrEqual( 1, (int) ( $data['counts_any']['publish'] ?? 0 ) );
+		} finally {
+			unregister_post_type( 'sscribe_portfolio' );
+		}
+	}
+
 	public function test_ajax_get_status_counts_invalid_post_type_falls_back_to_page(): void {
 		$_POST['nonce']     = wp_create_nonce( 'sscribe_export_nonce' );
 		$_POST['post_type'] = 'invalid-type';
