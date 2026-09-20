@@ -81,7 +81,7 @@ $canonical_criteria = array(
 	'Final execution state holds',
 	'Strict exact-artifact evidence matches the actual ZIP',
 	'Agent final report produced',
-	'Auditor handoff protocol holds',
+	'Auditor handoff protocol holds (14 artifacts listed',
 	'Release invariants declared',
 	'Branch topology policy holds',
 	'Tag is cut on origin/main HEAD',
