@@ -126,7 +126,7 @@ composer test:exact-artifact-evidence
 SSCRIBE_RELEASE_CERTIFICATION=1 composer test:exact-artifact-evidence
 
 # Independent spot checks.
-sha256sum dist/sscribe-export-site-pages-2.0.0.zip
+sha256sum dist/sscribe-export-site-pages-{VERSION}.zip
 git rev-parse HEAD
 git status --short
 ```
