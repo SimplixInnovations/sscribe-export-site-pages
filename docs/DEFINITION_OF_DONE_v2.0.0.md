@@ -56,7 +56,7 @@ criterion references the Phase gate that enforces it.
 | 30 | Agent final report produced in the canonical format (6 sections, 7 format rules).| Phase 73 agent final report.            | green           |
 | 31 | Auditor handoff protocol holds (13 artifacts listed, every artifact present).| Phase 74 auditor handoff.               | green           |
 | 32 | Release invariants declared + enforced (33 invariants, each with enforcing Phase gate).| Phase 75 release invariants.            | green           |
-| 33 | Branch topology policy holds (only `main` + `develop` long-lived; both same SHA; no local-only refs; CI-tolerant).| Phase 77 branch topology policy.        | green           |
+| 33 | Branch topology policy holds (`main` is the only persistent long-lived branch; local main matches origin/main; no authoritative local-only refs; CI-tolerant).| Phase 77 branch topology policy.        | green           |
 | 34 | Tag is cut on `origin/main` HEAD, signed via `gh release create --verify-tag`.| Manual (Phase 54 gate).                  | green           |
 | 35 | WP.org submission is made via the Plugin Check action's `release-zip` artifact, with the audit-trail attached.| Manual (after Phase 33).                | submitted       |
 | 36 | Public maintained exact source/build inputs are available for WordPress.org because build tooling is omitted from the deployed ZIP. | Phase 70 blocker 18 / WordPress.org source guideline. | public |
