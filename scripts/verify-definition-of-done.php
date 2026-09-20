@@ -119,6 +119,15 @@ if ( is_file( $dod_doc ) ) {
 			$missing_criteria[] = $expected;
 		}
 	}
+	$criterion_rows = array();
+	preg_match_all( '/^\\|\\s*([0-9]+)\\s*\\|/m', $doc_src, $criterion_rows );
+	$criterion_numbers = array_map( 'intval', $criterion_rows[1] ?? array() );
+	$record(
+		'dod_has_exactly_36_numbered_criteria',
+		range( 1, 36 ) === $criterion_numbers,
+		'Definition of Done must contain exactly 36 consecutively numbered criteria.'
+	);
+
 	$record(
 		'every_canonical_dod_criterion_listed',
 		0 === count( $missing_criteria ),
