@@ -201,10 +201,9 @@ class SScribe_Export_Query_Controller {
 		if ( self::SENTINEL_ALL !== $requested_language && '' === $language ) {
 			SScribe_AJAX_Guard::error( array( 'message' => __( 'Invalid or inactive language.', 'sscribe-export-site-pages' ) ), 400 );
 		}
-		$post_type = SScribe_AJAX_Guard::post_text( 'post_type', 'page', 30 );
-		if ( ! in_array( $post_type, array( 'page', 'post', 'any' ), true ) ) {
-			$post_type = 'page';
-		}
+		$post_type = $this->normalize_post_type_input(
+			SScribe_AJAX_Guard::post_text( 'post_type', 'page', 30 )
+		);
 
 		$payload          = $this->compute_counts_payload( $language, $post_type );
 		$client_generation = $this->read_client_generation();
@@ -237,10 +236,9 @@ class SScribe_Export_Query_Controller {
 			\SScribe_Rate_Limit_Response::emit( $decision );
 		}
 
-		$post_type = SScribe_AJAX_Guard::post_text( 'post_type', 'page', 30 );
-		if ( ! in_array( $post_type, array( 'page', 'post', 'any' ), true ) ) {
-			$post_type = 'page';
-		}
+		$post_type = $this->normalize_post_type_input(
+			SScribe_AJAX_Guard::post_text( 'post_type', 'page', 30 )
+		);
 
 		$languages = SScribe_AJAX_Guard::post_array( 'languages', 50 );
 		if ( empty( $languages ) ) {
@@ -285,20 +283,23 @@ class SScribe_Export_Query_Controller {
 	 * where the empty-status array key set lives.
 	 *
 	 * @param string $language   Normalized language code, or empty string for all languages.
-	 * @param string $post_type  'page', 'post', or 'any'.
+	 * @param string $post_type  Selectable post type or 'any'.
 	 * @return array{counts: array<string,int>, counts_page: array<string,int>, counts_post: array<string,int>, counts_any: array<string,int>}
 	 */
 	private function compute_counts_payload( string $language, string $post_type ): array {
 		$page_counts = $this->collector->get_post_status_counts( $language, 'page' );
 		$post_counts = $this->collector->get_post_status_counts( $language, 'post' );
+		$any_counts  = $this->collector->get_post_status_counts( $language, 'any' );
 
-		$any_counts = array();
-		$all_keys   = array_unique( array_merge( array_keys( $page_counts ), array_keys( $post_counts ) ) );
-		foreach ( $all_keys as $key ) {
-			$any_counts[ $key ] = ( $page_counts[ $key ] ?? 0 ) + ( $post_counts[ $key ] ?? 0 );
+		if ( 'any' === $post_type ) {
+			$counts = $any_counts;
+		} elseif ( 'page' === $post_type ) {
+			$counts = $page_counts;
+		} elseif ( 'post' === $post_type ) {
+			$counts = $post_counts;
+		} else {
+			$counts = $this->collector->get_post_status_counts( $language, $post_type );
 		}
-
-		$counts = 'any' === $post_type ? $any_counts : ( 'page' === $post_type ? $page_counts : $post_counts );
 
 		return array(
 			'counts'      => $counts,
@@ -306,6 +307,42 @@ class SScribe_Export_Query_Controller {
 			'counts_post' => $post_counts,
 			'counts_any'  => $any_counts,
 		);
+	}
+
+	/**
+	 * Normalize a requested post type against the collector's canonical list.
+	 *
+	 * The admin UI is built from the same selectable list, including public or
+	 * explicitly filter-added CPTs. Keeping this normalization here prevents
+	 * query/preview endpoints from silently falling back to pages when the UI
+	 * legitimately selected a custom type.
+	 *
+	 * @param string $post_type Raw requested post type.
+	 * @return string Canonical selectable type or "any".
+	 */
+	private function normalize_post_type_input( string $post_type ): string {
+		$post_type = sanitize_key( $post_type );
+		if ( 'any' === $post_type ) {
+			return 'any';
+		}
+
+		$allowed = array_values(
+			array_unique(
+				array_filter(
+					array_map( 'sanitize_key', $this->collector->get_selectable_post_types() )
+				)
+			)
+		);
+
+		if ( in_array( $post_type, $allowed, true ) ) {
+			return $post_type;
+		}
+
+		if ( in_array( 'page', $allowed, true ) ) {
+			return 'page';
+		}
+
+		return $allowed[0] ?? 'page';
 	}
 
 	/**
@@ -559,10 +596,9 @@ class SScribe_Export_Query_Controller {
 			$formats = \SScribe_Exporter_Factory::get_supported_formats();
 		}
 
-		$post_type = SScribe_AJAX_Guard::post_text( 'post_type', 'page', 30 );
-		if ( ! in_array( $post_type, array( 'page', 'post', 'any' ), true ) ) {
-			$post_type = 'page';
-		}
+		$post_type = $this->normalize_post_type_input(
+			SScribe_AJAX_Guard::post_text( 'post_type', 'page', 30 )
+		);
 
 		$page_count = $this->collector->get_page_count_only( $language, $post_status, $post_type );
 
