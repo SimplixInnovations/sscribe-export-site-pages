@@ -526,7 +526,7 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 	}
 
 	/**
-	 * Resolve the configured PDF page size to an TCPDF format string.
+	 * Resolve the configured PDF page size to a TCPDF format string.
 	 *
 	 * Falls back to A4 when the user-selected value is empty or unknown,
 	 * so a corrupt/legacy value can never crash the export pipeline.
@@ -540,13 +540,10 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 	}
 
 	/**
-	 * Build TCPDF configuration array and validate prerequisites.
-	 *
-	 * Extracted from export() to keep the method focused on the rendering pipeline.
+	 * Create a configured TCPDF document.
 	 *
 	 * @param bool $is_rtl Whether the page is RTL.
-	 * @param int  $page_id Page ID for error context.
-	 * @return array{config: array, tcpdf_temp: string, xbriyaz_available: bool, amiri_available: bool}|SScribe_Result Config array on success, failure Result on error.
+	 * @return SScribeVendor_TCPDF|SScribe_Result Configured renderer or failure result.
 	 */
 	private function create_tcpdf_document( bool $is_rtl ) {
 		if ( ! class_exists( '\\SScribeVendor_TCPDF' ) ) {
@@ -602,6 +599,8 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 		$html_content = preg_replace( '/@font-face\\s*\\{[^}]+\\}/isU', '', $html_content ) ?? $html_content;
 		$html_content = preg_replace( '/@import\\s+[^;]+;/isU', '', $html_content ) ?? $html_content;
 		$html_content = preg_replace( '/url\\s*\\([^)]*\\)/i', 'none', $html_content ) ?? $html_content;
+		$html_content = preg_replace( '/(?<![-a-z])font-family\\s*:[^;}]+;?/i', '', $html_content ) ?? $html_content;
+		$html_content = preg_replace( '/(?<![-a-z])font\\s*:[^;}]+;?/i', '', $html_content ) ?? $html_content;
 		return $html_content;
 	}
 
@@ -660,23 +659,6 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 		}
 		return empty( $kept ) ? '' : implode( ';', $kept ) . ';';
 	}
-
-	/**
-	 * Find a font file matching the pattern in a directory.
-	 *
-	 * The $pattern is a PCRE fragment matched against the basename
-	 * (case-insensitive) followed by ".ttf". Patterns are hard-coded
-	 * by the caller in this class, so they are trusted : do not pass
-	 * untrusted user input here.
-	 *
-	 * Example: pattern "amiri[-_]?regular" matches
-	 * "Amiri-Regular.ttf", "Amiri_Regular.ttf", and
-	 * "amiri-regular.ttf", but not "Amiri-Bold.ttf".
-	 *
-	 * @param string $dir     Directory to search.
-	 * @param string $pattern PCRE fragment (no anchors, no extension).
-	 * @return string|null Matching filename, or null if none found.
-	 */
 
 	/**
 	 * Get detailed information about libxml errors.
