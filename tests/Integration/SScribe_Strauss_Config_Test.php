@@ -16,7 +16,7 @@
  * the live repo and against a series of synthetic composer.json
  * payloads (well-formed, missing strauss block, wrong namespace
  * prefix, missing canonical package, missing vendor:prefix script,
- * missing required fixup step). A regression that:
+ * missing required fixup step). Built-tree verification additionally rejects\n * removed dependency roots such as vendor-prefixed/mpdf/. A regression that:
  *
  *   - silently accepts a missing extra.strauss block,
  *   - silently accepts a wrong namespace_prefix,
@@ -152,6 +152,13 @@ final class SScribe_Strauss_Config_Test extends TestCase {
 		list( $code, $output ) = $this->run_against( json_encode( $composer ) );
 		$this::assertSame( 1, $code, 'missing fix-prefixed-safe + fix-phpword fixup steps must fail' );
 		$this::assertStringContainsString( 'fix-prefixed-safe.php', $output );
+	}
+
+	public function test_built_verifier_rejects_removed_mpdf_package_root_contract(): void {
+		$source = (string) file_get_contents( self::plugin_root() . '/' . self::SCRIPT_PATH );
+		$this::assertStringContainsString( '$forbidden_top_level_dirs', $source );
+		$this::assertStringContainsString( "array( 'mpdf' )", $source );
+		$this::assertStringContainsString( 'removed package root', $source );
 	}
 
 	public function test_live_repo_configuration_passes(): void {

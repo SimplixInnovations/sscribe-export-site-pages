@@ -100,6 +100,17 @@ if ( $verify_built ) {
 			}
 		}
 
+		$forbidden_top_level_dirs = array( 'mpdf' );
+		foreach ( $forbidden_top_level_dirs as $forbidden_dir ) {
+			if ( is_dir( $prefixed_dir . '/' . $forbidden_dir ) ) {
+				$errors[] = sprintf(
+					'Prefixed vendor tree still contains removed package root `%s/%s`.',
+					$prefixed_dir,
+					$forbidden_dir
+				);
+			}
+		}
+
 		// TCPDF itself defines a global class named TCPDF. Strauss must apply
 		// the configured classmap prefix to that exact entrypoint. Do not scan
 		// for the raw substring "class TCPDF" globally: PHPWord legitimately

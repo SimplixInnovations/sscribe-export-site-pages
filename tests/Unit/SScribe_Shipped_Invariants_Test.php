@@ -165,7 +165,7 @@ final class SScribe_Shipped_Invariants_Test extends TestCase {
 	/**
 	 * Invariant 1: shipped ZIP contains zero em-dash characters
 	 * in our own code. Vendor-prefixed/ is exempt because
-	 * third-party libraries (mpdf, PSR-7) ship with em-dashes
+	 * third-party libraries may ship with em-dashes
 	 * in their PHPDoc comments that are outside our control.
 	 */
 	public function test_zip_has_no_em_dashes(): void {
@@ -653,13 +653,13 @@ final class SScribe_Shipped_Invariants_Test extends TestCase {
 		);
 	}
 
-	public function test_zip_excludes_unused_mpdf_request_handler(): void {
-		$handler = self::$extract_dir . DIRECTORY_SEPARATOR . self::PLUGIN_SLUG
-			. '/vendor-prefixed/mpdf/mpdf/data/out.php';
+	public function test_zip_excludes_removed_mpdf_package_root(): void {
+		$mpdf_root = self::$extract_dir . DIRECTORY_SEPARATOR . self::PLUGIN_SLUG
+			. '/vendor-prefixed/mpdf';
 
-		$this->assertFileDoesNotExist(
-			$handler,
-			'Unused vendor request handlers must not be shipped.'
+		$this->assertDirectoryDoesNotExist(
+			$mpdf_root,
+			'Removed mPDF packages and compatibility shims must not survive in the shipped ZIP.'
 		);
 	}
 
