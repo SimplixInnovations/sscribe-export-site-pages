@@ -1,9 +1,11 @@
-# Definition of Done — v2.0.0
+# Definition of Done — governance schema v2.0.0
+
+> **Scope:** this filename is retained as the Phase 76 governance-schema identifier. The release under certification is always the version declared by `SSCRIBE_VERSION`, not necessarily plugin version 2.0.0.
 
 ## Why this exists
 
 Phase 76 of the v2.0.0 release-hardening spec mandates that the
-canonical "is v2.0.0 done?" state be declared in a single
+canonical "is the current release done?" state be declared in a single
 document every release engineer + reviewer + CI gate can cite.
 Without a canonical Definition of Done:
 
@@ -17,7 +19,7 @@ criterion is satisfied.
 
 ## Canonical Definition of Done
 
-v2.0.0 is **SHIPPED** when ALL of the following are true. Every
+The current `SSCRIBE_VERSION` release is **SHIPPED** only when ALL of the following are true. Every
 criterion references the Phase gate that enforces it.
 
 | #  | Criterion                                                              | Enforced by                                | Status required |
@@ -77,18 +79,17 @@ grep '^Version:' sscribe-export-site-pages.php
 # Must match.
 
 # 4. Cross-check the WP.org submission status.
-gh release view v2.0.0 --repo SimplixInnovations/sscribe-export-site-pages
+gh release view "v{VERSION}" --repo SimplixInnovations/sscribe-export-site-pages
 # Must show the certified ZIP + SHA-256 sidecar.
 ```
 
 A green `composer test:definition-of-done` + a green
 `composer release:audit` + matching tag + submitted to WP.org
-= v2.0.0 is officially SHIPPED.
+= the current release is officially SHIPPED.
 
 ## What this contract does NOT cover
 
-- **Future releases** — each release ships its own Definition
-  of Done (this one is v2.0.0-specific).
+- **Future governance schemas** — this document's filename remains the Phase 76 schema identifier until the governance contract itself is versioned again; release identity is resolved dynamically from `SSCRIBE_VERSION`.
 - **Backports** — security patches to older versions follow
   their own short-form Definition of Done.
 
