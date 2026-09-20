@@ -205,7 +205,10 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 			if ( SScribe_Filesystem::SSCRIBE_PATH_ALLOWED !== $this->filesystem->is_path_safe_for_write( $output_path ) ) {
 				return SScribe_Result::failure(
 					__( 'Failed to write PDF file.', 'sscribe-export-site-pages' ),
-					array( 'error_category' => 'pdf_filesystem', 'page_id' => $page_id )
+					array(
+						'error_category' => 'pdf_filesystem',
+						'page_id'        => $page_id,
+					)
 				);
 			}
 
@@ -237,7 +240,10 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 			if ( is_link( $output_path ) || ! is_file( $output_path ) ) {
 				return SScribe_Result::failure(
 					__( 'Failed to write PDF file.', 'sscribe-export-site-pages' ),
-					array( 'error_category' => 'pdf_filesystem', 'page_id' => $page_id )
+					array(
+						'error_category' => 'pdf_filesystem',
+						'page_id'        => $page_id,
+					)
 				);
 			}
 
@@ -246,11 +252,19 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 				wp_delete_file( $output_path );
 				return SScribe_Result::failure(
 					__( 'Failed to write PDF file.', 'sscribe-export-site-pages' ),
-					array( 'error_category' => 'pdf_filesystem', 'page_id' => $page_id )
+					array(
+						'error_category' => 'pdf_filesystem',
+						'page_id'        => $page_id,
+					)
 				);
 			}
 
-			return SScribe_Result::success( array( 'path' => $output_path, 'size' => $bytes_written ) );
+			return SScribe_Result::success(
+				array(
+					'path' => $output_path,
+					'size' => $bytes_written,
+				)
+			);
 		} catch ( \Throwable $e ) {
 			if ( ! empty( $output_path ) && file_exists( $output_path ) ) {
 				wp_delete_file( $output_path );
@@ -632,13 +646,35 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 			return '';
 		}
 		$allowed = array(
-			'direction', 'text-align', 'vertical-align', 'page-break-before',
-			'page-break-after', 'break-before', 'break-after', 'break-inside',
-			'color', 'background', 'background-color', 'border', 'border-top',
-			'border-right', 'border-bottom', 'border-left', 'border-width',
-			'border-color', 'border-style', 'border-collapse', 'border-spacing',
-			'width', 'height', 'min-width', 'max-width', 'min-height', 'max-height',
-			'float', 'clear',
+			'direction',
+			'text-align',
+			'vertical-align',
+			'page-break-before',
+			'page-break-after',
+			'break-before',
+			'break-after',
+			'break-inside',
+			'color',
+			'background',
+			'background-color',
+			'border',
+			'border-top',
+			'border-right',
+			'border-bottom',
+			'border-left',
+			'border-width',
+			'border-color',
+			'border-style',
+			'border-collapse',
+			'border-spacing',
+			'width',
+			'height',
+			'min-width',
+			'max-width',
+			'min-height',
+			'max-height',
+			'float',
+			'clear',
 		);
 		$kept = array();
 		foreach ( explode( ';', $declarations ) as $part ) {
