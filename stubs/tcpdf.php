@@ -41,7 +41,7 @@ if ( ! class_exists( 'SScribeVendor_TCPDF', false ) ) {
 			string $style = '',
 			float $size = 0,
 			string $fontfile = '',
-			bool $subset = 'default'
+			bool|string $subset = 'default'
 		): string {}
 
 		public function AddPage(
