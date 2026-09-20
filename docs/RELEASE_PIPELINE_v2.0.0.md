@@ -115,7 +115,7 @@ release obeys the canonical pipeline contract.
 - **Versioning** — Phase 16 separately codifies that
   SSCRIBE_VERSION is the single source of truth.
 - **Branch topology** — Phase 77 separately enforces the
-  canonical `main` + `develop` invariant.
+  canonical main-only persistent-branch invariant.
 - **Tag policy** — Phase 54 separately codifies the canonical
   tag-shape rules (annotated, signed, origin/main HEAD).
 - **Artifact evidence** — Phase 72 separately records the
