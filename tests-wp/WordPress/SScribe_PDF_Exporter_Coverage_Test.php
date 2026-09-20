@@ -43,7 +43,7 @@ final class SScribe_PDF_Exporter_Coverage_Test extends SScribe_WP_TestCase {
 		// export call short-circuits at the `pdf_missing_library` guard
 		// instead of exercising the real rendering pipeline.
 		$prefixed_autoload = SSCRIBE_PLUGIN_DIR . 'vendor-prefixed/autoload.php';
-		if ( file_exists( $prefixed_autoload ) && ! class_exists( '\SScribeVendor\Mpdf\Mpdf', false ) ) {
+		if ( file_exists( $prefixed_autoload ) && ! class_exists( '\\SScribeVendor_TCPDF', false ) ) {
 			require_once $prefixed_autoload;
 		}
 
