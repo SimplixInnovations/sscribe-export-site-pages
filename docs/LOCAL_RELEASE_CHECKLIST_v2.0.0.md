@@ -1,4 +1,6 @@
-# SScribe v2.0.0 — Local Final Release Checklist
+# SScribe Local Final Release Checklist — governance schema v2.0.0
+
+> **Release identity:** derive the current release from `SSCRIBE_VERSION`. The `_v2.0.0` filename denotes the checklist schema, not the artifact version.
 
 GitHub Actions availability is not a prerequisite for merging the finished
 source. It **is** still necessary to verify the exact final source/package
@@ -20,6 +22,8 @@ set -euo pipefail
 > lives in gitignored `dist/` evidence files and generated manifests. If any
 > tracked file changes after final evidence is generated, discard that evidence,
 > commit the source change, and repeat final certification.
+
+Resolve the release version once at the start and substitute it for `{VERSION}` below. The authoritative value is the `SSCRIBE_VERSION` constant in `sscribe-export-site-pages.php`.
 
 ## 1. Clean dependency install
 
@@ -81,7 +85,7 @@ composer release
 The canonical artifact is:
 
 ```text
-dist/sscribe-export-site-pages-2.0.0.zip
+dist/sscribe-export-site-pages-{VERSION}.zip
 ```
 
 Do not test one ZIP and upload another.
@@ -102,7 +106,7 @@ under the ignored evidence directory:
 
 ```bash
 mkdir -p dist/evidence
-"${SSCRIBE_WP_BIN:-wp}" --path="$SSCRIBE_WP_ROOT" plugin install   "$PWD/dist/sscribe-export-site-pages-2.0.0.zip" --force --activate
+"${SSCRIBE_WP_BIN:-wp}" --path="$SSCRIBE_WP_ROOT" plugin install   "$PWD/dist/sscribe-export-site-pages-{VERSION}.zip" --force --activate
 
 "${SSCRIBE_WP_BIN:-wp}" --path="$SSCRIBE_WP_ROOT" plugin check   sscribe-export-site-pages 2>&1 | tee dist/evidence/plugin-check-preliminary.log
 ```
@@ -217,7 +221,7 @@ cp .cache/final-build.log dist/evidence/build.log
 The exact artifact must now be:
 
 ```text
-dist/sscribe-export-site-pages-2.0.0.zip
+dist/sscribe-export-site-pages-{VERSION}.zip
 dist/sscribe-export-site-pages-2.0.0.sha256
 ```
 
@@ -263,7 +267,7 @@ final output:
 
 ```bash
 "${SSCRIBE_WP_BIN:-wp}" --path="$SSCRIBE_WP_ROOT" plugin install \
-  "$PWD/dist/sscribe-export-site-pages-2.0.0.zip" --force --activate
+  "$PWD/dist/sscribe-export-site-pages-{VERSION}.zip" --force --activate
 
 "${SSCRIBE_WP_BIN:-wp}" --path="$SSCRIBE_WP_ROOT" plugin check \
   sscribe-export-site-pages 2>&1 | tee dist/evidence/plugin-check.log
