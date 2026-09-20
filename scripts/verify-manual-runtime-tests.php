@@ -90,6 +90,15 @@ if ( is_file( $runbook_doc ) ) {
 			$missing_envs[] = $env;
 		}
 	}
+	$uses_versioned_artifact = false !== strpos( $doc_src, 'sscribe-export-site-pages-{VERSION}.zip' )
+		&& false === strpos( $doc_src, 'dist/sscribe-export-site-pages.zip' )
+		&& false !== strpos( $doc_src, 'SSCRIBE_VERSION' );
+	$record(
+		'runbook_uses_current_versioned_release_artifact',
+		$uses_versioned_artifact,
+		'Manual runtime runbook must resolve the current SSCRIBE_VERSION release ZIP and must not reference the obsolete unversioned dist/sscribe-export-site-pages.zip path.'
+	);
+
 	$record(
 		'runbook_covers_six_environments',
 		0 === count( $missing_envs ),
