@@ -1206,24 +1206,18 @@ class SScribe_Page_Collector {
 	 * @return array Status counts.
 	 */
 	public function get_post_status_counts( string $language = '', string $post_type = 'page' ): array {
-		$user_id    = get_current_user_id();
-		$generation = $this->get_content_cache_generation();
-		$cache_key  = 'sscribe_status_counts_' . $generation . '_' . $user_id . '_' . md5( $language . '_' . $post_type );
-		$cached     = get_transient( $cache_key );
-
-		if ( false !== $cached && is_array( $cached ) ) {
-			return $cached;
-		}
-
 		$statuses = $this->get_valid_post_statuses();
 		$counts   = array_fill_keys( array_keys( $statuses ), 0 );
 
+		// Do not cache permission-sensitive aggregates. A user's role or mapped
+		// post-type capabilities can change independently of the content cache
+		// generation, and serving a pre-change count would disclose non-public
+		// post metadata after access had been revoked.
 		foreach ( array_keys( $statuses ) as $status ) {
 			$counts[ $status ] = $this->get_page_count_only( $language, $status, $post_type );
 		}
 
 		$counts['all'] = array_sum( $counts );
-		set_transient( $cache_key, $counts, MINUTE_IN_SECONDS );
 
 		return $counts;
 	}
