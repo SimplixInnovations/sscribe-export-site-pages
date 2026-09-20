@@ -45,6 +45,12 @@ final class SScribe_Page_Collector_Coverage_Test extends SScribe_WP_TestCase {
 	public function set_up(): void {
 		parent::set_up();
 
+		// Legacy collector coverage exercises draft/private branches that are
+		// only valid for an authorized editor. Security-specific tests below
+		// explicitly switch to restricted users when asserting denial paths.
+		$admin_user_id = (int) $this->factory()->user->create( array( 'role' => 'administrator' ) );
+		wp_set_current_user( $admin_user_id );
+
 		// Activate the plugin so the SEO reader dependency is fully wired.
 		SScribe_Activator::activate( false );
 
