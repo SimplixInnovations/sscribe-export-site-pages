@@ -198,6 +198,13 @@ final class SScribe_Exact_Artifact_Evidence_Test extends TestCase {
 		$this->assertStringContainsString( 'plugin_check_evidence_is_verifiable', $src );
 	}
 
+	public function test_exact_artifact_evidence_doc_uses_version_placeholder_in_spot_check(): void {
+		$src = (string) file_get_contents( $this->evidence_doc_path );
+
+		$this->assertStringNotContainsString( 'sscribe-export-site-pages-2.0.0.zip', $src );
+		$this->assertStringContainsString( 'sscribe-export-site-pages-{VERSION}.zip', $src );
+	}
+
 	public function test_exact_artifact_evidence_doc_resets_stale_candidate_values(): void {
 		$src = (string) file_get_contents( $this->evidence_doc_path );
 
