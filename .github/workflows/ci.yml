@@ -4,11 +4,9 @@ on:
     push:
         branches:
             - main
-            - develop
     pull_request:
         branches:
             - main
-            - develop
     schedule:
         - cron: '0 6 * * 1' # Every Monday at 06:00 UTC
 
@@ -799,11 +797,11 @@ jobs:
             # release/2.0.0-final-hardening on the same
             # critical files). The policy doc at
             # docs/BRANCH_POLICY_v2.0.0.md declares exactly
-            # two long-lived branches (`main` and `develop`)
+            # the single long-lived `main` branch
             # that must always point to the same SHA between
             # releases, plus a list of forbidden patterns
             # (third long-lived branch, local-only refs,
-            # divergent branches, main ahead of develop).
+            # persistent non-main branches or main/origin drift).
             # The verifier walks the doc and scans the git
             # refs; the integration test pins the same
             # contract at the PHPUnit boundary so a
