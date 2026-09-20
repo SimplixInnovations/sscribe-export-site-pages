@@ -1,26 +1,6 @@
 <?php
 /**
- * Phase 55 — Branch protection verifier.
- *
- * Branch protection is a server-side rule on GitHub. This file is
- * the local mirror of what those rules should look like — Phase 55
- * requires that the contract be documented, that it be consistent
- * with what .github/workflows/*.yml actually does, and that the
- * auditor can verify it without privileged GitHub access.
- *
- * The verifier scans docs/BRANCH_PROTECTION_v2.0.0.md and asserts
- * every required clause is present:
- *
- *   - required status checks map to actual jobs in ci.yml
- *   - required reviews are declared
- *   - conversation resolution is required
- *   - signed commits / sign-off is required
- *   - no force pushes or deletions; no unrestricted admin bypass
- *   - develop uses reviewed squash PRs; main uses controlled exact-SHA fast-forward synchronization
- *   - audit SHA matches the current audited state
- *
- * If a regression (or a new maintainer) silently removes a clause
- * from the branch protection doc, this verifier fails the gate.
+ * Branch protection contract verifier.
  *
  * @package SScribe_Export_Site_Pages
  */
@@ -35,301 +15,108 @@ $root_dir      = dirname( __DIR__ );
 $doc_path      = $root_dir . '/docs/BRANCH_PROTECTION_v2.0.0.md';
 $ci_workflow   = $root_dir . '/.github/workflows/ci.yml';
 $manifest_path = $root_dir . '/dist/branch-protection-manifest.json';
+$matrix        = array();
+$errors        = array();
 
-$matrix = array();
-$errors = array();
-
-if ( ! is_file( $doc_path ) ) {
-	fwrite( STDERR, "✗ docs/BRANCH_PROTECTION_v2.0.0.md not found.\n" );
-	exit( 1 );
-}
-if ( ! is_file( $ci_workflow ) ) {
-	fwrite( STDERR, "✗ .github/workflows/ci.yml not found.\n" );
+if ( ! is_file( $doc_path ) || ! is_file( $ci_workflow ) ) {
+	fwrite( STDERR, "Required branch-protection source files are missing.\n" );
 	exit( 1 );
 }
 
-// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
-$doc_src  = (string) file_get_contents( $doc_path );
-// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
-$ci_src   = (string) file_get_contents( $ci_workflow );
+$doc_src = (string) file_get_contents( $doc_path );
+$ci_src  = (string) file_get_contents( $ci_workflow );
 
-/**
- * Rule 1: doc declares the canonical target branches.
- */
-$declares_branch = (bool) preg_match( '/^Branches:\s*main,\s*develop\s*$/mi', $doc_src );
-$matrix[] = array(
-	'rule'   => 'branch_protection_doc_declares_protected_branch',
-	'passes' => $declares_branch,
-	'detail' => 'docs/BRANCH_PROTECTION_v2.0.0.md must declare the canonical long-lived target branches: main, develop.',
+function sscribe_branch_protection_rule( array &$matrix, array &$errors, string $rule, bool $passes, string $detail ): void {
+	$matrix[] = array(
+		'rule'   => $rule,
+		'passes' => $passes,
+		'detail' => $detail,
+	);
+	if ( ! $passes ) {
+		$errors[] = $detail;
+	}
+}
+
+sscribe_branch_protection_rule(
+	$matrix,
+	$errors,
+	'branch_protection_doc_declares_protected_branch',
+	(bool) preg_match( '/^Branches:\s*main\s*$/mi', $doc_src ),
+	'docs/BRANCH_PROTECTION_v2.0.0.md must declare main as the single canonical long-lived branch.'
 );
-if ( ! $declares_branch ) {
-	$errors[] = 'Branch-protection doc does not declare the canonical target branches main + develop.';
-}
 
-/**
- * Rule 2: doc lists the required status checks and they reference
- * ACTUAL jobs that exist in ci.yml. The mapping is intent — every
- * named job that gates the release must be in both.
- *
- * We pull the GitHub job name + the YAML job ID and assert the doc
- * mentions each one. A regression that adds a job in ci.yml without
- * listing it on the doc means the auditor misses it; this check
- * closes that gap.
- */
 preg_match_all( '/^    ([a-z][a-z0-9_-]*):\s*\n\s+name:\s*([^\n]+)/m', $ci_src, $job_matches );
 $ci_jobs = array();
 foreach ( $job_matches as $row ) {
 	$ci_jobs[ trim( $row[1] ) ] = trim( $row[2] );
 }
 
-// Required gates (these are the four jobs that DEFINITELY gate the
-// release per the existing doc). A regression that drops any of
-// these from the doc fails this check.
-$mandatory_jobs_in_doc = array(
-	'version-check'    => 'Version Sync',
-	'test'             => 'PHPUnit',
-	'plugin-check'     => 'Submission Package Check',
+$mandatory_jobs = array(
+	'version-check' => 'Version Sync',
+	'test'          => 'PHPUnit',
+	'plugin-check'  => 'Submission Package Check',
 );
-
-// Every mandatory job's friendly label must be discoverable in the
-// doc under the "Required status checks" section. We assert a
-// substring presence rather than exact table parsing because the
-// doc format is human-written.
-$doc_required_section = '';
-if ( preg_match( '/##\s*Required status checks[^\n]*\n(.*?)(?=^##\s|\z)/sm', $doc_src, $section_match ) ) {
-	$doc_required_section = $section_match[1];
+$required_section = '';
+if ( preg_match( '/##\s*Required status checks[^\n]*\n(.*?)(?=^##\s|\z)/sm', $doc_src, $section ) ) {
+	$required_section = $section[1];
 }
-
-foreach ( $mandatory_jobs_in_doc as $ci_id => $label ) {
-	$friendly_present = (bool) stripos( $doc_required_section, $label );
-	$matrix[] = array(
-		'rule'   => "branch_protection_doc_lists_{$ci_id}_as_required_check",
-		'passes' => $friendly_present,
-		'detail' => "The 'Required status checks' section must mention '{$label}' (ci.yml `{$ci_id}` job).",
+foreach ( $mandatory_jobs as $job_id => $label ) {
+	sscribe_branch_protection_rule(
+		$matrix,
+		$errors,
+		"branch_protection_doc_lists_{$job_id}_as_required_check",
+		false !== stripos( $required_section, $label ) && isset( $ci_jobs[ $job_id ] ),
+		"Required status checks must include {$label} and ci.yml must declare job {$job_id}."
 	);
-	if ( ! $friendly_present ) {
-		$errors[] = "Branch-protection doc does not list {$label} as a required status check (ci.yml `{$ci_id}` job).";
-	}
 }
 
-/**
- * Rule 3: doc declares no force pushes.
- */
-$no_force_push = (bool) preg_match( '/(no|forbid|reject|disallow)[^\n]*force[ -]?push/i', $doc_src )
-	|| (bool) preg_match( '/(force[ -]?push(es)?\s+(are|is)\s+(rejected|forbidden|not\s+allowed|blocked))/i', $doc_src );
-$matrix[] = array(
-	'rule'   => 'branch_protection_doc_forbids_force_pushes',
-	'passes' => $no_force_push,
-	'detail' => 'Branch protection must forbid force-pushes regardless of role.',
-);
-if ( ! $no_force_push ) {
-	$errors[] = 'Branch-protection doc does NOT forbid force-pushes.';
-}
+sscribe_branch_protection_rule( $matrix, $errors, 'branch_protection_doc_forbids_force_pushes', (bool) preg_match( '/(no|forbid|reject|disallow)[^\n]*force[ -]?push/i', $doc_src ), 'Branch protection must forbid force-pushes.' );
+sscribe_branch_protection_rule( $matrix, $errors, 'branch_protection_doc_forbids_branch_deletion', (bool) preg_match( '/(?:no|rejects?|forbid)[^\n]*(?:branch[ -]?deletion|deletion)/i', $doc_src ), 'Branch protection must forbid deletion of main.' );
+sscribe_branch_protection_rule( $matrix, $errors, 'branch_protection_doc_forbids_unrestricted_bypass', false !== stripos( $doc_src, 'no unrestricted admin bypass' ), 'Branch protection must forbid unrestricted admin bypass.' );
+sscribe_branch_protection_rule( $matrix, $errors, 'branch_protection_doc_requires_reviewed_main_prs', false !== stripos( $doc_src, 'Changes enter through pull requests' ), 'Changes to main must enter through reviewed pull requests.' );
+sscribe_branch_protection_rule( $matrix, $errors, 'branch_protection_doc_requires_conversation_resolution', (bool) preg_match( '/conversation[ -]?resolution/i', $doc_src ), 'Conversation resolution must be required before merge.' );
+sscribe_branch_protection_rule( $matrix, $errors, 'branch_protection_doc_requires_signed_commits', (bool) preg_match( '/(--signoff|DCO|signed\s+commit|sign[ -]?off)/i', $doc_src ), 'Signed commits or DCO signoff must be required for release promotion.' );
 
-/**
- * Rule 4: doc forbids branch deletion.
- */
-$no_deletion = (bool) preg_match( '/(?:no|rejects?|forbid)[^\n]*(?:branch[ -]?deletion|deletion)/i', $doc_src )
-	|| (bool) preg_match( '/(rejects?|forbids?)[^\n]*deletion/i', $doc_src );
-$matrix[] = array(
-	'rule'   => 'branch_protection_doc_forbids_branch_deletion',
-	'passes' => $no_deletion,
-	'detail' => 'Branch protection must forbid deletion of the canonical long-lived branches.',
-);
-if ( ! $no_deletion ) {
-	$errors[] = 'Branch-protection doc does NOT forbid branch deletion.';
-}
+$merge_methods = false !== stripos( $doc_src, 'Pull requests into `main`: squash' )
+	&& (bool) preg_match( '/rebase[- ]?merge:\s*disabled/i', $doc_src )
+	&& (bool) preg_match( '/merge commits:\s*disabled/i', $doc_src );
+sscribe_branch_protection_rule( $matrix, $errors, 'branch_protection_doc_pins_allowed_merge_methods', $merge_methods, 'main must use squash PR integration with rebase-merge and normal merge commits disabled.' );
 
-/**
- * Rule 5: no unrestricted bypass; the only exception is controlled main
- * fast-forward synchronization required by the alias-branch topology.
- */
-$restricted_bypass = (bool) preg_match( '/no unrestricted admin bypass/i', $doc_src )
-	&& (bool) preg_match( '/controlled fast-forward synchronization/i', $doc_src )
-	&& (bool) preg_match( '/narrowly scoped ruleset bypass actor/i', $doc_src );
-$matrix[] = array(
-	'rule'   => 'branch_protection_doc_restricts_main_sync_bypass',
-	'passes' => $restricted_bypass,
-	'detail' => 'No unrestricted bypass is allowed; only a narrowly scoped actor may fast-forward main to the already-gated develop SHA.',
-);
-if ( ! $restricted_bypass ) {
-	$errors[] = 'Branch-protection doc does NOT restrict the main synchronization bypass correctly.';
-}
+$reviews = (bool) preg_match( '/At\s+least\s+\d+\s+(approving\s+)?review/i', $doc_src );
+sscribe_branch_protection_rule( $matrix, $errors, 'branch_protection_doc_declares_required_reviews', $reviews, 'Branch protection must declare required approving reviews.' );
 
-/**
- * Rule 6: develop is PR-reviewed while main preserves the exact develop SHA
- * through controlled fast-forward synchronization.
- */
-$requires_pr = (bool) preg_match( '/develop[^\n]*(reviewed integration branch|pull requests?)/i', $doc_src )
-	|| ( false !== stripos( $doc_src, 'Changes enter through pull requests' ) );
-$main_fast_forward = (bool) preg_match( '/main[^\n]*(exact-SHA alias|fast-forward)/i', $doc_src )
-	|| ( false !== stripos( $doc_src, 'fast-forward synchronization only' ) );
-$matrix[] = array(
-	'rule'   => 'branch_protection_doc_matches_alias_branch_promotion',
-	'passes' => $requires_pr && $main_fast_forward,
-	'detail' => 'develop must require reviewed PR integration and main must preserve the exact develop SHA through controlled fast-forward synchronization.',
-);
-if ( ! ( $requires_pr && $main_fast_forward ) ) {
-	$errors[] = 'Branch-protection doc does NOT match the canonical develop-PR/main-fast-forward alias model.';
-}
+$audit_state = (bool) preg_match( '/Audited\s+Date\s*:/i', $doc_src ) && (bool) preg_match( '/main:\s*UNPROTECTED/i', $doc_src );
+sscribe_branch_protection_rule( $matrix, $errors, 'branch_protection_doc_records_audited_date_and_live_state', $audit_state, 'The document must record an audited date and observed main protection state.' );
+sscribe_branch_protection_rule( $matrix, $errors, 'branch_protection_doc_marks_itself_as_living_document', (bool) preg_match( '/[Ll]iving\s+document/', $doc_src ), 'The document must identify itself as a living document.' );
 
-/**
- * Rule 7: doc requires conversation resolution.
- */
-$requires_resolution = (bool) preg_match( '/(conversation[ -]?resolution|review\s+comments?\s+(resolved|resolved\s+before)|all[ -]?review[ -]?comments?[ -]?resolved)/i', $doc_src );
-$matrix[] = array(
-	'rule'   => 'branch_protection_doc_requires_conversation_resolution',
-	'passes' => $requires_resolution,
-	'detail' => 'All review comments must be resolved before merge.',
-);
-if ( ! $requires_resolution ) {
-	$errors[] = 'Branch-protection doc does NOT require conversation resolution.';
-}
+$cross_refs = false !== stripos( $doc_src, 'docs/CI_EVIDENCE' ) && false !== stripos( $doc_src, 'docs/SECURITY_MATRIX' );
+sscribe_branch_protection_rule( $matrix, $errors, 'branch_protection_doc_cross_references_companion_evidence', $cross_refs, 'The document must cross-reference CI and security evidence.' );
+sscribe_branch_protection_rule( $matrix, $errors, 'branch_protection_doc_declares_compensating_controls', false !== stripos( $doc_src, 'Compensating controls' ), 'The document must declare compensating controls while live protection is absent.' );
 
-/**
- * Rule 8: doc requires signed commits / DCO signoff.
- */
-$requires_signed = (bool) preg_match( '/(--signoff|DCO|signed\s+commit|sign[ -]?off|signed[ -]?commits?)/i', $doc_src );
-$matrix[] = array(
-	'rule'   => 'branch_protection_doc_requires_signed_commits',
-	'passes' => $requires_signed,
-	'detail' => 'Branch protection must require signed commits / DCO signoff.',
-);
-if ( ! $requires_signed ) {
-	$errors[] = 'Branch-protection doc does NOT require signed commits / signoff.';
-}
-
-/**
- * Rule 9: doc declares squash PR integration on develop and exact-SHA
- * fast-forward synchronization on main.
- */
-$declares_merge_methods = (bool) preg_match( '/(allowed\s+merge|merge\/update)/i', $doc_src )
-	&& false !== stripos( $doc_src, 'squash' )
-	&& false !== stripos( $doc_src, 'fast-forward synchronization only' );
-$matrix[] = array(
-	'rule'   => 'branch_protection_doc_pins_allowed_merge_methods',
-	'passes' => $declares_merge_methods,
-	'detail' => 'develop uses squash PRs; main uses exact-SHA fast-forward synchronization; rebase/merge-commit PR integration is disabled.',
-);
-if ( ! $declares_merge_methods ) {
-	$errors[] = 'Branch-protection doc does NOT pin squash-on-develop plus fast-forward-only main synchronization.';
-}
-
-/**
- * Rule 10: doc declares at-least-N required reviews.
- */
-$declares_reviews = (bool) preg_match( '/\d+\s+approving\s+review/i', $doc_src )
-	|| (bool) preg_match( '/[Aa]t\s+least\s+\d+\s+(approving\s+)?review/i', $doc_src );
-$matrix[] = array(
-	'rule'   => 'branch_protection_doc_declares_required_reviews',
-	'passes' => $declares_reviews,
-	'detail' => 'Branch protection must declare a minimum number of approving reviews (1 generic, 2 for sensitive files).',
-);
-if ( ! $declares_reviews ) {
-	$errors[] = 'Branch-protection doc does NOT declare required reviews.';
-}
-
-/**
- * Rule 11: doc records an audited date, the observed live protection
- * status for both canonical branches, and a living-document note.
- *
- * The source tree can verify that the policy is documented truthfully;
- * it cannot make a server-side GitHub setting true merely by saying so.
- */
-$declares_audit_date = (bool) preg_match( '/Audited\s+Date\s*:/i', $doc_src );
-$declares_live_state = (bool) preg_match( '/main:\s*UNPROTECTED/i', $doc_src )
-	&& (bool) preg_match( '/develop:\s*UNPROTECTED/i', $doc_src );
-$is_living_document = (bool) preg_match( '/[Ll]iving\s+document/', $doc_src );
-$matrix[] = array(
-	'rule'   => 'branch_protection_doc_records_audited_date_and_live_state',
-	'passes' => $declares_audit_date && $declares_live_state,
-	'detail' => 'Branch-protection doc must record the audited date and the observed live status of main + develop without pretending policy text is server-side enforcement.',
-);
-$matrix[] = array(
-	'rule'   => 'branch_protection_doc_marks_itself_as_living_document',
-	'passes' => $is_living_document,
-	'detail' => 'Doc must declare itself a "living document" so a future maintainer updates policy and observed live state together.',
-);
-if ( ! ( $declares_audit_date && $declares_live_state ) ) {
-	$errors[] = 'Branch-protection doc does NOT record audited date + observed live status for main and develop.';
-}
-if ( ! $is_living_document ) {
-	$errors[] = 'Branch-protection doc does NOT identify itself as a living document.';
-}
-
-/**
- * Rule 12: the doc references its companion release evidence files
- * (CI_EVIDENCE, SECURITY_MATRIX, PERFORMANCE_BENCHMARKS,
- * WP_ORG_CLEAN_INSTALL_SMOKE). A standalone branch-protection doc
- * without those cross-references tells the auditor to look
- * somewhere else.
- */
-$cross_refs_ci     = (bool) stripos( $doc_src, 'docs/CI_EVIDENCE' );
-$cross_refs_sec    = (bool) stripos( $doc_src, 'docs/SECURITY_MATRIX' );
-$matrix[] = array(
-	'rule'   => 'branch_protection_doc_cross_references_companion_evidence',
-	'passes' => $cross_refs_ci && $cross_refs_sec,
-	'detail' => 'Branch-protection doc must cross-reference companion release evidence (docs/CI_EVIDENCE_*.md, docs/SECURITY_MATRIX_*.md, …).',
-);
-if ( ! ( $cross_refs_ci && $cross_refs_sec ) ) {
-	$errors[] = 'Branch-protection doc does NOT cross-reference companion release evidence (CI_EVIDENCE / SECURITY_MATRIX).';
-}
-
-/**
- * Rule 13: compensating release controls (per spec). If the GitHub
- * plan prevents every desirable rule, the doc must DECLARE that
- * fact rather than silently calling it resolved. We assert the doc
- * names at least one compensating control when the ideal rule
- * cannot be enforced by the plan.
- *
- * The live repository may temporarily lack server-side enforcement;
- * this rule requires the source contract to identify compensating controls
- * without pretending those controls are equivalent to GitHub protection.
- */
-$declares_compensating = (bool) stripos( $doc_src, 'Compensating controls' );
-$matrix[] = array(
-	'rule'   => 'branch_protection_doc_declares_compensating_controls',
-	'passes' => $declares_compensating,
-	'detail' => 'If GitHub plan prevents a rule, the document must explicitly declare compensating controls.',
-);
-if ( ! $declares_compensating ) {
-	$errors[] = 'Branch-protection doc does NOT declare compensating controls.';
-}
-
-// Persist manifest.
 $manifest_dir = dirname( $manifest_path );
 if ( ! is_dir( $manifest_dir ) ) {
 	mkdir( $manifest_dir, 0755, true );
 }
 $manifest = array(
-	'generated_at'      => gmdate( 'c' ),
-	'rule_count'        => count( $matrix ),
-	'passed_count'      => count( array_filter( $matrix, static fn( $r ) => $r['passes'] ) ),
-	'matrix'            => $matrix,
-	'errors_count'      => count( $errors ),
-	'mandatory_jobs'    => array_keys( $mandatory_jobs_in_doc ),
-	'ci_jobs_discovered'=> $ci_jobs,
-	'passes'            => 0 === count( $errors ),
-	'errors'            => $errors,
+	'generated_at'       => gmdate( 'c' ),
+	'rule_count'         => count( $matrix ),
+	'passed_count'       => count( array_filter( $matrix, static fn( $row ) => $row['passes'] ) ),
+	'matrix'             => $matrix,
+	'errors_count'       => count( $errors ),
+	'mandatory_jobs'     => array_keys( $mandatory_jobs ),
+	'ci_jobs_discovered' => $ci_jobs,
+	'passes'             => empty( $errors ),
+	'errors'             => $errors,
 );
-file_put_contents(
-	$manifest_path,
-	json_encode( $manifest, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES )
-);
+file_put_contents( $manifest_path, json_encode( $manifest, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES ) );
 
 echo "=== SScribe Branch Protection ===\n\n";
 foreach ( $matrix as $row ) {
-	$status = $row['passes'] ? '✓' : '✗';
-	echo sprintf( "  %s  %s\n      %s\n", $status, $row['rule'], $row['detail'] );
+	echo sprintf( "  %s  %s\n      %s\n", $row['passes'] ? '✓' : '✗', $row['rule'], $row['detail'] );
 }
 echo "\nErrors: " . count( $errors ) . "\n";
-foreach ( $errors as $error ) {
-	echo "  ✗ {$error}\n";
-}
 echo "\nManifest persisted to: {$manifest_path}\n";
-
 if ( ! empty( $errors ) ) {
 	exit( 1 );
 }
 echo "✓ Branch protection contract valid.\n";
-exit( 0 );
