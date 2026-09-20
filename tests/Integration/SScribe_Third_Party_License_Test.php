@@ -111,7 +111,7 @@ final class SScribe_Third_Party_License_Test extends TestCase {
 
 	public function test_well_formed_passes(): void {
 		$paths = array(
-			self::DIST_TREE . '/vendor-prefixed/mpdf/mpdf/LICENSE.txt',
+			self::DIST_TREE . '/vendor-prefixed/tecnickcom/tcpdf/LICENSE.TXT',
 			self::INVENTORY_PATH,
 		);
 		list( $code, $output ) = $this->run_with_state( $paths );
@@ -123,34 +123,34 @@ final class SScribe_Third_Party_License_Test extends TestCase {
 		$this::assertStringContainsString( 'license inventory holds', $output );
 	}
 
-	public function test_missing_mpdf_license_fails(): void {
+	public function test_missing_tcpdf_license_fails(): void {
 		$paths = array(
-			self::DIST_TREE . '/vendor-prefixed/mpdf/mpdf/LICENSE.txt',
+			self::DIST_TREE . '/vendor-prefixed/tecnickcom/tcpdf/LICENSE.TXT',
 			self::INVENTORY_PATH,
 		);
 		list( $code, $output ) = $this->run_with_state( $paths, array(), array(
-			self::DIST_TREE . '/vendor-prefixed/mpdf/mpdf/LICENSE.txt',
+			self::DIST_TREE . '/vendor-prefixed/tecnickcom/tcpdf/LICENSE.TXT',
 		) );
-		$this::assertSame( 1, $code, 'Missing mpdf LICENSE.txt must fail. Output:' . "\n" . $output );
-		$this::assertStringContainsString( 'mpdf/mpdf', $output );
+		$this::assertSame( 1, $code, 'Missing TCPDF LICENSE.TXT must fail. Output:' . "\n" . $output );
+		$this::assertStringContainsString( 'tecnickcom/tcpdf', $output );
 		$this::assertStringContainsString( 'no license file shipped', $output );
 	}
 
 	public function test_unknown_license_fails(): void {
-		// Replace mpdf's GPL-2.0 LICENSE.txt with a proprietary notice.
+		// Replace TCPDF's LGPL-3.0-or-later LICENSE.TXT with a proprietary notice.
 		// The verifier's SPDX heuristic should not classify this, and
 		// the resulting `unknown` value must fail the contract.
 		$proprietary = "PROPRIETARY LICENSE\nAll rights reserved.\nNo redistribution permitted.\n";
 		$paths = array(
-			self::DIST_TREE . '/vendor-prefixed/mpdf/mpdf/LICENSE.txt',
+			self::DIST_TREE . '/vendor-prefixed/tecnickcom/tcpdf/LICENSE.TXT',
 			self::INVENTORY_PATH,
 		);
 		list( $code, $output ) = $this->run_with_state(
 			$paths,
-			array( self::DIST_TREE . '/vendor-prefixed/mpdf/mpdf/LICENSE.txt' => $proprietary )
+			array( self::DIST_TREE . '/vendor-prefixed/tecnickcom/tcpdf/LICENSE.TXT' => $proprietary )
 		);
 		$this::assertSame( 1, $code, 'Proprietary license must fail. Output:' . "\n" . $output );
-		$this::assertStringContainsString( 'mpdf/mpdf', $output );
+		$this::assertStringContainsString( 'tecnickcom/tcpdf', $output );
 		$this::assertStringContainsString( 'SPDX identifier could not be determined', $output );
 	}
 
@@ -177,18 +177,18 @@ final class SScribe_Third_Party_License_Test extends TestCase {
 		$this::assertIsArray( $decoded );
 		$this::assertSame( 'GPL-2.0-or-later', $decoded['plugin_license'] );
 		$this::assertNotEmpty( $decoded['packages'] );
-		// Sanity: mpdf is in the inventory with GPL-2.0-only (compatible).
-		$mpdf = null;
+		// Sanity: TCPDF is in the inventory with LGPL-3.0-or-later.
+		$tcpdf = null;
 		foreach ( $decoded['packages'] as $pkg ) {
-			if ( isset( $pkg['name'] ) && 'mpdf/mpdf' === $pkg['name'] ) {
-				$mpdf = $pkg;
+			if ( isset( $pkg['name'] ) && 'tecnickcom/tcpdf' === $pkg['name'] ) {
+				$tcpdf = $pkg;
 				break;
 			}
 		}
-		$this::assertNotNull( $mpdf, 'mpdf/mpdf must appear in the inventory' );
-		$this::assertSame( 'GPL-2.0-only', $mpdf['license'] );
-		$this::assertSame( 'https://github.com/mpdf/mpdf', $mpdf['source_url'] );
-		$this::assertSame( 'yes (Strauss namespace prefix)', $mpdf['modified'] );
-		$this::assertNotEmpty( $mpdf['runtime_purpose'] );
+		$this::assertNotNull( $tcpdf, 'tecnickcom/tcpdf must appear in the inventory' );
+		$this::assertSame( 'LGPL-3.0-or-later', $tcpdf['license'] );
+		$this::assertSame( 'https://github.com/tecnickcom/tcpdf', $tcpdf['source_url'] );
+		$this::assertSame( 'yes (Strauss namespace/class prefix)', $tcpdf['modified'] );
+		$this::assertNotEmpty( $tcpdf['runtime_purpose'] );
 	}
 }
