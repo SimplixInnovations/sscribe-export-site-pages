@@ -182,6 +182,14 @@ final class SScribe_Agent_Final_Report_Test extends TestCase {
 		$this->assertStringContainsString( 'release-audit-', $audit_src, 'Canonical release audit must persist per-gate logs.' );
 	}
 
+	public function test_release_audit_runs_final_report_and_handoff_in_strict_mode(): void {
+		$source = (string) file_get_contents( $this->repo_root . '/scripts/release-audit.php' );
+
+		$this->assertStringContainsString( "'Agent-Final-Report', 'Auditor-Handoff'", $source );
+		$this->assertStringContainsString( '$tail_env', $source );
+		$this->assertStringContainsString( '$cert', $source );
+	}
+
 	public function test_ci_commands_doc_documents_agent_final_report(): void {
 		$ci_docs_path = $this->repo_root . '/docs/CI_COMMANDS.md';
 		$this->assertFileExists( $ci_docs_path );
