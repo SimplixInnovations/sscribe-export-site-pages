@@ -37,6 +37,7 @@ SScribe turns WordPress pages into portable documents for content handovers, aud
 
 * WordPress 6.1 or newer
 * PHP 8.2 or newer
+* PHP extensions: cURL, DOM, GD, XML, and ZIP
 * 256 MB of PHP memory is recommended for large PDF exports
 
 == Installation ==
@@ -97,7 +98,7 @@ The bundled Amiri fonts in `assets/fonts/amiri/` use the SIL Open Font License 1
 
 The bundled PhpOffice/PhpWord library uses LGPL-3.0-only. Its notice is included at `vendor-prefixed/phpoffice/phpword/COPYING.LESSER.txt`.
 
-The bundled mPDF library uses GPL-2.0-only. Required notices for bundled dependencies remain alongside their source in the plugin package.
+The bundled TCPDF 6.11.3 library uses LGPL-3.0-or-later. Its license notice and the required notices for all bundled dependencies remain alongside their source in the plugin package.
 
 == Development ==
 
