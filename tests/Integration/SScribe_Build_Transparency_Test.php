@@ -162,6 +162,11 @@ final class SScribe_Build_Transparency_Test extends TestCase {
 			'The release builder must route prefixed third-party source through a dedicated copy path.'
 		);
 		$this::assertStringContainsString(
+			"str_replace( '\\\\', '/', \$relative )",
+			$builder,
+			'Windows path separators must normalize one backslash at a time before vendor-tree classification.'
+		);
+		$this::assertStringContainsString(
 			'if ( $is_vendor_prefixed )',
 			$builder,
 			'Third-party vendor files must bypass SScribe-owned source rewriting.'
