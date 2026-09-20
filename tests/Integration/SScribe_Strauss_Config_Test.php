@@ -6,11 +6,11 @@
  *
  * Phase 28: locks the composer Strauss vendor-prefix contract.
  *
- * SScribe ships three Composer libraries (mpdf/mpdf, phpoffice/phpword,
+ * SScribe ships three Composer libraries (tecnickcom/tcpdf, phpoffice/phpword,
  * psr/container) that have to coexist with every other plugin on a
  * shared WordPress install. Without a prefixed vendor tree, the first
  * site that loads another plugin using the same library crashes with
- * a "Cannot redeclare class Mpdf\..." fatal.
+ * a "Cannot redeclare class TCPDF\..." fatal.
  *
  * This integration test runs scripts/verify-strauss-config.php against
  * the live repo and against a series of synthetic composer.json
@@ -79,7 +79,7 @@ final class SScribe_Strauss_Config_Test extends TestCase {
 			array(
 				'name'    => 'simplix/sscribe',
 				'scripts' => array(
-					'vendor:prefix' => 'php scripts/run-strauss.php && php scripts/fix-prefixed-safe.php && php scripts/fix-phpword-style-deprecation.php',
+					'vendor:prefix' => 'php scripts/prune-tcpdf-for-strauss.php && php scripts/run-strauss.php && php scripts/fix-prefixed-safe.php && php scripts/fix-phpword-style-deprecation.php',
 				),
 				'extra'   => array(
 					'strauss' => array(
@@ -87,7 +87,7 @@ final class SScribe_Strauss_Config_Test extends TestCase {
 						'namespace_prefix'  => 'SScribeVendor\\',
 						'classmap_prefix'   => 'SScribeVendor_',
 						'packages'          => array(
-							'mpdf/mpdf',
+							'tecnickcom/tcpdf',
 							'phpoffice/phpword',
 							'psr/container',
 						),
@@ -113,7 +113,7 @@ final class SScribe_Strauss_Config_Test extends TestCase {
 			array(
 				'name'    => 'simplix/sscribe',
 				'scripts' => array(
-					'vendor:prefix' => 'php scripts/run-strauss.php && php scripts/fix-prefixed-safe.php && php scripts/fix-phpword-style-deprecation.php',
+					'vendor:prefix' => 'php scripts/prune-tcpdf-for-strauss.php && php scripts/run-strauss.php && php scripts/fix-prefixed-safe.php && php scripts/fix-phpword-style-deprecation.php',
 				),
 			)
 		);
@@ -132,7 +132,7 @@ final class SScribe_Strauss_Config_Test extends TestCase {
 
 	public function test_missing_canonical_package_fails(): void {
 		$composer                                 = json_decode( $this->well_formed_composer(), true );
-		$composer['extra']['strauss']['packages'] = array( 'mpdf/mpdf' ); // missing phpoffice + psr
+		$composer['extra']['strauss']['packages'] = array( 'tecnickcom/tcpdf' ); // missing phpoffice + psr
 		list( $code, $output ) = $this->run_against( json_encode( $composer ) );
 		$this::assertSame( 1, $code, 'missing canonical Strauss package must fail' );
 		$this::assertStringContainsString( 'missing the canonical libraries', $output );
