@@ -49,7 +49,7 @@ Never commit onto a tag, delete/recreate a tag, or rebuild a certified artifact.
 ## Commit expectations
 
 - Small, separated commits: `test:`, `chore:`, `docs:`, `build:`, `tooling:` prefixes. Never mix normalization/behavior/docs in one commit.
-- Cash the gates per commit where touched: unit tests + `stan` + `cs` minimum.
+- Run the gates per commit where touched: unit tests + `stan` + `cs` minimum.
 
 ## Release artifact policy
 
