@@ -1006,7 +1006,7 @@ if ( ! function_exists( 'sscribe_humanize_export_filename' ) ) {
 								<?php echo wp_kses_post( SScribe_Helpers::get_icon( 'info', 20 ) ); ?>
 								<h2><?php esc_html_e( 'System Diagnostics', 'sscribe-export-site-pages' ); ?></h2>
 							</div>
-							<p class="sscribe-support-section-copy"><?php esc_html_e( 'Generate a redacted environment snapshot. Share this securely with Simplixi support to help us diagnose and resolve issues faster. The snapshot never includes passwords, license keys, or private post content.', 'sscribe-export-site-pages' ); ?></p>
+							<p class="sscribe-support-section-copy"><?php esc_html_e( 'Generate a redacted environment snapshot. Share this securely with Simplix Innovations support to help us diagnose and resolve issues faster. The snapshot never includes passwords, license keys, or private post content.', 'sscribe-export-site-pages' ); ?></p>
 
 							<div class="sscribe-support-actions-vertical">
 								<button type="button" class="sscribe-button sscribe-button-primary" id="sscribe-support-copy-btn" disabled>
