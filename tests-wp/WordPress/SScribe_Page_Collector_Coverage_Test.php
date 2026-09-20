@@ -352,6 +352,69 @@ final class SScribe_Page_Collector_Coverage_Test extends SScribe_WP_TestCase {
 		);
 	}
 
+	public function test_filter_added_nonpublic_cpt_does_not_bypass_read_post_capability(): void {
+		register_post_type(
+			'sscribe_secret',
+			array(
+				'public'          => false,
+				'show_ui'         => true,
+				'capability_type' => array( 'sscribe_secret', 'sscribe_secrets' ),
+				'map_meta_cap'    => true,
+				'capabilities'    => array(
+					'read_post' => 'read_sscribe_secret',
+					'read'      => 'read_sscribe_secret',
+				),
+			)
+		);
+
+		$allow_secret = static function ( array $types ): array {
+			$types[] = 'sscribe_secret';
+			return array_values( array_unique( $types ) );
+		};
+		add_filter( 'sscribe_allowed_post_types', $allow_secret );
+
+		try {
+			$owner_id  = (int) $this->factory()->user->create( array( 'role' => 'administrator' ) );
+			$reader_id = (int) $this->factory()->user->create( array( 'role' => 'subscriber' ) );
+			$reader    = get_user_by( 'id', $reader_id );
+			$this::assertInstanceOf( WP_User::class, $reader );
+			$reader->add_cap( 'sscribe_export' );
+
+			$post_id = (int) $this->factory()->post->create(
+				array(
+					'post_type'    => 'sscribe_secret',
+					'post_status'  => 'publish',
+					'post_author'  => $owner_id,
+					'post_title'   => 'Filtered secret post',
+					'post_content' => '<p>restricted published CPT body</p>',
+				)
+			);
+
+			wp_set_current_user( $reader_id );
+			$this::assertTrue( current_user_can( 'sscribe_export' ) );
+			$this::assertFalse( current_user_can( 'read_post', $post_id ) );
+			$this::assertContains( 'sscribe_secret', $this->collector->get_selectable_post_types() );
+
+			$this::assertNotContains(
+				$post_id,
+				$this->collector->get_page_ids( '', 'publish', 'sscribe_secret' ),
+				'Filter-added non-public CPTs must still respect WordPress read_post.'
+			);
+			$this::assertSame(
+				0,
+				$this->collector->get_page_count_only( '', 'publish', 'sscribe_secret' ),
+				'Published counts for non-public CPTs must not disclose unreadable posts.'
+			);
+			$this::assertFalse(
+				$this->collector->get_page_data( $post_id ),
+				'Direct hydration must not treat a filter-added non-public CPT as public content.'
+			);
+		} finally {
+			remove_filter( 'sscribe_allowed_post_types', $allow_secret );
+			unregister_post_type( 'sscribe_secret' );
+		}
+	}
+
 	public function test_get_page_ids_skips_chunked_branch_when_filter_returns_false(): void {
 		// Install a filter that returns false → must drive the direct
 		// `get_page_ids_direct()` branch (line 154-156) instead of the
