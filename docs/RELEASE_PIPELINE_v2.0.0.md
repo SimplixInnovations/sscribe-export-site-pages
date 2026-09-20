@@ -1,130 +1,181 @@
-# Release Pipeline Contract — v2.0.0
+# Release Pipeline Contract — v2.x
 
 ## Why this exists
 
-Phase 53 of the v2.0.0 release-hardening spec mandates that the
-canonical order and shape of the release pipeline be declared in
-a single document the release engineer, reviewer, and CI gate
-can all cite. Without this contract:
+This document defines the release path for SScribe Export Site Pages. The
+critical invariant is that reviewed source, the certified ZIP, the release tag,
+and the published GitHub artifact remain bound to one source SHA.
 
-- The Pipeline order drifts (Plugin Check runs BEFORE tests, so a
-  failing test ships to WP.org review).
-- "Certify" and "publish" are mixed into one step (a bad ZIP
-  posts to WP.org before any human sees it).
-- Build tooling is re-invented per release (each release adds a
-  one-off `build.sh`, and nobody knows which one is canonical).
-
-The companion verifier `scripts/verify-release-pipeline.php`
-walks the pipeline structure; the companion PHPUnit test
-`tests/Integration/SScribe_Release_Pipeline_Test.php` pins the
-same contract at the PHPUnit boundary.
+The release flow separates source integration, tag creation, artifact
+certification, and publication. Publication consumes the exact artifact created
+by certification; it never rebuilds the plugin.
 
 ## Canonical pipeline
 
-Every release MUST follow this exact shape, in this exact order.
-Any reorder, skip, or merge fails the gate.
+Every public release follows this sequence.
 
-```
-   ┌─────────────────────────────────────────────────────────┐
-   │  1. tests           (composer test, composer test:wp)   │
-   │      → green required (0 failures, 0 errors)             │
-   │      → coverage thresholds met                           │
-   └─────────────────────────────────────────────────────────┘
-                            ↓
-   ┌─────────────────────────────────────────────────────────┐
-   │  2. build           (scripts/build-release.php)         │
-   │      → emits dist/{slug}-{version}.zip                   │
-   │      → strips comments (Phase 53 release-pipeline rule) │
-   │      → records SHA-256 sidecar at dist/{slug}-{version}.sha256 │
-   └─────────────────────────────────────────────────────────┘
-                            ↓
-   ┌─────────────────────────────────────────────────────────┐
-   │  3. certify         (scripts/verify-tag-policy.php,      │
-   │                      scripts/verify-phase-*             │
-   │                      tests, WP.org plugin-check)         │
-   │      → certify-then-publish split enforced               │
-   └─────────────────────────────────────────────────────────┘
-                            ↓
-   ┌─────────────────────────────────────────────────────────┐
-   │  4. publish         (git push origin main --follow-tags  │
-   │                      then gh release create v{VERSION}   │
-   │                      --verify-tag --title "..." --notes  │
-   │                      from readme.txt changelog)          │
-   └─────────────────────────────────────────────────────────┘
-```
+### 0. Reviewed source reaches `main`
 
-A green `composer release:audit` (the certify step) gates the
-publish step. Manual `gh release create` is banned while
-`composer release:audit` reports any non-zero rule.
+Release changes are prepared on a transient branch, reviewed through a pull
+request, and squash-merged into `main`. The transient branch is deleted after
+merge.
 
-## Forbidden shapes
-
-- **Test-after-build** — running tests AFTER the ZIP is built,
-  so a failing test ships a `dist/{slug}-{version}.zip` that
-  the build pipeline "approved". Phase 62 build-order verifier
-  forbids this.
-- **Pre-publish Plugin Check** — running Plugin Check on the
-  ZIP before any auditor review, so the WP.org reviewer sees a
-  result the maintainer can't reproduce.
-- **Merge certify + publish** — collapsing the certify step
-  into the publish step so a failed certification never blocks
-  publication. The split MUST be 2 distinct bash invocations.
-- **Bypass tags** — pushing a release commit without a tag, or
-  tagging a non-`origin/main`-HEAD commit.
-- **Re-zip after certification** — re-running
-  `scripts/build-release.php` after a successful certification
-  produces a new ZIP whose SHA-256 doesn't match the recorded
-  sidecar; the publish step MUST refuse to ship a ZIP whose
-  SHA-256 differs from the certifier's recorded sidecar.
-
-## Why "build-after-test" specifically
-
-A build that runs BEFORE tests cannot be guaranteed to reflect
-green source. A failing test discovered after build either
-ships a broken ZIP (the historic incident pattern) or requires
-a second build (which produces a different ZIP than the
-artifacts the maintainers reviewed). The order "tests → build
-→ certify → publish" guarantees the build witnesses the green
-state and the certification witnesses the build; the
-certification is the only allow gate between the build and the
-publish.
-
-## How an independent auditor verifies this
+The release engineer then reconciles local state:
 
 ```bash
-# 1. Confirm bin/release-audit.sh runs every phase in order.
-grep -nE "Tests|Build|Certify|Publish" bin/release-audit.sh
+git switch main
+git pull --ff-only origin main
+```
 
-# 2. Confirm ci.yml splits certify from publish.
-grep -nE "test:|build:|release-audit" .github/workflows/ci.yml
+`main` is the only canonical long-lived branch.
 
-# 3. Re-run the verifier.
-composer test:release-pipeline
+### 1. Certify the merged source before tagging
 
-# 4. Re-run the whole certify chain end-to-end.
+Run the release gates against the exact merged `main` checkout:
+
+```bash
 composer release:audit
 ```
 
-A green `composer test:release-pipeline` + a green
-`composer release:audit` + the pipeline order preserved in
-`bin/release-audit.sh` and `.github/workflows/ci.yml` = the
-release obeys the canonical pipeline contract.
+Strict final-release evidence is produced only after the source tree is final
+and clean. The Phase 70/71/72 contracts bind that evidence to the exact source
+SHA and release artifact.
+
+### 2. Create the immutable tag through the guarded helper
+
+After the reviewed `main` SHA is certified, create the tag with:
+
+```bash
+composer release:tag
+```
+
+The helper refuses a dirty tree, a non-`main` checkout, divergence from
+`origin/main`, or an already-existing remote tag. New release tags from
+v2.0.3 onward are annotated. Cryptographic tag signing is recommended when the
+maintainer has signing configured, but it is not a WordPress.org requirement.
+
+Tag creation is deliberately outside GitHub Actions. The tag push starts
+`.github/workflows/release.yml`.
+
+### 3. GitHub release workflow: verify → audit → test → certify → publish
+
+The tag-triggered workflow has five sequential jobs:
+
+1. **verify** — checks version synchronization and proves the tag points at the
+   current `origin/main` HEAD.
+2. **audit** — runs the locked Composer security audit.
+3. **test** — installs the locked toolchain, generates the prefixed vendor tree,
+   and runs PHPUnit, PHPStan, and PHPCS.
+4. **certify** — builds the exact WordPress.org ZIP, records source SHA and ZIP
+   SHA-256 evidence, runs the official WordPress Plugin Check, and uploads the
+   ZIP, sidecar, and build metadata as immutable workflow artifacts.
+5. **publish** — downloads only those certified artifacts, independently
+   verifies the ZIP SHA-256, publishes them to the existing tag, then downloads
+   the published files back and re-verifies their identity and package
+   structure.
+
+The `publish` job intentionally has no source checkout and does not run
+`composer install`, `composer vendor:prefix`, or
+`scripts/build-release.php`. Its `gh release` commands receive
+`GH_REPO: ${{ github.repository }}` explicitly because no local Git remote is
+available in that job.
+
+## Forbidden shapes
+
+The following are release blockers:
+
+- **Direct release commits to `main`** — prepared changes must enter through a
+  reviewed pull request.
+- **Tagging before merged-source certification** — a tag must be cut only from
+  the certified `origin/main` HEAD.
+- **Tag creation in CI** — GitHub Actions consumes an existing tag; it never
+  creates or force-moves one.
+- **Build before source tests** — a release artifact must not be treated as
+  certified before the source gates pass.
+- **Publishing without official Plugin Check** — the exact ZIP must pass the
+  official WordPress Plugin Check in the certify job.
+- **Certify/publish collapse** — publication must consume a separately uploaded
+  certified artifact rather than bytes created in the publish job.
+- **Rebuild during publish** — publication must not run Composer installation,
+  vendor prefixing, or the release builder.
+- **Checksum bypass** — publication stops if the downloaded artifact differs
+  from the certified SHA-256 sidecar.
+- **Tag bypass or re-cut** — the tag must match the certified
+  `origin/main` SHA and existing release tags are immutable.
+
+## Why build-after-test and certify-before-publish matter
+
+The source test stage proves the reviewed source is acceptable. The certify
+stage then builds and evaluates the exact bytes intended for distribution.
+Separating publish from certify prevents a later dependency install or rebuild
+from changing those bytes after approval.
+
+The resulting identity chain is:
+
+```text
+reviewed origin/main SHA
+        =
+release tag target
+        =
+certify build source_sha
+        ->
+certified ZIP SHA-256
+        =
+published/downloaded-back ZIP SHA-256
+```
+
+Any broken equality or failed transition blocks release.
+
+## How an independent auditor verifies this
+
+Inspect and run the canonical implementation, not the thin compatibility
+wrapper alone:
+
+```bash
+# Source-side release audit.
+composer release:audit
+
+# Pipeline architecture contract.
+composer test:release-pipeline
+
+# Tag contract.
+composer test:tag-policy
+
+# Current implementation of the tag-triggered publish flow.
+git diff --check
+grep -nE "^(    (verify|audit|test|certify|publish):|.*GH_REPO:|.*gh release|.*build-release\.php)" .github/workflows/release.yml
+
+# Canonical audit implementation; bin/release-audit.sh is only a wrapper.
+grep -nE "Release-Blockers|Final-CI-State|Exact-Artifact-Evidence|Plugin-Check" scripts/release-audit.php
+```
+
+Before tagging, also verify that local `main` equals `origin/main` and that
+strict release evidence references that same SHA. After the tag-triggered
+workflow finishes, inspect its certify and publish jobs and compare the
+published ZIP SHA-256 with the certified sidecar.
+
+A release is publishable only when the source gates, exact-artifact
+certification, tag binding, and tag-triggered workflow are all green.
 
 ## What this contract does NOT cover
 
-- **Versioning** — Phase 16 separately codifies that
-  SSCRIBE_VERSION is the single source of truth.
-- **Branch topology** — Phase 77 separately enforces the
-  canonical main-only persistent-branch invariant.
-- **Tag policy** — Phase 54 separately codifies the canonical
-  tag-shape rules (annotated, signed, origin/main HEAD).
-- **Artifact evidence** — Phase 72 separately records the
-  ZIP SHA-256, byte size, file count.
+- **Versioning** — version synchronization is defined by the version contract
+  and `SSCRIBE_VERSION`.
+- **Branch topology** — `docs/BRANCH_POLICY_v2.0.0.md` defines `main` as the
+  only persistent branch.
+- **Branch protection** — `docs/BRANCH_PROTECTION_v2.0.0.md` defines desired
+  server-side repository governance.
+- **Tag details** — `docs/TAG_POLICY_v2.0.0.md` is authoritative for tag
+  shape, immutability, SHA binding, and the advisory cryptographic-signing
+  policy.
+- **Final execution evidence** — Phase 71 records exact-SHA CI/local execution
+  evidence outside tracked source.
+- **Exact artifact evidence** — Phase 72 records the final ZIP SHA-256, size,
+  and file count.
 
 ## Change log
 
-- 2026-09-03: Initial Phase 53 release-pipeline contract +
-  verifier + PHPUnit pin. 4 canonical pipeline stages
-  (tests, build, certify, publish) + 5 forbidden shapes
-  (test-after-build, pre-publish Plugin Check, certify+publish
-  merge, bypass tags, re-zip after cert).
+- 2026-09-03: Initial Phase 53 certify/publish split.
+- 2026-09-20: Reconciled the contract with the main-only branch model,
+  maintainer-created guarded tags, the five-job tag-triggered workflow, the
+  no-rebuild publish job, and explicit `GH_REPO` context.
