@@ -165,9 +165,8 @@ failure looks like**, **how to debug**, **what manifest it writes**.
 
 - **Script:** `php scripts/verify-tag-policy.php`
 - **Gates:** tags follow `vMAJOR.MINOR.PATCH`, the tag is created on
-  `origin/main` (not `develop`), the tag SHA matches the head of
-  `origin/develop` at release time, and the tag is signed.
-- **Failure:** "Tag v2.0.1 was created on `develop`, must be `main`".
+  `origin/main`, the tag SHA matches the certified source SHA, and the tag is annotated; cryptographic signing is advisory when configured.
+- **Failure:** "Release tag does not point to the current certified origin/main HEAD".
 - **Debug:** `git tag -v v2.0.0` and inspect `dist/tag-policy-manifest.json`.
 - **Manifest:** `dist/tag-policy-manifest.json`.
 
@@ -520,15 +519,7 @@ failure looks like**, **how to debug**, **what manifest it writes**.
   canonical sections (Why this exists, Canonical
   long-lived branches, Forbidden patterns, Promotion
   rules, How an independent auditor verifies this) AND
-  the git topology matches: only `main` and `develop`
-  exist as local long-lived branches, both exist on
-  origin, both point to the same SHA locally and on
-  origin, and there are no local-only refs (every local
-  ref is mirrored on origin). This prevents the
-  multi-branch divergence problem that produced ~2600
-  divergent commits between `develop` and the old
-  `release/2.0.0-final-hardening` branch during the
-  v2.0.0 release hardening cycle.
+  the git topology matches the main-only contract: `main` is the only persistent local long-lived branch, `origin/main` exists, local main matches origin/main when present, and release-evidence refs are mirrored on origin. Transient pull-request branches are allowed only while active and are deleted after merge/abandonment.
 - **Failure:** "Branch-Policy contract invalid: <rule>".
 - **Debug:** `dist/branch-policy-manifest.json`.
 - **Manifest:** `dist/branch-policy-manifest.json`.
