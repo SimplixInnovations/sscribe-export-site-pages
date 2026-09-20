@@ -79,8 +79,9 @@ to verify the claim. The canonical recipes:
     + run a 1-page export to confirm the plugin loads.
 14. **Branch topology policy** — `composer test:branch-policy`
     + assert `dist/branch-policy-manifest.json` exists, has 0
-    failures, and lists both `main` + `develop` on origin at
-    the same SHA.
+    failures, and confirms **main is the only canonical long-lived branch**.
+    An active pull-request branch may exist only as transient review state
+    and must be deleted after merge or abandonment.
 
 ## How an independent auditor verifies this
 
