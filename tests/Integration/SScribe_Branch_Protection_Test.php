@@ -154,6 +154,18 @@ final class SScribe_Branch_Protection_Test extends TestCase {
 		$this::assertStringContainsString( '"release:tag": "php scripts/release-commit.php --tag"', $composer );
 	}
 
+	public function test_manifest_discovers_required_ci_jobs_by_id_and_friendly_name(): void {
+		list( $code, $output ) = $this->run_verifier();
+		$this::assertSame( 0, $code, 'Branch-protection verifier must parse ci.yml job IDs correctly. Output:' . "\n" . $output );
+
+		$payload = json_decode( (string) file_get_contents( self::plugin_root() . '/' . self::MANIFEST_PATH ), true );
+		$this::assertIsArray( $payload );
+		$this::assertArrayHasKey( 'ci_jobs_discovered', $payload );
+		$this::assertSame( 'Version Sync Check', $payload['ci_jobs_discovered']['version-check'] ?? null );
+		$this::assertSame( 'Tests PHP ${{ matrix.php-version }}', $payload['ci_jobs_discovered']['test'] ?? null );
+		$this::assertSame( 'Submission Package Check', $payload['ci_jobs_discovered']['plugin-check'] ?? null );
+	}
+
 	public function test_doc_lists_required_jobs_by_ci_yml_friendly_name(): void {
 		// The doc's "Required status checks" table must use the same
 		// friendly names as ci.yml, so the GitHub-required-checks UI
