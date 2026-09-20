@@ -179,6 +179,24 @@ final class SScribe_Release_Pipeline_Test extends TestCase {
 		);
 	}
 
+	public function test_pipeline_doc_matches_current_tag_driven_publish_flow(): void {
+		$doc = (string) file_get_contents( self::plugin_root() . '/docs/RELEASE_PIPELINE_v2.0.0.md' );
+
+		$this::assertStringNotContainsString(
+			'git push origin main --follow-tags',
+			$doc,
+			'The pipeline doc must not retain the obsolete publish flow that pushes main/tags from the publication stage.'
+		);
+		$this::assertStringNotContainsString(
+			'annotated, signed, origin/main HEAD',
+			$doc,
+			'The pipeline doc must not contradict the canonical tag policy by making cryptographic signing mandatory.'
+		);
+		$this::assertStringContainsString( '.github/workflows/release.yml', $doc );
+		$this::assertStringContainsString( 'scripts/release-audit.php', $doc );
+		$this::assertStringContainsString( 'composer release:tag', $doc );
+	}
+
 	public function test_release_workflow_trigger_is_tag_only(): void {
 		$source = (string) file_get_contents( self::plugin_root() . '/' . self::RELEASE_WORKFLOW );
 		$this::assertMatchesRegularExpression(
