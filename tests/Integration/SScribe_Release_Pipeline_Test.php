@@ -159,6 +159,26 @@ final class SScribe_Release_Pipeline_Test extends TestCase {
 		);
 	}
 
+	public function test_publish_job_gives_gh_cli_explicit_repository_context_without_checkout(): void {
+		$source = (string) file_get_contents( self::plugin_root() . '/' . self::RELEASE_WORKFLOW );
+		$no_comments = (string) preg_replace( '/^\\s*#[^\\n]*$/m', '', $source );
+
+		preg_match( '/^    publish:\\s*\\n(.*?)(?=^    [a-z][a-z0-9_-]*:\\s*\\n|\\z)/sm', $no_comments, $m );
+		$this::assertNotEmpty( $m, 'release.yml publish block not found.' );
+		$publish_body = $m[1];
+
+		$this::assertStringNotContainsString(
+			'actions/checkout@',
+			$publish_body,
+			'publish should consume only certified artifacts and must not require a source checkout.'
+		);
+		$this::assertStringContainsString(
+			'GH_REPO: ${{ github.repository }}',
+			$publish_body,
+			'gh release commands need explicit repository context because publish intentionally has no Git checkout/remote.'
+		);
+	}
+
 	public function test_release_workflow_trigger_is_tag_only(): void {
 		$source = (string) file_get_contents( self::plugin_root() . '/' . self::RELEASE_WORKFLOW );
 		$this::assertMatchesRegularExpression(
