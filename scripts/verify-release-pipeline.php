@@ -189,6 +189,7 @@ $publish_verifies_sha  = (bool) preg_match( '/sha256sum\b/', $publish_block_no_c
 	&& (bool) preg_match( '/sha256 mismatch|sha-?256 mismatch/i', $publish_block_no_comments );
 $publish_uploads_gh_release = (bool) preg_match( '/\bgh release (upload|create)\b/', $publish_block_no_comments );
 $publish_depends_on_certify = (bool) preg_match( '/\bneeds:\s*[^\n]*\bcertify\b/', $publish_block_no_comments );
+$publish_has_explicit_gh_repo = false !== strpos( $publish_block_no_comments, 'GH_REPO: ${{ github.repository }}' );
 
 $publish_runs_composer_install = (bool) preg_match( '/\bcomposer install\b/', $publish_block_no_comments );
 $publish_runs_vendor_prefix    = (bool) preg_match( '/\bcomposer vendor:prefix\b/', $publish_block_no_comments );
@@ -213,6 +214,11 @@ $matrix[] = array(
 	'rule'   => 'publish_job_depends_on_certify',
 	'passes' => $publish_depends_on_certify,
 	'detail' => '`publish` must declare `needs: certify` so the gate is sequential.',
+);
+$matrix[] = array(
+	'rule'   => 'publish_job_gives_gh_cli_explicit_repository_context',
+	'passes' => $publish_has_explicit_gh_repo,
+	'detail' => '`publish` has no source checkout, so gh release commands must receive GH_REPO: ${{ github.repository }} explicitly.',
 );
 
 $matrix[] = array(
@@ -242,6 +248,9 @@ if ( ! $publish_uploads_gh_release ) {
 }
 if ( ! $publish_depends_on_certify ) {
 	$errors[] = '`publish` does not declare `needs: certify`.';
+}
+if ( ! $publish_has_explicit_gh_repo ) {
+	$errors[] = '`publish` runs gh release commands without explicit GH_REPO even though it intentionally has no checkout/remote.';
 }
 if ( $publish_runs_composer_install ) {
 	$errors[] = '`publish` runs `composer install` — that is the second uncontrolled build Phase 53 forbids.';
