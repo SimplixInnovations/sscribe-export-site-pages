@@ -67,6 +67,21 @@ final class SScribe_PDF_Exporter_Backup_Font_Policy_Test extends TestCase {
 		$this::assertStringContainsString( 'dejavu-fonts-ttf-2.34/LICENSE', $source );
 	}
 
+	public function test_release_builder_prunes_tcpdf_extensionless_build_metadata(): void {
+		$source = $this->read_plugin_file( 'scripts/build-release.php' );
+
+		$this::assertStringContainsString(
+			"'tecnickcom/tcpdf/Makefile'",
+			$source,
+			'TCPDF Makefile must be removed before release-content validation.'
+		);
+		$this::assertStringContainsString(
+			"'tecnickcom/tcpdf/VERSION'",
+			$source,
+			'TCPDF VERSION metadata must be removed before release-content validation.'
+		);
+	}
+
 	public function test_release_builder_requires_tcpdf_license_and_prunes_font_catalog(): void {
 		$source = $this->read_plugin_file( 'scripts/build-release.php' );
 
