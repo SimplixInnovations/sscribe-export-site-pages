@@ -1521,7 +1521,7 @@ msgid "System Diagnostics"
 msgstr ""
 
 #: admin/partials/sscribe-admin-display.php:1009
-msgid "Generate a redacted environment snapshot. Share this securely with Simplixi support to help us diagnose and resolve issues faster. The snapshot never includes passwords, license keys, or private post content."
+msgid "Generate a redacted environment snapshot. Share this securely with Simplix Innovations support to help us diagnose and resolve issues faster. The snapshot never includes passwords, license keys, or private post content."
 msgstr ""
 
 #: admin/partials/sscribe-admin-display.php:1013
