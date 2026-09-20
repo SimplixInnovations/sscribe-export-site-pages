@@ -62,6 +62,26 @@ class SScribe_Operational_Logger_Test extends TestCase {
 		$this->assertSame( 7, $out['user_id'] );
 	}
 
+	public function test_sanitize_context_strips_compound_sensitive_keys(): void {
+		$out = \SScribe_Operational_Logger::sanitize_context(
+			array(
+				'category'             => 'network',
+				'api_token'            => 'tok-secret',
+				'client_secret_value'  => 'client-secret',
+				'authorization_header' => 'Bearer abc',
+				'database_password'    => 'pw',
+				'session_cookie_name'  => 'sid=xyz',
+			)
+		);
+
+		$this::assertSame( 'network', $out['category'] ?? null );
+		$this::assertArrayNotHasKey( 'api_token', $out );
+		$this::assertArrayNotHasKey( 'client_secret_value', $out );
+		$this::assertArrayNotHasKey( 'authorization_header', $out );
+		$this::assertArrayNotHasKey( 'database_password', $out );
+		$this::assertArrayNotHasKey( 'session_cookie_name', $out );
+	}
+
 	public function test_sanitize_context_strips_invalid_keys(): void {
 		$out = \SScribe_Operational_Logger::sanitize_context( array(
 			'good_key'      => 'value',
