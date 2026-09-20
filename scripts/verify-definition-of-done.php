@@ -85,7 +85,7 @@ $canonical_criteria = array(
 	'Release invariants declared',
 	'Branch topology policy holds',
 	'Tag is cut on origin/main HEAD',
-	'WP.org submission is made',
+	'WP.org submission uses the exact certified ZIP',
 	'Public maintained exact source/build inputs are available',
 );
 
