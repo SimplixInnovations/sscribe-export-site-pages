@@ -89,6 +89,7 @@ class SScribe_Export_Query_Controller_Test extends TestCase {
 
 		$collector = $this->createMock( \SScribe_Page_Collector::class );
 		$collector->method( 'normalize_language_code' )->willReturn( '' );
+		$collector->method( 'get_selectable_post_types' )->willReturn( array( 'page', 'post' ) );
 		$collector->method( 'get_post_status_counts' )->willReturnCallback(
 			static function ( string $language, string $post_type ): array {
 				if ( 'page' === $post_type ) {
@@ -97,8 +98,15 @@ class SScribe_Export_Query_Controller_Test extends TestCase {
 						'draft'   => 1,
 					);
 				}
+				if ( 'post' === $post_type ) {
+					return array(
+						'publish' => 3,
+						'pending' => 2,
+					);
+				}
 				return array(
-					'publish' => 3,
+					'publish' => 7,
+					'draft'   => 1,
 					'pending' => 2,
 				);
 			}
@@ -383,6 +391,7 @@ class SScribe_Export_Query_Controller_Test extends TestCase {
 				return $code;
 			}
 		);
+		$collector->method( 'get_selectable_post_types' )->willReturn( array( 'page', 'post' ) );
 		$collector->method( 'get_post_status_counts' )->willReturn(
 			array( 'publish' => 1 )
 		);
@@ -482,9 +491,9 @@ class SScribe_Export_Query_Controller_Test extends TestCase {
 		$this->assertSame( 11, $json['data']['languages']['__all__']['counts']['publish'] );
 		$this->assertSame( 11, $json['data']['languages']['__all__']['counts_page']['publish'] );
 		$this->assertSame( 11, $json['data']['languages']['__all__']['counts_post']['publish'] );
-		// counts_any is the page+post aggregate. Mock returns 11 for each
-		// post_type so the aggregate is 11 + 11 = 22.
-		$this->assertSame( 22, $json['data']['languages']['__all__']['counts_any']['publish'] );
+		// counts_any is the collector's canonical aggregate across all selectable
+		// post types. This mock returns 11 for every requested post type.
+		$this->assertSame( 11, $json['data']['languages']['__all__']['counts_any']['publish'] );
 	}
 
 	public function test_phase2_batch_endpoint_dedupes_sentinel_all(): void {

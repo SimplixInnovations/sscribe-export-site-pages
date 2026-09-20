@@ -662,11 +662,10 @@
 							.text(anyTotal.toLocaleString())
 							.attr('data-count', anyTotal);
 						if (postType !== 'page' && postType !== 'post' && postType !== 'any') {
-							$('[data-sscribe-count-for]').filter(function () {
+							const $selectedTypeCount = $('[data-sscribe-count-for]').filter(function () {
 								return $(this).attr('data-sscribe-count-for') === postType;
-							})
-								.text(selectedTypeTotal.toLocaleString())
-								.attr('data-count', selectedTypeTotal);
+							});
+							$selectedTypeCount.text(selectedTypeTotal.toLocaleString()).attr('data-count', selectedTypeTotal);
 						}
 						// Phase 3: authoritative countsState — written ONLY
 						// on a successful response whose generation, post_type,
@@ -845,14 +844,14 @@
 							const anyTotal = self.parseLocalizedInt(anyCounts.all) || 0;
 							const selectedCounts = entry.counts || {};
 							const selectedTotal = self.parseLocalizedInt(selectedCounts.all) || 0;
-							const displayTotal =
-								'page' === currentPostType
-									? pageTotal
-									: 'post' === currentPostType
-										? postTotal
-										: 'any' === currentPostType
-											? anyTotal
-											: selectedTotal;
+							let displayTotal = selectedTotal;
+							if ('page' === currentPostType) {
+								displayTotal = pageTotal;
+							} else if ('post' === currentPostType) {
+								displayTotal = postTotal;
+							} else if ('any' === currentPostType) {
+								displayTotal = anyTotal;
+							}
 							const $langLabel = $('input[name="sscribe_language"][value="' + langCode + '"]').closest(
 								'.sscribe-lang-card-label'
 							);
