@@ -180,11 +180,34 @@ for (const target of targets) {
     }
   );
   if (buildResult.status !== 0) {
-    console.error(
-      `[fail] ${target.description}: mutated release ZIP could not be built`
-    );
+    // A mutation rejected by the canonical release builder is already caught:
+    // shipped-invariant/build gates are part of the release safety net this
+    // discipline test is meant to prove. Distinguish that valid prevention
+    // from an unrelated broken baseline by restoring the source and requiring
+    // the canonical ZIP to rebuild successfully before counting the target.
     writeFileSync(srcAbs, original, 'utf-8');
-    failures++;
+    const recoveryBuild = spawnSync(
+      'php',
+      ['scripts/build-release.php', '--skip-validation'],
+      {
+        cwd: ROOT,
+        stdio: 'inherit',
+        env: { ...process.env, CI: '1' },
+      }
+    );
+
+    exercised++;
+    if (recoveryBuild.status === 0) {
+      console.log(
+        `[pass] ${target.description}: mutated artifact rejected by canonical build gate`
+      );
+      caught++;
+    } else {
+      console.error(
+        `[fail] ${target.description}: mutated build failed and canonical artifact did not recover`
+      );
+      failures++;
+    }
     continue;
   }
 
