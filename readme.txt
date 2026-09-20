@@ -94,8 +94,6 @@ Operational security records can include an HMAC-protected representation of the
 
 SScribe is free software licensed under GPL-2.0-or-later.
 
-The bundled Amiri fonts in `assets/fonts/amiri/` use the SIL Open Font License 1.1. The full text is included at `assets/fonts/amiri/OFL.txt`.
-
 The bundled PhpOffice/PhpWord library uses LGPL-3.0-only. Its notice is included at `vendor-prefixed/phpoffice/phpword/COPYING.LESSER.txt`.
 
 The bundled TCPDF 6.11.3 library uses LGPL-3.0-or-later. Its license notice and the required notices for all bundled dependencies remain alongside their source in the plugin package.
