@@ -154,6 +154,20 @@ final class SScribe_Third_Party_License_Test extends TestCase {
 		$this::assertStringContainsString( 'SPDX identifier could not be determined', $output );
 	}
 
+	public function test_recognized_but_wrong_license_fails(): void {
+		$mit = "MIT License\n\nPermission is hereby granted, free of charge, to any person obtaining a copy\n";
+		$paths = array(
+			self::DIST_TREE . '/vendor-prefixed/tecnickcom/tcpdf/LICENSE.TXT',
+			self::INVENTORY_PATH,
+		);
+		list( $code, $output ) = $this->run_with_state(
+			$paths,
+			array( self::DIST_TREE . '/vendor-prefixed/tecnickcom/tcpdf/LICENSE.TXT' => $mit )
+		);
+		$this::assertSame( 1, $code, 'A recognizable but incorrect license notice must fail. Output:' . "\n" . $output );
+		$this::assertStringContainsString( 'does not match composer.lock', $output );
+	}
+
 	public function test_legacy_amiri_bundle_is_not_part_of_source_tree(): void {
 		$root = self::plugin_root();
 		foreach (
