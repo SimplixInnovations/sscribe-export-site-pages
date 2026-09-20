@@ -86,7 +86,7 @@ final class SScribe_PDF_Exporter_Backup_Font_Policy_Test extends TestCase {
 		$source = $this->read_plugin_file( 'scripts/build-release.php' );
 
 		$this::assertStringContainsString( "vendor-prefixed/tecnickcom/tcpdf/LICENSE.TXT", $source );
-		$this::assertStringContainsString( "$tcpdf_fonts_dir = $vendor_dir . '/tecnickcom/tcpdf/fonts';", $source );
+		$this::assertStringContainsString( '$tcpdf_fonts_dir = $vendor_dir . \'/tecnickcom/tcpdf/fonts\';', $source );
 		$this::assertStringNotContainsString( 'vendor-prefixed/mpdf/', $source );
 	}
 }

@@ -665,7 +665,9 @@
 							const $selectedTypeCount = $('[data-sscribe-count-for]').filter(function () {
 								return $(this).attr('data-sscribe-count-for') === postType;
 							});
-							$selectedTypeCount.text(selectedTypeTotal.toLocaleString()).attr('data-count', selectedTypeTotal);
+							$selectedTypeCount
+								.text(selectedTypeTotal.toLocaleString())
+								.attr('data-count', selectedTypeTotal);
 						}
 						// Phase 3: authoritative countsState — written ONLY
 						// on a successful response whose generation, post_type,
