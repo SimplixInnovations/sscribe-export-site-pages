@@ -6,9 +6,7 @@ GitHub Actions availability is not a prerequisite for merging the finished
 source. It **is** still necessary to verify the exact final source/package
 before tagging or uploading to WordPress.org.
 
-Run this checklist from `develop`. Any tracked fix must be committed before
-final evidence is generated. At final closure, `main` is fast-forwarded to
-the exact certified `develop` SHA.
+Run this checklist from a clean `main` checkout after the reviewed release pull request has merged. Any tracked fix must go through a new transient pull-request branch before final evidence is regenerated. The certified source SHA is `origin/main`.
 
 For Bash/Git Bash evidence commands, enable fail-fast pipeline behavior before
 using `tee`, otherwise a failing command can be masked by a successful `tee`:
@@ -378,22 +376,22 @@ exit 0.
 
 After strict certification passes, make no tracked changes.
 
-Fast-forward `main` to the exact certified `develop` commit and push both.
-Then verify:
+After strict certification passes, verify that the clean local `main` checkout and `origin/main` resolve to the exact certified SHA and that no completed transient branch remains:
 
 ```bash
 git fetch origin --prune
+git rev-parse HEAD
 git rev-parse origin/main
-git rev-parse origin/develop
-git diff --stat origin/main..origin/develop
-git rev-list --left-right --count origin/main...origin/develop
+git status --short --branch
+git branch -a
 ```
 
 Required result:
 
-- both branches resolve to the exact certified SHA;
-- no diff;
-- ahead/behind is `0 0`.
+- local `HEAD` equals `origin/main` and the exact certified SHA;
+- the working tree is clean;
+- `main` is the only persistent long-lived branch;
+- completed audit/release/feature/hotfix branches have been deleted.
 
 Only after that may `v2.0.0` be created, subject to the repository tag policy,
 signing requirements, and WordPress.org source-transparency requirement.
