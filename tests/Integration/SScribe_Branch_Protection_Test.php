@@ -122,7 +122,7 @@ final class SScribe_Branch_Protection_Test extends TestCase {
 		$this::assertStringContainsString( 'no unrestricted admin bypass', strtolower( $source ) );
 	}
 
-	public function test_doc_pins_main_squash_and_disables_history-changing_pr_methods(): void {
+	public function test_doc_pins_main_squash_and_disables_history_changing_pr_methods(): void {
 		$source = (string) file_get_contents( self::plugin_root() . '/' . self::DOC_PATH );
 		$this::assertStringContainsString( 'Pull requests into `main`: squash', $source );
 		$this::assertMatchesRegularExpression( '/rebase[- ]?merge:\s*disabled/i', $source );
