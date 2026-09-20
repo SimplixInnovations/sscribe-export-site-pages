@@ -22,30 +22,6 @@ permissions:
     contents: read
 
 jobs:
-    lockfile-resolve:
-        name: Temporary TCPDF lockfile resolver
-        if: github.event_name == 'pull_request' && github.head_ref == 'audit/wporg-2.0.3-final'
-        runs-on: ubuntu-latest
-        steps:
-            - name: Checkout code
-              uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
-              with:
-                  persist-credentials: false
-            - name: Setup PHP
-              uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # v2
-              with:
-                  php-version: '8.4'
-                  tools: composer:v2
-                  extensions: curl, dom, gd, mbstring, xml, zip
-            - name: Resolve TCPDF dependency graph
-              run: composer update tecnickcom/tcpdf --with-all-dependencies --no-interaction --no-progress
-            - name: Emit resolved lockfile for audit-branch commit
-              shell: bash
-              run: |
-                  echo 'SSCRIBE_LOCK_B64_BEGIN'
-                  base64 -w 76 composer.lock
-                  echo 'SSCRIBE_LOCK_B64_END'
-
     version-check:
         name: Version Sync Check
         runs-on: ubuntu-latest
