@@ -47,8 +47,9 @@ sscribe_branch_protection_rule(
 
 preg_match_all( '/^    ([a-z][a-z0-9_-]*):\s*\n\s+name:\s*([^\n]+)/m', $ci_src, $job_matches );
 $ci_jobs = array();
-foreach ( $job_matches as $row ) {
-	$ci_jobs[ trim( $row[1] ) ] = trim( $row[2] );
+foreach ( $job_matches[1] ?? array() as $index => $job_id ) {
+	$job_name = $job_matches[2][ $index ] ?? '';
+	$ci_jobs[ trim( (string) $job_id ) ] = trim( (string) $job_name );
 }
 
 $mandatory_jobs = array(
