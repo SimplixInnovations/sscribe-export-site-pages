@@ -248,20 +248,25 @@ final class SScribe_Shipped_Invariants_Test extends TestCase {
 	}
 
 	/**
-	 * Invariant 4: shipped ZIP contains zero non-pragma comments
-	 * in PHP / CSS / JS. The build script strips them; this test
-	 * catches regressions in the build script itself.
+	 * Invariant 4: first-party shipped PHP / CSS / JS contains zero
+	 * non-pragma comments. vendor-prefixed/ is exempt because Strauss-generated
+	 * third-party source is intentionally copied byte-for-byte, including
+	 * upstream comments and license notices.
 	 *
 	 * PHP: T_DOC_COMMENT (PHPDoc /-star-star) is preserved.
 	 *      T_COMMENT with pragmas ("phpcs:", "translators:", "@preserve")
-	 *      is preserved. Everything else is stripped.
-	 * CSS: all /-star ... star-/ blocks stripped.
-	 * JS:  /-star ... star-/ (non /-star-!, non /-star-star) stripped; // stripped.
+	 *      is preserved. Everything else is stripped from first-party code.
+	 * CSS: all first-party /-star ... star-/ blocks stripped.
+	 * JS:  first-party /-star ... star-/ (non /-star-!, non /-star-star)
+	 *      stripped; // stripped.
 	 */
 	public function test_zip_has_no_non_pragma_comments(): void {
 		$violations = array();
 
 		foreach ( self::$extracted_files as $relative ) {
+			if ( str_contains( $relative, 'vendor-prefixed' . DIRECTORY_SEPARATOR ) ) {
+				continue;
+			}
 			$path     = self::$extract_dir . DIRECTORY_SEPARATOR . $relative;
 			$contents = (string) file_get_contents( $path );
 			$ext      = strtolower( pathinfo( $relative, PATHINFO_EXTENSION ) );
@@ -278,7 +283,7 @@ final class SScribe_Shipped_Invariants_Test extends TestCase {
 		$this->assertSame(
 			array(),
 			$violations,
-			'Non-pragma comments must not appear in shipped ZIP. First violations: ' . implode( '; ', array_slice( $violations, 0, 5 ) )
+			'Non-pragma comments must not appear in first-party shipped code. First violations: ' . implode( '; ', array_slice( $violations, 0, 5 ) )
 		);
 	}
 

@@ -3343,3 +3343,27 @@ msgstr ""
 #, php-format
 msgid "The plugin could not start. Check the server error log and include reference %s when requesting support."
 msgstr ""
+
+#. translators: %s: comma-separated PHP extension names.
+#: includes/class-sscribe-activator.php:27
+#, php-format
+msgid "Activation aborted: required PHP extensions are missing: %s."
+msgstr ""
+
+#: includes/exporters/class-sscribe-pdf-exporter.php:89
+#: includes/exporters/class-sscribe-pdf-exporter.php:429
+msgid "PDF export is not available because the bundled PDF renderer is missing. Please reinstall the plugin."
+msgstr ""
+
+#. translators: %s: HTML size.
+#: includes/exporters/class-sscribe-pdf-exporter.php:105
+#, php-format
+msgid "PDF render skipped because the HTML content is too large (%s). Try exporting to DOCX or reduce page complexity."
+msgstr ""
+
+#. translators: %s: comma-separated PHP extension names.
+#: sscribe-export-site-pages.php:122
+#, php-format
+msgid "Required PHP extensions are missing: %s. Ask your hosting provider to enable them before using SScribe."
+msgstr ""
+

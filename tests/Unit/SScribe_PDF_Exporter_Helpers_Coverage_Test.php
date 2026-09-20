@@ -85,14 +85,6 @@ final class SScribe_PDF_Exporter_Helpers_Coverage_Test extends TestCase {
 		$this::assertStringContainsString( 'color:red', str_replace( ' ', '', $result ) );
 	}
 
-	public function test_get_libxml_error_details_returns_array(): void {
-		libxml_use_internal_errors( true );
-		libxml_clear_errors();
-		$result = $this->call( 'get_libxml_error_details' );
-		$this::assertIsArray( $result );
-		libxml_clear_errors();
-	}
-
 	public function test_public_pdf_contract_is_stable(): void {
 		$this::assertSame( 'pdf', $this->exporter->get_extension() );
 		$this::assertSame( 'application/pdf', $this->exporter->get_mime_type() );

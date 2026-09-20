@@ -543,7 +543,7 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 	 * Create a configured TCPDF document.
 	 *
 	 * @param bool $is_rtl Whether the page is RTL.
-	 * @return SScribeVendor_TCPDF|SScribe_Result Configured renderer or failure result.
+	 * @return object|SScribe_Result Configured renderer or failure result.
 	 */
 	private function create_tcpdf_document( bool $is_rtl ) {
 		if ( ! class_exists( '\\SScribeVendor_TCPDF' ) ) {
@@ -658,30 +658,6 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 			}
 		}
 		return empty( $kept ) ? '' : implode( ';', $kept ) . ';';
-	}
-
-	/**
-	 * Get detailed information about libxml errors.
-	 *
-	 * @return array Error details.
-	 */
-	private function get_libxml_error_details(): array {
-		$errors  = libxml_get_errors();
-		$details = array();
-
-		foreach ( $errors as $error ) {
-
-			$details[] = array(
-				'level'   => (int) $error->level,
-				'code'    => (int) $error->code,
-				'line'    => (int) $error->line,
-				'column'  => (int) $error->column,
-				'message' => trim( $error->message ),
-				'file'    => (string) $error->file,
-			);
-		}
-
-		return $details;
 	}
 
 	/**
