@@ -100,8 +100,24 @@ if ( $verify_built ) {
 			}
 		}
 
+		// TCPDF itself defines a global class named TCPDF. Strauss must apply
+		// the configured classmap prefix to that exact entrypoint. Do not scan
+		// for the raw substring "class TCPDF" globally: PHPWord legitimately
+		// defines a namespaced writer class with that short name.
+		$tcpdf_entry = $prefixed_dir . '/tecnickcom/tcpdf/tcpdf.php';
+		if ( ! is_file( $tcpdf_entry ) ) {
+			$errors[] = sprintf( 'Prefixed TCPDF entrypoint is missing: %s.', $tcpdf_entry );
+		} else {
+			$tcpdf_source = (string) file_get_contents( $tcpdf_entry );
+			if ( preg_match( '/^\\s*class\\s+TCPDF\\b/m', $tcpdf_source ) ) {
+				$errors[] = sprintf( 'Prefixed TCPDF entrypoint still declares the unprefixed global class in %s.', $tcpdf_entry );
+			}
+			if ( ! preg_match( '/^\\s*class\\s+SScribeVendor_TCPDF\\b/m', $tcpdf_source ) ) {
+				$errors[] = sprintf( 'Prefixed TCPDF entrypoint does not declare the expected SScribeVendor_TCPDF class in %s.', $tcpdf_entry );
+			}
+		}
+
 		$forbidden_namespaces = array(
-			'class TCPDF',
 			'namespace PhpOffice\\PhpWord;',
 			'namespace Psr\\Container;',
 		);
