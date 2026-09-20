@@ -94,7 +94,7 @@ class SScribe_Export_Rate_Limiter_Test extends TestCase {
 
 		$release = \Closure::bind(
 			static function ( \SScribe_Export_Rate_Limiter $limiter ) use ( $lock_key, $token ): void {
-				$limiter->release_lock( false, 'unused-cache-key', $lock_key, $token );
+				$limiter->release_lock( $lock_key, $token );
 			},
 			null,
 			\SScribe_Export_Rate_Limiter::class
