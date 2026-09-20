@@ -185,7 +185,9 @@ final class SScribe_Agent_Final_Report_Test extends TestCase {
 	public function test_release_audit_runs_final_report_and_handoff_in_strict_mode(): void {
 		$source = (string) file_get_contents( $this->repo_root . '/scripts/release-audit.php' );
 
-		$this->assertStringContainsString( "'Agent-Final-Report', 'Auditor-Handoff'", $source );
+		$this->assertStringContainsString( "'Agent-Final-Report'", $source );
+		$this->assertStringContainsString( "'Branch-Policy'", $source );
+		$this->assertStringContainsString( "'Auditor-Handoff'", $source );
 		$this->assertStringContainsString( '$tail_env', $source );
 		$this->assertStringContainsString( '$cert', $source );
 	}
