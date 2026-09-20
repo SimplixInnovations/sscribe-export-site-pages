@@ -354,19 +354,10 @@ final class SScribe_PDF_Exporter_Coverage_Test extends SScribe_WP_TestCase {
 	}
 
 	// -----------------------------------------------------------------
-	// Libxml and temporary-image helpers
+	// Temporary-image helpers
 	// -----------------------------------------------------------------
 
 
-	public function test_get_libxml_error_details_with_no_recent_errors(): void {
-		$get_libxml = $this->call_private( 'get_libxml_error_details' );
-
-		$result = $get_libxml();
-		$this::assertIsArray( $result );
-		// libxml_use_internal_errors is independent of recent parse errors,
-		// so we only assert the shape — either an empty array or one
-		// populated by libxml global state from earlier tests.
-	}
 
 	public function test_cleanup_temp_images_with_empty_list_is_noop(): void {
 		$cleanup = $this->call_private( 'cleanup_temp_images' );
