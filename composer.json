@@ -12,9 +12,9 @@
     ],
     "require": {
         "php": ">=8.2",
-        "mpdf/mpdf": "~8.3.0",
         "phpoffice/phpword": "~1.4.0",
-        "psr/container": "^2.0"
+        "psr/container": "^2.0",
+        "tecnickcom/tcpdf": "6.11.3"
     },
     "require-dev": {
         "automattic/vipwpcs": "^3.1.0",
@@ -123,7 +123,7 @@
             "namespace_prefix": "SScribeVendor\\",
             "classmap_prefix": "SScribeVendor_",
             "packages": [
-                "mpdf/mpdf",
+                "tecnickcom/tcpdf",
                 "phpoffice/phpword",
                 "psr/container"
             ],
