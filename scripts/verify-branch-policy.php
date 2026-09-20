@@ -53,8 +53,10 @@ function sscribe_branch_policy_record( array &$manifest, array &$failures, array
 	}
 }
 
-$is_ci = ( getenv( 'GITHUB_ACTIONS' ) === 'true' );
+$is_ci             = ( getenv( 'GITHUB_ACTIONS' ) === 'true' );
+$strict_release    = '1' === (string) getenv( 'SSCRIBE_RELEASE_CERTIFICATION' );
 $manifest['ci_mode'] = $is_ci;
+$manifest['strict_release_certification'] = $strict_release;
 
 $policy_doc = $repo_root . '/docs/BRANCH_POLICY_v2.0.0.md';
 if ( ! is_file( $policy_doc ) ) {
@@ -149,6 +151,71 @@ if ( $is_ci ) {
 			$remote_refs[ $parts[1] ] = true;
 		}
 	}
+}
+
+$allowed_remote_branch_refs = array( 'refs/heads/main' => true );
+$active_review_branch       = getenv( 'GITHUB_HEAD_REF' );
+if ( $is_ci && is_string( $active_review_branch ) && '' !== trim( $active_review_branch ) ) {
+	$allowed_remote_branch_refs[ 'refs/heads/' . trim( $active_review_branch ) ] = true;
+}
+
+$noncanonical_remote_branches = array();
+foreach ( array_keys( $remote_refs ) as $ref ) {
+	if ( str_starts_with( $ref, 'refs/heads/' ) && ! isset( $allowed_remote_branch_refs[ $ref ] ) ) {
+		$noncanonical_remote_branches[] = substr( $ref, strlen( 'refs/heads/' ) );
+	}
+}
+sort( $noncanonical_remote_branches );
+if ( empty( $noncanonical_remote_branches ) ) {
+	sscribe_branch_policy_record( $manifest, $failures, $warnings, $notes, 'no_noncanonical_remote_branches', 'PASS', 'no persistent remote branch exists outside the canonical/active-review set' );
+} else {
+	$detail = 'non-canonical remote branch(es): ' . implode( ', ', $noncanonical_remote_branches );
+	sscribe_branch_policy_record(
+		$manifest,
+		$failures,
+		$warnings,
+		$notes,
+		'no_noncanonical_remote_branches',
+		$strict_release ? 'FAIL' : 'WARN',
+		$detail . ( $strict_release ? '. Strict release certification requires remote cleanup.' : ' (allowed only as transient review state before final cleanup).' )
+	);
+}
+
+$origin_default_branch = '';
+if ( ! $is_ci ) {
+	$origin_head = sscribe_branch_policy_git( $repo_root, 'ls-remote --symref origin HEAD' );
+	if ( preg_match( '/^ref:\s+refs\/heads\/([^\s]+)\s+HEAD$/m', $origin_head, $default_match ) ) {
+		$origin_default_branch = trim( (string) $default_match[1] );
+	}
+} else {
+	$origin_head_ref = sscribe_branch_policy_git( $repo_root, 'symbolic-ref refs/remotes/origin/HEAD' );
+	if ( str_starts_with( $origin_head_ref, 'refs/remotes/origin/' ) ) {
+		$origin_default_branch = substr( $origin_head_ref, strlen( 'refs/remotes/origin/' ) );
+	}
+}
+
+if ( 'main' === $origin_default_branch ) {
+	sscribe_branch_policy_record( $manifest, $failures, $warnings, $notes, 'origin_default_branch_is_main', 'PASS', 'origin default branch: main' );
+} elseif ( '' === $origin_default_branch ) {
+	sscribe_branch_policy_record(
+		$manifest,
+		$failures,
+		$warnings,
+		$notes,
+		'origin_default_branch_is_main',
+		( $strict_release && ! $is_ci ) ? 'FAIL' : 'WARN',
+		'origin default branch could not be resolved' . ( $is_ci ? ' from the offline CI checkout' : '' )
+	);
+} else {
+	sscribe_branch_policy_record(
+		$manifest,
+		$failures,
+		$warnings,
+		$notes,
+		'origin_default_branch_is_main',
+		$strict_release ? 'FAIL' : 'WARN',
+		'origin default branch is ' . $origin_default_branch . '; canonical default is main.'
+	);
 }
 
 $local_only = array();
