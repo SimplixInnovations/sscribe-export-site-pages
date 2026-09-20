@@ -17,7 +17,7 @@ Export WordPress pages to DOCX, PDF, HTML, or Markdown with multilingual and RTL
 
 ## Status
 
-Active development happens on `develop`. See [Branch policy](#branch-policy).
+The canonical long-lived branch is `main`. All work uses transient review branches that are deleted after merge. See [Branch policy](#branch-policy).
 
 ## Supported WordPress / PHP
 
@@ -60,7 +60,7 @@ Generated, never committed: `vendor/`, `node_modules/`, `dist/`, `coverage/`.
 ```powershell
 git clone https://github.com/SimplixInnovations/sscribe-export-site-pages.git
 cd sscribe-export-site-pages
-git checkout develop
+git switch main
 .\scripts\dev.ps1 doctor
 .\scripts\dev.ps1 setup
 .\scripts\dev.ps1 verify
@@ -166,11 +166,11 @@ composer release   # canonical builder (scripts/build-release.php)
 
 ## Release process
 
-1. `develop` and `main` are kept at the same SHA (alias model, enforced by `composer test:branch-policy`).
-2. Day-to-day work lands on `develop`, then `main` is advanced by fast-forward only to match.
-3. `composer release:prepare` can finalize the current development version or deliberately bump it; `composer release:commit` commits and fast-forwards both canonical branches.
-4. Build/certify the exact ZIP and run `SSCRIBE_RELEASE_CERTIFICATION=1 composer release:audit` with the final Phase 70/71/72 evidence.
-5. Only after certification, create the immutable annotated tag with `composer release:tag`; the tag push triggers the release workflow.
+1. `main` is the only canonical long-lived branch (enforced by `composer test:branch-policy`).
+2. Day-to-day changes use transient topic/audit branches and enter `main` only through reviewed pull requests; delete the branch after merge.
+3. `composer release:prepare` prepares release changes; `composer release:commit` moves those changes onto a transient `release/v<version>` branch, commits, and pushes that branch for review into `main`.
+4. After the release PR is merged, reconcile local `main` with `origin/main`, build/certify the exact ZIP, and run `SSCRIBE_RELEASE_CERTIFICATION=1 composer release:audit` with the final Phase 70/71/72 evidence.
+5. Only after strict certification, create the immutable annotated tag with `composer release:tag`; the tag push triggers the release workflow, which verifies, audits, tests, certifies, and publishes without rebuilding in the publish job.
 
 Tags and certified ZIPs are immutable after certification — never move, rebuild, or replace them.
 
@@ -180,13 +180,14 @@ The submission artifact is the certified versioned ZIP (`dist/sscribe-export-sit
 
 ## Branch policy
 
-- Long-lived branches: exactly `main` and `develop`, always at the same SHA between releases.
-- No `release/*`, `feature/*`, `hotfix/*`, or `support/*` branches persist between releases (transient hotfix branches must be merged and deleted before a tag cut).
+- Long-lived branches: exactly one — `main`.
+- Topic, audit, release, hotfix, and support branches are transient review state only; merge them into `main` through a pull request and delete them immediately afterward.
+- Direct release commits to `main`, persistent alias branches, force-pushes, and mutable tags are forbidden.
 - Tags are immutable. Full policy: `docs/BRANCH_POLICY_v2.0.0.md` (enforced by `composer test:branch-policy`).
 
 ## Versioning
 
-`readme.txt` Stable tag, plugin header, and release tooling versions are kept in sync (`composer version:check`). The certified v2.0.2 release is immutable and is never rebuilt.
+`readme.txt` Stable tag, plugin header, and release tooling versions are kept in sync (`composer version:check`). Every certified release tag and ZIP is immutable and is never rebuilt in place; fixes ship as a new version.
 
 ## Source / build transparency
 
@@ -202,7 +203,7 @@ The submission artifact is the certified versioned ZIP (`dist/sscribe-export-sit
 | Chromium missing | `npx playwright install chromium` (or `dev.ps1 setup`) |
 | `git diff --check` flags CRLF | The repo enforces LF via `.gitattributes`; let Git renormalize, do not commit CRLF |
 | symlink-guard tests skip on Windows | Enable Developer Mode (Settings > System > For developers) so `mklink` can create test symlinks; `dev.ps1 doctor` reports the state |
-| `test:branch-policy` fails | `main` and `develop` diverged; reconcile `develop`, then fast-forward `main` to the exact same SHA; never force either branch |
+| `test:branch-policy` fails | Remove/reconcile non-canonical persistent branches, ensure the active review branch is transient, and verify `main` remains the sole canonical long-lived branch; never force `main` |
 | Activation reports private-storage setup failure | Ensure PHP has a writable private temp directory. If the host exposes no safe automatic location, define `SSCRIBE_PRIVATE_STORAGE_DIR` in `wp-config.php` as an absolute writable directory outside the public web root. |
 
 ## Contributing
