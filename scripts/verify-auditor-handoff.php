@@ -30,9 +30,12 @@ if ( 'cli' !== php_sapi_name() ) {
 	exit( 'This script must be run from the command line.' );
 }
 
-$root_dir      = dirname( __DIR__ );
-$handoff_doc   = $root_dir . '/docs/AUDITOR_HANDOFF_v2.0.0.md';
-$manifest_path = $root_dir . '/dist/auditor-handoff-manifest.json';
+$root_dir             = dirname( __DIR__ );
+$handoff_doc          = $root_dir . '/docs/AUDITOR_HANDOFF_v2.0.0.md';
+$manifest_path        = $root_dir . '/dist/auditor-handoff-manifest.json';
+$final_report_path    = $root_dir . '/dist/final-release-report.md';
+$agent_report_manifest = $root_dir . '/dist/agent-final-report-manifest.json';
+$strict_certification = '1' === (string) getenv( 'SSCRIBE_RELEASE_CERTIFICATION' );
 
 $matrix = array();
 $errors = array();
@@ -58,7 +61,7 @@ $canonical_handoff_artifacts = array(
 	'docs/RELEASE_BLOCKERS_v2.0.0.md',
 	'docs/FINAL_CI_STATE_v2.0.0.md',
 	'docs/EXACT_ARTIFACT_EVIDENCE_v2.0.0.md',
-	'docs/RELEASE_REPORT_v2.0.0.md',
+	'docs/RELEASE_REPORT_TEMPLATE_v2.0.0.md',
 	'docs/BRANCH_PROTECTION_v2.0.0.md',
 	'docs/TAG_POLICY_v2.0.0.md',
 	'docs/RELEASE_PIPELINE_v2.0.0.md',
@@ -128,6 +131,36 @@ if ( is_file( $handoff_doc ) ) {
 		0 === count( $missing_on_disk ),
 		'Every canonical handoff artifact must exist on disk and be non-empty. Empty: ' . implode( ', ', $missing_on_disk )
 	);
+
+	if ( $strict_certification ) {
+		$agent_manifest = array();
+		if ( is_file( $agent_report_manifest ) ) {
+			$decoded = json_decode( (string) file_get_contents( $agent_report_manifest ), true );
+			if ( is_array( $decoded ) ) {
+				$agent_manifest = $decoded;
+			}
+		}
+		$current_sha = trim( (string) shell_exec( 'git rev-parse HEAD' ) );
+		$record(
+			'strict_exact_sha_final_report_present',
+			is_file( $final_report_path ) && 0 < filesize( $final_report_path ),
+			'Strict auditor handoff requires the generated exact-SHA dist/final-release-report.md.'
+		);
+		$record(
+			'strict_agent_report_manifest_is_release_ready_for_head',
+			! empty( $agent_manifest )
+				&& true === ( $agent_manifest['release_ready'] ?? false )
+				&& $current_sha === (string) ( $agent_manifest['current_source_sha'] ?? '' )
+				&& 0 === (int) ( $agent_manifest['errors_count'] ?? -1 ),
+			'Strict auditor handoff requires agent-final-report-manifest.json release_ready=true for the exact current git HEAD.'
+		);
+	} else {
+		$record(
+			'strict_final_report_handoff_required_only_for_release_certification',
+			true,
+			'Normal source CI validates tracked handoff inputs; generated exact-SHA final-report proof is required only in strict certification.'
+		);
+	}
 
 	// Rule 5 (new): the exact release ZIP must have a matching
 	// SHA-256 sidecar using the canonical `dist/{name}-{version}.sha256`
@@ -215,10 +248,12 @@ if ( ! is_dir( $manifest_dir ) ) {
 	mkdir( $manifest_dir, 0755, true );
 }
 $manifest = array(
-	'generated_at'  => gmdate( 'c' ),
+	'generated_at'         => gmdate( 'c' ),
+	'strict_certification' => $strict_certification,
 	'rule_count'    => count( $matrix ),
 	'passed_count'  => count( array_filter( $matrix, static fn( $r ) => $r['passes'] ) ),
 	'errors_count'  => count( $errors ),
+	'release_ready' => $strict_certification && 0 === count( $errors ),
 	'passes'        => 0 === count( $errors ),
 	'errors'        => $errors,
 	'matrix'        => $matrix,
