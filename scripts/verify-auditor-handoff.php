@@ -106,6 +106,13 @@ if ( is_file( $handoff_doc ) ) {
 		'Every canonical handoff artifact must appear in the handoff doc. Missing: ' . implode( ', ', $missing_artifacts )
 	);
 
+	$record(
+		'branch_topology_recipe_matches_main_only_policy',
+		false === strpos( $doc_src, 'both `main` + `develop`' )
+			&& false !== strpos( $doc_src, 'main is the only canonical long-lived branch' ),
+		'Auditor handoff branch-topology recipe must match the main-only canonical branch policy and must not require develop.'
+	);
+
 	// Rule 4 (new): every canonical handoff artifact must EXIST on
 	// disk AND be non-empty. A doc that lists artifacts but ships
 	// empty placeholders defeats the audit-trail claim.
