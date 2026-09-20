@@ -74,7 +74,7 @@ composer release
 
 # 2. Resolve VERSION from SSCRIBE_VERSION and confirm the SHA-256 of
 #    dist/sscribe-export-site-pages-{VERSION}.zip matches the certified evidence.
-VERSION=$(php -r "preg_match('/define\\( \\'SSCRIBE_VERSION\\', \\'([^\\']+)\\' \\);/', file_get_contents('sscribe-export-site-pages.php'), $m); echo $m[1] ?? '';" )
+VERSION=$(grep -E '^ \\* Version:' sscribe-export-site-pages.php | awk '{print $3}')
 sha256sum "dist/sscribe-export-site-pages-${VERSION}.zip"
 
 # 3. Upload via WordPress → Plugins → Add New → Upload Plugin.
