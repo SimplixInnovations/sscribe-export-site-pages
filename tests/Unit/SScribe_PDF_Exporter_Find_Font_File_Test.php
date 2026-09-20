@@ -1,6 +1,6 @@
 <?php
 /**
- * SScribe PDF Exporter — find_font_file() regression test
+ * SScribe PDF exporter runtime-font-discovery removal regression tests.
  *
  * @package SScribe_Export_Site_Pages
  */
@@ -11,159 +11,42 @@ namespace SScribe\Tests\Unit;
 
 use PHPUnit\Framework\TestCase;
 
-class SScribe_PDF_Exporter_Find_Font_File_Test extends TestCase {
+final class SScribe_PDF_Exporter_Find_Font_File_Test extends TestCase {
 
-	/**
-	 * @var string Temporary font directory created for this test.
-	 */
-	private string $font_dir = '';
-
-	/**
-	 * @var string[] Files to clean up in tearDown.
-	 */
-	private array $created_files = array();
-
-	protected function setUp(): void {
-		parent::setUp();
-		$this->font_dir = sys_get_temp_dir() . '/sscribe-test-fonts-' . uniqid( '', true );
-		mkdir( $this->font_dir, 0700, true );
-	}
-
-	protected function tearDown(): void {
-		foreach ( $this->created_files as $file ) {
-			if ( file_exists( $file ) ) {
-				@unlink( $file );
-			}
-		}
-		if ( is_dir( $this->font_dir ) ) {
-			$this->rmdir_recursive( $this->font_dir );
-		}
-		parent::tearDown();
-	}
-
-	private function rmdir_recursive( string $dir ): void {
-		$items = @scandir( $dir );
-		if ( false === $items ) {
-			return;
-		}
-		foreach ( $items as $item ) {
-			if ( '.' === $item || '..' === $item ) {
-				continue;
-			}
-			$path = $dir . DIRECTORY_SEPARATOR . $item;
-			if ( is_dir( $path ) ) {
-				$this->rmdir_recursive( $path );
-			} else {
-				@unlink( $path );
-			}
-		}
-		@rmdir( $dir );
-	}
-
-	/**
-	 * Invoke the private find_font_file() method via a scoped callable.
-	 */
-	private function call_find_font_file( string $dir, string $pattern ): ?string {
-		$method = \Closure::bind(
-			function ( string $dir, string $pattern ) {
-				$exporter = new \SScribe_PDF_Exporter();
-				return $exporter->find_font_file( $dir, $pattern ); // phpcs:ignore WordPress.NamingConventions.ValidVariableName.PrivateMethodFound
-			},
-			null,
-			\SScribe_PDF_Exporter::class
+	public function test_runtime_font_discovery_helper_is_removed(): void {
+		$this::assertFalse(
+			method_exists( \SScribe_PDF_Exporter::class, 'find_font_file' ),
+			'PDF rendering must not discover arbitrary host/plugin fonts at runtime.'
 		);
-		return $method( $dir, $pattern );
 	}
 
-	private function touch_font_file( string $name ): string {
-		$path = $this->font_dir . '/' . $name;
-		// 4 bytes is enough to be a real file; we never read it.
-		file_put_contents( $path, "\x00\x01\x00\x00" );
-		$this->created_files[] = $path;
-		return $path;
+	public function test_pdf_exporter_does_not_reference_plugin_amiri_files(): void {
+		$path = \SSCRIBE_PLUGIN_DIR . 'includes/exporters/class-sscribe-pdf-exporter.php';
+		$source = file_get_contents( $path );
+
+		$this::assertIsString( $source );
+		$this::assertStringNotContainsString( 'Amiri-Regular.ttf', $source );
+		$this::assertStringNotContainsString( 'Amiri-Bold.ttf', $source );
+		$this::assertStringNotContainsString( 'find_font_file', $source );
+		$this::assertStringContainsString( "'dejavusans'", $source );
 	}
 
-	/**
-	 * Regression: find_font_file() previously called preg_quote() on the
-	 * pattern, which turned the regex "manrope[-_]?regular" into the
-	 * literal string "manrope\[\-\_\]\?regular" and made it impossible to
-	 * match the actual Manrope-Regular.ttf filename. The function always
-	 * returned null, and the caller's ?? 'Manrope-Regular.ttf' fallback
-	 * masked the bug. This test pins the regex behavior so a future
-	 * refactor that re-introduces preg_quote will fail loudly.
-	 */
-	public function test_find_font_file_matches_manrope_hyphenated_filename(): void {
-		$this->touch_font_file( 'Manrope-Regular.ttf' );
-		$this->touch_font_file( 'Manrope-Bold.ttf' );
+	public function test_tcpdf_prune_policy_is_closed_to_declared_files(): void {
+		$path = \SSCRIBE_PLUGIN_DIR . 'scripts/prune-tcpdf-for-strauss.php';
+		$source = file_get_contents( $path );
 
-		$result = $this->call_find_font_file( $this->font_dir, 'manrope[-_]?regular' );
-
-		$this->assertSame( 'Manrope-Regular.ttf', $result );
+		$this::assertIsString( $source );
+		$this::assertStringContainsString( '$allowed_top_level = array(', $source );
+		$this::assertStringContainsString( '$allowed_nested = array(', $source );
+		$this::assertStringContainsString( 'if ( ! in_array( $font_relative, $tcpdf_font_allow, true ) )', file_get_contents( \SSCRIBE_PLUGIN_DIR . 'scripts/build-release.php' ) ?: '' );
 	}
 
-	/**
-	 * Regression: the pattern is case-insensitive and matches both the
-	 * hyphen and underscore variants the audit identifies as plausible.
-	 */
-	public function test_find_font_file_matches_underscore_variant(): void {
-		$this->touch_font_file( 'Manrope_Bold.ttf' );
-		$this->touch_font_file( 'Manrope_Light.ttf' );
+	public function test_tcpdf_pruner_fails_if_required_font_asset_disappears(): void {
+		$path = \SSCRIBE_PLUGIN_DIR . 'scripts/prune-tcpdf-for-strauss.php';
+		$source = file_get_contents( $path );
 
-		$result = $this->call_find_font_file( $this->font_dir, 'manrope[-_]?bold' );
-
-		$this->assertSame( 'Manrope_Bold.ttf', $result );
-	}
-
-	/**
-	 * The function must return null (not throw) when no file matches, so
-	 * the caller's ?? 'fallback.ttf' can take over.
-	 */
-	public function test_find_font_file_returns_null_when_no_match(): void {
-		$this->touch_font_file( 'Manrope-Regular.ttf' );
-
-		$result = $this->call_find_font_file( $this->font_dir, 'manrope[-_]?nonexistent' );
-
-		$this->assertNull( $result );
-	}
-
-	/**
-	 * The function must return null when the directory is empty, not
-	 * raise a warning. An empty directory is the bootstrap state before
-	 * the first font is dropped in.
-	 */
-	public function test_find_font_file_returns_null_for_empty_directory(): void {
-		$result = $this->call_find_font_file( $this->font_dir, 'manrope[-_]?regular' );
-
-		$this->assertNull( $result );
-	}
-
-	/**
-	 * Non-.ttf files in the directory must be ignored, even if the base
-	 * name would otherwise match.
-	 */
-	public function test_find_font_file_ignores_non_ttf_files(): void {
-		$this->touch_font_file( 'Manrope-Regular.otf' );
-		$this->touch_font_file( 'manrope-regular-regular.txt' );
-
-		$result = $this->call_find_font_file( $this->font_dir, 'manrope[-_]?regular' );
-
-		$this->assertNull( $result );
-	}
-
-	/**
-	 * Coverage: the production call site in build_mpdf_config() passes
-	 * `amiri[-_]?regular` and `amiri[-_]?bold`. This pins the behavior
-	 * against the actual filenames shipped in assets/fonts/amiri/ so a
-	 * future refactor that changes the production pattern is caught.
-	 */
-	public function test_find_font_file_matches_amiri_production_filenames(): void {
-		$this->touch_font_file( 'Amiri-Regular.ttf' );
-		$this->touch_font_file( 'Amiri-Bold.ttf' );
-
-		$regular = $this->call_find_font_file( $this->font_dir, 'amiri[-_]?regular' );
-		$bold    = $this->call_find_font_file( $this->font_dir, 'amiri[-_]?bold' );
-
-		$this->assertSame( 'Amiri-Regular.ttf', $regular );
-		$this->assertSame( 'Amiri-Bold.ttf', $bold );
+		$this::assertIsString( $source );
+		$this::assertStringContainsString( 'Required TCPDF font asset is missing after pruning', $source );
+		$this::assertStringContainsString( 'exit( 1 );', $source );
 	}
 }
