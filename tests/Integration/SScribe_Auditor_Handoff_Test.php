@@ -119,6 +119,21 @@ final class SScribe_Auditor_Handoff_Test extends TestCase {
 		}
 	}
 
+	public function test_auditor_handoff_branch_topology_recipe_matches_main_only_policy(): void {
+		$src = (string) file_get_contents( $this->handoff_doc_path );
+
+		$this->assertStringNotContainsString(
+			'both `main` + `develop`',
+			$src,
+			'Auditor handoff must not retain the obsolete two-long-lived-branch topology.'
+		);
+		$this->assertStringContainsString(
+			'main is the only canonical long-lived branch',
+			$src,
+			'Auditor handoff must explicitly match the current main-only branch policy.'
+		);
+	}
+
 	public function test_auditor_handoff_every_listed_artifact_exists_and_nonempty(): void {
 		// Mirror the verifier's on-disk check at the PHPUnit boundary.
 		// A handoff table that lists artifacts but ships empty
