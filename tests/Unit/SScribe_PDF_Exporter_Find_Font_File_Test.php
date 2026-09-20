@@ -29,9 +29,9 @@ final class SScribe_PDF_Exporter_Find_Font_File_Test extends TestCase {
 		$this::assertStringNotContainsString( 'Amiri-Bold.ttf', $source );
 		$this::assertStringNotContainsString( 'find_font_file', $source );
 		$this::assertStringContainsString( "'dejavusans'", $source );
-		$this::assertFileDoesNotExist( \\SSCRIBE_PLUGIN_DIR . 'assets/fonts/amiri/Amiri-Regular.ttf' );
-		$this::assertFileDoesNotExist( \\SSCRIBE_PLUGIN_DIR . 'assets/fonts/amiri/Amiri-Bold.ttf' );
-		$this::assertFileDoesNotExist( \\SSCRIBE_PLUGIN_DIR . 'assets/fonts/amiri/OFL.txt' );
+		$this::assertFileDoesNotExist( \SSCRIBE_PLUGIN_DIR . 'assets/fonts/amiri/Amiri-Regular.ttf' );
+		$this::assertFileDoesNotExist( \SSCRIBE_PLUGIN_DIR . 'assets/fonts/amiri/Amiri-Bold.ttf' );
+		$this::assertFileDoesNotExist( \SSCRIBE_PLUGIN_DIR . 'assets/fonts/amiri/OFL.txt' );
 	}
 
 	public function test_tcpdf_prune_policy_is_closed_to_declared_files(): void {
