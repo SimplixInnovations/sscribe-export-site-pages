@@ -647,7 +647,10 @@ if ( is_dir( $vendor_dir ) ) {
 	$pruned_count = 0;
 	// Extensions that WordPress.org Plugin Check rejects as build artifacts.
 	$prune_extensions = array( 'sh', 'bat', 'cmd', 'exe', 'msi', 'pkg', 'dmg', 'phar' );
-	$prune_files      = array();
+	$prune_files      = array(
+		'tecnickcom/tcpdf/Makefile',
+		'tecnickcom/tcpdf/VERSION',
+	);
 
 	$v_iterator = new RecursiveIteratorIterator(
 		new RecursiveDirectoryIterator( $vendor_dir, RecursiveDirectoryIterator::SKIP_DOTS ),
