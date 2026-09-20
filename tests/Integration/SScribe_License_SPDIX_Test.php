@@ -121,6 +121,45 @@ class SScribe_License_SPDIX_Test extends TestCase {
 		);
 	}
 
+	public function test_runtime_dependency_license_set_has_no_gpl2_only_v3_only_conflict(): void {
+		$lock_path = self::plugin_root() . '/composer.lock';
+		$this->assertFileExists( $lock_path );
+
+		$lock = json_decode( (string) file_get_contents( $lock_path ), true );
+		$this->assertIsArray( $lock );
+
+		$licenses = array();
+		foreach ( (array) ( $lock['packages'] ?? array() ) as $package ) {
+			$name = isset( $package['name'] ) ? (string) $package['name'] : '';
+			foreach ( (array) ( $package['license'] ?? array() ) as $license ) {
+				$licenses[ $name ][] = (string) $license;
+			}
+		}
+
+		$gpl2_only = array();
+		$v3_only   = array();
+		foreach ( $licenses as $name => $package_licenses ) {
+			if ( in_array( 'GPL-2.0-only', $package_licenses, true ) ) {
+				$gpl2_only[] = $name;
+			}
+			if (
+				in_array( 'GPL-3.0-only', $package_licenses, true )
+				|| in_array( 'GPL-3.0-or-later', $package_licenses, true )
+				|| in_array( 'LGPL-3.0-only', $package_licenses, true )
+				|| in_array( 'LGPL-3.0-or-later', $package_licenses, true )
+			) {
+				$v3_only[] = $name;
+			}
+		}
+
+		$this->assertFalse(
+			! empty( $gpl2_only ) && ! empty( $v3_only ),
+			'Runtime dependency graph mixes GPL-2.0-only packages (' . implode( ', ', $gpl2_only )
+				. ') with GPL/LGPL v3-only packages (' . implode( ', ', $v3_only )
+				. '). GNU license compatibility rules do not provide one compatible license for that combined runtime.'
+		);
+	}
+
 	public function test_license_header_does_not_use_non_spdx_aliases(): void {
 		$contents = (string) file_get_contents( self::plugin_root() . '/' . self::PLUGIN_FILE );
 
