@@ -1039,7 +1039,7 @@ class SScribe_Page_Collector {
 	/**
 	 * Filter cached child metadata through the current user's post permissions.
 	 *
-	 * @param array<int, array<string, mixed>> $children Child metadata rows.
+	 * @param array<int, mixed> $children Child metadata rows loaded from query/object cache.
 	 * @return array<int, array<string, mixed>> Readable child rows.
 	 */
 	private function filter_readable_child_rows( array $children ): array {

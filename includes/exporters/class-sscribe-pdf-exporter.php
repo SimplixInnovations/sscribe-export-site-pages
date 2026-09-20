@@ -543,7 +543,7 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 	 * Create a configured TCPDF document.
 	 *
 	 * @param bool $is_rtl Whether the page is RTL.
-	 * @return object|SScribe_Result Configured renderer or failure result.
+	 * @return \SScribeVendor_TCPDF|SScribe_Result Configured renderer or failure result.
 	 */
 	private function create_tcpdf_document( bool $is_rtl ) {
 		if ( ! class_exists( '\\SScribeVendor_TCPDF' ) ) {

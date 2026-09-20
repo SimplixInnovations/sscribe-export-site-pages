@@ -8,6 +8,7 @@ parameters:
         # The runtime plugin never includes this file; WordPress itself
         # provides the real implementations.
         - stubs/wordpress-functions.php
+        - stubs/tcpdf.php
     paths:
         - includes
         - admin
