@@ -1,4 +1,4 @@
-# Manual / Runtime Tests — v2.0.0
+# Manual / Runtime Tests — governance schema v2.0.0
 
 ## Why this exists
 
@@ -11,11 +11,12 @@ Phase 69 of the v2.0.0 release-hardening spec says verbatim:
 > Cloudflare/proxy environment (relevant to original production
 > failures).
 
-This document is the **canonical manual-test runbook** for the
-v2.0.0 release. Every environment below MUST be exercised on the
-EXACT release ZIP (`dist/sscribe-export-site-pages.zip`) — not
-on the repository working tree — before the release can be
-declared ready.
+This document is the **canonical manual-test runbook** for the current
+release declared by `SSCRIBE_VERSION`. The filename is retained as the
+Phase 69 governance-schema identifier. Every environment below MUST be
+exercised on the EXACT versioned release ZIP
+(`dist/sscribe-export-site-pages-{VERSION}.zip`) — not on the repository
+working tree — before the release can be declared ready.
 
 The companion verifier `scripts/verify-manual-runtime-tests.php`
 asserts the runbook exists with the canonical sections and the
@@ -71,9 +72,10 @@ The reviewer MUST install the artifact produced by
 # 1. Build the certified ZIP.
 composer release
 
-# 2. Confirm the SHA-256 of dist/sscribe-export-site-pages.zip
-#    matches the SHA recorded in docs/CI_EVIDENCE_v2.0.0.md.
-sha256sum dist/sscribe-export-site-pages.zip
+# 2. Resolve VERSION from SSCRIBE_VERSION and confirm the SHA-256 of
+#    dist/sscribe-export-site-pages-{VERSION}.zip matches the certified evidence.
+VERSION=$(php -r "preg_match('/define\\( \\'SSCRIBE_VERSION\\', \\'([^\\']+)\\' \\);/', file_get_contents('sscribe-export-site-pages.php'), $m); echo $m[1] ?? '';" )
+sha256sum "dist/sscribe-export-site-pages-${VERSION}.zip"
 
 # 3. Upload via WordPress → Plugins → Add New → Upload Plugin.
 #    Do NOT unzip and copy/paste.
@@ -88,7 +90,7 @@ For each scenario above, the reviewer records:
 
 - Date / time of the run.
 - WordPress version (e.g. 6.6.2) + PHP version (e.g. 8.3.11).
-- The exact SHA-256 of `dist/sscribe-export-site-pages.zip`.
+- The exact SHA-256 of `dist/sscribe-export-site-pages-{VERSION}.zip`.
 - A one-line PASS/FAIL summary per acceptance criterion above.
 - A short note on any deviation.
 
@@ -123,8 +125,7 @@ A green `composer test:manual-runtime-tests` + a recorded
 - **Production-load stress testing** — beyond the 50-call counter
   advancement assertion in scenario 3, Phase 69 does not mandate
   load testing. A future milestone may add this.
-- **WPML licensing** — the v2.0.0 release notes explicitly defer
-  real-WPML testing to licensed environments. The Phase 69
+- **WPML licensing** — real-WPML testing may require a licensed environment. The Phase 69
   runbook documents the EXERCISES; whether those exercises are
   executed against real WPML or a fixture is a release-engineering
   decision recorded in evidence.
@@ -134,3 +135,4 @@ A green `composer test:manual-runtime-tests` + a recorded
 - 2026-09-03: Initial Phase 69 runbook + verifier + PHPUnit pin.
   All 6 environments listed with TODO status. Acceptance
   criteria documented. Evidence-recording section added.
+- 2026-09-20: Reconciled the runbook with the current-version governance model and the canonical versioned release ZIP path.
