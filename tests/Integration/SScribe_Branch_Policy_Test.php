@@ -134,6 +134,15 @@ final class SScribe_Branch_Policy_Test extends TestCase {
 		);
 	}
 
+	public function test_strict_branch_policy_pins_remote_default_and_remote_topology(): void {
+		$src = (string) file_get_contents( $this->repo_root . '/scripts/verify-branch-policy.php' );
+
+		$this->assertStringContainsString( 'SSCRIBE_RELEASE_CERTIFICATION', $src );
+		$this->assertStringContainsString( 'ls-remote --symref origin HEAD', $src );
+		$this->assertStringContainsString( 'origin_default_branch_is_main', $src );
+		$this->assertStringContainsString( 'no_noncanonical_remote_branches', $src );
+	}
+
 	public function test_branch_policy_verifier_executes_clean(): void {
 		$verifier = $this->repo_root . '/scripts/verify-branch-policy.php';
 		$this->assertFileExists( $verifier );
