@@ -91,16 +91,18 @@ const targets = [
     specFile: 'tests-e2e/e2e/export/download-token-auth.spec.ts',
     description: 'download token is single-use',
     sourceFile: 'includes/class-sscribe-zip-handler.php',
-    // consume_dl_token() returns false on mismatch but ALSO rotates the
-    // token regardless. The spec needs the ROTATION step to actually
-    // happen. Reverting the update_option() call leaves the stored token
-    // unchanged — the second request with the original token would still
-    // hash_equals match, so the spec's "secondStatus === 403" would fail.
-    // We match the `$row['dl_token'] = $this->generate_dl_token();` line
-    // and remove it.
+    // consume_dl_token() must rotate the token on successful redemption.
+    // A naive mutation that only removes the token assignment can be masked
+    // when two immediate requests land in the same second: update_option()
+    // then returns false because dl_token_at is unchanged, and the replay is
+    // rejected for the wrong reason. Keep the token stable but increment the
+    // timestamp deterministically so both writes succeed; the second request
+    // can then succeed only when token rotation is actually missing, which
+    // makes the browser regression test fail for the intended reason.
     revertMatch:
       /(\$row\['dl_token'\]\s*=\s*\$this->generate_dl_token\(\);\s*\n\s*\$row\['dl_token_at'\]\s*=\s*time\(\);)/,
-    revertReplace: "\$row['dl_token_at'] = time();",
+    revertReplace:
+      "\$row['dl_token'] = \$stored;\\n\t\t\t\$row['dl_token_at'] = (int) ( \$row['dl_token_at'] ?? 0 ) + 1;",
   },
   {
     specFile: 'tests-e2e/e2e/export/batch-progress.spec.ts',
