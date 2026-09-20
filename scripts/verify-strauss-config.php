@@ -101,7 +101,7 @@ if ( $verify_built ) {
 		}
 
 		$forbidden_namespaces = array(
-			'class TCPDF'
+			'class TCPDF',
 			'namespace PhpOffice\\PhpWord;',
 			'namespace Psr\\Container;',
 		);
