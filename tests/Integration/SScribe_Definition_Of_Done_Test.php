@@ -147,6 +147,15 @@ final class SScribe_Definition_Of_Done_Test extends TestCase {
 		);
 	}
 
+	public function test_wporg_submission_uses_the_actual_certified_release_artifact(): void {
+		$src     = (string) file_get_contents( $this->dod_doc_path );
+		$release = (string) file_get_contents( $this->repo_root . '/.github/workflows/release.yml' );
+
+		$this->assertStringContainsString( 'name: sscribe-release-zip', $release );
+		$this->assertStringContainsString( '`sscribe-release-zip`', $src );
+		$this->assertStringNotContainsString( "Plugin Check action's `release-zip`", $src );
+	}
+
 	public function test_definition_of_done_verifier_script_exists(): void {
 		$this->assertFileExists(
 			$this->repo_root . '/scripts/verify-definition-of-done.php',
