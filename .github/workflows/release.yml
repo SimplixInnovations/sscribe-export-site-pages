@@ -251,6 +251,8 @@ jobs:
         name: Publish Certified Release
         runs-on: ubuntu-latest
         needs: certify
+        env:
+            GH_REPO: ${{ github.repository }}
         steps:
             # Phase 53: download the certified ZIP/SHA/build.json.
             # Crucially this job does NOT run composer install or
