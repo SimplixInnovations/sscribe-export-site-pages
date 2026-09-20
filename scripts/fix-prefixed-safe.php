@@ -89,33 +89,3 @@ foreach ( $target_versions as $version ) {
 // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fwrite -- Standalone CLI maintenance script.
 
 fwrite( STDOUT, "[fix-prefixed-safe] Completed. Files copied: {$copied}.\n" );
-
-$target_mpdf_dir    = $base_dir . '/vendor-prefixed/mpdf/mpdf/data';
-$canonical_mpdf_dir = $base_dir . '/vendor/mpdf/mpdf/data';
-
-$copied_mpdf = 0;
-$entries     = is_dir( $canonical_mpdf_dir ) ? scandir( $canonical_mpdf_dir ) : false;
-if ( false !== $entries && is_array( $entries ) ) {
-
-	if ( ! is_dir( $target_mpdf_dir ) ) {
-		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_mkdir -- Standalone CLI maintenance script.
-
-		mkdir( $target_mpdf_dir, 0755, true );
-	}
-	foreach ( $entries as $entry ) {
-		if ( ! is_file( $canonical_mpdf_dir . '/' . $entry ) || ! str_ends_with( $entry, '.php' ) ) {
-			continue;
-		}
-		$target = $target_mpdf_dir . '/' . $entry;
-		if ( ! file_exists( $target ) ) {
-			if ( copy( $canonical_mpdf_dir . '/' . $entry, $target ) ) {
-				++$copied_mpdf;
-			}
-		}
-	}
-} else {
-	fwrite( STDOUT, "[fix-prefixed-safe] mpdf data dir {$canonical_mpdf_dir} not found - likely handled by Strauss.\n" );
-}
-// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fwrite -- Standalone CLI maintenance script.
-
-fwrite( STDOUT, "[fix-prefixed-safe] mpdf data files backfilled: {$copied_mpdf}.\n" );
