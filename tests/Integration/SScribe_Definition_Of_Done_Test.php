@@ -109,7 +109,7 @@ final class SScribe_Definition_Of_Done_Test extends TestCase {
 			'Release invariants declared',
 			'Branch topology policy holds',
 			'Tag is cut on origin/main HEAD',
-			'WP.org submission is made',
+			'WP.org submission uses the exact certified ZIP',
 			'Public maintained exact source/build inputs are available',
 		);
 
