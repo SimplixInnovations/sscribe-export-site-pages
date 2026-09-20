@@ -40,7 +40,7 @@ The canonical long-lived branch is `main`. All work uses transient review branch
 
 ```text
 admin/            WP Admin UI (PHP, CSS, JS)
-assets/           Fonts, icons, images
+assets/           Icons and other static plugin assets
 bin/              Thin POSIX wrappers (canonical logic lives in scripts/*.php)
 docs/             Release evidence, policies, command reference
 includes/         Plugin runtime
@@ -191,7 +191,7 @@ The submission artifact is the certified versioned ZIP (`dist/sscribe-export-sit
 
 ## Source / build transparency
 
-`composer verify:source` and `composer verify:artifact` prove the shipped ZIP maps to the tagged source ( Strauss prefixing documented in `docs/BUILD_TRANSFORMATIONS.md`; per-release evidence in `docs/EXACT_ARTIFACT_EVIDENCE_*.md`).
+`composer verify:source` and `composer verify:artifact` prove the shipped ZIP maps to the tagged source (Strauss prefixing documented in `docs/BUILD_TRANSFORMATIONS.md`; per-release evidence in `docs/EXACT_ARTIFACT_EVIDENCE_*.md`).
 
 ## Troubleshooting
 
