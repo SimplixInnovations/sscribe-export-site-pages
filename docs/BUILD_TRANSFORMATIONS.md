@@ -87,12 +87,17 @@ remains alongside its source.
 
 ## 2. In-place file transformations
 
-Every shipped PHP, CSS, or JS file is rewritten by one of the
-strip functions before it is written to `dist/`. Known non-code text
-files (for example `.pot`, `.txt`, `.json`, `.xml`, `.svg`) also pass
-through the AI-artifact sanitizer as a backstop. Binary assets such as
-fonts, images, and compiled translations are copied byte-for-byte and are
-never passed through string replacement.
+SScribe-owned PHP, CSS, JS, and known text assets are passed through
+the documented first-party strip/sanitization functions before they are
+written to `dist/`. Binary first-party assets such as images and compiled
+translations are copied byte-for-byte.
+
+The entire generated `vendor-prefixed/` tree is handled separately:
+after Strauss performs the intentional namespace/class isolation, third-party
+source and license files are copied byte-for-byte into the release staging
+tree. SScribe's comment stripper and Unicode sanitizer do not rewrite vendor
+content. Explicit vendor pruning and the PHPWord license-filename normalization
+listed below occur after that copy.
 
 ### PHP — `strip_php_comments( $source )`
 
@@ -123,9 +128,10 @@ lines. No license-banner preservation.
 
 ### Text files — `sanitize_ai_artifacts( $source )`
 
-Applied AFTER the strip pass to PHP, CSS, JS, and the builder's explicit
-text-extension allowlist. Binary files are copied verbatim. Replaces AI-artifact Unicode characters with ASCII
-equivalents:
+Applied only to SScribe-owned files: after the strip pass for first-party
+PHP/CSS/JS and to the builder's explicit first-party text-extension allowlist.
+Third-party `vendor-prefixed/` content and binary files bypass this sanitizer.
+It replaces AI-artifact Unicode characters with ASCII equivalents:
 
 | Char | Code | Replacement | Reason |
 |------|------|-------------|--------|
@@ -146,8 +152,13 @@ would fail the build.
 
 ---
 
-## 3. Vendor-specific rewrites
+## 3. Vendor-specific handling
 
+- All `vendor-prefixed/` files that survive exclusion/pruning are copied
+  byte-for-byte from the Strauss-generated tree. No SScribe comment stripping
+  or Unicode sanitization is applied to third-party source or notices.
+- TCPDF's extensionless development metadata `Makefile` and `VERSION` are
+  removed before release-content validation.
 - `vendor-prefixed/phpoffice/phpword/COPYING.LESSER` is renamed to
   `COPYING.LESSER.txt` in the dist. WP.org plugin-check rejects
   the bare `.lesser` extension as an unexpected file type, but the
@@ -181,7 +192,10 @@ same relative path as its tracked source.
 
 ---
 
-## 5. Source files that are rewritten and shipped
+## 5. First-party source files that are rewritten and shipped
+
+Only SScribe-owned source is rewritten by the strip/sanitize stage.
+`vendor-prefixed/` is excluded from these transformations.
 
 Examples (illustrative — full list varies per release):
 
