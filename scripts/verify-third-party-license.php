@@ -178,6 +178,9 @@ foreach ( $installed_data['versions'] as $name => $meta ) {
 	if ( null === $license_file ) {
 		$errors[] = "[{$name}] no license file ships alongside the bundled source.";
 		++$license_missing;
+	} elseif ( null === $detected ) {
+		$errors[] = "[{$name}] SPDX identifier could not be determined from the shipped license text.";
+		++$license_unknown;
 	}
 
 	if ( empty( $declared ) ) {
