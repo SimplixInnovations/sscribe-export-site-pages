@@ -176,7 +176,7 @@ foreach ( $installed_data['versions'] as $name => $meta ) {
 	$detected     = null !== $license_file ? $extract_spdx( $install_path . '/' . $license_file ) : null;
 
 	if ( null === $license_file ) {
-		$errors[] = "[{$name}] no license file ships alongside the bundled source.";
+		$errors[] = "[{$name}] no license file shipped alongside the bundled source.";
 		++$license_missing;
 	} elseif ( null === $detected ) {
 		$errors[] = "[{$name}] SPDX identifier could not be determined from the shipped license text.";
