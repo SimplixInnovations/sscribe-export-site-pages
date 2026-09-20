@@ -435,35 +435,30 @@ failure looks like**, **how to debug**, **what manifest it writes**.
 ### `composer test:agent-final-report`
 
 - **Script:** `php scripts/verify-agent-final-report.php`
-- **Gates:** `docs/AGENT_FINAL_REPORT_v2.0.0.md` declares the
-  canonical sections (Why this exists, Canonical sections,
-  Format rules, How an independent auditor verifies this)
-  AND lists all 6 canonical report sections (Executive
-  summary, Release evidence, Blocker status, CI state, Open
-  items, Verification recipe). This is the canonical "what
-  shape must the final release report take?" gate.
-- **Failure:** "Every canonical report section must appear
-  in the format spec. Missing: ## Verification recipe".
-- **Debug:** `dist/agent-final-report-manifest.json`.
+- **Normal source gate:** validates `docs/AGENT_FINAL_REPORT_v2.0.0.md`
+  and `docs/RELEASE_REPORT_TEMPLATE_v2.0.0.md`; the tracked template is
+  explicitly not final proof.
+- **Strict release gate:** with `SSCRIBE_RELEASE_CERTIFICATION=1`, requires
+  release-ready Phase 70/71/72 manifests for the exact current HEAD, generates
+  `dist/final-release-report.md`, and verifies that report contains the current
+  version, source SHA, ZIP SHA-256, six canonical sections, and no placeholder
+  states.
+- **Failure:** a missing prerequisite manifest, non-release-ready evidence,
+  SHA mismatch, missing report section, or placeholder in strict proof.
+- **Debug:** `dist/agent-final-report-manifest.json` and
+  `dist/final-release-report.md`.
 - **Manifest:** `dist/agent-final-report-manifest.json`.
 
 ### `composer test:auditor-handoff`
 
 - **Script:** `php scripts/verify-auditor-handoff.php`
-- **Gates:** `docs/AUDITOR_HANDOFF_v2.0.0.md` declares the
-  canonical sections (Why this exists, Canonical handoff
-  artifacts, Verification recipe per artifact, How an
-  independent auditor verifies this) AND lists all 13
-  canonical handoff artifacts (release blockers, final CI
-  state, exact artifact evidence, agent final report,
-  branch protection, tag policy, release pipeline,
-  acceptance matrix, build transparency, third-party
-  licenses, plugin check triage, manual runtime tests,
-  exact ZIP). This is the canonical "is the release
-  ready for reviewer handoff?" gate.
-- **Failure:** "Every canonical handoff artifact must
-  appear in the handoff doc. Missing:
-  docs/TAG_POLICY_v2.0.0.md".
+- **Normal source gate:** validates the tracked Phase 74 handoff contract,
+  tracked handoff artifacts, ZIP/SHA naming, and main-only branch topology.
+- **Strict release gate:** with `SSCRIBE_RELEASE_CERTIFICATION=1`, additionally
+  requires the generated `dist/final-release-report.md` and a release-ready
+  `dist/agent-final-report-manifest.json` bound to the exact current HEAD.
+- **Failure:** a missing tracked handoff input, invalid exact ZIP/SHA pairing,
+  stale branch topology, or missing/non-release-ready strict final report.
 - **Debug:** `dist/auditor-handoff-manifest.json`.
 - **Manifest:** `dist/auditor-handoff-manifest.json`.
 
