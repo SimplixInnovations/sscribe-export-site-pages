@@ -520,9 +520,11 @@ $iterator   = new RecursiveIteratorIterator( $filter, RecursiveIteratorIterator:
 $copied     = 0;
 
 foreach ( $iterator as $file ) {
-	$relative = str_replace( $root . DIRECTORY_SEPARATOR, '', $file->getPathname() );
-	$relative = str_replace( $root . '/', '', $relative );
-	$dest     = $plugin_dir . '/' . $relative;
+	$relative           = str_replace( $root . DIRECTORY_SEPARATOR, '', $file->getPathname() );
+	$relative           = str_replace( $root . '/', '', $relative );
+	$relative_norm      = str_replace( '\\\\', '/', $relative );
+	$dest               = $plugin_dir . '/' . $relative;
+	$is_vendor_prefixed = str_starts_with( $relative_norm, 'vendor-prefixed/' );
 
 	if ( $file->isDir() ) {
 		if ( ! is_dir( $dest ) && ! mkdir( $dest, 0755, true ) && ! is_dir( $dest ) ) {
@@ -533,7 +535,15 @@ foreach ( $iterator as $file ) {
 		if ( ! is_dir( $dest_parent ) && ! mkdir( $dest_parent, 0755, true ) && ! is_dir( $dest_parent ) ) {
 			throw new RuntimeException( 'Unable to create release parent directory: ' . dirname( $relative ) );
 		}
-		if ( $config['strip_comments'] ) {
+		if ( $is_vendor_prefixed ) {
+			// Strauss is the intentional third-party source transformation.
+			// Preserve its generated vendor tree byte-for-byte here: SScribe's
+			// first-party comment/Unicode sanitizer must never rewrite upstream
+			// source or license notices after namespace isolation.
+			if ( ! copy( $file->getPathname(), $dest ) ) {
+				throw new RuntimeException( 'Unable to copy third-party vendor file: ' . $relative );
+			}
+		} elseif ( $config['strip_comments'] ) {
 			$ext = strtolower( pathinfo( $file->getPathname(), PATHINFO_EXTENSION ) );
 			if ( 'php' === $ext ) {
 				$src = file_get_contents( $file->getPathname() );
