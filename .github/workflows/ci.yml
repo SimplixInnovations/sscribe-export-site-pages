@@ -790,12 +790,9 @@ jobs:
             - name: Agent final report integration test
               run: vendor/bin/phpunit tests/Integration/SScribe_Agent_Final_Report_Test.php
 
-            # Phase 77: Branch topology policy — prevents the
-            # multi-branch divergence problem we hit during
-            # the v2.0.0 release hardening cycle (~2600
-            # unique commits between develop and
-            # release/2.0.0-final-hardening on the same
-            # critical files). The policy doc at
+            # Phase 77: Branch topology policy prevents
+            # historical multi-branch divergence across the same
+            # critical files. The policy doc at
             # docs/BRANCH_POLICY_v2.0.0.md declares exactly
             # the single long-lived `main` branch
             # that must always point to the same SHA between
