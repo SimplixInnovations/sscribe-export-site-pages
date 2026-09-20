@@ -2,8 +2,8 @@ name: release-audit
 
 # Single-pass promotion gate that runs the canonical cross-platform release audit.
 #
-# The repository uses main + develop as its only long-lived branches.
-# This workflow runs for promotion into main and may also be invoked
+# The repository uses main as its only long-lived branch.
+# This workflow runs for reviewed changes targeting main and may also be invoked
 # manually. It intentionally remains separate from ci.yml so release
 # certification has its own auditable check.
 
