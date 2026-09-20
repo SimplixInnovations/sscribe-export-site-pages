@@ -105,7 +105,7 @@ final class SScribe_Definition_Of_Done_Test extends TestCase {
 			'Final execution state holds',
 			'Strict exact-artifact evidence matches',
 			'Agent final report produced',
-			'Auditor handoff protocol holds',
+			'Auditor handoff protocol holds (14 artifacts listed',
 			'Release invariants declared',
 			'Branch topology policy holds',
 			'Tag is cut on origin/main HEAD',
