@@ -8,10 +8,10 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
-  // Native PHP CLI server serializes requests via PHP_CLI_SERVER_WORKERS=1.
-  // Cap at 2 workers (1 in interactive mode) so the test suite stays green
-  // rather than hitting SQLite lock contention under parallel load.
-  workers: process.env.CI ? 2 : 1,
+  // Release E2E is intentionally serialized: one native PHP CLI server,
+  // one SQLite database, one browser worker. This removes concurrency as a
+  // source of nondeterminism and keeps the exact-package gate reproducible.
+  workers: 1,
   reporter: process.env.CI
     ? [['html', { open: 'never' }], ['junit', { outputFile: 'test-results/e2e.junit.xml' }]]
     : 'list',
