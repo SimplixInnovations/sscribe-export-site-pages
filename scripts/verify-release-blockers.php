@@ -60,6 +60,7 @@ $strict_certification = '1' === (string) getenv( 'SSCRIBE_RELEASE_CERTIFICATION'
  *   `plugin-check-evidence`  — dist/release-certification-evidence.json plugin_check_url.
  *   `clean-install-evidence` — dist/clean-install-evidence.json + dist/evidence/clean-install.md.
  *   `runtime-export-evidence`— dist/runtime-export-evidence.json + dist/evidence/runtime-exports.log.
+ *   `manual-runtime-evidence` — dist/manual-runtime-evidence.json + dist/evidence/manual-runtime.log.
  *   `source-transparency-evidence` — dist/source-transparency-evidence.json.
  */
 $valid_closure_sources = array(
@@ -69,6 +70,7 @@ $valid_closure_sources = array(
 	'plugin-check-evidence',
 	'clean-install-evidence',
 	'runtime-export-evidence',
+	'manual-runtime-evidence',
 	'source-transparency-evidence',
 );
 
@@ -115,6 +117,7 @@ $canonical_blockers = array(
 	'Source / build transparency unresolved',
 	'License inventory unresolved',
 	'Release path capable of rebuilding untested bytes',
+	'Manual runtime environment matrix not executed on exact ZIP',
 );
 
 $valid_statuses = array( 'RESOLVED', 'DEFERRED' );
@@ -264,6 +267,42 @@ if ( is_file( $checklist_doc ) ) {
 			'Normal source CI validates blocker schema / status / closure-source vocabulary. SSCRIBE_RELEASE_CERTIFICATION=1 enforces that no DEFERRED blocker remains effective.'
 		);
 	}
+}
+
+/**
+ * Prove an evidence payload belongs to the exact current source and ZIP.
+ *
+ * @param string $root_dir Repository root.
+ * @param array  $payload  Evidence payload.
+ * @return array{passes: bool, detail: string}
+ */
+function check_exact_release_identity( string $root_dir, array $payload ): array {
+	$current_sha = trim( (string) shell_exec( 'git rev-parse HEAD 2> ' . ( '\\' === DIRECTORY_SEPARATOR ? 'NUL' : '/dev/null' ) ) );
+	if ( ! preg_match( '/^[a-f0-9]{40}$/', $current_sha ) ) {
+		return array( 'passes' => false, 'detail' => 'could not resolve current git HEAD' );
+	}
+	if ( ! hash_equals( $current_sha, (string) ( $payload['source_sha'] ?? '' ) ) ) {
+		return array( 'passes' => false, 'detail' => 'evidence source_sha does not match current git HEAD' );
+	}
+
+	$mainfile = $root_dir . '/sscribe-export-site-pages.php';
+	$version  = '';
+	if ( is_file( $mainfile ) ) {
+		$main_src = (string) file_get_contents( $mainfile );
+		if ( preg_match( "/define\\s*\\(\\s*['\"]SSCRIBE_VERSION['\"]\\s*,\\s*['\"]([^'\"]+)['\"]/", $main_src, $match ) ) {
+			$version = (string) $match[1];
+		}
+	}
+	$zip_path = '' !== $version ? $root_dir . '/dist/sscribe-export-site-pages-' . $version . '.zip' : '';
+	$zip_sha  = '' !== $zip_path && is_file( $zip_path ) ? hash_file( 'sha256', $zip_path ) : false;
+	if ( ! is_string( $zip_sha ) || ! preg_match( '/^[a-f0-9]{64}$/', $zip_sha ) ) {
+		return array( 'passes' => false, 'detail' => 'could not resolve SHA-256 of the exact current-version ZIP' );
+	}
+	if ( ! hash_equals( $zip_sha, (string) ( $payload['zip_sha256'] ?? '' ) ) ) {
+		return array( 'passes' => false, 'detail' => 'evidence zip_sha256 does not match the exact current-version ZIP' );
+	}
+
+	return array( 'passes' => true, 'detail' => 'source_sha and zip_sha256 match the exact current release' );
 }
 
 /**
@@ -424,6 +463,24 @@ function check_closure_evidence( string $root_dir, string $closure_source ): arr
 					'detail'  => 'dist/clean-install-evidence.json is not valid JSON',
 				);
 			}
+			$identity = check_exact_release_identity( $root_dir, $payload );
+			if ( ! $identity['passes'] ) {
+				return array(
+					'passes'  => false,
+					'verdict' => 'clean_install_release_identity_mismatch',
+					'detail'  => $identity['detail'],
+				);
+			}
+			$clean_log = (string) file_get_contents( $md_path );
+			if ( false === strpos( $clean_log, (string) $payload['source_sha'] )
+				|| false === strpos( $clean_log, (string) $payload['zip_sha256'] )
+			) {
+				return array(
+					'passes'  => false,
+					'verdict' => 'clean_install_log_identity_missing',
+					'detail'  => 'clean-install evidence document must contain the exact source_sha and zip_sha256',
+				);
+			}
 			$required = array( 'activation', 'deactivation', 'no_fatal', 'no_warning_attributable', 'db_tables_present', 'capabilities_present', 'cron_hooks_present', 'admin_ui_loads', 'export_basic', 'reactivate_no_duplicates', 'uninstall_cleanup' );
 			$bad = array();
 			foreach ( $required as $key ) {
@@ -469,6 +526,24 @@ function check_closure_evidence( string $root_dir, string $closure_source ): arr
 					'detail'  => 'dist/runtime-export-evidence.json is not valid JSON',
 				);
 			}
+			$identity = check_exact_release_identity( $root_dir, $payload );
+			if ( ! $identity['passes'] ) {
+				return array(
+					'passes'  => false,
+					'verdict' => 'runtime_export_release_identity_mismatch',
+					'detail'  => $identity['detail'],
+				);
+			}
+			$runtime_log = (string) file_get_contents( $log_path );
+			if ( false === strpos( $runtime_log, (string) $payload['source_sha'] )
+				|| false === strpos( $runtime_log, (string) $payload['zip_sha256'] )
+			) {
+				return array(
+					'passes'  => false,
+					'verdict' => 'runtime_export_log_identity_missing',
+					'detail'  => 'runtime export log must contain the exact source_sha and zip_sha256',
+				);
+			}
 			$required = array( 'activation', 'docx', 'pdf', 'html', 'markdown', 'all_formats', 'all_languages', 'arabic_rtl', 'retry_behavior', 'finalize', 'single_use_download', 'unauthorized_download_rejected' );
 			$bad = array();
 			foreach ( $required as $key ) {
@@ -489,6 +564,99 @@ function check_closure_evidence( string $root_dir, string $closure_source ): arr
 				'detail'  => 'all required runtime-export checks PASS',
 			);
 
+
+		case 'manual-runtime-evidence':
+			$json_path = $root_dir . '/dist/manual-runtime-evidence.json';
+			$log_path  = $root_dir . '/dist/evidence/manual-runtime.log';
+			if ( ! is_file( $json_path ) ) {
+				return array(
+					'passes'  => false,
+					'verdict' => 'missing_evidence',
+					'detail'  => 'dist/manual-runtime-evidence.json does not exist',
+				);
+			}
+			if ( ! is_file( $log_path ) || 0 === filesize( $log_path ) ) {
+				return array(
+					'passes'  => false,
+					'verdict' => 'manual_runtime_log_missing_or_empty',
+					'detail'  => 'dist/evidence/manual-runtime.log missing or empty',
+				);
+			}
+			$payload = json_decode( (string) file_get_contents( $json_path ), true );
+			if ( ! is_array( $payload ) ) {
+				return array(
+					'passes'  => false,
+					'verdict' => 'malformed_manual_runtime_evidence',
+					'detail'  => 'dist/manual-runtime-evidence.json is not valid JSON',
+				);
+			}
+
+			$current_sha = trim( (string) shell_exec( 'git rev-parse HEAD 2> ' . ( '\\' === DIRECTORY_SEPARATOR ? 'NUL' : '/dev/null' ) ) );
+			if ( ! preg_match( '/^[a-f0-9]{40}$/', $current_sha )
+				|| ! hash_equals( $current_sha, (string) ( $payload['source_sha'] ?? '' ) )
+			) {
+				return array(
+					'passes'  => false,
+					'verdict' => 'manual_runtime_source_sha_mismatch',
+					'detail'  => 'manual runtime evidence source_sha does not match current git HEAD',
+				);
+			}
+
+			$mainfile = $root_dir . '/sscribe-export-site-pages.php';
+			$version  = '';
+			if ( is_file( $mainfile ) ) {
+				$main_src = (string) file_get_contents( $mainfile );
+				if ( preg_match( "/define\\s*\\(\\s*['\"]SSCRIBE_VERSION['\"]\\s*,\\s*['\"]([^'\"]+)['\"]/", $main_src, $match ) ) {
+					$version = (string) $match[1];
+				}
+			}
+			$zip_path = '' !== $version ? $root_dir . '/dist/sscribe-export-site-pages-' . $version . '.zip' : '';
+			$zip_sha  = '' !== $zip_path && is_file( $zip_path ) ? hash_file( 'sha256', $zip_path ) : false;
+			if ( ! is_string( $zip_sha )
+				|| ! preg_match( '/^[a-f0-9]{64}$/', $zip_sha )
+				|| ! hash_equals( $zip_sha, (string) ( $payload['zip_sha256'] ?? '' ) )
+			) {
+				return array(
+					'passes'  => false,
+					'verdict' => 'manual_runtime_zip_sha_mismatch',
+					'detail'  => 'manual runtime evidence zip_sha256 does not match the exact current-version ZIP',
+				);
+			}
+
+			$manual_log = (string) file_get_contents( $log_path );
+			if ( false === strpos( $manual_log, (string) $payload['source_sha'] )
+				|| false === strpos( $manual_log, (string) $payload['zip_sha256'] )
+			) {
+				return array(
+					'passes'  => false,
+					'verdict' => 'manual_runtime_log_identity_missing',
+					'detail'  => 'manual runtime log must contain the exact source_sha and zip_sha256',
+				);
+			}
+
+			$required = array( 'standard_wordpress', 'wpml', 'redis_on', 'redis_off', 'openlitespeed', 'cloudflare_proxy' );
+			$bad = array();
+			foreach ( $required as $key ) {
+				$status = (string) ( $payload['environments'][ $key ]['status'] ?? '' );
+				$proof  = trim( (string) ( $payload['environments'][ $key ]['evidence'] ?? '' ) );
+				$marker = '[' . $key . '] PASS';
+				if ( 'PASS' !== $status || '' === $proof || false === strpos( $manual_log, $marker ) ) {
+					$bad[] = $key . '=' . ( '' !== $status ? $status : 'MISSING' );
+				}
+			}
+			if ( $bad ) {
+				return array(
+					'passes'  => false,
+					'verdict' => 'manual_runtime_environments_not_all_pass',
+					'detail'  => 'manual runtime environments not all PASS with evidence: ' . implode( ', ', $bad ),
+				);
+			}
+			return array(
+				'passes'  => true,
+				'verdict' => 'manual_runtime_all_pass',
+				'detail'  => 'all six Phase 69 manual runtime environments PASS on the exact current source SHA and ZIP',
+			);
+
 		case 'source-transparency-evidence':
 			$json_path = $root_dir . '/dist/source-transparency-evidence.json';
 			if ( ! is_file( $json_path ) ) {
@@ -504,6 +672,16 @@ function check_closure_evidence( string $root_dir, string $closure_source ): arr
 					'passes'  => false,
 					'verdict' => 'malformed_source_transparency_evidence',
 					'detail'  => 'dist/source-transparency-evidence.json is not valid JSON',
+				);
+			}
+			$current_sha = trim( (string) shell_exec( 'git rev-parse HEAD 2> ' . ( '\\' === DIRECTORY_SEPARATOR ? 'NUL' : '/dev/null' ) ) );
+			if ( ! preg_match( '/^[a-f0-9]{40}$/', $current_sha )
+				|| ! hash_equals( $current_sha, (string) ( $payload['source_sha'] ?? '' ) )
+			) {
+				return array(
+					'passes'  => false,
+					'verdict' => 'source_transparency_sha_mismatch',
+					'detail'  => 'source transparency source_sha does not match current git HEAD',
 				);
 			}
 			$public_url = $payload['public_url'] ?? '';
@@ -526,6 +704,23 @@ function check_closure_evidence( string $root_dir, string $closure_source ): arr
 					'passes'  => false,
 					'verdict' => 'source_transparency_keys_missing',
 					'detail'  => 'missing keys: ' . implode( ', ', $missing_keys ),
+				);
+			}
+			$revision_urls = array(
+				$public_url,
+				(string) $payload['composer_json_url'],
+				(string) $payload['build_script_url'],
+				(string) $payload['build_doc_url'],
+			);
+			$non_exact_urls = array_filter(
+				$revision_urls,
+				static fn( string $url ): bool => false === strpos( $url, $current_sha )
+			);
+			if ( $non_exact_urls ) {
+				return array(
+					'passes'  => false,
+					'verdict' => 'source_transparency_urls_not_exact_revision',
+					'detail'  => 'all public source/build URLs must identify the exact current source SHA',
 				);
 			}
 			$checks = $payload['checks'] ?? array();

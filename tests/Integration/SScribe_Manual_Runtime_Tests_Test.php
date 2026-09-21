@@ -50,7 +50,7 @@ final class SScribe_Manual_Runtime_Tests_Test extends TestCase {
 			$code,
 			'Phase 69 verifier must return exit 0. Output:' . "\n" . $output
 		);
-		$this::assertStringContainsString( 'Manual runtime tests runbook contract valid', $output );
+		$this::assertStringContainsString( 'Manual runtime runbook contract valid', $output );
 	}
 
 	public function test_manifest_records_all_rules_passing(): void {
@@ -96,6 +96,34 @@ final class SScribe_Manual_Runtime_Tests_Test extends TestCase {
 		$this::assertStringContainsString( 'sscribe-export-site-pages-{VERSION}.zip', $src );
 		$this::assertStringNotContainsString( 'dist/sscribe-export-site-pages.zip', $src );
 		$this::assertStringContainsString( 'SSCRIBE_VERSION', $src );
+	}
+
+	public function test_verifier_declares_strict_exact_release_evidence_contract(): void {
+		$src = (string) file_get_contents( self::plugin_root() . '/' . self::VERIFIER_PATH );
+
+		foreach ( array(
+			'SSCRIBE_RELEASE_CERTIFICATION',
+			'dist/manual-runtime-evidence.json',
+			'dist/evidence/manual-runtime.log',
+			'source_sha',
+			'zip_sha256',
+			'standard_wordpress',
+			'wpml',
+			'redis_on',
+			'redis_off',
+			'openlitespeed',
+			'cloudflare_proxy',
+		) as $expected ) {
+			$this::assertStringContainsString( $expected, $src );
+		}
+	}
+
+	public function test_runbook_uses_untracked_exact_release_evidence(): void {
+		$src = (string) file_get_contents( self::plugin_root() . '/' . self::RUNBOOK_DOC );
+
+		$this::assertStringContainsString( 'dist/manual-runtime-evidence.json', $src );
+		$this::assertStringContainsString( 'dist/evidence/manual-runtime.log', $src );
+		$this::assertStringNotContainsString( 'Evidence is captured in `docs/CI_EVIDENCE_v2.0.0.md`', $src );
 	}
 
 	public function test_runbook_covers_six_required_environments(): void {

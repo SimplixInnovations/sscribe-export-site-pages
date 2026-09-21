@@ -49,14 +49,14 @@ criterion references the Phase gate that enforces it.
 | 23 | AJAX network trace covers every `wp_ajax_sscribe_*` action.             | Phase 66 AJAX network trace.               | green           |
 | 24 | UI refactor discipline holds (admin file count locked at v1.9.0 baseline, zero renames/additions under admin/).| Phase 67 UI refactor discipline. | green |
 | 25 | Phase 68 test coverage holds (all 24 required test signatures present in tests/).| Phase 68 test coverage.               | green           |
-| 26 | Manual runtime tests runbook covers all 6 canonical environments.       | Phase 69 manual runtime tests.             | green           |
+| 26 | Strict manual runtime evidence proves all 6 canonical environments PASS on the exact current source SHA and exact ZIP. | Phase 69 manual runtime tests. | green |
 | 27 | Release blockers checklist complete (every blocker RESOLVED).          | Phase 70 release blockers.                 | green           |
 | 28 | Final execution state holds (every required signal SUCCESS or documented LOCAL_PASS on the final SHA). | Phase 71 final execution state. | green |
 | 29 | Strict exact-artifact evidence matches the actual ZIP, sidecar, and source SHA (SHA-256, byte size, file count, source SHA, builder identity, Plugin Check evidence, build timestamp). | Phase 72 exact artifact evidence. | green |
-| 30 | Agent final report produced in the canonical format (6 sections, 7 format rules).| Phase 73 agent final report.            | green           |
+| 30 | Agent final report produced in the canonical format (6 sections, 9 format rules).| Phase 73 agent final report.            | green           |
 | 31 | Auditor handoff protocol holds (14 artifacts listed, every artifact present).| Phase 74 auditor handoff.               | green           |
 | 32 | Release invariants declared + enforced (33 invariants, each with enforcing Phase gate).| Phase 75 release invariants.            | green           |
-| 33 | Branch topology policy holds (`main` is the only persistent long-lived branch; local main matches origin/main; no authoritative local-only refs; CI-tolerant).| Phase 77 branch topology policy.        | green           |
+| 33 | Branch/repository governance holds (`main` is the only persistent/default remote branch; local main matches origin/main; no authoritative local-only refs; squash-only merge settings are proven by exact-SHA repository evidence).| Phase 77 branch topology policy. | green |
 | 34 | Tag is cut on `origin/main` HEAD as an immutable annotated tag for v2.0.3+; cryptographic tag signing is recommended, not required. | Manual (Phase 54 gate). | green |
 | 35 | WP.org submission uses the exact certified ZIP whose SHA-256 matches Phase 72; after the tag-triggered GitHub release workflow, that ZIP is the `sscribe-release-zip` artifact produced by the certify job after official Plugin Check passes. | Manual (after Phase 33). | submitted |
 | 36 | Public maintained exact source/build inputs are available for WordPress.org because build tooling is omitted from the deployed ZIP. | Phase 70 blocker 18 / WordPress.org source guideline. | public |
@@ -70,8 +70,8 @@ declares the enforcing Phase in its row.
 # 1. Run the definition-of-done verifier.
 composer test:definition-of-done
 
-# 2. Run the full release-audit gate (every Phase gate).
-composer release:audit
+# 2. Run the full fail-closed release-audit gate (every Phase gate).
+SSCRIBE_RELEASE_CERTIFICATION=1 composer release:audit
 
 # 3. Cross-check the latest git tag against SSCRIBE_VERSION.
 git tag -l --sort=-v:refname | head -1
@@ -83,8 +83,8 @@ gh release view "v{VERSION}" --repo SimplixInnovations/sscribe-export-site-pages
 # Must show the certified ZIP + SHA-256 sidecar.
 ```
 
-A green `composer test:definition-of-done` + a green
-`composer release:audit` + matching tag + submitted to WP.org
+A green `composer test:definition-of-done` + a green strict
+`SSCRIBE_RELEASE_CERTIFICATION=1 composer release:audit` + matching tag + submitted to WP.org
 = the current release is officially SHIPPED.
 
 ## What this contract does NOT cover
