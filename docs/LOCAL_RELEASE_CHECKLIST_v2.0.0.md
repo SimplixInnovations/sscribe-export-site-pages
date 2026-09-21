@@ -405,10 +405,10 @@ After anonymous HTTP verification of the public source and build inputs, create
 ```json
 {
   "source_sha": "<FINAL_40_HEX_SHA>",
-  "public_url": "<PUBLIC_EXACT_SOURCE_URL>",
-  "composer_json_url": "<PUBLIC_COMPOSER_JSON_URL>",
-  "build_script_url": "<PUBLIC_BUILD_RELEASE_PHP_URL>",
-  "build_doc_url": "<PUBLIC_BUILD_TRANSFORMATIONS_URL>",
+  "public_url": "https://github.com/SimplixInnovations/sscribe-export-site-pages/tree/<FINAL_40_HEX_SHA>",
+  "composer_json_url": "https://github.com/SimplixInnovations/sscribe-export-site-pages/blob/<FINAL_40_HEX_SHA>/composer.json",
+  "build_script_url": "https://github.com/SimplixInnovations/sscribe-export-site-pages/blob/<FINAL_40_HEX_SHA>/scripts/build-release.php",
+  "build_doc_url": "https://github.com/SimplixInnovations/sscribe-export-site-pages/blob/<FINAL_40_HEX_SHA>/docs/BUILD_TRANSFORMATIONS.md",
   "checks": {
     "public_url": "PASS",
     "composer_json": "PASS",
