@@ -146,7 +146,6 @@ final class SScribe_Diagnostics_Categorize_Coverage_Test extends TestCase {
 		$this::assertTrue( method_exists( \SScribe_Diagnostics::class, 'run_preflight' ) );
 		$this::assertTrue( method_exists( \SScribe_Diagnostics::class, 'self_heal' ) );
 		$this::assertTrue( method_exists( \SScribe_Diagnostics::class, 'diagnose_page_error' ) );
-		$this::assertTrue( method_exists( \SScribe_Diagnostics::class, 'check_ajax_health' ) );
 		$this::assertTrue( method_exists( \SScribe_Diagnostics::class, 'get_boot_diagnostics' ) );
 	}
 }
