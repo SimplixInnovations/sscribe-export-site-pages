@@ -89,4 +89,32 @@ final class SScribe_PDF_Exporter_Backup_Font_Policy_Test extends TestCase {
 		$this::assertStringContainsString( '$tcpdf_fonts_dir = $vendor_dir . \'/tecnickcom/tcpdf/fonts\';', $source );
 		$this::assertStringNotContainsString( 'vendor-prefixed/mpdf/', $source );
 	}
+
+	public function test_tcpdf7_pre_strauss_stage_targets_tc_lib_font_assets(): void {
+		$source = $this->read_plugin_file( 'scripts/prune-tcpdf-for-strauss.php' );
+
+		$this::assertStringContainsString( 'vendor/tecnickcom/tc-lib-pdf-font/target/fonts', $source );
+		$this::assertStringContainsString( 'scripts/resources/tcpdf-fonts', $source );
+		$this::assertStringContainsString( 'core/courier.json', $source );
+		$this::assertStringContainsString( 'core/times.json', $source );
+		$this::assertStringContainsString( 'core/symbol.json', $source );
+		$this::assertStringContainsString( 'core/zapfdingbats.json', $source );
+	}
+
+	public function test_release_builder_uses_tcpdf7_tc_lib_font_tree_not_removed_legacy_tree(): void {
+		$source = $this->read_plugin_file( 'scripts/build-release.php' );
+
+		$this::assertStringContainsString( 'tecnickcom/tc-lib-pdf-font/target/fonts', $source );
+		$this::assertStringNotContainsString( "$vendor_dir . '/tecnickcom/tcpdf/fonts'", $source );
+	}
+
+	public function test_readme_reports_locked_tcpdf_runtime_version(): void {
+		$composer = json_decode( $this->read_plugin_file( 'composer.json' ), true );
+		$this::assertIsArray( $composer );
+		$locked = (string) ( $composer['require']['tecnickcom/tcpdf'] ?? '' );
+		$this::assertMatchesRegularExpression( '/^\\d+\\.\\d+\\.\\d+$/', $locked );
+
+		$readme = $this->read_plugin_file( 'readme.txt' );
+		$this::assertStringContainsString( 'TCPDF ' . $locked . ' library', $readme );
+	}
 }

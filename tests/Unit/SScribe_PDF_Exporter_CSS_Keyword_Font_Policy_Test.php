@@ -103,4 +103,18 @@ final class SScribe_PDF_Exporter_CSS_Keyword_Font_Policy_Test extends TestCase {
 		$this::assertStringContainsString( 'width:80%;', $result );
 		$this::assertStringNotContainsString( 'position:', $result );
 	}
+
+	public function test_visible_content_that_looks_like_css_is_not_rewritten(): void {
+		$html = '<p>Literal url(https://example.test/image.png)</p>'
+			. '<code>font: 16px serif; font-family: Georgia;</code>'
+			. '<style>.safe{font:16px serif;background-image:url(https://example.test/bg.png);color:red;}</style>';
+
+		$result = $this->call_private( 'prepare_html_for_pdf_engine', array( $html, false ) );
+
+		$this::assertStringContainsString( '<p>Literal url(https://example.test/image.png)</p>', $result );
+		$this::assertStringContainsString( '<code>font: 16px serif; font-family: Georgia;</code>', $result );
+		$this::assertStringNotContainsString( 'background-image:url(', str_replace( ' ', '', strtolower( $result ) ) );
+		$this::assertStringNotContainsString( 'font:16pxserif', str_replace( ' ', '', strtolower( $result ) ) );
+		$this::assertStringContainsString( 'color:red', str_replace( ' ', '', strtolower( $result ) ) );
+	}
 }
