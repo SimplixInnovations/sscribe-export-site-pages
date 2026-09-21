@@ -83,7 +83,7 @@ $canonical_criteria = array(
 	'Agent final report produced',
 	'Auditor handoff protocol holds (14 artifacts listed',
 	'Release invariants declared',
-	'Branch topology policy holds',
+	'Branch/repository governance holds',
 	'Tag is cut on origin/main HEAD',
 	'WP.org submission uses the exact certified ZIP',
 	'Public maintained exact source/build inputs are available',
