@@ -30,7 +30,7 @@ $sscribe_vendor_aliases = array(
 );
 
 foreach ( $sscribe_vendor_aliases as $sscribe_source => $sscribe_target ) {
-	if ( class_exists( $sscribe_source ) && ! class_exists( $sscribe_target, false ) ) {
+	if ( ! class_exists( $sscribe_target, false ) && class_exists( $sscribe_source ) ) {
 		class_alias( $sscribe_source, $sscribe_target );
 	}
 }

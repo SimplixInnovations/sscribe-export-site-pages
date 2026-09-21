@@ -952,10 +952,12 @@ echo "    - .distignore entries (segment-level match against\n";
 echo "      vendor-prefixed/*/tests, vendor-prefixed/*/docs,\n";
 echo "      vendor-prefixed/phpoffice/phpword/COPYING.LESSER,\n";
 echo "      vendor-prefixed/phpoffice/phpword/phpword.ini.dist, etc.).\n";
-echo "    - TCPDF release pruning removes unreachable generated font assets,\n";
-echo "      retaining core metrics plus DejaVu Sans regular/bold/italic/\n";
-echo "      bold-italic and their upstream license files.\n";
-echo "    - TCPDF development metadata Makefile and VERSION are removed.\n\n";
+echo "    - TCPDF 7 runtime font data is staged from tracked\n";
+echo "      scripts/resources/tcpdf-fonts into tc-lib-pdf-font/target/fonts,\n";
+echo "      retaining Core14 fallbacks plus DejaVu Sans regular/bold/italic/\n";
+echo "      bold-italic and both upstream license notices.\n";
+echo "    - TCPDF/tc-lib development Makefile and VERSION metadata and the\n";
+echo "      tc-lib-pdf-font/util converter tree are removed.\n\n";
 
 echo "  First-party in-place transformations (vendor-prefixed/ bypasses\n";
 echo "  these rewriters and is copied byte-for-byte before explicit pruning):\n";
@@ -995,6 +997,8 @@ echo "  Distribution paths created under a different relative name:\n";
 echo "    - vendor-prefixed/phpoffice/phpword/COPYING.LESSER.txt is copied byte-for-byte from\n";
 echo "      vendor-prefixed/phpoffice/phpword/COPYING.LESSER so the required LGPL notice\n";
 echo "      ships under an extension accepted by WordPress Plugin Check.\n";
+echo "    - vendor-prefixed/tecnickcom/tc-lib-pdf-font/target/fonts/** is staged\n";
+echo "      byte-for-byte from tracked scripts/resources/tcpdf-fonts/** inputs.\n";
 echo "    - All other distribution files retain their source-relative path.\n\n";
 
 echo "Build successful. No development files or unused fonts included.\n\n";

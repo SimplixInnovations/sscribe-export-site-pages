@@ -72,18 +72,29 @@ continue to work alongside wildcard rules such as `*.log`.
   `vendor-prefixed/phpoffice/phpword/phpword.ini.dist`,
   `vendor-prefixed/phpoffice/phpword/phpmd.xml.dist`.
 
-### TCPDF runtime pruning
+### TCPDF 7 runtime font staging and pruning
 
-TCPDF ships a large general-purpose font catalog. SScribe's PDF exporter is
-pinned to TCPDF's built-in DejaVu Sans family (regular, bold, italic, and
-bold-italic) plus the initial Helvetica core metrics required during TCPDF
-construction. The release builder removes every other TCPDF font artifact and
-retains the DejaVu license files. This keeps the WordPress.org ZIP bounded
-without introducing runtime-generated font files.
+TCPDF 7 no longer carries the legacy `tecnickcom/tcpdf/fonts/*.php` tree.
+Its runtime font loader resolves the sibling
+`tecnickcom/tc-lib-pdf-font/target/fonts/` package directory. Composer does
+not run dependency packages' font-generation utility during an ordinary
+install, so a clean checkout would otherwise have no runtime font data.
 
-The release tree also removes upstream examples, tests, tools, package-manager
-metadata, and other development-only vendor artifacts. TCPDF's `LICENSE.TXT`
-remains alongside its source.
+Before Strauss runs, `scripts/prune-tcpdf-for-strauss.php` copies the exact
+reviewed subset from tracked `scripts/resources/tcpdf-fonts/` into
+`vendor/tecnickcom/tc-lib-pdf-font/target/fonts/`. Each copy is SHA-256
+checked. The subset contains Core14 descriptors (Helvetica, Courier, Times,
+Symbol, Zapf Dingbats) and DejaVu Sans regular/bold/italic/bold-italic data,
+plus `core/LICENSE` and `dejavu/LICENSE`.
+
+Strauss then prefixes TCPDF and its transitive `tc-lib-*` dependency graph.
+The release builder re-validates the same allow-list at
+`vendor-prefixed/tecnickcom/tc-lib-pdf-font/target/fonts/`, removes any
+unexpected font artifact, and fails if a required font or license file is
+missing or empty. It also removes transitive package `Makefile`/`VERSION`
+metadata and the build-only `tc-lib-pdf-font/util/` converter tree. TCPDF's
+own `LICENSE.TXT` and every shipped tc-lib package license remain alongside
+their source.
 
 ## 2. In-place file transformations
 
@@ -157,8 +168,14 @@ would fail the build.
 - All `vendor-prefixed/` files that survive exclusion/pruning are copied
   byte-for-byte from the Strauss-generated tree. No SScribe comment stripping
   or Unicode sanitization is applied to third-party source or notices.
-- TCPDF's extensionless development metadata `Makefile` and `VERSION` are
-  removed before release-content validation.
+- TCPDF and its transitive tc-lib packages' extensionless development metadata
+  `Makefile` and `VERSION` are removed before release-content validation.
+- `vendor-prefixed/tecnickcom/tc-lib-pdf-font/util/` is removed after the
+  deterministic font subset has been staged; it is build tooling, not runtime.
+- The runtime font subset under
+  `vendor-prefixed/tecnickcom/tc-lib-pdf-font/target/fonts/` is generated
+  from tracked `scripts/resources/tcpdf-fonts/` inputs and contains non-empty
+  `core/LICENSE` and `dejavu/LICENSE` notices.
 - `vendor-prefixed/phpoffice/phpword/COPYING.LESSER` is renamed to
   `COPYING.LESSER.txt` in the dist. WP.org plugin-check rejects
   the bare `.lesser` extension as an unexpected file type, but the
@@ -179,16 +196,21 @@ would fail the build.
 
 ## 4. Distribution paths created under a different relative name
 
-One release path differs from its tracked source path:
+The following release paths are intentionally created from tracked inputs at a
+different relative path:
 
 - `vendor-prefixed/phpoffice/phpword/COPYING.LESSER.txt` is copied
   byte-for-byte from
   `vendor-prefixed/phpoffice/phpword/COPYING.LESSER`. The renamed
   `.txt` path preserves the required LGPL notice while avoiding the
   unexpected-extension warning emitted by WordPress Plugin Check.
+- `vendor-prefixed/tecnickcom/tc-lib-pdf-font/target/fonts/**` is staged
+  byte-for-byte from the corresponding tracked files under
+  `scripts/resources/tcpdf-fonts/**` before Strauss. The staging script
+  verifies SHA-256 equality for every required asset before the prefixed tree
+  is generated.
 
-Every other file in `dist/sscribe-export-site-pages/` retains the
-same relative path as its tracked source.
+All other distribution files retain their source-relative path.
 
 ---
 
@@ -210,9 +232,12 @@ Examples (illustrative — full list varies per release):
 
 ## 6. Files in the ZIP that do not exist at the same tracked path
 
-Only `vendor-prefixed/phpoffice/phpword/COPYING.LESSER.txt`; it is the
-byte-for-byte renamed copy documented in Sections 3 and 4. No file
-content is synthesized.
+`vendor-prefixed/phpoffice/phpword/COPYING.LESSER.txt` is the byte-for-byte
+renamed copy documented above. The TCPDF 7 runtime font subset under
+`vendor-prefixed/tecnickcom/tc-lib-pdf-font/target/fonts/` is also created
+from the tracked `scripts/resources/tcpdf-fonts/` inputs described in
+Sections 1, 3, and 4. No font data is downloaded or generated dynamically
+during the release build.
 
 ---
 
