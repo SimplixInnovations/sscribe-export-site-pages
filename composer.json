@@ -115,7 +115,8 @@
         "release:audit": "@php scripts/release-audit.php",
         "audit:npm": "node scripts/npm-audit-high.mjs",
         "release": "php scripts/build-release.php",
-        "full": "composer verify:source && composer release && composer verify:artifact"
+        "full": "composer verify:source && composer release && composer verify:artifact",
+        "release:determinism": "php scripts/verify-build-determinism.php"
     },
     "extra": {
         "strauss": {
