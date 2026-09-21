@@ -106,3 +106,6 @@ Phase green = the release pipeline obeys the canonical invariants.
 - 2026-09-03: Added Phase 77 branch topology invariant (#33) so
   the pipeline cannot ship a release whose long-lived branches
   have diverged beyond the canonical contract.
+- 2026-09-21: Added WordPress.org public maintained source/build-input
+  transparency invariant (#34), and reconciled the verifier/PHPUnit mirror so
+  all 34 canonical rows are enforced by both boundaries.
