@@ -86,13 +86,20 @@ sscribe_branch_protection_rule( $matrix, $errors, 'branch_protection_doc_pins_al
 $reviews = (bool) preg_match( '/At\s+least\s+\d+\s+(approving\s+)?review/i', $doc_src );
 sscribe_branch_protection_rule( $matrix, $errors, 'branch_protection_doc_declares_required_reviews', $reviews, 'Branch protection must declare required approving reviews.' );
 
-$audit_state = (bool) preg_match( '/Audited\s+Date\s*:/i', $doc_src ) && (bool) preg_match( '/main:\s*UNPROTECTED/i', $doc_src );
-sscribe_branch_protection_rule( $matrix, $errors, 'branch_protection_doc_records_audited_date_and_live_state', $audit_state, 'The document must record an audited date and observed main protection state.' );
+$audit_state = (bool) preg_match( '/Audited\\s+Date\\s*:/i', $doc_src ) && (bool) preg_match( '/main:\\s*(?:PROTECTED|UNPROTECTED)/i', $doc_src );
+sscribe_branch_protection_rule( $matrix, $errors, 'branch_protection_doc_records_audited_date_and_live_state', $audit_state, 'The document must record an audited date and an observed main PROTECTED/UNPROTECTED state.' );
 sscribe_branch_protection_rule( $matrix, $errors, 'branch_protection_doc_marks_itself_as_living_document', (bool) preg_match( '/[Ll]iving\s+document/', $doc_src ), 'The document must identify itself as a living document.' );
 
 $cross_refs = false !== stripos( $doc_src, 'docs/CI_EVIDENCE' ) && false !== stripos( $doc_src, 'docs/SECURITY_MATRIX' );
 sscribe_branch_protection_rule( $matrix, $errors, 'branch_protection_doc_cross_references_companion_evidence', $cross_refs, 'The document must cross-reference CI and security evidence.' );
-sscribe_branch_protection_rule( $matrix, $errors, 'branch_protection_doc_declares_compensating_controls', false !== stripos( $doc_src, 'Compensating controls' ), 'The document must declare compensating controls while live protection is absent.' );
+$main_is_unprotected = (bool) preg_match( '/main:\\s*UNPROTECTED/i', $doc_src );
+sscribe_branch_protection_rule(
+	$matrix,
+	$errors,
+	'branch_protection_doc_declares_compensating_controls',
+	! $main_is_unprotected || false !== stripos( $doc_src, 'Compensating controls' ),
+	'Compensating controls are mandatory while the observed main branch is UNPROTECTED; once protected, this requirement is satisfied by live protection.'
+);
 
 $manifest_dir = dirname( $manifest_path );
 if ( ! is_dir( $manifest_dir ) ) {

@@ -1,112 +1,143 @@
 <?php
 /**
- * Reduce TCPDF's source font catalog before Strauss parses vendor packages.
+ * Stage the deterministic TCPDF 7 font subset before Strauss prefixes vendors.
  *
- * TCPDF ships a broad generated font catalog. Strauss parses every PHP file in
- * selected packages before its own copy/prefix exclusions are applied, which
- * makes the unused TCPDF font metrics consume excessive memory. SScribe pins
- * PDF output to DejaVu Sans and strips document font-family overrides, so the
- * remaining generated fonts are unreachable at runtime.
+ * TCPDF 7 no longer ships the legacy `tecnickcom/tcpdf/fonts/*.php` tree.
+ * Runtime font data is provided by `tecnickcom/tc-lib-pdf-font` under
+ * `target/fonts/`. Composer dependency scripts do not build those assets for
+ * dependencies, so SScribe keeps the reviewed runtime subset in
+ * `scripts/resources/tcpdf-fonts/` and copies it into Composer's ephemeral
+ * vendor tree before Strauss walks the dependency graph.
  *
- * This script only mutates Composer's ephemeral vendor/ tree. The release tree
- * is built from vendor-prefixed/ after Strauss completes.
+ * Only Composer's generated vendor/ tree is mutated. The tracked source subset
+ * remains the reproducible build input and vendor-prefixed/ remains the
+ * production dependency tree.
  *
  * @package SScribe_Export_Site_Pages
  */
 
 declare( strict_types=1 );
 
-$root      = dirname( __DIR__ );
-$fonts_dir = $root . '/vendor/tecnickcom/tcpdf/fonts';
+$root          = dirname( __DIR__ );
+$tcpdf_entry   = $root . '/vendor/tecnickcom/tcpdf/tcpdf.php';
+$font_package  = $root . '/vendor/tecnickcom/tc-lib-pdf-font';
+$resource_dir  = $root . '/scripts/resources/tcpdf-fonts';
+$target_dir    = $font_package . '/target/fonts';
 
-if ( ! is_dir( $fonts_dir ) ) {
-	fwrite( STDERR, "[tcpdf-prune] TCPDF fonts directory is missing: {$fonts_dir}\n" );
+if ( ! is_file( $tcpdf_entry ) ) {
+	fwrite( STDERR, "[tcpdf-fonts] TCPDF entrypoint is missing: {$tcpdf_entry}\n" );
+	exit( 1 );
+}
+if ( ! is_dir( $font_package ) ) {
+	fwrite( STDERR, "[tcpdf-fonts] tc-lib-pdf-font package is missing: {$font_package}\n" );
+	exit( 1 );
+}
+if ( ! is_dir( $resource_dir ) || is_link( $resource_dir ) ) {
+	fwrite( STDERR, "[tcpdf-fonts] Tracked font resource directory is missing or unsafe: {$resource_dir}\n" );
 	exit( 1 );
 }
 
-$allowed_top_level = array(
-	// TCPDF initializes with Helvetica before SScribe selects DejaVu Sans.
-	'helvetica.php',
-	'helveticab.php',
-	'helveticabi.php',
-	'helveticai.php',
-
-	// TCPDF core fallbacks are tiny and may be selected internally.
-	'courier.php',
-	'courierb.php',
-	'courierbi.php',
-	'courieri.php',
-	'times.php',
-	'timesb.php',
-	'timesbi.php',
-	'timesi.php',
-	'symbol.php',
-	'zapfdingbats.php',
-
-	// SScribe's pinned Unicode/RTL family.
-	'dejavusans.php',
-	'dejavusans.z',
-	'dejavusans.ctg.z',
-	'dejavusansb.php',
-	'dejavusansb.z',
-	'dejavusansb.ctg.z',
-	'dejavusansi.php',
-	'dejavusansi.z',
-	'dejavusansi.ctg.z',
-	'dejavusansbi.php',
-	'dejavusansbi.z',
-	'dejavusansbi.ctg.z',
+$required = array(
+	'core/LICENSE',
+	'core/courier.json',
+	'core/courierb.json',
+	'core/courierbi.json',
+	'core/courieri.json',
+	'core/helvetica.json',
+	'core/helveticab.json',
+	'core/helveticabi.json',
+	'core/helveticai.json',
+	'core/symbol.json',
+	'core/times.json',
+	'core/timesb.json',
+	'core/timesbi.json',
+	'core/timesi.json',
+	'core/zapfdingbats.json',
+	'dejavu/LICENSE',
+	'dejavu/dejavusans.json',
+	'dejavu/dejavusans.z',
+	'dejavu/dejavusans.ctg.z',
+	'dejavu/dejavusansb.json',
+	'dejavu/dejavusansb.z',
+	'dejavu/dejavusansb.ctg.z',
+	'dejavu/dejavusansi.json',
+	'dejavu/dejavusansi.z',
+	'dejavu/dejavusansi.ctg.z',
+	'dejavu/dejavusansbi.json',
+	'dejavu/dejavusansbi.z',
+	'dejavu/dejavusansbi.ctg.z',
 );
 
-$allowed_nested = array(
-	'dejavu-fonts-ttf-2.33/LICENSE',
-	'dejavu-fonts-ttf-2.34/LICENSE',
-);
+foreach ( $required as $relative ) {
+	$source = $resource_dir . '/' . $relative;
+	if ( ! is_file( $source ) || is_link( $source ) ) {
+		fwrite( STDERR, "[tcpdf-fonts] Required tracked font asset is missing or unsafe: {$relative}\n" );
+		exit( 1 );
+	}
+	$size = filesize( $source );
+	if ( false === $size || 0 === $size ) {
+		fwrite( STDERR, "[tcpdf-fonts] Required tracked font asset is empty: {$relative}\n" );
+		exit( 1 );
+	}
+}
 
-$removed = 0;
-$kept    = 0;
-
-$iterator = new RecursiveIteratorIterator(
-	new RecursiveDirectoryIterator( $fonts_dir, RecursiveDirectoryIterator::SKIP_DOTS ),
-	RecursiveIteratorIterator::CHILD_FIRST
-);
-
-foreach ( $iterator as $item ) {
-	$relative = str_replace( '\\', '/', substr( $item->getPathname(), strlen( $fonts_dir ) + 1 ) );
-
-	if ( $item->isDir() ) {
-		$children = new RecursiveDirectoryIterator( $item->getPathname(), RecursiveDirectoryIterator::SKIP_DOTS );
-		if ( 0 === iterator_count( $children ) ) {
-			@rmdir( $item->getPathname() );
+$remove_tree = static function ( string $directory ) use ( &$remove_tree ): bool {
+	if ( is_link( $directory ) ) {
+		return false;
+	}
+	if ( ! is_dir( $directory ) ) {
+		return true;
+	}
+	$entries = scandir( $directory );
+	if ( false === $entries ) {
+		return false;
+	}
+	foreach ( $entries as $entry ) {
+		if ( '.' === $entry || '..' === $entry ) {
+			continue;
 		}
-		continue;
+		$path = $directory . '/' . $entry;
+		if ( is_link( $path ) ) {
+			return false;
+		}
+		if ( is_dir( $path ) ) {
+			if ( ! $remove_tree( $path ) ) {
+				return false;
+			}
+		} elseif ( ! unlink( $path ) ) {
+			return false;
+		}
 	}
+	return rmdir( $directory );
+};
 
-	$allowed = false;
-	if ( false === strpos( $relative, '/' ) && in_array( $relative, $allowed_top_level, true ) ) {
-		$allowed = true;
-	} elseif ( in_array( $relative, $allowed_nested, true ) ) {
-		$allowed = true;
-	}
-
-	if ( $allowed ) {
-		++$kept;
-		continue;
-	}
-
-	if ( ! unlink( $item->getPathname() ) ) {
-		fwrite( STDERR, "[tcpdf-prune] Failed to remove unreachable font asset: {$relative}\n" );
-		exit( 1 );
-	}
-	++$removed;
-}
-
-foreach ( array_merge( $allowed_top_level, $allowed_nested ) as $required ) {
-	if ( ! is_file( $fonts_dir . '/' . $required ) ) {
-		fwrite( STDERR, "[tcpdf-prune] Required TCPDF font asset is missing after pruning: {$required}\n" );
+if ( file_exists( $target_dir ) ) {
+	if ( ! $remove_tree( $target_dir ) ) {
+		fwrite( STDERR, "[tcpdf-fonts] Failed to replace the generated target font tree safely.\n" );
 		exit( 1 );
 	}
 }
 
-fwrite( STDOUT, "[tcpdf-prune] Kept {$kept} required font/license files; removed {$removed} unreachable assets.\n" );
+$copied = 0;
+foreach ( $required as $relative ) {
+	$source      = $resource_dir . '/' . $relative;
+	$destination = $target_dir . '/' . $relative;
+	$directory   = dirname( $destination );
+
+	if ( ! is_dir( $directory ) && ! mkdir( $directory, 0755, true ) && ! is_dir( $directory ) ) {
+		fwrite( STDERR, "[tcpdf-fonts] Failed to create font target directory: {$directory}\n" );
+		exit( 1 );
+	}
+	if ( ! copy( $source, $destination ) ) {
+		fwrite( STDERR, "[tcpdf-fonts] Failed to stage font asset: {$relative}\n" );
+		exit( 1 );
+	}
+	if ( hash_file( 'sha256', $source ) !== hash_file( 'sha256', $destination ) ) {
+		fwrite( STDERR, "[tcpdf-fonts] Font staging checksum mismatch: {$relative}\n" );
+		exit( 1 );
+	}
+	++$copied;
+}
+
+fwrite( STDOUT, "[tcpdf-fonts] Staged {$copied} deterministic TCPDF 7 font/license assets.\n" );
 exit( 0 );

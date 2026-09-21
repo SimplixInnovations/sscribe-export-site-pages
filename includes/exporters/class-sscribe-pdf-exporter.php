@@ -610,11 +610,19 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 			},
 			$html_content
 		);
-		$html_content = preg_replace( '/@font-face\\s*\\{[^}]+\\}/isU', '', $html_content ) ?? $html_content;
-		$html_content = preg_replace( '/@import\\s+[^;]+;/isU', '', $html_content ) ?? $html_content;
-		$html_content = preg_replace( '/url\\s*\\([^)]*\\)/i', 'none', $html_content ) ?? $html_content;
-		$html_content = preg_replace( '/(?<![-a-z])font-family\\s*:[^;}]+;?/i', '', $html_content ) ?? $html_content;
-		$html_content = preg_replace( '/(?<![-a-z])font\\s*:[^;}]+;?/i', '', $html_content ) ?? $html_content;
+		$html_content = (string) preg_replace_callback(
+			'/<style\\b([^>]*)>(.*?)<\\/style>/is',
+			static function ( array $matches ): string {
+				$css = (string) $matches[2];
+				$css = preg_replace( '/@font-face\\s*\\{[^}]*\\}/is', '', $css ) ?? $css;
+				$css = preg_replace( '/@import\\s+[^;]+;/is', '', $css ) ?? $css;
+				$css = preg_replace( '/url\\s*\\([^)]*\\)/i', 'none', $css ) ?? $css;
+				$css = preg_replace( '/(?<![-a-z])font-family\\s*:[^;}]+;?/i', '', $css ) ?? $css;
+				$css = preg_replace( '/(?<![-a-z])font\\s*:[^;}]+;?/i', '', $css ) ?? $css;
+				return '<style' . (string) $matches[1] . '>' . $css . '</style>';
+			},
+			$html_content
+		);
 		return $html_content;
 	}
 

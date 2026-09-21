@@ -39,8 +39,10 @@ final class SScribe_PDF_Exporter_Find_Font_File_Test extends TestCase {
 		$source = file_get_contents( $path );
 
 		$this::assertIsString( $source );
-		$this::assertStringContainsString( '$allowed_top_level = array(', $source );
-		$this::assertStringContainsString( '$allowed_nested = array(', $source );
+		$this::assertStringContainsString( '$required = array(', $source );
+		$this::assertStringContainsString( "'/vendor/tecnickcom/tc-lib-pdf-font'", $source );
+		$this::assertStringContainsString( "'/scripts/resources/tcpdf-fonts'", $source );
+		$this::assertStringContainsString( "'/target/fonts'", $source );
 		$this::assertStringContainsString( 'if ( ! in_array( $font_relative, $tcpdf_font_allow, true ) )', file_get_contents( \SSCRIBE_PLUGIN_DIR . 'scripts/build-release.php' ) ?: '' );
 	}
 
@@ -49,7 +51,8 @@ final class SScribe_PDF_Exporter_Find_Font_File_Test extends TestCase {
 		$source = file_get_contents( $path );
 
 		$this::assertIsString( $source );
-		$this::assertStringContainsString( 'Required TCPDF font asset is missing after pruning', $source );
+		$this::assertStringContainsString( 'Required tracked font asset is missing or unsafe', $source );
+		$this::assertStringContainsString( 'Required tracked font asset is empty', $source );
 		$this::assertStringContainsString( 'exit( 1 );', $source );
 	}
 }

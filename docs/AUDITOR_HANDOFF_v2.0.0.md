@@ -43,9 +43,9 @@ Every release handoff MUST include, at minimum, these artifacts:
 | 9  | Build transparency doc                   | docs/BUILD_TRANSFORMATIONS.md                                                       | Phase 36                       |
 | 10 | Third-party license inventory            | docs/SECURITY_MATRIX_v2.0.0.md                                                      | Phase 37                       |
 | 11 | Plugin Check triage                      | docs/PLUGIN_CHECK_WARNINGS_v2.0.0.md                                                | Phase 64                       |
-| 12 | Manual runtime tests runbook             | docs/MANUAL_RUNTIME_TESTS_v2.0.0.md + docs/CI_EVIDENCE_v2.0.0.md                    | Phase 69                       |
+| 12 | Manual runtime tests runbook + exact-release proof | docs/MANUAL_RUNTIME_TESTS_v2.0.0.md + dist/manual-runtime-evidence.json + dist/evidence/manual-runtime.log | Phase 69 |
 | 13 | Exact release ZIP + SHA-256 sidecar     | dist/sscribe-export-site-pages-{VERSION}.zip + dist/sscribe-export-site-pages-{VERSION}.sha256 | Phase 63 + 72     |
-| 14 | Branch topology policy + manifest        | docs/BRANCH_POLICY_v2.0.0.md + dist/branch-policy-manifest.json                      | Phase 77                       |
+| 14 | Branch topology policy + live governance proof | docs/BRANCH_POLICY_v2.0.0.md + dist/branch-policy-manifest.json + dist/repository-governance-evidence.json | Phase 77 |
 
 The handoff MUST include every artifact above. A missing artifact
 fails the gate.
@@ -74,8 +74,8 @@ to verify the claim. The canonical recipes:
 10. **Third-party licenses** — `composer test:third-party-license`
     (Phase 37 verifier).
 11. **Plugin Check triage** — `composer test:plugin-check-triage`.
-12. **Manual runtime tests** — `composer test:manual-runtime-tests`
-    + reviewer evidence recorded in docs/CI_EVIDENCE_v2.0.0.md.
+12. **Manual runtime tests** — `SSCRIBE_RELEASE_CERTIFICATION=1 composer test:manual-runtime-tests`
+    + inspect `dist/manual-runtime-evidence.json` and `dist/evidence/manual-runtime.log`; all six environments must be PASS and bound to the exact current source SHA and ZIP SHA-256.
 13. **Exact ZIP** — install on a fresh WP instance + activate
     + run a 1-page export to confirm the plugin loads.
 14. **Branch topology policy** — `composer test:branch-policy`
@@ -112,9 +112,11 @@ for f in \
   docs/SECURITY_MATRIX_v2.0.0.md \
   docs/PLUGIN_CHECK_WARNINGS_v2.0.0.md \
   docs/MANUAL_RUNTIME_TESTS_v2.0.0.md \
-  docs/CI_EVIDENCE_v2.0.0.md \
+  dist/manual-runtime-evidence.json \
+  dist/evidence/manual-runtime.log \
   docs/BRANCH_POLICY_v2.0.0.md \
   dist/branch-policy-manifest.json \
+  dist/repository-governance-evidence.json \
   dist/sscribe-export-site-pages-{VERSION}.zip \
   dist/sscribe-export-site-pages-{VERSION}.sha256 \
   ; do
@@ -147,4 +149,5 @@ reviewer handoff. The historical `docs/RELEASE_REPORT_v2.0.0.md` is provenance o
   artifact #14 (docs + dist manifest) and a 14th
   verification recipe so the auditor can independently prove
   the long-lived branches obey the canonical contract.
+- 2026-09-21: Replaced historical tracked CI evidence for Phase 69 with ignored exact-SHA/exact-ZIP manual runtime evidence required in strict handoff.
 - 2026-09-20: Replaced the historical v2.0.0 closeout as the Phase 73 handoff source with the tracked final-report template plus strict exact-SHA generated report/manifest; aligned the verification loop with all generated evidence named in the handoff table.

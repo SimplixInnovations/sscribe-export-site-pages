@@ -183,4 +183,30 @@ class SScribe_License_SPDIX_Test extends TestCase {
 			'mainfile must not use GPL2 alias; use SPDX GPL-2.0-or-later'
 		);
 	}
+
+	public function test_license_txt_matches_locked_runtime_dependency_inventory(): void {
+		$root    = self::plugin_root();
+		$license = (string) file_get_contents( $root . '/' . self::LICENSE_FILE );
+		$lock    = json_decode( (string) file_get_contents( $root . '/composer.lock' ), true );
+
+		$this->assertIsArray( $lock );
+		foreach ( (array) ( $lock['packages'] ?? array() ) as $package ) {
+			$name = (string) ( $package['name'] ?? '' );
+			$this->assertNotSame( '', $name );
+			$this->assertStringContainsString(
+				$name,
+				$license,
+				'license.txt must identify every production Composer package that can ship in vendor-prefixed/.'
+			);
+		}
+
+		foreach ( array( 'mPDF', 'setasign/fpdi', 'mpdf/psr-http-message-shim', 'mpdf/psr-log-aware-trait', 'assets/fonts/amiri' ) as $removed ) {
+			$this->assertStringNotContainsString(
+				$removed,
+				$license,
+				'license.txt must not claim removed runtime dependencies/assets are still bundled.'
+			);
+		}
+	}
+
 }

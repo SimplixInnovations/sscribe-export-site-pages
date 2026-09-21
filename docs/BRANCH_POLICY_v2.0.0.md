@@ -55,9 +55,27 @@ The verifier checks that:
 5. local refs used as release evidence are mirrored by origin;
 6. CI uses the authenticated `refs/remotes/origin/main` ref rather than relying on an unauthenticated late network lookup;
 7. remote non-main branches are reported as transient review state in normal mode and become release-blocking in strict certification mode;
-8. the remote default branch resolves to `main` in strict certification mode.
+8. the remote default branch resolves to `main` in strict certification mode;
+9. strict certification consumes `dist/repository-governance-evidence.json`, bound to the current source SHA, and requires the live repository snapshot to report `default_branch=main`, `remote_branches=[main]`, squash merge enabled, merge commits disabled, and rebase merge disabled.
 
 A pull-request CI checkout may be detached and may have no local named branch. In that case the authenticated remote-tracking `origin/main` ref is authoritative. Final release certification must be run from a network-capable local checkout so the verifier can resolve the remote default branch and complete remote-branch cleanup checks.
+
+The repository-settings evidence is intentionally ignored under `dist/` because GitHub settings are mutable server-side state, not source. Capture it only after the final branch cleanup/settings changes, and bind it to the exact current `git rev-parse HEAD`. The canonical JSON shape is:
+
+```json
+{
+  "source_sha": "<FINAL_40_HEX_SHA>",
+  "repository": "SimplixInnovations/sscribe-export-site-pages",
+  "default_branch": "main",
+  "remote_branches": ["main"],
+  "allow_squash_merge": true,
+  "allow_merge_commit": false,
+  "allow_rebase_merge": false,
+  "captured_at": "<ISO_8601_TIMESTAMP>"
+}
+```
+
+A hand-edited snapshot is not sufficient evidence by itself; retain the underlying `gh api` output in `dist/evidence/` so an auditor can reconcile the JSON with GitHub.
 
 ## How to recover from a violation
 

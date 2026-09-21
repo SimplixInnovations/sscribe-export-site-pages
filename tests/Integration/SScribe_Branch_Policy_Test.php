@@ -141,6 +141,14 @@ final class SScribe_Branch_Policy_Test extends TestCase {
 		$this->assertStringContainsString( 'ls-remote --symref origin HEAD', $src );
 		$this->assertStringContainsString( 'origin_default_branch_is_main', $src );
 		$this->assertStringContainsString( 'no_noncanonical_remote_branches', $src );
+		$this->assertStringContainsString( 'dist/repository-governance-evidence.json', $src );
+		$this->assertStringContainsString( 'gh api repos/SimplixInnovations/sscribe-export-site-pages', $src );
+		$this->assertStringContainsString( 'repository-settings.json', $src );
+		$this->assertStringContainsString( 'repository-branches.json', $src );
+		$this->assertStringContainsString( 'allow_squash_merge', $src );
+		$this->assertStringContainsString( 'allow_merge_commit', $src );
+		$this->assertStringContainsString( 'allow_rebase_merge', $src );
+		$this->assertStringContainsString( 'live_repository_merge_methods_are_canonical', $src );
 	}
 
 	public function test_branch_policy_verifier_executes_clean(): void {

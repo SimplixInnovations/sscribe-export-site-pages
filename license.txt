@@ -3,64 +3,80 @@ Version 2, June 1991
 
 Copyright (C) 2026 Simplix Innovations
 
-This program is free software; you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 2 of the License, or
-(at your option) any later version.
+SScribe Export Site Pages is free software; you can redistribute it and/or
+modify it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 2 of the License, or (at your
+option) any later version.
 
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
+This program is distributed in the hope that it will be useful, but WITHOUT
+ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
 
-You should have received a copy of the GNU General Public License along
-with this program; if not, write to the Free Software Foundation, Inc.,
-51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+License identifier: GPL-2.0-or-later
+Canonical license text: https://www.gnu.org/licenses/old-licenses/gpl-2.0.html
 
-Full license text: https://www.gnu.org/licenses/old-licenses/gpl-2.0.html
+Third-Party Runtime Inventory
+=============================
 
-Third-Party Assets
-==================
+The release archive vendors the Composer runtime dependency graph listed below.
+The exact versions are locked by composer.lock. Every bundled package retains
+its upstream license notice alongside its prefixed source under
+vendor-prefixed/. The generated release-time inventory
+dist/third-party-license-inventory.json is also verified before certification.
 
-This plugin bundles the Amiri font family (assets/fonts/amiri/),
-copyright 2010-2022 The Amiri Project Authors
-(https://github.com/aliftype/amiri). The Amiri fonts are licensed
-under the SIL Open Font License, Version 1.1. A copy of the OFL is
-included in assets/fonts/amiri/OFL.txt. The OFL is compatible with
-the GPL v2; the font may be redistributed with this plugin under the
-terms of the OFL.
+DOCX stack:
+* phpoffice/phpword — LGPL-3.0-only
+  https://github.com/PHPOffice/PHPWord
+* phpoffice/math — MIT
+  https://github.com/PHPOffice/Math
+* psr/container — MIT
+  https://github.com/php-fig/container
 
-This plugin also bundles code from the following open-source libraries,
-all of which are compatible with the GPL v2. The list below reflects
-only what actually ships in the release archive; license texts for
-each library are preserved alongside its source in vendor-prefixed/
-so a reviewer can verify attribution without leaving the ZIP.
+PDF stack:
+* tecnickcom/tcpdf — LGPL-3.0-or-later
+  https://github.com/tecnickcom/TCPDF
+* tecnickcom/tc-lib-pdf — LGPL-3.0-or-later
+  https://github.com/tecnickcom/tc-lib-pdf
+* tecnickcom/tc-lib-pdf-font — LGPL-3.0-or-later
+  https://github.com/tecnickcom/tc-lib-pdf-font
+* tecnickcom/tc-lib-pdf-page — LGPL-3.0-or-later
+  https://github.com/tecnickcom/tc-lib-pdf-page
+* tecnickcom/tc-lib-pdf-graph — LGPL-3.0-or-later
+  https://github.com/tecnickcom/tc-lib-pdf-graph
+* tecnickcom/tc-lib-pdf-image — LGPL-3.0-or-later
+  https://github.com/tecnickcom/tc-lib-pdf-image
+* tecnickcom/tc-lib-pdf-parser — LGPL-3.0-or-later
+  https://github.com/tecnickcom/tc-lib-pdf-parser
+* tecnickcom/tc-lib-pdf-sign — LGPL-3.0-or-later
+  https://github.com/tecnickcom/tc-lib-pdf-sign
+* tecnickcom/tc-lib-pdf-encrypt — LGPL-3.0-or-later
+  https://github.com/tecnickcom/tc-lib-pdf-encrypt
+* tecnickcom/tc-lib-pdf-filter — LGPL-3.0-or-later
+  https://github.com/tecnickcom/tc-lib-pdf-filter
+* tecnickcom/tc-lib-file — LGPL-3.0-or-later
+  https://github.com/tecnickcom/tc-lib-file
+* tecnickcom/tc-lib-color — LGPL-3.0-or-later
+  https://github.com/tecnickcom/tc-lib-color
+* tecnickcom/tc-lib-barcode — LGPL-3.0-or-later
+  https://github.com/tecnickcom/tc-lib-barcode
+* tecnickcom/tc-lib-unicode — LGPL-3.0-or-later
+  https://github.com/tecnickcom/tc-lib-unicode
+* tecnickcom/tc-lib-unicode-data — LGPL-3.0-or-later
+  https://github.com/tecnickcom/tc-lib-unicode-data
 
-* PHPWord (LGPL-3.0-only) : DOCX export. Source:
-  https://github.com/PHPOffice/PHPWord. PHPWord remains under its
-  LGPL terms and is loaded through the bundled namespaced autoloader.
-  Full license text: https://www.gnu.org/licenses/lgpl-3.0.html
-* mPDF (GPL-2.0-only) : PDF export. Source:
-  https://github.com/mpdf/mpdf.
-* FPDI (MIT) : PDF page composition primitives. Source:
-  https://github.com/setasign/fpdi. The shipped copy has the
-  FPDF-extending classes pruned because the upstream setasign/fpdf
-  parent is not bundled; only the standalone parser, type system,
-  and helpers remain. MIT is a permissive license compatible with
-  GPL v2 redistribution.
-* phpoffice/math (MIT) : arithmetic helpers used by PHPWord.
-* myclabs/deep-copy (MIT) : deep-clone helper used by PHPWord for
-  template and style-graph operations.
-* psr/container (MIT) : PSR-11 container interface used by the
-  bundled dependency injection container.
-* psr/http-message (MIT) : PSR-7 HTTP message interfaces used by
-  the mPDF PSR HTTP shim.
-* psr/log (MIT) : PSR-3 logger interface consumed by the mPDF
-  PSR log-aware trait.
-* mpdf/psr-http-message-shim (MIT) : bridges mPDF's internal HTTP
-  client to PSR-7 messages.
-* mpdf/psr-log-aware-trait (MIT) : bridges mPDF's logging to
-  PSR-3 loggers.
+TCPDF Runtime Font Data
+=======================
 
-Each library's full license text is preserved alongside its source
-in the plugin's vendor-prefixed/ directory.
+SScribe stages only the TCPDF 7 runtime font subset required for rendering:
+the standard PDF Core14 descriptors used by TCPDF fallbacks and DejaVu Sans
+regular, bold, italic, and bold-italic data used by SScribe.
+
+* DejaVu Sans font data retains the upstream DejaVu license at
+  vendor-prefixed/tecnickcom/tc-lib-pdf-font/target/fonts/dejavu/LICENSE.
+* Core14 metric data retains the Adobe redistribution notice at
+  vendor-prefixed/tecnickcom/tc-lib-pdf-font/target/fonts/core/LICENSE.
+
+The tracked build inputs and their provenance live in
+scripts/resources/tcpdf-fonts/ and docs/BUILD_TRANSFORMATIONS.md. These build
+inputs are not shipped as duplicate source files; their exact staged copies
+are included in the runtime dependency tree.

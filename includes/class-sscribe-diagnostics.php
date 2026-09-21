@@ -30,19 +30,32 @@ class SScribe_Diagnostics {
 	 * @var array<int, string>
 	 */
 	private const TCPDF_REQUIRED_FONT_FILES = array(
-		'helvetica.php',
-		'dejavusans.php',
-		'dejavusans.z',
-		'dejavusans.ctg.z',
-		'dejavusansb.php',
-		'dejavusansb.z',
-		'dejavusansb.ctg.z',
-		'dejavusansi.php',
-		'dejavusansi.z',
-		'dejavusansi.ctg.z',
-		'dejavusansbi.php',
-		'dejavusansbi.z',
-		'dejavusansbi.ctg.z',
+		'core/courier.json',
+		'core/courierb.json',
+		'core/courierbi.json',
+		'core/courieri.json',
+		'core/helvetica.json',
+		'core/helveticab.json',
+		'core/helveticabi.json',
+		'core/helveticai.json',
+		'core/symbol.json',
+		'core/times.json',
+		'core/timesb.json',
+		'core/timesbi.json',
+		'core/timesi.json',
+		'core/zapfdingbats.json',
+		'dejavu/dejavusans.json',
+		'dejavu/dejavusans.z',
+		'dejavu/dejavusans.ctg.z',
+		'dejavu/dejavusansb.json',
+		'dejavu/dejavusansb.z',
+		'dejavu/dejavusansb.ctg.z',
+		'dejavu/dejavusansi.json',
+		'dejavu/dejavusansi.z',
+		'dejavu/dejavusansi.ctg.z',
+		'dejavu/dejavusansbi.json',
+		'dejavu/dejavusansbi.z',
+		'dejavu/dejavusansbi.ctg.z',
 	);
 
 	/**
@@ -714,7 +727,7 @@ class SScribe_Diagnostics {
 			);
 		}
 
-		$font_dir = SSCRIBE_PLUGIN_DIR . 'vendor-prefixed/tecnickcom/tcpdf/fonts';
+		$font_dir = SSCRIBE_PLUGIN_DIR . 'vendor-prefixed/tecnickcom/tc-lib-pdf-font/target/fonts';
 		$missing  = array();
 		foreach ( self::TCPDF_REQUIRED_FONT_FILES as $font_file ) {
 			if ( ! is_file( $font_dir . '/' . $font_file ) ) {
@@ -727,14 +740,14 @@ class SScribe_Diagnostics {
 				'name'    => 'TCPDF Library',
 				'status'  => 'error',
 				'message' => sprintf( 'TCPDF is loaded, but required DejaVu font assets are missing (%d file(s)).', count( $missing ) ),
-				'fix'     => 'Reinstall the complete plugin package to restore the bundled TCPDF font assets.',
+				'fix'     => 'Reinstall the complete plugin package to restore the bundled TCPDF 7 font assets.',
 			);
 		}
 
 		return array(
 			'name'    => 'TCPDF Library',
 			'status'  => 'ok',
-			'message' => 'TCPDF loaded with required DejaVu Sans font assets',
+			'message' => 'TCPDF 7 loaded with required Core14 and DejaVu Sans font assets',
 		);
 	}
 

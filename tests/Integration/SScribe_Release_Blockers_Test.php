@@ -14,7 +14,7 @@
  *   - Doc declares the canonical sections (Why this exists, Status
  *     convention, Canonical blockers, How an independent auditor
  *     verifies this).
- *   - All 20 canonical blocker rows are present.
+ *   - All 21 canonical blocker rows are present.
  *   - Every blocker has a status in {RESOLVED, DEFERRED}.
  *   - Every blocker declares a recognised closure-source token.
  *   - Static (closure: static) blockers are RESOLVED in the doc.
@@ -90,6 +90,7 @@ final class SScribe_Release_Blockers_Test extends TestCase {
 			'plugin-check-evidence',
 			'clean-install-evidence',
 			'runtime-export-evidence',
+			'manual-runtime-evidence',
 			'source-transparency-evidence',
 		);
 		foreach ( $required_tokens as $token ) {
@@ -125,6 +126,7 @@ final class SScribe_Release_Blockers_Test extends TestCase {
 			'Source / build transparency unresolved',
 			'License inventory unresolved',
 			'Release path capable of rebuilding untested bytes',
+			'Manual runtime environment matrix not executed on exact ZIP',
 		);
 
 		foreach ( $canonical_blockers as $expected ) {
@@ -158,7 +160,7 @@ final class SScribe_Release_Blockers_Test extends TestCase {
 		);
 
 		$valid_statuses        = array( 'RESOLVED', 'DEFERRED' );
-		$valid_closure_sources = array( 'static', 'phase71-evidence', 'e2e-evidence', 'plugin-check-evidence', 'clean-install-evidence', 'runtime-export-evidence', 'source-transparency-evidence' );
+		$valid_closure_sources = array( 'static', 'phase71-evidence', 'e2e-evidence', 'plugin-check-evidence', 'clean-install-evidence', 'runtime-export-evidence', 'manual-runtime-evidence', 'source-transparency-evidence' );
 
 		foreach ( $hits as $row ) {
 			$this::assertContains(
@@ -277,6 +279,16 @@ final class SScribe_Release_Blockers_Test extends TestCase {
 			'Start-export must pass the declared cap into page-ID collection so the chunked path cannot become unbounded.'
 		);
 		$this::assertLessThan( $query_pos, $cap_pos, 'The cap must be defined before the bounded collection call.' );
+	}
+
+	public function test_runtime_evidence_is_bound_to_exact_release_identity(): void {
+		$src = (string) file_get_contents( $this->repo_root . '/scripts/verify-release-blockers.php' );
+
+		$this::assertStringContainsString( 'check_exact_release_identity', $src );
+		$this::assertStringContainsString( 'clean_install_release_identity_mismatch', $src );
+		$this::assertStringContainsString( 'runtime_export_release_identity_mismatch', $src );
+		$this::assertStringContainsString( "payload['source_sha']", $src );
+		$this::assertStringContainsString( "payload['zip_sha256']", $src );
 	}
 
 	public function test_release_blocker_verifier_script_exists(): void {

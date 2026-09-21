@@ -154,6 +154,19 @@ if ( is_file( $handoff_doc ) ) {
 				&& 0 === (int) ( $agent_manifest['errors_count'] ?? -1 ),
 			'Strict auditor handoff requires agent-final-report-manifest.json release_ready=true for the exact current git HEAD.'
 		);
+
+		$manual_runtime_evidence = $root_dir . '/dist/manual-runtime-evidence.json';
+		$manual_runtime_log      = $root_dir . '/dist/evidence/manual-runtime.log';
+		$record(
+			'strict_manual_runtime_evidence_present',
+			is_file( $manual_runtime_evidence ) && 0 < filesize( $manual_runtime_evidence ),
+			'Strict auditor handoff requires dist/manual-runtime-evidence.json.'
+		);
+		$record(
+			'strict_manual_runtime_log_present',
+			is_file( $manual_runtime_log ) && 0 < filesize( $manual_runtime_log ),
+			'Strict auditor handoff requires a non-empty dist/evidence/manual-runtime.log.'
+		);
 	} else {
 		$record(
 			'strict_final_report_handoff_required_only_for_release_certification',

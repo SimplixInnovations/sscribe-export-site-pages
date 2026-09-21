@@ -110,7 +110,7 @@ $config = array(
 	'show_excluded'    => true,
 );
 
-$all_excludes = array_unique( array_merge( $config['base_excludes'], $config['font_excludes'], $config['fpdi_excludes'] ?? array() ) );
+$all_excludes = array_unique( array_merge( $config['base_excludes'], $config['font_excludes'] ) );
 
 function rrmdir( string $dir ): void {
 	if ( is_link( $dir ) ) {
@@ -622,7 +622,8 @@ if ( is_dir( $vendor_dir ) ) {
 		'phpunit.xml.dist', 'phpmd.xml.dist', 'phpword.ini.dist',
 		'.gitignore', '.gitattributes', '.travis.yml', '.scrutinizer.yml',
 		'CHANGELOG.md', 'CONTRIBUTING.md', 'README.md', 'CREDITS.txt',
-		'SECURITY.md', /* setasign/fpdi: dev doc, not autoloaded */
+		'Makefile', 'VERSION',
+		'SECURITY.md', /* Vendor security policy; development documentation only. */
 		// LICENSE/COPYING preserved: WordPress.org Plugin Directory
 		// Guideline 1 requires third-party license texts to ship with
 		// the bundled code. Removing them was a WP.org compliance bug.
@@ -632,12 +633,9 @@ if ( is_dir( $vendor_dir ) ) {
 		'.github_changelog_generator', 'roave-bc-check.yaml',
 		/* Development-only package files. */
 		'psalm-autoload.php',
-		/* setasign/fpdi: ad-hoc manual test scripts that read files from
-		 * outside the package directory; not autoloaded, never referenced
-		 * by the runtime PDFs we generate. */
+		/* Vendor-local manual test scripts; never autoloaded at runtime. */
 		'local-tests',
-		/* setasign/fpdi: scratch experiments checked into the repo next to
-		 * `src/` - not part of the library, not autoloaded. */
+		/* Vendor scratch/experiment directories; never autoloaded at runtime. */
 		'scratches',
 		/* myclabs/deep-copy: generated doc/ images and graph PNGs that
 		 * sit next to `src/`; not autoloaded, only used by the package's
@@ -661,6 +659,11 @@ if ( is_dir( $vendor_dir ) ) {
 		'tecnickcom/tcpdf/Makefile',
 		'tecnickcom/tcpdf/VERSION',
 	);
+	$prune_paths      = array(
+		// TCPDF 7 font conversion tooling is build-time only. Runtime needs
+		// tc-lib-pdf-font/src plus the deterministic target/fonts subset.
+		'tecnickcom/tc-lib-pdf-font/util',
+	);
 
 	$v_iterator = new RecursiveIteratorIterator(
 		new RecursiveDirectoryIterator( $vendor_dir, RecursiveDirectoryIterator::SKIP_DOTS ),
@@ -672,6 +675,7 @@ if ( is_dir( $vendor_dir ) ) {
 		$ext      = strtolower( pathinfo( $name, PATHINFO_EXTENSION ) );
 		$relative = str_replace( '\\', '/', substr( $item->getPathname(), strlen( $vendor_dir ) + 1 ) );
 		$matched = in_array( $name, $prune_patterns, true )
+			|| in_array( $relative, $prune_paths, true )
 			|| ( ! $item->isDir() && in_array( $relative, $prune_files, true ) )
 			|| ( ! $item->isDir() && in_array( $ext, $prune_extensions, true ) );
 		if ( $matched ) {
@@ -683,38 +687,51 @@ if ( is_dir( $vendor_dir ) ) {
 			$pruned_count++;
 		}
 	}
-	// TCPDF ships ~25 MB of font assets. SScribe pins PDF rendering to
-	// DejaVu Sans (regular/bold/italic/bold-italic) and TCPDF's initial
-	// Helvetica core font, so all other generated fonts are unreachable.
-	// Retain the upstream DejaVu license texts alongside the generated data.
-	$tcpdf_fonts_dir = $vendor_dir . '/tecnickcom/tcpdf/fonts';
-	if ( is_dir( $tcpdf_fonts_dir ) ) {
-		$tcpdf_font_allow = array(
-			'helvetica.php',
-			'dejavusans.php', 'dejavusans.z', 'dejavusans.ctg.z',
-			'dejavusansb.php', 'dejavusansb.z', 'dejavusansb.ctg.z',
-			'dejavusansi.php', 'dejavusansi.z', 'dejavusansi.ctg.z',
-			'dejavusansbi.php', 'dejavusansbi.z', 'dejavusansbi.ctg.z',
-			'dejavu-fonts-ttf-2.33/LICENSE',
-			'dejavu-fonts-ttf-2.34/LICENSE',
-		);
-		$font_iterator = new RecursiveIteratorIterator(
-			new RecursiveDirectoryIterator( $tcpdf_fonts_dir, RecursiveDirectoryIterator::SKIP_DOTS ),
-			RecursiveIteratorIterator::CHILD_FIRST
-		);
-		foreach ( $font_iterator as $font_item ) {
-			$font_relative = str_replace( '\\', '/', substr( $font_item->getPathname(), strlen( $tcpdf_fonts_dir ) + 1 ) );
-			if ( $font_item->isDir() ) {
-				$children = new RecursiveDirectoryIterator( $font_item->getPathname(), RecursiveDirectoryIterator::SKIP_DOTS );
-				if ( 0 === iterator_count( $children ) ) {
-					@rmdir( $font_item->getPathname() );
-				}
-				continue;
+	// TCPDF 7 resolves fonts through tc-lib-pdf-font. The pre-Strauss staging
+	// step writes a deterministic minimal subset into target/fonts; verify and
+	// prune that exact contract again after prefixing so the release cannot
+	// silently gain an upstream font catalog or lose an internal fallback.
+	$tcpdf_fonts_dir = $vendor_dir . '/tecnickcom/tc-lib-pdf-font/target/fonts';
+	$tcpdf_font_allow = array(
+		'core/LICENSE',
+		'core/courier.json', 'core/courierb.json', 'core/courierbi.json', 'core/courieri.json',
+		'core/helvetica.json', 'core/helveticab.json', 'core/helveticabi.json', 'core/helveticai.json',
+		'core/symbol.json',
+		'core/times.json', 'core/timesb.json', 'core/timesbi.json', 'core/timesi.json',
+		'core/zapfdingbats.json',
+		'dejavu/LICENSE',
+		'dejavu/dejavusans.json', 'dejavu/dejavusans.z', 'dejavu/dejavusans.ctg.z',
+		'dejavu/dejavusansb.json', 'dejavu/dejavusansb.z', 'dejavu/dejavusansb.ctg.z',
+		'dejavu/dejavusansi.json', 'dejavu/dejavusansi.z', 'dejavu/dejavusansi.ctg.z',
+		'dejavu/dejavusansbi.json', 'dejavu/dejavusansbi.z', 'dejavu/dejavusansbi.ctg.z',
+	);
+	if ( ! is_dir( $tcpdf_fonts_dir ) ) {
+		echo "     ❌ TCPDF 7 tc-lib font tree missing after vendor prefix: {$tcpdf_fonts_dir}\n";
+		exit( 1 );
+	}
+	$font_iterator = new RecursiveIteratorIterator(
+		new RecursiveDirectoryIterator( $tcpdf_fonts_dir, RecursiveDirectoryIterator::SKIP_DOTS ),
+		RecursiveIteratorIterator::CHILD_FIRST
+	);
+	foreach ( $font_iterator as $font_item ) {
+		$font_relative = str_replace( '\\', '/', substr( $font_item->getPathname(), strlen( $tcpdf_fonts_dir ) + 1 ) );
+		if ( $font_item->isDir() ) {
+			$children = new RecursiveDirectoryIterator( $font_item->getPathname(), RecursiveDirectoryIterator::SKIP_DOTS );
+			if ( 0 === iterator_count( $children ) ) {
+				@rmdir( $font_item->getPathname() );
 			}
-			if ( ! in_array( $font_relative, $tcpdf_font_allow, true ) ) {
-				@unlink( $font_item->getPathname() );
-				++$pruned_count;
-			}
+			continue;
+		}
+		if ( ! in_array( $font_relative, $tcpdf_font_allow, true ) ) {
+			@unlink( $font_item->getPathname() );
+			++$pruned_count;
+		}
+	}
+	foreach ( $tcpdf_font_allow as $required_font_file ) {
+		$font_path = $tcpdf_fonts_dir . '/' . $required_font_file;
+		if ( ! is_file( $font_path ) || 0 === (int) filesize( $font_path ) ) {
+			echo "     ❌ Required TCPDF 7 font/license asset missing or empty: {$required_font_file}\n";
+			exit( 1 );
 		}
 	}
 
@@ -756,6 +773,8 @@ $required_release_files = array(
 	'vendor-prefixed/autoload.php',
 	'vendor-prefixed/phpoffice/phpword/COPYING.LESSER.txt',
 	'vendor-prefixed/tecnickcom/tcpdf/LICENSE.TXT',
+	'vendor-prefixed/tecnickcom/tc-lib-pdf-font/target/fonts/core/LICENSE',
+	'vendor-prefixed/tecnickcom/tc-lib-pdf-font/target/fonts/dejavu/LICENSE',
 );
 foreach ( $required_release_files as $required_release_file ) {
 	if ( ! is_file( $plugin_dir . '/' . $required_release_file ) ) {
@@ -930,10 +949,12 @@ echo "    - .distignore entries (segment-level match against\n";
 echo "      vendor-prefixed/*/tests, vendor-prefixed/*/docs,\n";
 echo "      vendor-prefixed/phpoffice/phpword/COPYING.LESSER,\n";
 echo "      vendor-prefixed/phpoffice/phpword/phpword.ini.dist, etc.).\n";
-echo "    - TCPDF release pruning removes unreachable generated font assets,\n";
-echo "      retaining core metrics plus DejaVu Sans regular/bold/italic/\n";
-echo "      bold-italic and their upstream license files.\n";
-echo "    - TCPDF development metadata Makefile and VERSION are removed.\n\n";
+echo "    - TCPDF 7 runtime font data is staged from tracked\n";
+echo "      scripts/resources/tcpdf-fonts into tc-lib-pdf-font/target/fonts,\n";
+echo "      retaining Core14 fallbacks plus DejaVu Sans regular/bold/italic/\n";
+echo "      bold-italic and both upstream license notices.\n";
+echo "    - TCPDF/tc-lib development Makefile and VERSION metadata and the\n";
+echo "      tc-lib-pdf-font/util converter tree are removed.\n\n";
 
 echo "  First-party in-place transformations (vendor-prefixed/ bypasses\n";
 echo "  these rewriters and is copied byte-for-byte before explicit pruning):\n";
@@ -973,6 +994,8 @@ echo "  Distribution paths created under a different relative name:\n";
 echo "    - vendor-prefixed/phpoffice/phpword/COPYING.LESSER.txt is copied byte-for-byte from\n";
 echo "      vendor-prefixed/phpoffice/phpword/COPYING.LESSER so the required LGPL notice\n";
 echo "      ships under an extension accepted by WordPress Plugin Check.\n";
+echo "    - vendor-prefixed/tecnickcom/tc-lib-pdf-font/target/fonts/** is staged\n";
+echo "      byte-for-byte from tracked scripts/resources/tcpdf-fonts/** inputs.\n";
 echo "    - All other distribution files retain their source-relative path.\n\n";
 
 echo "Build successful. No development files or unused fonts included.\n\n";

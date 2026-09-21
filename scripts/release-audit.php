@@ -100,7 +100,8 @@ function sscribe_release_audit(): void {
 	);
 	foreach ( $composer_gates as $name => $script ) {
 		fwrite( STDOUT, "== {$name} ==\n" );
-		$gate( $name, array( $composer, $script ) );
+		$gate_env = 'Manual-Runtime-Tests' === $name ? $cert : array();
+		$gate( $name, array( $composer, $script ), $gate_env );
 	}
 
 	$cert_gates = array(
