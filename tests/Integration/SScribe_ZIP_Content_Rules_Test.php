@@ -568,6 +568,43 @@ final class SScribe_ZIP_Content_Rules_Test extends TestCase {
 	 * confirm the verifier fails on the missing-directory check (not
 	 * just the missing-autoload check).
 	 */
+	public function test_nested_vendor_and_root_dev_artifacts_fail(): void {
+		$builder = static function ( string $root ): void {
+			$tree = array(
+				'sscribe-export-site-pages.php' => "<?php\n/**\n * Plugin Name: SScribe\n * Version: 9.9.9-test\n */\n",
+				'readme.txt'                    => "=== SScribe ===\n",
+				'license.txt'                   => "GPL v2\n",
+				'uninstall.php'                 => "<?php // uninstall\n",
+				'composer.json'                 => json_encode( array( 'autoload' => array( 'classmap' => array( 'vendor-prefixed/' ) ) ) ),
+				'vendor-prefixed/autoload.php'  => "<?php // autoload\n",
+				'includes/collector.php'        => "<?php // collector\n",
+				'languages/sscribe-export-site-pages.pot' => 'msgid ""',
+				'assets/icons/index.svg'        => '<svg/>',
+				'phpunit-coverage.xml'          => '<phpunit/>',
+				'vendor-prefixed/tecnickcom/tcpdf/test/TcpdfTest.php' => "<?php // vendor test\n",
+				'vendor-prefixed/tecnickcom/tc-lib-color/codecov.yml' => 'coverage: true',
+				'vendor-prefixed/tecnickcom/tc-lib-pdf/context7.json' => '{}',
+				'vendor-prefixed/tecnickcom/tcpdf/mago.src.toml' => '[source]',
+			);
+			foreach ( $tree as $rel => $content ) {
+				$path = $root . '/' . $rel;
+				$dir  = dirname( $path );
+				if ( ! is_dir( $dir ) ) {
+					mkdir( $dir, 0755, true );
+				}
+				file_put_contents( $path, (string) $content ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
+			}
+		};
+		list( $code, $output ) = $this->run_against_dist( array( 'tree_builder' => $builder ) );
+		$this::assertSame( 1, $code, 'Development artifacts nested in vendor-prefixed or at plugin root must fail. Output:' . "\n" . $output );
+		$this::assertStringContainsString( 'phpunit-coverage.xml', $output );
+		$this::assertStringContainsString( 'vendor development artifact', $output );
+		$this::assertStringContainsString( 'tcpdf/test/TcpdfTest.php', $output );
+		$this::assertStringContainsString( 'codecov.yml', $output );
+		$this::assertStringContainsString( 'context7.json', $output );
+		$this::assertStringContainsString( 'mago.src.toml', $output );
+	}
+
 	public function test_missing_required_runtime_fails(): void {
 		$builder = static function ( string $root ): void {
 			// Defensive: clear any vendor-prefixed/ leftover from a
