@@ -471,6 +471,16 @@ function check_closure_evidence( string $root_dir, string $closure_source ): arr
 					'detail'  => $identity['detail'],
 				);
 			}
+			$clean_log = (string) file_get_contents( $md_path );
+			if ( false === strpos( $clean_log, (string) $payload['source_sha'] )
+				|| false === strpos( $clean_log, (string) $payload['zip_sha256'] )
+			) {
+				return array(
+					'passes'  => false,
+					'verdict' => 'clean_install_log_identity_missing',
+					'detail'  => 'clean-install evidence document must contain the exact source_sha and zip_sha256',
+				);
+			}
 			$required = array( 'activation', 'deactivation', 'no_fatal', 'no_warning_attributable', 'db_tables_present', 'capabilities_present', 'cron_hooks_present', 'admin_ui_loads', 'export_basic', 'reactivate_no_duplicates', 'uninstall_cleanup' );
 			$bad = array();
 			foreach ( $required as $key ) {
@@ -522,6 +532,16 @@ function check_closure_evidence( string $root_dir, string $closure_source ): arr
 					'passes'  => false,
 					'verdict' => 'runtime_export_release_identity_mismatch',
 					'detail'  => $identity['detail'],
+				);
+			}
+			$runtime_log = (string) file_get_contents( $log_path );
+			if ( false === strpos( $runtime_log, (string) $payload['source_sha'] )
+				|| false === strpos( $runtime_log, (string) $payload['zip_sha256'] )
+			) {
+				return array(
+					'passes'  => false,
+					'verdict' => 'runtime_export_log_identity_missing',
+					'detail'  => 'runtime export log must contain the exact source_sha and zip_sha256',
 				);
 			}
 			$required = array( 'activation', 'docx', 'pdf', 'html', 'markdown', 'all_formats', 'all_languages', 'arabic_rtl', 'retry_behavior', 'finalize', 'single_use_download', 'unauthorized_download_rejected' );
@@ -603,12 +623,24 @@ function check_closure_evidence( string $root_dir, string $closure_source ): arr
 				);
 			}
 
+			$manual_log = (string) file_get_contents( $log_path );
+			if ( false === strpos( $manual_log, (string) $payload['source_sha'] )
+				|| false === strpos( $manual_log, (string) $payload['zip_sha256'] )
+			) {
+				return array(
+					'passes'  => false,
+					'verdict' => 'manual_runtime_log_identity_missing',
+					'detail'  => 'manual runtime log must contain the exact source_sha and zip_sha256',
+				);
+			}
+
 			$required = array( 'standard_wordpress', 'wpml', 'redis_on', 'redis_off', 'openlitespeed', 'cloudflare_proxy' );
 			$bad = array();
 			foreach ( $required as $key ) {
 				$status = (string) ( $payload['environments'][ $key ]['status'] ?? '' );
 				$proof  = trim( (string) ( $payload['environments'][ $key ]['evidence'] ?? '' ) );
-				if ( 'PASS' !== $status || '' === $proof ) {
+				$marker = '[' . $key . '] PASS';
+				if ( 'PASS' !== $status || '' === $proof || false === strpos( $manual_log, $marker ) ) {
 					$bad[] = $key . '=' . ( '' !== $status ? $status : 'MISSING' );
 				}
 			}
