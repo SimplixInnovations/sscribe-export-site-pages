@@ -49,14 +49,46 @@ final class SScribe_Vendor_Compat_Test extends TestCase {
 		$this::assertSame( $first, $second );
 	}
 
+
+	public function test_unprefixed_composer_layout_keeps_phpword_graph_consistent(): void {
+		$root = dirname( __DIR__, 2 );
+		$code = 'define("ABSPATH", ' . var_export( $root . '/fake-wp/', true ) . ');'
+			. 'define("SSCRIBE_PLUGIN_DIR", ' . var_export( $root . '/', true ) . ');'
+			. 'require ' . var_export( $root . '/vendor/autoload.php', true ) . ';'
+			. 'require ' . var_export( $root . '/includes/sscribe-vendor-compat.php', true ) . ';'
+			. '$phpWord = new \\SScribeVendor\\PhpOffice\\PhpWord\\PhpWord();'
+			. '$section = $phpWord->addSection();'
+			. 'if (!$section instanceof \\SScribeVendor\\PhpOffice\\PhpWord\\Element\\Section) { exit(12); }'
+			. 'exit(0);';
+
+		$process = proc_open(
+			array( PHP_BINARY, '-r', $code ),
+			array(
+				0 => array( 'pipe', 'r' ),
+				1 => array( 'pipe', 'w' ),
+				2 => array( 'pipe', 'w' ),
+			),
+			$pipes
+		);
+		$this::assertIsResource( $process );
+		fclose( $pipes[0] );
+		$stdout = (string) stream_get_contents( $pipes[1] );
+		$stderr = (string) stream_get_contents( $pipes[2] );
+		fclose( $pipes[1] );
+		fclose( $pipes[2] );
+		$exit = proc_close( $process );
+
+		$this::assertSame( 0, $exit, "Unprefixed Composer PHPWord graph failed. stdout={$stdout} stderr={$stderr}" );
+	}
+
 	public function test_unprefixed_composer_layout_exposes_tcpdf_under_sscribe_alias(): void {
 		$root = dirname( __DIR__, 2 );
 		$code = 'define("ABSPATH", ' . var_export( $root . '/fake-wp/', true ) . ');'
 			. 'define("SSCRIBE_PLUGIN_DIR", ' . var_export( $root . '/', true ) . ');'
 			. 'require ' . var_export( $root . '/vendor/autoload.php', true ) . ';'
 			. 'require ' . var_export( $root . '/includes/sscribe-vendor-compat.php', true ) . ';'
-			. 'if (!class_exists("TCPDF")) { exit(10); }'
-			. 'if (!class_exists("SScribeVendor_TCPDF", false)) { exit(11); }'
+			. 'if (!class_exists("SScribeVendor_TCPDF")) { exit(10); }'
+			. 'if (!is_a("SScribeVendor_TCPDF", "TCPDF", true)) { exit(11); }'
 			. 'exit(0);';
 
 		$process = proc_open(
