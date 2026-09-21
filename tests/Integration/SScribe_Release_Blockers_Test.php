@@ -14,7 +14,7 @@
  *   - Doc declares the canonical sections (Why this exists, Status
  *     convention, Canonical blockers, How an independent auditor
  *     verifies this).
- *   - All 20 canonical blocker rows are present.
+ *   - All 21 canonical blocker rows are present.
  *   - Every blocker has a status in {RESOLVED, DEFERRED}.
  *   - Every blocker declares a recognised closure-source token.
  *   - Static (closure: static) blockers are RESOLVED in the doc.
