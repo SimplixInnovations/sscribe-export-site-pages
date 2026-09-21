@@ -642,6 +642,16 @@ function check_closure_evidence( string $root_dir, string $closure_source ): arr
 					'detail'  => 'dist/source-transparency-evidence.json is not valid JSON',
 				);
 			}
+			$current_sha = trim( (string) shell_exec( 'git rev-parse HEAD 2> ' . ( '\\' === DIRECTORY_SEPARATOR ? 'NUL' : '/dev/null' ) ) );
+			if ( ! preg_match( '/^[a-f0-9]{40}$/', $current_sha )
+				|| ! hash_equals( $current_sha, (string) ( $payload['source_sha'] ?? '' ) )
+			) {
+				return array(
+					'passes'  => false,
+					'verdict' => 'source_transparency_sha_mismatch',
+					'detail'  => 'source transparency source_sha does not match current git HEAD',
+				);
+			}
 			$public_url = $payload['public_url'] ?? '';
 			if ( '' === $public_url ) {
 				return array(
@@ -662,6 +672,23 @@ function check_closure_evidence( string $root_dir, string $closure_source ): arr
 					'passes'  => false,
 					'verdict' => 'source_transparency_keys_missing',
 					'detail'  => 'missing keys: ' . implode( ', ', $missing_keys ),
+				);
+			}
+			$revision_urls = array(
+				$public_url,
+				(string) $payload['composer_json_url'],
+				(string) $payload['build_script_url'],
+				(string) $payload['build_doc_url'],
+			);
+			$non_exact_urls = array_filter(
+				$revision_urls,
+				static fn( string $url ): bool => false === strpos( $url, $current_sha )
+			);
+			if ( $non_exact_urls ) {
+				return array(
+					'passes'  => false,
+					'verdict' => 'source_transparency_urls_not_exact_revision',
+					'detail'  => 'all public source/build URLs must identify the exact current source SHA',
 				);
 			}
 			$checks = $payload['checks'] ?? array();
