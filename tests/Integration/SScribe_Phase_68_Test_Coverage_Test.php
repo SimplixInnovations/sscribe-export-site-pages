@@ -383,9 +383,11 @@ final class SScribe_Phase_68_Test_Coverage_Test extends TestCase {
 		$has_register_shutdown = false !== stripos( $src, 'register_shutdown' );
 		$has_capture           = false !== stripos( $src, 'capture' );
 		$has_operational       = false !== stripos( $src, 'Operational_Logger' ) || false !== stripos( $src, 'operational' );
+		$has_immediate_flush   = false !== strpos( $src, 'SScribe_Operational_Logger::flush();' );
 		$this::assertTrue( $has_register_shutdown, 'Fatal handler must register a shutdown hook.' );
 		$this::assertTrue( $has_capture, 'Fatal handler must implement capture() to inspect error_get_last().' );
-		$this::assertTrue( $has_operational, 'Fatal handler must delegate persistence to SScribe_Operational_Logger (the flush-on-shutdown path).' );
+		$this::assertTrue( $has_operational, 'Fatal handler must delegate persistence to SScribe_Operational_Logger.' );
+		$this::assertTrue( $has_immediate_flush, 'Fatal handler must flush immediately because WordPress shutdown hooks may already have completed.' );
 	}
 
 	/**
