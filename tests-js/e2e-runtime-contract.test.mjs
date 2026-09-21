@@ -247,7 +247,8 @@ if (/spawn\(\s*'php'/.test(adapterSrc)) {
 // 24. Release E2E must use PHP's default single-process CLI server.
 // PHP_CLI_SERVER_WORKERS opts into the experimental forked-worker mode,
 // which has no value for this SQLite release fixture and can destabilize CI.
-if (/PHP_CLI_SERVER_WORKERS/.test(adapterSrc)) {
+const phpCliWorkerAssignment = /(?:^|[\s,{])PHP_CLI_SERVER_WORKERS\s*:/m.test(adapterSrc) || /process\.env\.PHP_CLI_SERVER_WORKERS\s*=/.test(adapterSrc);
+if (phpCliWorkerAssignment) {
   fail('native adapter enables experimental PHP_CLI_SERVER_WORKERS mode');
 } else {
   pass('native adapter leaves PHP CLI server in default single-process mode');
