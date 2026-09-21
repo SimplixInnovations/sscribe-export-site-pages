@@ -45,7 +45,7 @@ Every release handoff MUST include, at minimum, these artifacts:
 | 11 | Plugin Check triage                      | docs/PLUGIN_CHECK_WARNINGS_v2.0.0.md                                                | Phase 64                       |
 | 12 | Manual runtime tests runbook + exact-release proof | docs/MANUAL_RUNTIME_TESTS_v2.0.0.md + dist/manual-runtime-evidence.json + dist/evidence/manual-runtime.log | Phase 69 |
 | 13 | Exact release ZIP + SHA-256 sidecar     | dist/sscribe-export-site-pages-{VERSION}.zip + dist/sscribe-export-site-pages-{VERSION}.sha256 | Phase 63 + 72     |
-| 14 | Branch topology policy + manifest        | docs/BRANCH_POLICY_v2.0.0.md + dist/branch-policy-manifest.json                      | Phase 77                       |
+| 14 | Branch topology policy + live governance proof | docs/BRANCH_POLICY_v2.0.0.md + dist/branch-policy-manifest.json + dist/repository-governance-evidence.json | Phase 77 |
 
 The handoff MUST include every artifact above. A missing artifact
 fails the gate.
@@ -116,6 +116,7 @@ for f in \
   dist/evidence/manual-runtime.log \
   docs/BRANCH_POLICY_v2.0.0.md \
   dist/branch-policy-manifest.json \
+  dist/repository-governance-evidence.json \
   dist/sscribe-export-site-pages-{VERSION}.zip \
   dist/sscribe-export-site-pages-{VERSION}.sha256 \
   ; do
