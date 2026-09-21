@@ -134,6 +134,7 @@ $record(
 );
 
 $determinism_script = $root_dir . '/scripts/verify-build-determinism.php';
+$normalizer_script  = $root_dir . '/scripts/normalize-prefixed-autoloader.php';
 $composer_path       = $root_dir . '/composer.json';
 $release_audit_yml   = $root_dir . '/.github/workflows/release-audit.yml';
 $composer_src        = is_file( $composer_path ) ? (string) file_get_contents( $composer_path ) : '';
@@ -141,9 +142,11 @@ $release_audit_src   = is_file( $release_audit_yml ) ? (string) file_get_content
 $record(
 	'clean_build_determinism_gate_wired',
 	is_file( $determinism_script )
+		&& is_file( $normalizer_script )
 		&& false !== strpos( $composer_src, '"release:determinism": "php scripts/verify-build-determinism.php"' )
+		&& false !== strpos( $composer_src, 'scripts/run-strauss.php && php scripts/normalize-prefixed-autoloader.php' )
 		&& false !== strpos( $release_audit_src, 'composer release:determinism' ),
-	'Release invariant #5 must be enforced by scripts/verify-build-determinism.php through composer release:determinism in the release-audit workflow.'
+	'Release invariant #5 must be enforced by clean-build determinism plus deterministic Strauss generated-autoloader normalization.'
 );
 
 // Persist manifest.
