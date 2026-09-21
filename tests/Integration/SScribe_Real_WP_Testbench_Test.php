@@ -116,7 +116,9 @@ final class SScribe_Real_WP_Testbench_Test extends TestCase {
 		$contents = (string) file_get_contents( $path );
 
 		$this::assertStringContainsString( 'sqlite-database-integration', $contents );
-		$this::assertStringContainsString( 'WordPress/sqlite-database-integration/releases/latest', $contents );
+		$this::assertStringContainsString( "SSCRIBE_SQLITE_INTEGRATION_VERSION = '3.0.2'", $contents );
+		$this::assertStringContainsString( 'https://downloads.wordpress.org/plugin/sqlite-database-integration.', $contents );
+		$this::assertStringNotContainsString( 'api.github.com/repos/WordPress/sqlite-database-integration/releases/latest', $contents );
 		$this::assertStringContainsString( "'db.copy'", $contents );
 		$this::assertStringContainsString( 'wp-content/db.php', $contents );
 		$this::assertStringContainsString(
