@@ -42,7 +42,7 @@ import { E2ERuntime, RuntimeMetadata } from './types';
 
 // ---- Pinned inputs ---------------------------------------------------------------
 
-const PINNED_WORDPRESS_VERSION = '7.1';
+const PINNED_WORDPRESS_VERSION = '7.1.1';
 const PINNED_SQLITE_INTEGRATION_VERSION = '3.0.2';
 
 const EXPECTED_SEED_PAGES = 50;
