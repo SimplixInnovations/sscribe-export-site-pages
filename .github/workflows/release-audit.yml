@@ -27,7 +27,7 @@ jobs:
     release-audit:
         name: release audit
         runs-on: ubuntu-latest
-        timeout-minutes: 30
+        timeout-minutes: 45
         steps:
             - name: Checkout code
               uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
@@ -52,22 +52,8 @@ jobs:
             - name: Install locked Node development dependencies
               run: npm ci --ignore-scripts
 
-            - name: Cache Composer dependencies
-              uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
-              with:
-                  path: vendor
-                  key: ${{ runner.os }}-php-8.4-vendor-${{ hashFiles('composer.lock') }}
-                  restore-keys: |
-                      ${{ runner.os }}-php-8.4-vendor-
-
-            - name: Install Composer dependencies
-              run: composer install --no-progress --no-interaction
-
-            - name: Generate prefixed vendor tree (Strauss)
-              run: composer vendor:prefix
-
-            - name: Build the submission package
-              run: php scripts/build-release.php
+            - name: Verify two clean builds are byte-identical
+              run: composer release:determinism
 
             - name: Provision WordPress + Plugin Check for release audit
               run: |
