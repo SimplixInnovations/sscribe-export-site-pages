@@ -28,7 +28,7 @@ rule blocks the release.
 
 | #  | Rule                                                                              | Enforced by                       |
 |----|-----------------------------------------------------------------------------------|-----------------------------------|
-| 1  | The tag name equals `SSCRIBE_VERSION` exactly (e.g. `v2.0.1`).                    | Phase 16 + Phase 54 verifier.     |
+| 1  | The tag name equals `SSCRIBE_VERSION` exactly (e.g. `v2.0.3`).                    | Phase 16 + Phase 54 verifier.     |
 | 2  | New release tags from v2.0.3 onward are annotated tags (`git tag -a` or `git tag -s`), not lightweight tags. Historical v2.0.2-and-earlier tags are preserved exactly as originally published. | Phase 54 verifier. |
 | 3  | The tag points exactly at `origin/main` HEAD at certification time.               | Phase 54 verifier + Phase 77.     |
 | 4  | The tag points at the exact certified source SHA (the SHA recorded in the build evidence). | Phase 54 verifier + Phase 72. |
@@ -75,8 +75,9 @@ If the maintainer organization deliberately chooses mandatory
 cryptographic signing as a policy, then implement it properly:
 
 ```bash
-git tag -s v2.0.1 -m "SScribe 2.0.1"
-git tag -v v2.0.1    # must verify with no `gpg: BAD signature`
+VERSION=2.0.3
+git tag -s "v${VERSION}" -m "SScribe ${VERSION}"
+git tag -v "v${VERSION}"    # optional signing policy: must verify cleanly when used
 ```
 
 If cryptographic signing is not configured, do not turn that into a
