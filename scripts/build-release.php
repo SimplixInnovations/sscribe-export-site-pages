@@ -631,7 +631,7 @@ if ( is_dir( $vendor_dir ) ) {
 		// its source" claim accurate, and lets a reviewer grep the ZIP
 		// for a license when checking TCPDF/PHPWord attribution.
 		'.github_changelog_generator', 'roave-bc-check.yaml', 'codecov.yml', '.codecov.yml',
-		'context7.json', 'mago.src.toml', 'mago.test.toml',
+		'context7.json', 'mago.src.toml', 'mago.test.toml', 'CHANGELOG.TXT',
 		/* Development-only package files. */
 		'psalm-autoload.php',
 		/* Vendor-local manual test scripts; never autoloaded at runtime. */
