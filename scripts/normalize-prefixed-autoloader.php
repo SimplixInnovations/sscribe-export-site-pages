@@ -5,7 +5,7 @@
  * Strauss 0.28.1 generates a fresh random 32-hex suffix when creating a new
  * vendor-prefixed/autoload.php tree. That makes otherwise identical clean
  * release builds byte-different. SScribe replaces only the generated
- * ComposerAutoloaderInit*/ComposerStaticInit* class suffix with one stable,
+ * ComposerAutoloaderInit... / ComposerStaticInit... class suffix with one stable,
  * plugin-unique identifier after Strauss completes.
  *
  * @package SScribe_Export_Site_Pages
