@@ -12,7 +12,7 @@
  *
  *   - Invariants doc exists.
  *   - Doc declares the canonical sections.
- *   - All 32 canonical invariants are listed.
+ *   - All 34 canonical invariants are listed.
  *   - The companion verifier script exists.
  *
  * @package SScribe_Export_Site_Pages
@@ -105,6 +105,8 @@ final class SScribe_Release_Invariants_Test extends TestCase {
 			'every Phase 70 blocker is RESOLVED',
 			'every Phase 71 required CI job is SUCCESS',
 			'every Phase 72 artifact evidence field',
+			'Branch topology policy holds',
+			'Public maintained exact source/build inputs',
 		);
 
 		foreach ( $canonical_invariants as $expected ) {
@@ -163,7 +165,6 @@ final class SScribe_Release_Invariants_Test extends TestCase {
 			$vendor_prefix,
 			'composer vendor:prefix must normalize Strauss autoloader entropy immediately after generation.'
 		);
-
 
 		$workflow = (string) file_get_contents( $this->repo_root . '/.github/workflows/release-audit.yml' );
 		$this->assertStringContainsString( 'Verify two clean builds are byte-identical', $workflow );
