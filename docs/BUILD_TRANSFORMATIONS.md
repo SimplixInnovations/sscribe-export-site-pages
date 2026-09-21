@@ -177,9 +177,12 @@ would fail the build.
 
 ## 3. Vendor-specific handling
 
-- All `vendor-prefixed/` files that survive exclusion/pruning are copied
-  byte-for-byte from the Strauss-generated tree. No SScribe comment stripping
-  or Unicode sanitization is applied to third-party source or notices.
+- Third-party package source and license files under `vendor-prefixed/` that
+  survive exclusion/pruning are copied byte-for-byte from the post-prefix build
+  tree. SScribe does not comment-strip or Unicode-sanitize third-party source or
+  notices. The only deterministic pre-build rewrite in this tree is the
+  generated Composer initializer suffix normalization documented above; package
+  source is not rewritten by that step.
 - TCPDF and its transitive tc-lib packages' extensionless development metadata
   `Makefile` and `VERSION` are removed before release-content validation.
 - `vendor-prefixed/tecnickcom/tc-lib-pdf-font/util/` is removed after the
