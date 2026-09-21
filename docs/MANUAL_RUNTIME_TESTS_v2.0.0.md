@@ -18,26 +18,20 @@ exercised on the EXACT versioned release ZIP
 (`dist/sscribe-export-site-pages-{VERSION}.zip`) — not on the repository
 working tree — before the release can be declared ready.
 
-The companion verifier `scripts/verify-manual-runtime-tests.php`
-asserts the runbook exists with the canonical sections and the
-six required environment rows. The companion PHPUnit integration
-test pins the verifier at the PHPUnit boundary.
+The companion verifier `scripts/verify-manual-runtime-tests.php` validates the immutable runbook in normal source CI. In strict release certification it additionally requires ignored evidence that binds all six executed environments to the exact current git SHA and exact release ZIP. The companion PHPUnit integration test pins both layers at the PHPUnit boundary.
 
 ## Canonical scenarios
 
-Each row below records a required environment + the canonical
-exercises the reviewer must perform. Status defaults to **TODO**
-until a release-engineer runs through the runbook on the final
-ZIP and records evidence in `docs/CI_EVIDENCE_v2.0.0.md`.
+Each row below records a required environment and the canonical exercises the reviewer must perform. The tracked table records policy, not mutable per-release completion state. Exact-release PASS/FAIL state lives only in ignored certification evidence so recording it cannot change the source SHA after the ZIP has been built.
 
-| #  | Environment                      | Required exercises                                                                                                                                                                                | Status     |
-|----|----------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------|
-| 1  | Standard WordPress               | Activate the ZIP on a fresh WP install; configure export; Preview; export one format; download; Debug state; deactivate/reactivate; uninstall.                                                     | TODO       |
-| 2  | WordPress + WPML                 | Activate WPML with ≥ 2 active languages; verify Language cards render; export All Languages; verify batch response includes `__all__`; verify single-language export.                            | TODO       |
-| 3  | Redis object cache ON            | Enable Redis object cache (e.g. Redis Object Cache plugin); repeat the export flow; verify the rate-limit counter advances monotonically across 50 successive calls; verify no `wp_cache_*` failures. | TODO       |
-| 4  | Redis object cache OFF           | Disable Redis; repeat the export flow; verify the transients-fallback path serves the rate-limit counter correctly; verify no warnings.                                                            | TODO       |
-| 5  | OpenLiteSpeed (where possible)   | Deploy to an OpenLiteSpeed fronting Apache-style WordPress; verify the export download (single-shot, `dl_token`) survives the LSAPI boundary; verify no `X-LiteSpeed` header rejection.            | TODO       |
-| 6  | Cloudflare / proxy environment   | Front the WP install with Cloudflare (or equivalent); verify the export download is delivered without `403` from the WAF; verify the rate-limit `Retry-After` survives the proxy without re-encoding. | TODO       |
+| #  | Environment                      | Required exercises                                                                                                                                                                                | Requirement |
+|----|----------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------|
+| 1  | Standard WordPress               | Activate the ZIP on a fresh WP install; configure export; Preview; export one format; download; Debug state; deactivate/reactivate; uninstall.                                                     | REQUIRED    |
+| 2  | WordPress + WPML                 | Activate WPML with ≥ 2 active languages; verify Language cards render; export All Languages; verify batch response includes `__all__`; verify single-language export.                            | REQUIRED    |
+| 3  | Redis object cache ON            | Enable Redis object cache (e.g. Redis Object Cache plugin); repeat the export flow; verify the rate-limit counter advances monotonically across 50 successive calls; verify no `wp_cache_*` failures. | REQUIRED    |
+| 4  | Redis object cache OFF           | Disable Redis; repeat the export flow; verify the transients-fallback path serves the rate-limit counter correctly; verify no warnings.                                                            | REQUIRED    |
+| 5  | OpenLiteSpeed (where possible)   | Deploy to an OpenLiteSpeed fronting Apache-style WordPress; verify the export download (single-shot, `dl_token`) survives the LSAPI boundary; verify no `X-LiteSpeed` header rejection.            | REQUIRED    |
+| 6  | Cloudflare / proxy environment   | Front the WP install with Cloudflare (or equivalent); verify the export download is delivered without `403` from the WAF; verify the rate-limit `Retry-After` survives the proxy without re-encoding. | REQUIRED    |
 
 ## Per-scenario acceptance criteria
 
@@ -94,27 +88,39 @@ For each scenario above, the reviewer records:
 - A one-line PASS/FAIL summary per acceptance criterion above.
 - A short note on any deviation.
 
-Evidence is captured in `docs/CI_EVIDENCE_v2.0.0.md` under a
-`## Manual runtime evidence — <date>` heading.
+Exact-release evidence MUST remain untracked. Record the human-readable execution log at:
+
+- `dist/evidence/manual-runtime.log`
+
+and the machine-verifiable summary at:
+
+- `dist/manual-runtime-evidence.json`
+
+The JSON must contain the exact current `source_sha`, the fresh SHA-256 of the exact current-version ZIP as `zip_sha256`, and these six environment keys under `environments`: `standard_wordpress`, `wpml`, `redis_on`, `redis_off`, `openlitespeed`, and `cloudflare_proxy`. Every environment must record `"status": "PASS"` plus a non-empty `evidence` reference.
+
+Do not commit exact-release runtime results to `docs/CI_EVIDENCE_v2.0.0.md`; that document is historical, and committing final evidence after building the ZIP would change the source SHA and invalidate certification.
 
 ## How an independent auditor verifies this
 
 ```bash
-# 1. Run the runbook gate.
+# 1. Validate the tracked runbook schema.
 composer test:manual-runtime-tests
 
-# 2. Confirm the runbook covers all 6 environments.
+# 2. During final release certification, validate actual six-environment evidence.
+SSCRIBE_RELEASE_CERTIFICATION=1 composer test:manual-runtime-tests
+
+# 3. Confirm the runbook covers all 6 environments.
 grep -E '^\| [0-9]+ +\|' docs/MANUAL_RUNTIME_TESTS_v2.0.0.md
 
-# 3. Confirm the evidence is recorded.
-grep -E '^## Manual runtime evidence' docs/CI_EVIDENCE_v2.0.0.md
+# 4. Inspect the exact-release evidence and non-empty execution log.
+cat dist/manual-runtime-evidence.json
+test -s dist/evidence/manual-runtime.log
 
-# 4. Run the integration test.
+# 5. Run the integration test.
 vendor/bin/phpunit tests/Integration/SScribe_Manual_Runtime_Tests_Test.php
 ```
 
-A green `composer test:manual-runtime-tests` + a recorded
-`## Manual runtime evidence` heading = the runbook is intact.
+A green normal gate proves the runbook contract is intact. A green strict gate proves all six environments actually passed against the exact current source SHA and exact ZIP.
 
 ## What this contract does NOT cover
 
@@ -136,3 +142,4 @@ A green `composer test:manual-runtime-tests` + a recorded
   All 6 environments listed with TODO status. Acceptance
   criteria documented. Evidence-recording section added.
 - 2026-09-20: Reconciled the runbook with the current-version governance model and the canonical versioned release ZIP path.
+- 2026-09-21: Removed the false-green TODO/tracked-evidence model. Strict certification now requires untracked exact-SHA/exact-ZIP evidence for all six environments.
