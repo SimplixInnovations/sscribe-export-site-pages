@@ -443,16 +443,10 @@ export class NativeWordpressRuntime implements E2ERuntime {
           ...process.env,
           SSCRIBE_E2E_TESTBED: '1',
           SSCRIBE_E2E_WP_ROOT: this.wpDir,
-          // Layer A fix: force PHP CLI server to a single worker.
-          // SQLite's file-level locking is process-based, and multiple
-          // PHP CLI workers on the same SQLite file cause SQLITE_BUSY /
-          // SQLITE_LOCKED races that leave wpdb's translator in a stuck
-          // transaction state — every subsequent query on the unlucky
-          // worker fails with "cannot start a transaction within a
-          // transaction". With PHP_CLI_SERVER_WORKERS=1 the runtime
-          // serializes requests, which is acceptable for E2E throughput
-          // (the testbed's page loads are <300ms each on native PHP).
-          PHP_CLI_SERVER_WORKERS: '1',
+          // Leave PHP_CLI_SERVER_WORKERS unset. The built-in server is
+          // single-process/single-threaded by default; setting that variable
+          // opts into PHP's experimental forked-worker mode. This fixture uses
+          // one SQLite database and deliberately serializes release E2E.
         },
       }
     );
