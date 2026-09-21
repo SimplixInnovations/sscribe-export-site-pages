@@ -57,6 +57,26 @@ final class SScribe_Vendor_Bootstrap {
 	}
 
 	/**
+	 * Whether this runtime can provide authenticated session encryption.
+	 *
+	 * Sodium secretbox is preferred. OpenSSL AES-256-GCM is the supported
+	 * fallback. At least one provider must be available before activation so
+	 * export sessions never fail later merely because the host lacks both
+	 * authenticated-encryption implementations.
+	 *
+	 * @return bool True when Sodium secretbox or OpenSSL AES-256-GCM is usable.
+	 */
+	public static function has_session_crypto_provider(): bool {
+		if ( function_exists( 'sodium_crypto_secretbox' ) && function_exists( 'sodium_crypto_secretbox_open' ) ) {
+			return true;
+		}
+
+		return function_exists( 'openssl_encrypt' )
+			&& function_exists( 'openssl_decrypt' )
+			&& in_array( 'aes-256-gcm', openssl_get_cipher_methods(), true );
+	}
+
+	/**
 	 * Tracks whether {@see require()} has loaded the vendor autoloader
 	 * in the current process.
 	 *
