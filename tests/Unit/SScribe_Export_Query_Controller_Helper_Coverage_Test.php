@@ -103,7 +103,7 @@ final class SScribe_Export_Query_Controller_Helper_Coverage_Test extends TestCas
 	}
 
 	public function test_class_has_expected_public_methods(): void {
-		$this::assertTrue( method_exists( \SScribe_Export_Query_Controller::class, 'ajax_health_check' ) );
+		$this::assertTrue( method_exists( \SScribe_Export_Query_Controller::class, 'ajax_get_support_info' ) );
 		$this::assertTrue( method_exists( \SScribe_Export_Query_Controller::class, 'ajax_get_status_counts' ) );
 		$this::assertTrue( method_exists( \SScribe_Export_Query_Controller::class, 'ajax_get_export_preview' ) );
 		$this::assertSame( '__all__', \SScribe_Export_Query_Controller::SENTINEL_ALL );
