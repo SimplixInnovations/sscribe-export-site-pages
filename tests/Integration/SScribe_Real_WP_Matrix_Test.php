@@ -163,6 +163,14 @@ final class SScribe_Real_WP_Matrix_Test extends TestCase {
 		);
 	}
 
+	public function test_previous_wordpress_resolver_selects_a_distinct_release_line(): void {
+		$source = (string) file_get_contents( self::plugin_root() . '/' . self::INSTALLER );
+
+		$this::assertStringNotContainsString( 'return $m[1][1];', $source );
+		$this::assertStringContainsString( '$latest_release_line', $source );
+		$this::assertStringContainsString( '$candidate_release_line', $source );
+	}
+
 	public function test_installer_supports_sqlite_dropin(): void {
 		$source = (string) file_get_contents( self::plugin_root() . '/' . self::INSTALLER );
 		$this::assertStringContainsString( '--sqlite', $source );
