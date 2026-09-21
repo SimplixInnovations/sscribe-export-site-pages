@@ -425,6 +425,9 @@ export class NativeWordpressRuntime implements E2ERuntime {
     // log ourselves — createWriteStream's fd isn't transferable to stdio.
     // The streams are drained into php-server.log by the .on('data',…)
     // handlers below.
+    const phpServerEnv = { ...process.env };
+    delete phpServerEnv.PHP_CLI_SERVER_WORKERS;
+
     this.phpProcess = spawn(
       this.phpBinary,
       [
@@ -440,13 +443,13 @@ export class NativeWordpressRuntime implements E2ERuntime {
         stdio: ['ignore', 'pipe', 'pipe'],
         detached: false,
         env: {
-          ...process.env,
+          ...phpServerEnv,
           SSCRIBE_E2E_TESTBED: '1',
           SSCRIBE_E2E_WP_ROOT: this.wpDir,
-          // Leave PHP_CLI_SERVER_WORKERS unset. The built-in server is
-          // single-process/single-threaded by default; setting that variable
-          // opts into PHP's experimental forked-worker mode. This fixture uses
-          // one SQLite database and deliberately serializes release E2E.
+          // PHP_CLI_SERVER_WORKERS is explicitly removed above. The built-in
+          // server is single-process/single-threaded by default; inheriting
+          // that variable would opt into PHP's experimental forked-worker
+          // mode and reintroduce concurrent access to this fixture's SQLite DB.
         },
       }
     );
