@@ -254,6 +254,15 @@ inspect the `base_excludes` and `font_excludes` arrays at the top of
 
 ## How to verify a build
 
+First prove the exact release bytes are reproducible from two clean generated
+dependency/prefix/dist trees:
+
+```bash
+composer release:determinism
+```
+
+Then, for an individual build/tree listing comparison:
+
 ```bash
 VERSION=$(php -r '$s=file_get_contents("sscribe-export-site-pages.php"); preg_match("/Version:\\s*([0-9.]+)/",$s,$m); echo $m[1] ?? "";')
 rm -rf dist/sscribe-export-site-pages "dist/sscribe-export-site-pages-${VERSION}.zip"
