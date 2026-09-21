@@ -97,7 +97,7 @@ SScribe is free software licensed under GPL-2.0-or-later.
 
 The bundled PhpOffice/PhpWord library uses LGPL-3.0-only. Its notice is included at `vendor-prefixed/phpoffice/phpword/COPYING.LESSER.txt`.
 
-The bundled TCPDF 6.11.3 library uses LGPL-3.0-or-later. Its license notice and the required notices for all bundled dependencies remain alongside their source in the plugin package.
+The bundled TCPDF 7.0.10 and its Tecnick tc-lib runtime dependencies use LGPL-3.0-or-later. Its license notice and the required notices for all bundled dependencies remain alongside their source in the plugin package.
 
 == Development ==
 

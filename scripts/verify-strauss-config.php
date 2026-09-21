@@ -90,13 +90,35 @@ if ( $verify_built ) {
 		}
 
 		$expected_dirs = array(
-			'tecnickcom/tcpdf'    => 'tecnickcom',
-			'phpoffice/phpword' => 'phpoffice',
-			'psr/container'     => 'psr',
+			'tecnickcom/tcpdf'           => 'tecnickcom',
+			'tecnickcom/tc-lib-pdf'      => 'tecnickcom',
+			'tecnickcom/tc-lib-pdf-font' => 'tecnickcom',
+			'phpoffice/phpword'          => 'phpoffice',
+			'psr/container'              => 'psr',
 		);
 		foreach ( $expected_dirs as $pkg => $expected_subdir ) {
 			if ( ! is_dir( $prefixed_dir . '/' . $expected_subdir ) ) {
 				$errors[] = sprintf( 'Prefixed vendor tree is missing `%s` (expected `%s/%s`).', $pkg, $prefixed_dir, $expected_subdir );
+			}
+		}
+
+		$tcpdf7_fonts = array(
+			'core/helvetica.json',
+			'core/courier.json',
+			'core/times.json',
+			'core/symbol.json',
+			'core/zapfdingbats.json',
+			'dejavu/dejavusans.json',
+			'dejavu/dejavusans.z',
+			'dejavu/dejavusans.ctg.z',
+			'core/LICENSE',
+			'dejavu/LICENSE',
+		);
+		$tcpdf7_fonts_dir = $prefixed_dir . '/tecnickcom/tc-lib-pdf-font/target/fonts';
+		foreach ( $tcpdf7_fonts as $font_relative ) {
+			$font_path = $tcpdf7_fonts_dir . '/' . $font_relative;
+			if ( ! is_file( $font_path ) || 0 === (int) filesize( $font_path ) ) {
+				$errors[] = sprintf( 'Prefixed TCPDF 7 runtime font asset is missing or empty: %s.', $font_relative );
 			}
 		}
 
