@@ -90,10 +90,15 @@ Symbol, Zapf Dingbats) and DejaVu Sans regular/bold/italic/bold-italic data,
 plus `core/LICENSE` and `dejavu/LICENSE`.
 
 Strauss then prefixes TCPDF and its transitive `tc-lib-*` dependency graph.
-Composer's `config.autoloader-suffix` is pinned to
-`SScribeExportSitePages` so Strauss's generated `vendor-prefixed/autoload.php`
-and `vendor-prefixed/composer/autoload_{real,static}.php` are byte-stable
-across clean runs instead of receiving a random initializer suffix.
+Strauss 0.28.1 deliberately seeds a fresh 32-hex Composer initializer suffix
+when it creates a new prefixed autoloader. Immediately after Strauss finishes,
+`scripts/normalize-prefixed-autoloader.php` fail-closed normalizes only the
+generated `ComposerAutoloaderInit*` / `ComposerStaticInit*` suffix across
+`vendor-prefixed/autoload.php`,
+`vendor-prefixed/composer/autoload_real.php`, and
+`vendor-prefixed/composer/autoload_static.php` to the stable,
+plugin-unique `SScribeExportSitePages` suffix. This removes build entropy
+without rewriting third-party package source.
 The release builder re-validates the same allow-list at
 `vendor-prefixed/tecnickcom/tc-lib-pdf-font/target/fonts/`, removes any
 unexpected font artifact, and fails if a required font or license file is
