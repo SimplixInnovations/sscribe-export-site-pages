@@ -503,8 +503,9 @@ composer release:tag
 ```
 
 For this release that helper must resolve the version from
-`SSCRIBE_VERSION` (currently 2.0.3), create `v{VERSION}` on the exact
-certified `origin/main` HEAD, and push it without force. The tag-triggered
+`SSCRIBE_VERSION` (currently 2.0.4), re-run the strict certification gates as a
+fail-closed admission guard, create `v{VERSION}` on the exact certified
+`origin/main` HEAD, and push it without force. The tag-triggered
 `.github/workflows/release.yml` must then complete verify → audit → test →
 certify → publish successfully. Submit to WordPress.org only the exact
 certified ZIP from that release, with the same SHA-256 as the certification
