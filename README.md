@@ -176,7 +176,7 @@ Tags and certified ZIPs are immutable after certification — never move, rebuil
 
 ## WordPress.org submission
 
-The submission artifact is the certified versioned ZIP (`dist/sscribe-export-site-pages-<ver>.zip`) with recorded SHA-256, byte size, and entry count. `readme.txt` carries the directory listing. Pre-submission: `composer release:audit`, `npm run test:e2e:full`, `composer test:wp`.
+The submission artifact is the certified versioned ZIP (`dist/sscribe-export-site-pages-<ver>.zip`) with recorded SHA-256, byte size, and entry count. `readme.txt` carries the WordPress.org directory metadata and listing copy. Pre-submission: `composer release:audit`, `npm run test:e2e:full`, `composer test:wp`.
 
 ## Branch policy
 
