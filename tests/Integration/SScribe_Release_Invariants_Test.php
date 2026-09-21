@@ -138,7 +138,7 @@ final class SScribe_Release_Invariants_Test extends TestCase {
 		$this->assertStringContainsString( 'composer install --no-interaction --no-progress --optimize-autoloader', $source );
 		$this->assertStringContainsString( 'composer vendor:prefix', $source );
 		$this->assertStringContainsString( 'scripts/build-release.php --skip-validation', $source );
-		$this->assertStringContainsString( "if ( \\$first['sha256'] !== \\$second['sha256'] )", $source );
+		$this->assertStringContainsString( 'if ( $first[\'sha256\'] !== $second[\'sha256\'] )', $source );
 
 		$composer = json_decode( (string) file_get_contents( $this->repo_root . '/composer.json' ), true );
 		$this->assertIsArray( $composer );
