@@ -184,6 +184,20 @@ class SScribe_Operational_Logger_Test extends TestCase {
 		}
 	}
 
+	public function test_operational_shutdown_hook_flushes_only_and_does_not_recapture_unscoped_fatals(): void {
+		$source = (string) file_get_contents(
+			dirname( __DIR__, 2 ) . '/includes/class-sscribe-operational-logger.php'
+		);
+
+		$this->assertStringNotContainsString(
+			'error_get_last',
+			$source,
+			'Fatal attribution belongs exclusively to SScribe_Fatal_Handler so unrelated WordPress/plugin fatals are not logged as SScribe incidents.'
+		);
+		$this->assertStringContainsString( 'public static function flush_on_shutdown(): void', $source );
+		$this->assertStringContainsString( 'self::flush();', $source );
+	}
+
 	public function test_shutdown_recursion_lock_is_class_scoped_not_dynamic_global(): void {
 		$source = (string) file_get_contents(
 			dirname( __DIR__, 2 ) . '/includes/class-sscribe-operational-logger.php'
