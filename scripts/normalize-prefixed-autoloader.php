@@ -18,7 +18,9 @@ if ( 'cli' !== PHP_SAPI ) {
 }
 
 $root          = dirname( __DIR__ );
-$target_root   = $root . '/vendor-prefixed';
+$target_root   = isset( $argv[1] ) && '' !== trim( (string) $argv[1] )
+	? rtrim( (string) $argv[1], "/\\\\" )
+	: $root . '/vendor-prefixed';
 $stable_suffix = 'SScribeExportSitePages';
 
 $files = array(
