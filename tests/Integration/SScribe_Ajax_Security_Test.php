@@ -99,6 +99,14 @@ final class SScribe_Ajax_Security_Test extends TestCase {
 		}
 	}
 
+	public function test_legacy_unregistered_health_check_endpoint_is_absent(): void {
+		$controller = (string) file_get_contents( self::plugin_root() . '/includes/class-sscribe-export-query-controller.php' );
+		$diagnostics = (string) file_get_contents( self::plugin_root() . '/includes/class-sscribe-diagnostics.php' );
+
+		$this::assertStringNotContainsString( 'function ajax_health_check(', $controller );
+		$this::assertStringNotContainsString( 'function check_ajax_health(', $diagnostics );
+	}
+
 	public function test_every_action_is_guarded_or_locally_authorized(): void {
 		list( $code ) = $this->run_verifier();
 		$this::assertSame( 0, $code );
