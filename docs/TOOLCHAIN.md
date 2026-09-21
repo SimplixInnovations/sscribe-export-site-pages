@@ -19,12 +19,12 @@ upgrades are isolated, reviewed commits with full gate evidence.
 | PowerShell | 7.4 / 5.1-compatible syntax | 5.1+ |
 | WordPress (plugin) | 6.1 – 7.1 (`readme.txt`) | 6.1+ |
 | WordPress (testbench) | `latest` / `previous` via wordpress.org API plus explicit 6.1 floor | rolling compatibility harness; resolved at install time |
-| wp-phpunit test suite | `wp-phpunit/wp-phpunit` default branch | rolling compatibility harness; resolved at install time |
-| SQLite integration (testbench) | latest GitHub release | rolling compatibility harness; resolved at install time |
+| wp-phpunit test suite | version-matched `wp-phpunit/wp-phpunit` `tree-{major.minor}` branch | rolling compatibility harness; resolved from the selected WordPress version |
+| SQLite integration (testbench + E2E) | 3.0.2 from WordPress.org | pinned external harness input; same version in PHP testbench and native E2E runtime |
 
 ## Deliberately not pinned
 
-- The external WordPress testbench inputs are intentionally rolling compatibility probes, not release-runtime dependencies. Every CI result records the repository SHA and matrix leg; do not describe those external harness inputs as deterministic pins.
+- WordPress core `latest` / `previous` remain rolling compatibility probes. The SQLite integration is deliberately pinned to a reviewed WordPress.org release so CI does not depend on an unauthenticated GitHub `releases/latest` request or silently change database semantics between candidate SHAs.
 - No `.node-version` and no `packageManager` field: CI pins Node 24
   via `setup-node`; adding a second pin source would conflict rather
   than help. `engines: >= 24.0.0` plus this document are the contract.
