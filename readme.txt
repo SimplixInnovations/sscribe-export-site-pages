@@ -38,6 +38,7 @@ SScribe turns WordPress pages into portable documents for content handovers, aud
 * WordPress 6.1 or newer
 * PHP 8.2 or newer
 * PHP extensions: cURL, DOM, GD, XML, and ZIP
+* Session encryption: Sodium, or OpenSSL with AES-256-GCM support
 * 256 MB of PHP memory is recommended for large PDF exports
 
 == Installation ==
