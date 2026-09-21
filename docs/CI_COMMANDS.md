@@ -502,13 +502,9 @@ failure looks like**, **how to debug**, **what manifest it writes**.
 ### `composer test:branch-policy`
 
 - **Script:** `php scripts/verify-branch-policy.php`
-- **Gates:** `docs/BRANCH_POLICY_v2.0.0.md` declares the
-  canonical sections (Why this exists, Canonical
-  long-lived branches, Forbidden patterns, Promotion
-  rules, How an independent auditor verifies this) AND
-  the git topology matches the main-only contract: `main` is the only persistent local long-lived branch, `origin/main` exists, local main matches origin/main when present, and release-evidence refs are mirrored on origin. Transient pull-request branches are allowed only while active and are deleted after merge/abandonment.
-- **Failure:** "Branch-Policy contract invalid: <rule>".
-- **Debug:** `dist/branch-policy-manifest.json`.
+- **Gates:** normal source CI validates the main-only topology contract and reports non-canonical remote branches/default-branch drift as review-state warnings where appropriate. Strict release certification requires a network-capable clean `main` checkout, no persistent remote branch except `main`, remote default branch `main`, and ignored `dist/repository-governance-evidence.json` bound to the exact current source SHA. That evidence must identify this repository and prove squash merge enabled, merge commits disabled, and rebase merge disabled.
+- **Failure:** strict mode reports the exact non-canonical remote branch, default-branch mismatch, stale/missing governance evidence, repository mismatch, or merge-method violation.
+- **Debug:** inspect `dist/branch-policy-manifest.json`, `dist/repository-governance-evidence.json`, and the retained raw GitHub API output under `dist/evidence/`.
 - **Manifest:** `dist/branch-policy-manifest.json`.
 
 ### `composer test:wp`
