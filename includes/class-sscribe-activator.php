@@ -58,6 +58,23 @@ class SScribe_Activator {
 			);
 		}
 
+		if ( ! SScribe_Vendor_Bootstrap::has_session_crypto_provider() ) {
+			$message = __( 'Activation aborted: a supported session-encryption provider is required (Sodium or OpenSSL AES-256-GCM).', 'sscribe-export-site-pages' );
+			set_transient(
+				'sscribe_boot_error',
+				array(
+					'message' => $message,
+					'time'    => gmdate( 'Y-m-d H:i:s \\U\\T\\C' ),
+				),
+				MINUTE_IN_SECONDS * 10
+			);
+			wp_die(
+				esc_html( $message ),
+				esc_html__( 'SScribe activation failed', 'sscribe-export-site-pages' ),
+				array( 'back_link' => true )
+			);
+		}
+
 		if ( ! SScribe_Vendor_Bootstrap::is_available() ) {
 			$message = sprintf(
 				/* translators: %s: plugin version */
