@@ -27,6 +27,7 @@ declare( strict_types=1 );
 require_once __DIR__ . '/lib/cross-platform.php';
 
 const SSCRIBE_INSTALL_TAG = 'install-wp-tests';
+const SSCRIBE_SQLITE_INTEGRATION_VERSION = '3.0.2';
 
 function sscribe_install_usage(): void {
 	fwrite( STDOUT, "Usage: php scripts/install-wp-tests.php [--sqlite] [--version <version>]\n" );
@@ -401,16 +402,13 @@ function sscribe_install_wp_tests( array $argv ): void {
 				throw new RuntimeException( 'SQLite Database Integration requires WordPress 6.4 or newer; use MySQL for older supported WordPress versions.' );
 			}
 
-			$sqlite_cache_suffix = 'latest';
+			$sqlite_cache_suffix = SSCRIBE_SQLITE_INTEGRATION_VERSION;
 
 			if ( ! is_dir( $sqlite_dir ) ) {
 				$sqlite_zip = $cache_dir . '/sqlite-database-integration-' . $sqlite_cache_suffix . '.zip';
 				if ( ! is_file( $sqlite_zip ) ) {
-					$releases = sscribe_http_get( 'https://api.github.com/repos/WordPress/sqlite-database-integration/releases/latest' );
-					if ( ! preg_match( '/"browser_download_url":\\s*"([^"]+\\.zip)"/', $releases, $m ) ) {
-						throw new RuntimeException( 'could not resolve SQLite Database Integration release URL' );
-					}
-					$sqlite_url = $m[1];
+					$sqlite_url = 'https://downloads.wordpress.org/plugin/sqlite-database-integration.' . SSCRIBE_SQLITE_INTEGRATION_VERSION . '.zip';
+					sscribe_log( SSCRIBE_INSTALL_TAG, 'Downloading SQLite Database Integration ' . SSCRIBE_SQLITE_INTEGRATION_VERSION . ' from WordPress.org...' );
 					sscribe_download_file( $sqlite_url, $sqlite_zip );
 				}
 				if ( ! class_exists( 'ZipArchive' ) ) {
