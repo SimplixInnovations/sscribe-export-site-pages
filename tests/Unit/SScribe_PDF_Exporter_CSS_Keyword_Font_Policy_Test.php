@@ -78,6 +78,28 @@ final class SScribe_PDF_Exporter_CSS_Keyword_Font_Policy_Test extends TestCase {
 		$this::assertStringContainsString( 'color:blue', str_replace( ' ', '', $result ) );
 	}
 
+	public function test_visible_style_attribute_syntax_is_not_treated_as_markup(): void {
+		$html = '<code>style="font-family: serif; color: red;"</code>'
+			. '<p style="font-family: Georgia; color: blue;">Styled paragraph</p>';
+
+		$result = $this->call_private( 'prepare_html_for_pdf_engine', array( $html, false ) );
+
+		$this::assertStringContainsString(
+			'<code>style="font-family: serif; color: red;"</code>',
+			$result,
+			'Visible style-attribute syntax must remain untouched when it is document content rather than markup.'
+		);
+		$this::assertStringContainsString(
+			'<p style="color:blue;">Styled paragraph</p>',
+			$result,
+			'Real inline style attributes must still be filtered through the PDF-safe declaration allow-list.'
+		);
+		$this::assertStringNotContainsString(
+			'<p style="font-family:',
+			strtolower( $result )
+		);
+	}
+
 	public function test_inline_style_filter_rejects_font_and_active_resource_values(): void {
 		$input = 'font-family: Georgia; font: 12px serif; color: red; '
 			. 'background: url(https://evil.example/x.png); '
