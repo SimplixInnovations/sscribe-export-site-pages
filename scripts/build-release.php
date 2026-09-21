@@ -622,6 +622,7 @@ if ( is_dir( $vendor_dir ) ) {
 		'phpunit.xml.dist', 'phpmd.xml.dist', 'phpword.ini.dist',
 		'.gitignore', '.gitattributes', '.travis.yml', '.scrutinizer.yml',
 		'CHANGELOG.md', 'CONTRIBUTING.md', 'README.md', 'CREDITS.txt',
+		'Makefile', 'VERSION',
 		'SECURITY.md', /* setasign/fpdi: dev doc, not autoloaded */
 		// LICENSE/COPYING preserved: WordPress.org Plugin Directory
 		// Guideline 1 requires third-party license texts to ship with
@@ -661,6 +662,11 @@ if ( is_dir( $vendor_dir ) ) {
 		'tecnickcom/tcpdf/Makefile',
 		'tecnickcom/tcpdf/VERSION',
 	);
+	$prune_paths      = array(
+		// TCPDF 7 font conversion tooling is build-time only. Runtime needs
+		// tc-lib-pdf-font/src plus the deterministic target/fonts subset.
+		'tecnickcom/tc-lib-pdf-font/util',
+	);
 
 	$v_iterator = new RecursiveIteratorIterator(
 		new RecursiveDirectoryIterator( $vendor_dir, RecursiveDirectoryIterator::SKIP_DOTS ),
@@ -672,6 +678,7 @@ if ( is_dir( $vendor_dir ) ) {
 		$ext      = strtolower( pathinfo( $name, PATHINFO_EXTENSION ) );
 		$relative = str_replace( '\\', '/', substr( $item->getPathname(), strlen( $vendor_dir ) + 1 ) );
 		$matched = in_array( $name, $prune_patterns, true )
+			|| in_array( $relative, $prune_paths, true )
 			|| ( ! $item->isDir() && in_array( $relative, $prune_files, true ) )
 			|| ( ! $item->isDir() && in_array( $ext, $prune_extensions, true ) );
 		if ( $matched ) {

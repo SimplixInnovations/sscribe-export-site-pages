@@ -84,6 +84,14 @@ final class SScribe_PDF_Exporter_Backup_Font_Policy_Test extends TestCase {
 		);
 	}
 
+
+	public function test_release_builder_prunes_tcpdf7_transitive_build_metadata(): void {
+		$source = $this->read_plugin_file( 'scripts/build-release.php' );
+
+		$this::assertStringContainsString( "'Makefile', 'VERSION'", $source );
+		$this::assertStringContainsString( "'tecnickcom/tc-lib-pdf-font/util'", $source );
+	}
+
 	public function test_release_builder_requires_tcpdf_and_font_license_notices(): void {
 		$source = $this->read_plugin_file( 'scripts/build-release.php' );
 
