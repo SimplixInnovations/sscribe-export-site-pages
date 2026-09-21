@@ -67,6 +67,35 @@ final class SScribe_PDF_Exporter_Backup_Font_Policy_Test extends TestCase {
 		$this::assertStringContainsString( 'dejavu-fonts-ttf-2.34/LICENSE', $source );
 	}
 
+	public function test_release_builder_keeps_every_tcpdf_core_fallback_face(): void {
+		$source = $this->read_plugin_file( 'scripts/build-release.php' );
+
+		foreach (
+			array(
+				'helvetica.php',
+				'helveticab.php',
+				'helveticabi.php',
+				'helveticai.php',
+				'courier.php',
+				'courierb.php',
+				'courierbi.php',
+				'courieri.php',
+				'times.php',
+				'timesb.php',
+				'timesbi.php',
+				'timesi.php',
+				'symbol.php',
+				'zapfdingbats.php',
+			) as $required
+		) {
+			$this::assertStringContainsString(
+				"'" . $required . "'",
+				$source,
+				"Release ZIP TCPDF font allow-list must retain {$required}."
+			);
+		}
+	}
+
 	public function test_release_builder_prunes_tcpdf_extensionless_build_metadata(): void {
 		$source = $this->read_plugin_file( 'scripts/build-release.php' );
 
