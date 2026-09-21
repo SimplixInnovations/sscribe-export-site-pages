@@ -90,6 +90,7 @@ final class SScribe_Release_Blockers_Test extends TestCase {
 			'plugin-check-evidence',
 			'clean-install-evidence',
 			'runtime-export-evidence',
+			'manual-runtime-evidence',
 			'source-transparency-evidence',
 		);
 		foreach ( $required_tokens as $token ) {
@@ -125,6 +126,7 @@ final class SScribe_Release_Blockers_Test extends TestCase {
 			'Source / build transparency unresolved',
 			'License inventory unresolved',
 			'Release path capable of rebuilding untested bytes',
+			'Manual runtime environment matrix not executed on exact ZIP',
 		);
 
 		foreach ( $canonical_blockers as $expected ) {
@@ -158,7 +160,7 @@ final class SScribe_Release_Blockers_Test extends TestCase {
 		);
 
 		$valid_statuses        = array( 'RESOLVED', 'DEFERRED' );
-		$valid_closure_sources = array( 'static', 'phase71-evidence', 'e2e-evidence', 'plugin-check-evidence', 'clean-install-evidence', 'runtime-export-evidence', 'source-transparency-evidence' );
+		$valid_closure_sources = array( 'static', 'phase71-evidence', 'e2e-evidence', 'plugin-check-evidence', 'clean-install-evidence', 'runtime-export-evidence', 'manual-runtime-evidence', 'source-transparency-evidence' );
 
 		foreach ( $hits as $row ) {
 			$this::assertContains(
