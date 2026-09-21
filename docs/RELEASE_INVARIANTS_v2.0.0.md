@@ -22,7 +22,7 @@ The release pipeline MUST obey every invariant below:
 | 2  | `readme.txt` Stable tag matches SSCRIBE_VERSION.   | Phase 16 verifier.                                   |
 | 3  | `package.json` version matches SSCRIBE_VERSION.    | Phase 16 verifier.                                   |
 | 4  | Mainfile `Version:` header matches SSCRIBE_VERSION.| Phase 16 verifier + Phase 63 ZIP mainfile check.     |
-| 5  | ZIP SHA-256 is reproducible from source + tools.   | Phase 53 release-pipeline verifier.                  |
+| 5  | ZIP SHA-256 is reproducible from source + tools.   | `composer release:determinism` builds twice from clean generated dependency/prefix/dist trees and compares ZIP bytes + staged-file/ZIP metadata maps. |
 | 6  | ZIP contains zero comments in shipped PHP/CSS/JS.   | Phase 53 release-pipeline verifier.                  |
 | 7  | ZIP excludes every dev-only path (tests/, scripts/, vendor/, etc.). | Phase 34 ZIP certification + Phase 35 content rules. |
 | 8  | ZIP mainfile `Version:` matches SSCRIBE_VERSION.   | Phase 34 + Phase 63.                                 |
