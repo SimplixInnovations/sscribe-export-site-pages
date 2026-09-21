@@ -267,7 +267,20 @@ Now repeat the **actual final** clean-install/runtime work on `$ZIP`:
   `dist/evidence/manual-runtime.log`.
 
 These logs must describe the exact environment, actions/commands, and observed
-PASS/FAIL result. Do not mark an unexecuted environment PASS.
+PASS/FAIL result. The clean-install and runtime-export logs must include the
+literal `$FINAL_SHA` and `$ZIP_SHA` values. The manual runtime log must also
+include those two values and these exact markers after successful execution:
+
+```text
+[standard_wordpress] PASS
+[wpml] PASS
+[redis_on] PASS
+[redis_off] PASS
+[openlitespeed] PASS
+[cloudflare_proxy] PASS
+```
+
+Do not mark an unexecuted environment PASS.
 
 Finally prove the source did not move:
 
