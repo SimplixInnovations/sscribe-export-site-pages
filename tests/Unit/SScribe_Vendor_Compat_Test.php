@@ -58,7 +58,9 @@ final class SScribe_Vendor_Compat_Test extends TestCase {
 			. 'require ' . var_export( $root . '/includes/sscribe-vendor-compat.php', true ) . ';'
 			. '$phpWord = new \\SScribeVendor\\PhpOffice\\PhpWord\\PhpWord();'
 			. '$section = $phpWord->addSection();'
-			. 'if (!$section instanceof \\SScribeVendor\\PhpOffice\\PhpWord\\Element\\Section) { exit(12); }'
+			. 'if (!$section instanceof \\PhpOffice\\PhpWord\\Element\\Section) { exit(12); }'
+			. 'if (!class_exists("SScribeVendor\\\\PhpOffice\\\\PhpWord\\\\Element\\\\Section")) { exit(13); }'
+			. 'if (!is_a($section, "SScribeVendor\\\\PhpOffice\\\\PhpWord\\\\Element\\\\Section")) { exit(14); }'
 			. 'exit(0);';
 
 		$process = proc_open(
