@@ -610,12 +610,31 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 			},
 			$html_content
 		);
-		$html_content = preg_replace( '/@font-face\\s*\\{[^}]+\\}/isU', '', $html_content ) ?? $html_content;
-		$html_content = preg_replace( '/@import\\s+[^;]+;/isU', '', $html_content ) ?? $html_content;
-		$html_content = preg_replace( '/url\\s*\\([^)]*\\)/i', 'none', $html_content ) ?? $html_content;
-		$html_content = preg_replace( '/(?<![-a-z])font-family\\s*:[^;}]+;?/i', '', $html_content ) ?? $html_content;
-		$html_content = preg_replace( '/(?<![-a-z])font\\s*:[^;}]+;?/i', '', $html_content ) ?? $html_content;
-		return $html_content;
+		$styled = preg_replace_callback(
+			'/<style\\b[^>]*>.*?<\\/style>/is',
+			static function ( array $matches ): string {
+				$style_block = $matches[0];
+				$open_end    = strpos( $style_block, '>' );
+				$close_start = strripos( $style_block, '</style>' );
+				if ( false === $open_end || false === $close_start || $close_start <= $open_end ) {
+					return $style_block;
+				}
+
+				$opening = substr( $style_block, 0, $open_end + 1 );
+				$css     = substr( $style_block, $open_end + 1, $close_start - $open_end - 1 );
+				$closing = substr( $style_block, $close_start );
+
+				$css = preg_replace( '/@font-face\\s*\\{[^}]+\\}/isU', '', $css ) ?? $css;
+				$css = preg_replace( '/@import\\s+[^;]+;/isU', '', $css ) ?? $css;
+				$css = preg_replace( '/url\\s*\\([^)]*\\)/i', 'none', $css ) ?? $css;
+				$css = preg_replace( '/(?<![-a-z])font-family\\s*:[^;}]+;?/i', '', $css ) ?? $css;
+				$css = preg_replace( '/(?<![-a-z])font\\s*:[^;}]+;?/i', '', $css ) ?? $css;
+
+				return $opening . $css . $closing;
+			},
+			$html_content
+		);
+		return is_string( $styled ) ? $styled : $html_content;
 	}
 
 	/**
