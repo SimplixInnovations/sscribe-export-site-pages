@@ -85,13 +85,16 @@ function sscribe_resolve_latest_wp(): string {
 }
 
 /**
- * Resolve the previous stable WordPress version via wordpress.org.
+ * Resolve the newest stable WordPress version from the release line
+ * immediately preceding the current major.minor line.
  *
- * Mirrors the shell implementation: the second "version" occurrence in
- * the version-check payload, falling back to latest-minus-0.1.
+ * The version-check API can repeat the current release in more than one
+ * offer, so positional selection (for example, the second "version" field)
+ * is invalid. Walk the ordered offers and return the first valid candidate
+ * whose major.minor release line differs from the first valid offer.
  *
  * @return string Version number.
- * @throws RuntimeException When resolution fails.
+ * @throws RuntimeException When no distinct previous release line is available.
  */
 function sscribe_resolve_previous_wp(): string {
 	sscribe_log( SSCRIBE_INSTALL_TAG, 'Resolving previous WordPress release line from wordpress.org...' );
