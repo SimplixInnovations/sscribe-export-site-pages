@@ -25,6 +25,7 @@ fake-wp/
 tests-e2e/
 test-results/
 phpunit.xml*
+phpunit-coverage*.xml
 phpstan.neon*
 phpstan-bootstrap.php
 phpstan-baseline.neon
@@ -118,9 +119,15 @@ mkdocs.yml
 .scrutinizer.yml
 .github_changelog_generator
 
-# Dev-only directories (segment-level — matched by build-release.php in_array check)
+# Dev-only directories/files (segment-level — matched by build-release.php)
+test/
 utils/
 tmp/
+codecov.yml
+.codecov.yml
+context7.json
+mago.src.toml
+mago.test.toml
 
 # OS files
 .DS_Store
