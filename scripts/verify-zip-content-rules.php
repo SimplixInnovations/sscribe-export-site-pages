@@ -353,6 +353,7 @@ if ( ! is_dir( $dist_dir ) ) {
 		'context7.json',
 		'mago.src.toml',
 		'mago.test.toml',
+		'changelog.txt',
 	);
 	$seen_vendor_dev = array();
 	foreach ( $iterator as $file ) {
