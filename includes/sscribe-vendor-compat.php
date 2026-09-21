@@ -31,10 +31,11 @@ $sscribe_vendor_aliases = array(
 	'Mpdf\\Output\\Destination'                => 'SScribeVendor\\Mpdf\\Output\\Destination',
 	'Mpdf\\Config\\ConfigVariables'            => 'SScribeVendor\\Mpdf\\Config\\ConfigVariables',
 	'Mpdf\\Config\\FontVariables'              => 'SScribeVendor\\Mpdf\\Config\\FontVariables',
+	'TCPDF'                                    => 'SScribeVendor_TCPDF',
 );
 
 foreach ( $sscribe_vendor_aliases as $sscribe_source => $sscribe_target ) {
-	if ( class_exists( $sscribe_source, false ) && ! class_exists( $sscribe_target, false ) ) {
+	if ( class_exists( $sscribe_source ) && ! class_exists( $sscribe_target, false ) ) {
 		class_alias( $sscribe_source, $sscribe_target );
 	}
 }
