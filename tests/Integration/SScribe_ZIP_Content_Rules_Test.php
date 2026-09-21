@@ -562,11 +562,8 @@ final class SScribe_ZIP_Content_Rules_Test extends TestCase {
 	}
 
 	/**
-	 * A submission ZIP must contain the runtime files WP.org requires:
-	 * vendor-prefixed/, vendor-prefixed/autoload.php, assets/, license.txt,
-	 * uninstall.php, composer.json. Strip vendor-prefixed/ entirely and
-	 * confirm the verifier fails on the missing-directory check (not
-	 * just the missing-autoload check).
+	 * Root coverage configs and nested third-party tests/tool metadata are
+	 * development artifacts even when Plugin Check itself accepts them.
 	 */
 	public function test_nested_vendor_and_root_dev_artifacts_fail(): void {
 		$builder = static function ( string $root ): void {
@@ -585,6 +582,7 @@ final class SScribe_ZIP_Content_Rules_Test extends TestCase {
 				'vendor-prefixed/tecnickcom/tc-lib-color/codecov.yml' => 'coverage: true',
 				'vendor-prefixed/tecnickcom/tc-lib-pdf/context7.json' => '{}',
 				'vendor-prefixed/tecnickcom/tcpdf/mago.src.toml' => '[source]',
+				'vendor-prefixed/tecnickcom/tcpdf/CHANGELOG.TXT' => 'history',
 			);
 			foreach ( $tree as $rel => $content ) {
 				$path = $root . '/' . $rel;
@@ -592,7 +590,8 @@ final class SScribe_ZIP_Content_Rules_Test extends TestCase {
 				if ( ! is_dir( $dir ) ) {
 					mkdir( $dir, 0755, true );
 				}
-				file_put_contents( $path, (string) $content ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
+				// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
+				file_put_contents( $path, (string) $content );
 			}
 		};
 		list( $code, $output ) = $this->run_against_dist( array( 'tree_builder' => $builder ) );
@@ -603,8 +602,16 @@ final class SScribe_ZIP_Content_Rules_Test extends TestCase {
 		$this::assertStringContainsString( 'codecov.yml', $output );
 		$this::assertStringContainsString( 'context7.json', $output );
 		$this::assertStringContainsString( 'mago.src.toml', $output );
+		$this::assertStringContainsString( 'CHANGELOG.TXT', $output );
 	}
 
+	/**
+	 * A submission ZIP must contain the runtime files WP.org requires:
+	 * vendor-prefixed/, vendor-prefixed/autoload.php, assets/, license.txt,
+	 * uninstall.php, composer.json. Strip vendor-prefixed/ entirely and
+	 * confirm the verifier fails on the missing-directory check (not
+	 * just the missing-autoload check).
+	 */
 	public function test_missing_required_runtime_fails(): void {
 		$builder = static function ( string $root ): void {
 			// Defensive: clear any vendor-prefixed/ leftover from a
