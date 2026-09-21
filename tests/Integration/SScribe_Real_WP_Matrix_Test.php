@@ -169,6 +169,14 @@ final class SScribe_Real_WP_Matrix_Test extends TestCase {
 	}
 
 
+	public function test_sqlite_installer_uses_pinned_wordpress_org_artifact_without_github_latest_api(): void {
+		$source = (string) file_get_contents( self::plugin_root() . '/' . self::INSTALLER );
+
+		$this::assertStringContainsString( "'3.0.2'", $source );
+		$this::assertStringContainsString( 'https://downloads.wordpress.org/plugin/sqlite-database-integration.', $source );
+		$this::assertStringNotContainsString( 'api.github.com/repos/WordPress/sqlite-database-integration/releases/latest', $source );
+	}
+
 	public function test_matrix_declares_both_sqlite_and_mysql_database_modes(): void {
 		$source = (string) file_get_contents( self::plugin_root() . '/' . self::CI_PATH );
 
