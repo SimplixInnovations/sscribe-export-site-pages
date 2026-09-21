@@ -243,6 +243,24 @@ if (/spawn\(\s*'php'/.test(adapterSrc)) {
   pass('native adapter uses configurable PHP binary');
 }
 
+
+// 24. Release E2E must use PHP's default single-process CLI server.
+// PHP_CLI_SERVER_WORKERS opts into the experimental forked-worker mode,
+// which has no value for this SQLite release fixture and can destabilize CI.
+if (/PHP_CLI_SERVER_WORKERS/.test(adapterSrc)) {
+  fail('native adapter enables experimental PHP_CLI_SERVER_WORKERS mode');
+} else {
+  pass('native adapter leaves PHP CLI server in default single-process mode');
+}
+
+// 25. Browser release certification is intentionally serialized. The native
+// WordPress fixture is a single-process HTTP server backed by one SQLite DB.
+if (!/workers:\s*1\b/.test(pwConfig)) {
+  fail('Playwright release certification must run with exactly one worker');
+} else {
+  pass('Playwright release certification is serialized to one worker');
+}
+
 if (process.exitCode === 1) {
   console.error('\nRUNTIME CONTRACT: FAIL');
 } else {
