@@ -220,88 +220,116 @@ if ( 'main' === $origin_default_branch ) {
 
 $governance_evidence_path = $repo_root . '/dist/repository-governance-evidence.json';
 if ( $strict_release ) {
-	$governance = array();
-	if ( is_file( $governance_evidence_path ) ) {
-		$decoded = json_decode( (string) file_get_contents( $governance_evidence_path ), true );
-		if ( is_array( $decoded ) ) {
-			$governance = $decoded;
-		}
-	}
+	$settings_output = (string) shell_exec( 'gh api repos/SimplixInnovations/sscribe-export-site-pages 2>&1' );
+	$branches_output = (string) shell_exec( 'gh api --paginate --slurp repos/SimplixInnovations/sscribe-export-site-pages/branches 2>&1' );
+	$settings        = json_decode( $settings_output, true );
+	$branch_pages    = json_decode( $branches_output, true );
 
+	$settings_ok = is_array( $settings ) && 'SimplixInnovations/sscribe-export-site-pages' === (string) ( $settings['full_name'] ?? '' );
 	sscribe_branch_policy_record(
 		$manifest, $failures, $warnings, $notes,
-		'repository_governance_evidence_present',
-		! empty( $governance ) ? 'PASS' : 'FAIL',
-		! empty( $governance )
-			? 'dist/repository-governance-evidence.json present'
-			: 'strict release certification requires dist/repository-governance-evidence.json'
+		'live_repository_settings_api_available',
+		$settings_ok ? 'PASS' : 'FAIL',
+		$settings_ok
+			? 'authenticated gh api returned the canonical repository settings'
+			: 'strict release requires authenticated gh CLI access to the canonical repository settings API'
+	);
+
+	$api_branches = array();
+	if ( is_array( $branch_pages ) ) {
+		foreach ( $branch_pages as $page ) {
+			if ( ! is_array( $page ) ) {
+				continue;
+			}
+			foreach ( $page as $branch_row ) {
+				if ( is_array( $branch_row ) && isset( $branch_row['name'] ) ) {
+					$api_branches[] = (string) $branch_row['name'];
+				}
+			}
+		}
+	}
+	$api_branches = array_values( array_unique( $api_branches ) );
+	sort( $api_branches );
+	$branches_api_ok = array( 'main' ) === $api_branches;
+	sscribe_branch_policy_record(
+		$manifest, $failures, $warnings, $notes,
+		'live_repository_branches_are_main_only',
+		$branches_api_ok ? 'PASS' : 'FAIL',
+		$branches_api_ok
+			? 'GitHub API remote branches=[main]'
+			: 'strict release requires GitHub API remote branches exactly [main]; observed: ' . ( $api_branches ? implode( ', ', $api_branches ) : 'unavailable/empty' )
+	);
+
+	$api_default_main = $settings_ok && 'main' === (string) ( $settings['default_branch'] ?? '' );
+	sscribe_branch_policy_record(
+		$manifest, $failures, $warnings, $notes,
+		'live_repository_default_branch_is_main',
+		$api_default_main ? 'PASS' : 'FAIL',
+		$api_default_main
+			? 'GitHub API default_branch=main'
+			: 'strict release requires GitHub API default_branch=main'
+	);
+
+	$merge_policy_ok = $settings_ok
+		&& true === ( $settings['allow_squash_merge'] ?? null )
+		&& false === ( $settings['allow_merge_commit'] ?? null )
+		&& false === ( $settings['allow_rebase_merge'] ?? null );
+	sscribe_branch_policy_record(
+		$manifest, $failures, $warnings, $notes,
+		'live_repository_merge_methods_are_canonical',
+		$merge_policy_ok ? 'PASS' : 'FAIL',
+		$merge_policy_ok
+			? 'GitHub API: squash enabled; merge commits disabled; rebase merge disabled'
+			: 'strict release requires GitHub API allow_squash_merge=true, allow_merge_commit=false, allow_rebase_merge=false'
 	);
 
 	$current_sha = sscribe_branch_policy_git( $repo_root, 'rev-parse HEAD' );
-	$governance_sha_matches = ! empty( $governance )
-		&& (bool) preg_match( '/^[a-f0-9]{40}$/', $current_sha )
-		&& hash_equals( $current_sha, (string) ( $governance['source_sha'] ?? '' ) );
-	sscribe_branch_policy_record(
-		$manifest, $failures, $warnings, $notes,
-		'repository_governance_evidence_matches_current_sha',
-		$governance_sha_matches ? 'PASS' : 'FAIL',
-		$governance_sha_matches
-			? 'repository governance evidence is bound to current HEAD ' . substr( $current_sha, 0, 8 )
-			: 'repository governance evidence source_sha must equal current git HEAD'
+	$governance = array(
+		'source_sha'         => $current_sha,
+		'repository'         => 'SimplixInnovations/sscribe-export-site-pages',
+		'default_branch'     => $settings['default_branch'] ?? null,
+		'remote_branches'    => $api_branches,
+		'allow_squash_merge' => $settings['allow_squash_merge'] ?? null,
+		'allow_merge_commit' => $settings['allow_merge_commit'] ?? null,
+		'allow_rebase_merge' => $settings['allow_rebase_merge'] ?? null,
+		'captured_at'        => gmdate( 'c' ),
+		'capture_method'     => 'authenticated gh api',
 	);
 
-	$repo_identity_ok = 'SimplixInnovations/sscribe-export-site-pages' === (string) ( $governance['repository'] ?? '' );
-	sscribe_branch_policy_record(
-		$manifest, $failures, $warnings, $notes,
-		'repository_governance_evidence_matches_repository',
-		$repo_identity_ok ? 'PASS' : 'FAIL',
-		$repo_identity_ok
-			? 'repository identity matches SimplixInnovations/sscribe-export-site-pages'
-			: 'repository governance evidence must identify SimplixInnovations/sscribe-export-site-pages'
-	);
-
-	$merge_policy_ok = true === ( $governance['allow_squash_merge'] ?? null )
-		&& false === ( $governance['allow_merge_commit'] ?? null )
-		&& false === ( $governance['allow_rebase_merge'] ?? null );
-	sscribe_branch_policy_record(
-		$manifest, $failures, $warnings, $notes,
-		'repository_merge_methods_are_canonical',
-		$merge_policy_ok ? 'PASS' : 'FAIL',
-		$merge_policy_ok
-			? 'squash enabled; merge commits disabled; rebase merge disabled'
-			: 'strict release requires allow_squash_merge=true, allow_merge_commit=false, allow_rebase_merge=false'
-	);
-
-	$evidence_default_main = 'main' === (string) ( $governance['default_branch'] ?? '' );
-	sscribe_branch_policy_record(
-		$manifest, $failures, $warnings, $notes,
-		'repository_governance_evidence_default_branch_is_main',
-		$evidence_default_main ? 'PASS' : 'FAIL',
-		$evidence_default_main
-			? 'evidence default_branch=main'
-			: 'repository governance evidence must record default_branch=main'
-	);
-
-	$evidence_branches = $governance['remote_branches'] ?? array();
-	if ( is_array( $evidence_branches ) ) {
-		$evidence_branches = array_values( array_unique( array_map( 'strval', $evidence_branches ) ) );
-		sort( $evidence_branches );
+	$evidence_dir = $repo_root . '/dist/evidence';
+	if ( ! is_dir( $evidence_dir ) ) {
+		mkdir( $evidence_dir, 0755, true );
 	}
-	$evidence_main_only = array( 'main' ) === $evidence_branches;
+	file_put_contents( $evidence_dir . '/repository-settings.json', $settings_output );
+	file_put_contents( $evidence_dir . '/repository-branches.json', $branches_output );
+	file_put_contents(
+		$governance_evidence_path,
+		json_encode( $governance, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES ) . "\n"
+	);
+
+	$evidence_bound = $settings_ok
+		&& $branches_api_ok
+		&& $api_default_main
+		&& $merge_policy_ok
+		&& (bool) preg_match( '/^[a-f0-9]{40}$/', $current_sha )
+		&& is_file( $governance_evidence_path )
+		&& 0 < filesize( $governance_evidence_path )
+		&& 0 < filesize( $evidence_dir . '/repository-settings.json' )
+		&& 0 < filesize( $evidence_dir . '/repository-branches.json' );
 	sscribe_branch_policy_record(
 		$manifest, $failures, $warnings, $notes,
-		'repository_governance_evidence_has_main_only',
-		$evidence_main_only ? 'PASS' : 'FAIL',
-		$evidence_main_only
-			? 'evidence remote_branches=[main]'
-			: 'repository governance evidence must record remote_branches exactly [main]'
+		'live_repository_governance_evidence_persisted',
+		$evidence_bound ? 'PASS' : 'FAIL',
+		$evidence_bound
+			? 'live GitHub settings/branch responses and SHA-bound governance summary persisted under ignored dist evidence'
+			: 'could not persist complete canonical live repository-governance evidence'
 	);
 } else {
 	sscribe_branch_policy_record(
 		$manifest, $failures, $warnings, $notes,
-		'repository_governance_evidence_required_only_for_strict_release',
+		'live_repository_governance_required_only_for_strict_release',
 		'PASS',
-		'normal source CI does not require mutable GitHub repository-settings evidence'
+		'normal source CI does not require authenticated mutable GitHub repository-settings access'
 	);
 }
 
