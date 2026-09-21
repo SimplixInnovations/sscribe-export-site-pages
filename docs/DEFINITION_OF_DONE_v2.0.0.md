@@ -56,7 +56,7 @@ criterion references the Phase gate that enforces it.
 | 30 | Agent final report produced in the canonical format (6 sections, 9 format rules).| Phase 73 agent final report.            | green           |
 | 31 | Auditor handoff protocol holds (14 artifacts listed, every artifact present).| Phase 74 auditor handoff.               | green           |
 | 32 | Release invariants declared + enforced (33 invariants, each with enforcing Phase gate).| Phase 75 release invariants.            | green           |
-| 33 | Branch topology policy holds (`main` is the only persistent long-lived branch; local main matches origin/main; no authoritative local-only refs; CI-tolerant).| Phase 77 branch topology policy.        | green           |
+| 33 | Branch/repository governance holds (`main` is the only persistent/default remote branch; local main matches origin/main; no authoritative local-only refs; squash-only merge settings are proven by exact-SHA repository evidence).| Phase 77 branch topology policy. | green |
 | 34 | Tag is cut on `origin/main` HEAD as an immutable annotated tag for v2.0.3+; cryptographic tag signing is recommended, not required. | Manual (Phase 54 gate). | green |
 | 35 | WP.org submission uses the exact certified ZIP whose SHA-256 matches Phase 72; after the tag-triggered GitHub release workflow, that ZIP is the `sscribe-release-zip` artifact produced by the certify job after official Plugin Check passes. | Manual (after Phase 33). | submitted |
 | 36 | Public maintained exact source/build inputs are available for WordPress.org because build tooling is omitted from the deployed ZIP. | Phase 70 blocker 18 / WordPress.org source guideline. | public |
