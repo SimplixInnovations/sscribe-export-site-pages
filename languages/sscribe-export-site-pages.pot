@@ -3319,7 +3319,7 @@ msgid "Upgrading PHP on WordPress"
 msgstr ""
 
 #: sscribe-export-site-pages.php:68
-msgid "This plugin requires WordPress 6.0 or higher. Your installation is running"
+msgid "This plugin requires WordPress 6.1 or higher. Your installation is running"
 msgstr ""
 
 #: sscribe-export-site-pages.php:70
@@ -3348,6 +3348,10 @@ msgstr ""
 #: includes/class-sscribe-activator.php:27
 #, php-format
 msgid "Activation aborted: required PHP extensions are missing: %s."
+msgstr ""
+
+#: includes/class-sscribe-activator.php:46
+msgid "Activation aborted: a supported session-encryption provider is required (Sodium or OpenSSL AES-256-GCM)."
 msgstr ""
 
 #: includes/exporters/class-sscribe-pdf-exporter.php:89
