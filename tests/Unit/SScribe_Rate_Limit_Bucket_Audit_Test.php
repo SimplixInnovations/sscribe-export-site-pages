@@ -165,7 +165,6 @@ final class SScribe_Rate_Limit_Bucket_Audit_Test extends TestCase {
 			array( '/includes/class-sscribe-export-query-controller.php', 'ajax_get_export_preview',       'export_read' ),
 			array( '/includes/class-sscribe-export-query-controller.php', 'ajax_get_recent_exports',       'export_read' ),
 			array( '/includes/class-sscribe-export-query-controller.php', 'ajax_preflight_check',          'health' ),
-			array( '/includes/class-sscribe-export-query-controller.php', 'ajax_health_check',            'health' ),
 
 			// Trait-driven handlers (handler methods on the using class).
 			array( '/includes/traits/trait-sscribe-batch-step-handler.php',    'ajax_process_batch',     'export_batch' ),
