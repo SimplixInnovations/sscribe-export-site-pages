@@ -110,7 +110,7 @@ $config = array(
 	'show_excluded'    => true,
 );
 
-$all_excludes = array_unique( array_merge( $config['base_excludes'], $config['font_excludes'], $config['fpdi_excludes'] ?? array() ) );
+$all_excludes = array_unique( array_merge( $config['base_excludes'], $config['font_excludes'] ) );
 
 function rrmdir( string $dir ): void {
 	if ( is_link( $dir ) ) {
@@ -623,7 +623,7 @@ if ( is_dir( $vendor_dir ) ) {
 		'.gitignore', '.gitattributes', '.travis.yml', '.scrutinizer.yml',
 		'CHANGELOG.md', 'CONTRIBUTING.md', 'README.md', 'CREDITS.txt',
 		'Makefile', 'VERSION',
-		'SECURITY.md', /* setasign/fpdi: dev doc, not autoloaded */
+		'SECURITY.md', /* Vendor security policy; development documentation only. */
 		// LICENSE/COPYING preserved: WordPress.org Plugin Directory
 		// Guideline 1 requires third-party license texts to ship with
 		// the bundled code. Removing them was a WP.org compliance bug.
@@ -633,12 +633,9 @@ if ( is_dir( $vendor_dir ) ) {
 		'.github_changelog_generator', 'roave-bc-check.yaml',
 		/* Development-only package files. */
 		'psalm-autoload.php',
-		/* setasign/fpdi: ad-hoc manual test scripts that read files from
-		 * outside the package directory; not autoloaded, never referenced
-		 * by the runtime PDFs we generate. */
+		/* Vendor-local manual test scripts; never autoloaded at runtime. */
 		'local-tests',
-		/* setasign/fpdi: scratch experiments checked into the repo next to
-		 * `src/` - not part of the library, not autoloaded. */
+		/* Vendor scratch/experiment directories; never autoloaded at runtime. */
 		'scratches',
 		/* myclabs/deep-copy: generated doc/ images and graph PNGs that
 		 * sit next to `src/`; not autoloaded, only used by the package's

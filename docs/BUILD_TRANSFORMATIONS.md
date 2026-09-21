@@ -244,8 +244,8 @@ during the release build.
 ## 7. Files NOT in the ZIP that ARE in the working tree
 
 The full enumeration above in Section 1. To audit a single file,
-inspect the `base_excludes`, `font_excludes`, and `fpdi_excludes`
-arrays at the top of `scripts/build-release.php`.
+inspect the `base_excludes` and `font_excludes` arrays at the top of
+`scripts/build-release.php`.
 
 ---
 
