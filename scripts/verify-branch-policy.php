@@ -218,6 +218,93 @@ if ( 'main' === $origin_default_branch ) {
 	);
 }
 
+$governance_evidence_path = $repo_root . '/dist/repository-governance-evidence.json';
+if ( $strict_release ) {
+	$governance = array();
+	if ( is_file( $governance_evidence_path ) ) {
+		$decoded = json_decode( (string) file_get_contents( $governance_evidence_path ), true );
+		if ( is_array( $decoded ) ) {
+			$governance = $decoded;
+		}
+	}
+
+	sscribe_branch_policy_record(
+		$manifest, $failures, $warnings, $notes,
+		'repository_governance_evidence_present',
+		! empty( $governance ) ? 'PASS' : 'FAIL',
+		! empty( $governance )
+			? 'dist/repository-governance-evidence.json present'
+			: 'strict release certification requires dist/repository-governance-evidence.json'
+	);
+
+	$current_sha = sscribe_branch_policy_git( $repo_root, 'rev-parse HEAD' );
+	$governance_sha_matches = ! empty( $governance )
+		&& (bool) preg_match( '/^[a-f0-9]{40}$/', $current_sha )
+		&& hash_equals( $current_sha, (string) ( $governance['source_sha'] ?? '' ) );
+	sscribe_branch_policy_record(
+		$manifest, $failures, $warnings, $notes,
+		'repository_governance_evidence_matches_current_sha',
+		$governance_sha_matches ? 'PASS' : 'FAIL',
+		$governance_sha_matches
+			? 'repository governance evidence is bound to current HEAD ' . substr( $current_sha, 0, 8 )
+			: 'repository governance evidence source_sha must equal current git HEAD'
+	);
+
+	$repo_identity_ok = 'SimplixInnovations/sscribe-export-site-pages' === (string) ( $governance['repository'] ?? '' );
+	sscribe_branch_policy_record(
+		$manifest, $failures, $warnings, $notes,
+		'repository_governance_evidence_matches_repository',
+		$repo_identity_ok ? 'PASS' : 'FAIL',
+		$repo_identity_ok
+			? 'repository identity matches SimplixInnovations/sscribe-export-site-pages'
+			: 'repository governance evidence must identify SimplixInnovations/sscribe-export-site-pages'
+	);
+
+	$merge_policy_ok = true === ( $governance['allow_squash_merge'] ?? null )
+		&& false === ( $governance['allow_merge_commit'] ?? null )
+		&& false === ( $governance['allow_rebase_merge'] ?? null );
+	sscribe_branch_policy_record(
+		$manifest, $failures, $warnings, $notes,
+		'repository_merge_methods_are_canonical',
+		$merge_policy_ok ? 'PASS' : 'FAIL',
+		$merge_policy_ok
+			? 'squash enabled; merge commits disabled; rebase merge disabled'
+			: 'strict release requires allow_squash_merge=true, allow_merge_commit=false, allow_rebase_merge=false'
+	);
+
+	$evidence_default_main = 'main' === (string) ( $governance['default_branch'] ?? '' );
+	sscribe_branch_policy_record(
+		$manifest, $failures, $warnings, $notes,
+		'repository_governance_evidence_default_branch_is_main',
+		$evidence_default_main ? 'PASS' : 'FAIL',
+		$evidence_default_main
+			? 'evidence default_branch=main'
+			: 'repository governance evidence must record default_branch=main'
+	);
+
+	$evidence_branches = $governance['remote_branches'] ?? array();
+	if ( is_array( $evidence_branches ) ) {
+		$evidence_branches = array_values( array_unique( array_map( 'strval', $evidence_branches ) ) );
+		sort( $evidence_branches );
+	}
+	$evidence_main_only = array( 'main' ) === $evidence_branches;
+	sscribe_branch_policy_record(
+		$manifest, $failures, $warnings, $notes,
+		'repository_governance_evidence_has_main_only',
+		$evidence_main_only ? 'PASS' : 'FAIL',
+		$evidence_main_only
+			? 'evidence remote_branches=[main]'
+			: 'repository governance evidence must record remote_branches exactly [main]'
+	);
+} else {
+	sscribe_branch_policy_record(
+		$manifest, $failures, $warnings, $notes,
+		'repository_governance_evidence_required_only_for_strict_release',
+		'PASS',
+		'normal source CI does not require mutable GitHub repository-settings evidence'
+	);
+}
+
 $local_only = array();
 foreach ( $local_refs as $ref ) {
 	if ( ! isset( $remote_refs[ $ref ] ) ) {
