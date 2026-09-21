@@ -688,10 +688,17 @@ failure looks like**, **how to debug**, **what manifest it writes**.
 
 ### `composer vendor:prefix`
 
-- **Script:** `php scripts/run-strauss.php && php scripts/fix-prefixed-safe.php && php scripts/fix-phpword-style-deprecation.php`
+- **Script:** stages the reviewed TCPDF font subset, runs Strauss, immediately
+  runs `scripts/normalize-prefixed-autoloader.php` to replace Strauss's
+  random generated Composer initializer suffix with
+  `SScribeExportSitePages`, then runs the safe/PHPWord compatibility fixes.
 - **Purpose:** Strauss-prefix all third-party PHP namespaces to
-  `SScribeVendor\` so they coexist with the host plugin. Required by
+  `SScribeVendor\` so they coexist with the host plugin while keeping the
+  generated prefixed autoloader reproducible across clean builds. Required by
   `composer ci:full` and the release workflow.
+- **Failure:** missing/unexpected Strauss generated-autoloader files, more than
+  one suffix, a suffix that is neither the stable value nor Strauss's expected
+  32-hex entropy, or any downstream prefix/fix failure.
 
 ### `composer release`
 
