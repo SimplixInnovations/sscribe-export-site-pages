@@ -159,11 +159,21 @@ if ( $strict_certification ) {
 		'Manual runtime evidence zip_sha256 must equal a fresh SHA-256 of the exact current-version ZIP.'
 	);
 
+	$manual_log = is_file( $evidence_log_path ) ? (string) file_get_contents( $evidence_log_path ) : '';
+	$record(
+		'strict_manual_runtime_log_matches_release_identity',
+		'' !== $manual_log
+			&& false !== strpos( $manual_log, (string) ( $evidence['source_sha'] ?? '' ) )
+			&& false !== strpos( $manual_log, (string) ( $evidence['zip_sha256'] ?? '' ) ),
+		'Manual runtime log must contain the exact source_sha and zip_sha256.'
+	);
+
 	$bad_environments = array();
 	foreach ( $required_environments as $key => $label ) {
-		$status   = (string) ( $evidence['environments'][ $key ]['status'] ?? '' );
-		$proof    = (string) ( $evidence['environments'][ $key ]['evidence'] ?? '' );
-		if ( 'PASS' !== $status || '' === trim( $proof ) ) {
+		$status = (string) ( $evidence['environments'][ $key ]['status'] ?? '' );
+		$proof  = (string) ( $evidence['environments'][ $key ]['evidence'] ?? '' );
+		$marker = '[' . $key . '] PASS';
+		if ( 'PASS' !== $status || '' === trim( $proof ) || false === strpos( $manual_log, $marker ) ) {
 			$bad_environments[] = $label . '=' . ( '' !== $status ? $status : 'MISSING' );
 		}
 	}
