@@ -683,14 +683,29 @@ if ( is_dir( $vendor_dir ) ) {
 			$pruned_count++;
 		}
 	}
-	// TCPDF ships ~25 MB of font assets. SScribe pins PDF rendering to
-	// DejaVu Sans (regular/bold/italic/bold-italic) and TCPDF's initial
-	// Helvetica core font, so all other generated fonts are unreachable.
-	// Retain the upstream DejaVu license texts alongside the generated data.
+	// TCPDF ships ~25 MB of font assets. SScribe pins document text to
+	// DejaVu Sans, but TCPDF can still select its built-in core families
+	// internally. Keep exactly the same core fallback faces retained by
+	// scripts/prune-tcpdf-for-strauss.php so the prefixed build and shipped
+	// ZIP cannot diverge. Retain the upstream DejaVu license texts alongside
+	// the generated font data.
 	$tcpdf_fonts_dir = $vendor_dir . '/tecnickcom/tcpdf/fonts';
 	if ( is_dir( $tcpdf_fonts_dir ) ) {
 		$tcpdf_font_allow = array(
 			'helvetica.php',
+			'helveticab.php',
+			'helveticabi.php',
+			'helveticai.php',
+			'courier.php',
+			'courierb.php',
+			'courierbi.php',
+			'courieri.php',
+			'times.php',
+			'timesb.php',
+			'timesbi.php',
+			'timesi.php',
+			'symbol.php',
+			'zapfdingbats.php',
 			'dejavusans.php', 'dejavusans.z', 'dejavusans.ctg.z',
 			'dejavusansb.php', 'dejavusansb.z', 'dejavusansb.ctg.z',
 			'dejavusansi.php', 'dejavusansi.z', 'dejavusansi.ctg.z',
