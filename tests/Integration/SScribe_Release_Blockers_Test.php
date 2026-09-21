@@ -281,6 +281,16 @@ final class SScribe_Release_Blockers_Test extends TestCase {
 		$this::assertLessThan( $query_pos, $cap_pos, 'The cap must be defined before the bounded collection call.' );
 	}
 
+	public function test_runtime_evidence_is_bound_to_exact_release_identity(): void {
+		$src = (string) file_get_contents( $this->repo_root . '/scripts/verify-release-blockers.php' );
+
+		$this::assertStringContainsString( 'check_exact_release_identity', $src );
+		$this::assertStringContainsString( 'clean_install_release_identity_mismatch', $src );
+		$this::assertStringContainsString( 'runtime_export_release_identity_mismatch', $src );
+		$this::assertStringContainsString( "payload['source_sha']", $src );
+		$this::assertStringContainsString( "payload['zip_sha256']", $src );
+	}
+
 	public function test_release_blocker_verifier_script_exists(): void {
 		$this::assertFileExists(
 			$this->repo_root . '/scripts/verify-release-blockers.php',
