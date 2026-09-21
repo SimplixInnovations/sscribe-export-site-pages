@@ -12,7 +12,7 @@
  *
  *   - DoD doc exists.
  *   - Doc declares the canonical sections.
- *   - All 34 canonical DoD criteria are listed.
+ *   - All 36 canonical DoD criteria are listed.
  *   - The companion verifier script exists.
  *
  * @package SScribe_Export_Site_Pages
@@ -105,10 +105,12 @@ final class SScribe_Definition_Of_Done_Test extends TestCase {
 			'Final execution state holds',
 			'Strict exact-artifact evidence matches',
 			'Agent final report produced',
-			'Auditor handoff protocol holds',
+			'Auditor handoff protocol holds (14 artifacts listed',
 			'Release invariants declared',
+			'Branch topology policy holds',
 			'Tag is cut on origin/main HEAD',
-			'WP.org submission is made',
+			'WP.org submission uses the exact certified ZIP',
+			'Public maintained exact source/build inputs are available',
 		);
 
 		$haystack = str_replace( '`', '', $src );
@@ -120,6 +122,38 @@ final class SScribe_Definition_Of_Done_Test extends TestCase {
 				"Canonical DoD criterion '{$expected}' must appear in the Definition of Done doc."
 			);
 		}
+	}
+
+	public function test_definition_of_done_has_exactly_36_numbered_criteria(): void {
+		$src = (string) file_get_contents( $this->dod_doc_path );
+		$rows = array();
+		preg_match_all( '/^\\|\\s*([0-9]+)\\s*\\|/m', $src, $rows );
+
+		$this->assertSame( range( 1, 36 ), array_map( 'intval', $rows[1] ?? array() ) );
+	}
+
+	public function test_definition_of_done_tag_wording_matches_canonical_tag_policy(): void {
+		$src = (string) file_get_contents( $this->dod_doc_path );
+
+		$this->assertStringNotContainsString(
+			'signed via `gh release create --verify-tag`',
+			$src,
+			'Definition of Done must not describe --verify-tag as cryptographic signing.'
+		);
+		$this->assertStringContainsString(
+			'cryptographic tag signing is recommended, not required',
+			strtolower( $src ),
+			'Definition of Done must match the canonical tag-policy distinction between annotated tags and optional cryptographic signing.'
+		);
+	}
+
+	public function test_wporg_submission_uses_the_actual_certified_release_artifact(): void {
+		$src     = (string) file_get_contents( $this->dod_doc_path );
+		$release = (string) file_get_contents( $this->repo_root . '/.github/workflows/release.yml' );
+
+		$this->assertStringContainsString( 'name: sscribe-release-zip', $release );
+		$this->assertStringContainsString( '`sscribe-release-zip`', $src );
+		$this->assertStringNotContainsString( "Plugin Check action's `release-zip`", $src );
 	}
 
 	public function test_definition_of_done_verifier_script_exists(): void {

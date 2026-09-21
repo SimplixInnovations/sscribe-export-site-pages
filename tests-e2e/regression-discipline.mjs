@@ -91,16 +91,18 @@ const targets = [
     specFile: 'tests-e2e/e2e/export/download-token-auth.spec.ts',
     description: 'download token is single-use',
     sourceFile: 'includes/class-sscribe-zip-handler.php',
-    // consume_dl_token() returns false on mismatch but ALSO rotates the
-    // token regardless. The spec needs the ROTATION step to actually
-    // happen. Reverting the update_option() call leaves the stored token
-    // unchanged — the second request with the original token would still
-    // hash_equals match, so the spec's "secondStatus === 403" would fail.
-    // We match the `$row['dl_token'] = $this->generate_dl_token();` line
-    // and remove it.
+    // consume_dl_token() must rotate the token on successful redemption.
+    // A naive mutation that only removes the token assignment can be masked
+    // when two immediate requests land in the same second: update_option()
+    // then returns false because dl_token_at is unchanged, and the replay is
+    // rejected for the wrong reason. Keep the token stable but increment the
+    // timestamp deterministically so both writes succeed; the second request
+    // can then succeed only when token rotation is actually missing, which
+    // makes the browser regression test fail for the intended reason.
     revertMatch:
       /(\$row\['dl_token'\]\s*=\s*\$this->generate_dl_token\(\);\s*\n\s*\$row\['dl_token_at'\]\s*=\s*time\(\);)/,
-    revertReplace: "\$row['dl_token_at'] = time();",
+    revertReplace:
+      "\$row['dl_token'] = \$stored;\\n\t\t\t\$row['dl_token_at'] = (int) ( \$row['dl_token_at'] ?? 0 ) + 1;",
   },
   {
     specFile: 'tests-e2e/e2e/export/batch-progress.spec.ts',
@@ -167,6 +169,50 @@ for (const target of targets) {
 
   writeFileSync(srcAbs, reverted, 'utf-8');
 
+  // E2E deliberately boots the exact release ZIP rather than mounting source.
+  // Rebuild that ZIP after each source mutation so the Playwright assertion
+  // actually exercises the reverted production behavior.
+  const buildResult = spawnSync(
+    'php',
+    ['scripts/build-release.php', '--skip-validation'],
+    {
+      cwd: ROOT,
+      stdio: 'inherit',
+      env: { ...process.env, CI: '1' },
+    }
+  );
+  if (buildResult.status !== 0) {
+    // A mutation rejected by the canonical release builder is already caught:
+    // shipped-invariant/build gates are part of the release safety net this
+    // discipline test is meant to prove. Distinguish that valid prevention
+    // from an unrelated broken baseline by restoring the source and requiring
+    // the canonical ZIP to rebuild successfully before counting the target.
+    writeFileSync(srcAbs, original, 'utf-8');
+    const recoveryBuild = spawnSync(
+      'php',
+      ['scripts/build-release.php', '--skip-validation'],
+      {
+        cwd: ROOT,
+        stdio: 'inherit',
+        env: { ...process.env, CI: '1' },
+      }
+    );
+
+    exercised++;
+    if (recoveryBuild.status === 0) {
+      console.log(
+        `[pass] ${target.description}: mutated artifact rejected by canonical build gate`
+      );
+      caught++;
+    } else {
+      console.error(
+        `[fail] ${target.description}: mutated build failed and canonical artifact did not recover`
+      );
+      failures++;
+    }
+    continue;
+  }
+
   try {
     const result = spawnSync(
       'npx',
@@ -192,6 +238,22 @@ for (const target of targets) {
   } finally {
     writeFileSync(srcAbs, original, 'utf-8');
   }
+}
+
+// Restore the canonical artifact after the final mutation. Without this,
+ // later E2E/performance gates would inherit the last intentionally broken ZIP.
+const canonicalBuild = spawnSync(
+  'php',
+  ['scripts/build-release.php', '--skip-validation'],
+  {
+    cwd: ROOT,
+    stdio: 'inherit',
+    env: { ...process.env, CI: '1' },
+  }
+);
+if (canonicalBuild.status !== 0) {
+  console.error('[fail] regression-discipline: failed to rebuild canonical release ZIP');
+  failures++;
 }
 
 if (failures > 0 || exercised < targets.length) {

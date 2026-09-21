@@ -101,10 +101,10 @@ if (!/PINNED_WORDPRESS_VERSION\s*=\s*['"]7\.1['"]/.test(adapterSrc)) {
 }
 
 // 7. DB integration version pinned.
-if (!/PINNED_SQLITE_INTEGRATION_VERSION\s*=\s*['"]2\.2\.4['"]/.test(adapterSrc)) {
+if (!/PINNED_SQLITE_INTEGRATION_VERSION\s*=\s*['"]3\.0\.2['"]/.test(adapterSrc)) {
   fail('SQLite integration version not pinned');
 } else {
-  pass('SQLite integration version pinned (2.2.4)');
+  pass('SQLite integration version pinned (3.0.2)');
 }
 
 // 8. MU helpers are installed (extractZip of mu-plugins/).

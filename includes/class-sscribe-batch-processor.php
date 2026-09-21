@@ -1097,11 +1097,11 @@ final class SScribe_Batch_Processor {
 			}
 		}
 
-		$page_ids      = $this->collector->get_page_ids( $language, $post_status, $post_type );
+		$page_id_cap    = 10000;
+		$page_ids      = $this->collector->get_page_ids( $language, $post_status, $post_type, $page_id_cap );
 		$total         = count( $page_ids );
 		$available_total = $this->collector->get_page_count_only( $language, $post_status, $post_type );
 		$partial_export = $available_total > $total;
-		$page_id_cap    = 10000;
 
 		$current_lang = 'default';
 		if ( $this->collector->is_wpml_active() ) {

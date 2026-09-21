@@ -95,7 +95,7 @@ class SScribe_Diagnostics_Test extends TestCase {
 		$this->assertArrayHasKey( 'execution', $checks );
 		$this->assertArrayHasKey( 'upload_dir', $checks );
 		$this->assertArrayHasKey( 'zip', $checks );
-		$this->assertArrayHasKey( 'mpdf', $checks );
+		$this->assertArrayHasKey( 'tcpdf', $checks );
 		$this->assertArrayHasKey( 'phpword', $checks );
 		$this->assertArrayHasKey( 'permissions', $checks );
 		$this->assertArrayHasKey( 'wp_cron', $checks );
@@ -391,48 +391,34 @@ $sections            = array(
 		$this->assertStringContainsStringIgnoringCase( 'debug', $result );
 	}
 
-	/**
-	 * Regression: shipped mPDF ships 17 font files; the MIN_MPDF_FONT_COUNT
-	 * floor must accept healthy installs. Previously 40 → false-positive on
-	 * every install because the build script deliberately prunes a chunk of
-	 * the upstream font set.
-	 */
-	public function test_min_mpdf_font_count_accepts_shipped_vendor_tree(): void {
-		$const = new \ReflectionClass( SScribe_Diagnostics::class );
-		$value = $const->getConstant( 'MIN_MPDF_FONT_COUNT' );
+	public function test_tcpdf_required_font_asset_contract_matches_release_pruner(): void {
+		$diag_ref = new \ReflectionClass( SScribe_Diagnostics::class );
+		$required = $diag_ref->getConstant( 'TCPDF_REQUIRED_FONT_FILES' );
 
-		$this->assertIsInt( $value );
+		$this->assertIsArray( $required );
+		foreach ( array( 'helvetica.php', 'dejavusans.php', 'dejavusansb.php', 'dejavusansi.php', 'dejavusansbi.php' ) as $required_file ) {
+			$this->assertContains( $required_file, $required );
+		}
 
-		// The shipped vendor tree has 17 files (16 TTF + DejaVuinfo.txt).
-		// The floor MUST be <= 17 or every install reports a false-positive
-		// "mPDF fonts incomplete" warning.
-		$this->assertLessThanOrEqual(
-			17,
-			$value,
-			'MIN_MPDF_FONT_COUNT is higher than the shipped font file count; '
-			. 'this causes a false-positive warning on every install.'
-		);
+		$pruner = (string) file_get_contents( SSCRIBE_PLUGIN_DIR . 'scripts/prune-tcpdf-for-strauss.php' );
+		foreach ( $required as $font_file ) {
+			$this->assertStringContainsString(
+				"'" . $font_file . "'",
+				$pruner,
+				'Diagnostics must not require a TCPDF font asset that the release pruner removes: ' . $font_file
+			);
+		}
 	}
 
-	public function test_mpdf_font_discovery_does_not_depend_on_glob_brace(): void {
-		$temp_dir = sys_get_temp_dir() . '/sscribe-font-glob-' . bin2hex( random_bytes( 6 ) );
-		wp_mkdir_p( $temp_dir );
-		file_put_contents( $temp_dir . '/one.ttf', '' );
-		file_put_contents( $temp_dir . '/two.otf', '' );
-		file_put_contents( $temp_dir . '/three.txt', '' );
-		file_put_contents( $temp_dir . '/ignored.php', '' );
+	public function test_check_tcpdf_reports_current_renderer_contract(): void {
+		$method = new \ReflectionMethod( SScribe_Diagnostics::class, 'check_tcpdf' );
+		$result = $method->invoke( $this->diagnostics );
 
-		try {
-			$method = new \ReflectionMethod( SScribe_Diagnostics::class, 'find_mpdf_font_files' );
-			$files  = $method->invoke( $this->diagnostics, $temp_dir );
+		$this->assertIsArray( $result );
+		$this->assertSame( 'TCPDF Library', $result['name'] ?? '' );
 
-			$this->assertCount( 3, $files );
-			$this->assertSame( array( 'one.ttf', 'three.txt', 'two.otf' ), array_map( 'basename', $files ) );
-		} finally {
-			foreach ( glob( $temp_dir . '/*' ) ?: array() as $file ) {
-				wp_delete_file( $file );
-			}
-			@rmdir( $temp_dir );
+		if ( file_exists( SSCRIBE_PLUGIN_DIR . 'vendor-prefixed/autoload.php' ) ) {
+			$this->assertSame( 'ok', $result['status'] ?? '', 'A complete generated vendor tree must satisfy the TCPDF diagnostics check.' );
 		}
 	}
 

@@ -202,6 +202,83 @@ final class SScribe_Release_Blockers_Test extends TestCase {
 		);
 	}
 
+	public function test_cancel_handler_never_terminates_ajax_while_export_lock_is_held(): void {
+		$path = $this->repo_root . '/includes/traits/trait-sscribe-session-ajax.php';
+		$src  = (string) file_get_contents( $path );
+
+		$method_start = strpos( $src, 'public function ajax_cancel_export(): void {' );
+		$method_end   = strpos( $src, 'public function ajax_clear_session(): void {', $method_start );
+		$this::assertNotFalse( $method_start );
+		$this::assertNotFalse( $method_end );
+
+		$method         = substr( $src, $method_start, $method_end - $method_start );
+		$acquire_marker = '$lock_token = $this->get_lock_manager()->acquire_lock( $session_id, 30, 25 );';
+		$release_marker = '$this->get_lock_manager()->release_lock( $session_id, $lock_token );';
+		$acquire        = strpos( $method, $acquire_marker );
+		$release        = strpos( $method, $release_marker, false === $acquire ? 0 : $acquire );
+
+		$this::assertNotFalse( $acquire, 'Cancel handler must acquire the per-session export lock.' );
+		$this::assertNotFalse( $release, 'Cancel handler must release the per-session export lock.' );
+		$this::assertGreaterThan( $acquire, $release, 'Cancel handler must release only after lock acquisition.' );
+
+		$critical_section = substr( $method, $acquire, $release - $acquire );
+		$this::assertStringNotContainsString(
+			'SScribe_AJAX_Guard::success',
+			$critical_section,
+			'Cancel handler must not terminate through a success response before releasing the export lock.'
+		);
+		$this::assertStringNotContainsString(
+			'SScribe_AJAX_Guard::error',
+			$critical_section,
+			'Cancel handler must not terminate through an error response before releasing the export lock.'
+		);
+	}
+
+	public function test_missing_session_batch_path_never_discards_an_unowned_lock(): void {
+		$path = $this->repo_root . '/includes/traits/trait-sscribe-batch-step-handler.php';
+		$src  = (string) file_get_contents( $path );
+
+		$this::assertStringNotContainsString(
+			'$this->get_lock_manager()->discard_lock( $session_id );',
+			$src,
+			'A missing session does not prove lock ownership; batch handling must leave any extant lock to its owner or TTL cleanup.'
+		);
+	}
+
+	public function test_finalize_renewal_failure_releases_owned_lock_before_response(): void {
+		$path = $this->repo_root . '/includes/traits/trait-sscribe-export-finalizer.php';
+		$src  = (string) file_get_contents( $path );
+
+		$branch_start = strpos( $src, 'if ( null !== $lock_token && ! $this->get_lock_manager()->renew_lock( $session_id, $lock_token, 600 ) ) {' );
+		$branch_end   = strpos( $src, '$zip_path = $this->zip_handler->create_zip', false === $branch_start ? 0 : $branch_start );
+		$this::assertNotFalse( $branch_start );
+		$this::assertNotFalse( $branch_end );
+
+		$failure_branch = substr( $src, $branch_start, $branch_end - $branch_start );
+		$this::assertStringContainsString(
+			'$this->release_lock( $session_id, $lock_token );',
+			$failure_branch,
+			'Finalize renewal failure must make a token-safe release attempt before the terminating AJAX response.'
+		);
+	}
+
+	public function test_start_export_enforces_declared_page_id_cap_at_collection_boundary(): void {
+		$path = $this->repo_root . '/includes/class-sscribe-batch-processor.php';
+		$src  = (string) file_get_contents( $path );
+
+		$cap_marker   = '$page_id_cap    = 10000;';
+		$query_marker = '$page_ids      = $this->collector->get_page_ids( $language, $post_status, $post_type, $page_id_cap );';
+		$cap_pos      = strpos( $src, $cap_marker );
+		$query_pos    = strpos( $src, $query_marker );
+
+		$this::assertNotFalse( $cap_pos, 'Start-export must declare its hard page-ID cap.' );
+		$this::assertNotFalse(
+			$query_pos,
+			'Start-export must pass the declared cap into page-ID collection so the chunked path cannot become unbounded.'
+		);
+		$this::assertLessThan( $query_pos, $cap_pos, 'The cap must be defined before the bounded collection call.' );
+	}
+
 	public function test_release_blocker_verifier_script_exists(): void {
 		$this::assertFileExists(
 			$this->repo_root . '/scripts/verify-release-blockers.php',

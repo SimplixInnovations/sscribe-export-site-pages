@@ -256,10 +256,14 @@ foreach ( $canonical_signatures as $signature ) {
 		}
 	}
 	$covered[ $signature ] = $matches;
+	$matched = count( $matches ) > 0;
+	$detail  = $matched
+		? 'Phase 68 signature "' . $signature . '" matched by: ' . implode( ', ', $matches )
+		: 'Phase 68 signature "' . $signature . '" must appear in at least one test method name OR docblock. No match found in ' . count( $corpus ) . ' test methods scanned.';
 	$record(
 		'covers_' . preg_replace( '/[^a-z0-9_]/', '_', strtolower( $signature ) ),
-		count( $matches ) > 0,
-		'Phase 68 signature "' . $signature . '" must appear in at least one test method name OR docblock. No match found in ' . count( $corpus ) . ' test methods scanned.'
+		$matched,
+		$detail
 	);
 }
 

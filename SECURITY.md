@@ -2,7 +2,7 @@
 
 ## Supported versions
 
-Only the latest stable release line receives security fixes. Older tags (including prior certified ZIPs) are immutable and are not re-cut; fixes ship in the next release lineage on `develop`.
+Only the latest stable release line receives security fixes. Older tags (including prior certified ZIPs) are immutable and are not re-cut; fixes ship as a new version from a reviewed transient security branch based on current `main`.
 
 ## Responsible disclosure
 
@@ -16,13 +16,13 @@ If you believe you have found a security vulnerability in SScribe:
    - Step-by-step reproduction (request sequence, roles/capabilities involved)
    - Impact assessment (what an attacker gains, and under which capabilities)
    - Suggested fix or mitigation, if known
-4. Allow maintainers time to triage, fix on `develop`, and cut a release before any public disclosure. Coordinated disclosure only.
+4. Allow maintainers time to triage privately, prepare the fix on a transient security branch based on current `main`, complete review/certification, and cut a new release before any public disclosure. Coordinated disclosure only.
 
 ## Expected response workflow
 
 1. Acknowledgement of receipt.
 2. Triage and severity assessment; reproduction against a clean install.
-3. Fix developed on `develop` with regression tests proving containment/authorization.
+3. Fix prepared on a transient security branch from current `main`, with regression tests proving containment/authorization and review before merge.
 4. Release cut with updated `docs/SECURITY_MATRIX_*` evidence where applicable.
 5. Coordinated public disclosure crediting the reporter (unless anonymity is requested).
 

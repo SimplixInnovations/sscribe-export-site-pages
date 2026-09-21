@@ -60,6 +60,46 @@ final class SScribe_Real_WP_Testbench_Test extends TestCase {
 		$this->assertStringContainsString('sscribe-export-site-pages.php', $contents);
 	}
 
+
+	public function test_wp61_phpunit11_legacy_alias_shim_is_loaded_before_wp_bootstrap(): void {
+		$shim = self::plugin_root() . '/tests-wp/phpunit-legacy-compat.php';
+		$this->assertFileExists( $shim );
+
+		$bootstrap = (string) file_get_contents( self::plugin_root() . '/' . self::WP_BOOTSTRAP );
+		$shim_pos  = strpos( $bootstrap, "phpunit-legacy-compat.php" );
+		$wp_pos    = strpos( $bootstrap, "includes/bootstrap.php" );
+
+		$this->assertNotFalse( $shim_pos );
+		$this->assertNotFalse( $wp_pos );
+		$this->assertLessThan( $wp_pos, $shim_pos, 'The PHPUnit compatibility shim must load before wp-phpunit.' );
+
+		$contents = (string) file_get_contents( $shim );
+		foreach ( array( 'Deprecated', 'Notice', 'Warning', 'TestListener' ) as $symbol ) {
+			$this->assertStringContainsString( $symbol, $contents );
+		}
+	}
+
+
+	public function test_wp_bootstrap_does_not_mask_unrelated_runtime_failures(): void {
+		$bootstrap = (string) file_get_contents( self::plugin_root() . '/' . self::WP_BOOTSTRAP );
+
+		$this->assertStringNotContainsString(
+			'set_exception_handler(',
+			$bootstrap,
+			'The real-WordPress bootstrap must not swallow arbitrary uncaught throwables.'
+		);
+		$this->assertStringNotContainsString(
+			'_ss_test_force_clean_exit',
+			$bootstrap,
+			'The testbench must not carry a dead clean-exit bypass.'
+		);
+		$this->assertStringContainsString(
+			'is_callable( $_ss_prev_err_handler )',
+			$bootstrap,
+			'Non-header runtime errors must be delegated to PHPUnit\'s previous error handler.'
+		);
+	}
+
 	public function test_sscribe_wp_testcase_extends_wp_unit_testcase(): void {
 		$path = self::plugin_root() . '/tests-wp/WordPress/SScribe_WP_TestCase.php';
 		$this->assertFileExists($path);
@@ -76,7 +116,9 @@ final class SScribe_Real_WP_Testbench_Test extends TestCase {
 		$contents = (string) file_get_contents( $path );
 
 		$this::assertStringContainsString( 'sqlite-database-integration', $contents );
-		$this::assertStringContainsString( 'WordPress/sqlite-database-integration/releases/latest', $contents );
+		$this::assertStringContainsString( "SSCRIBE_SQLITE_INTEGRATION_VERSION = '3.0.2'", $contents );
+		$this::assertStringContainsString( 'https://downloads.wordpress.org/plugin/sqlite-database-integration.', $contents );
+		$this::assertStringNotContainsString( 'api.github.com/repos/WordPress/sqlite-database-integration/releases/latest', $contents );
 		$this::assertStringContainsString( "'db.copy'", $contents );
 		$this::assertStringContainsString( 'wp-content/db.php', $contents );
 		$this::assertStringContainsString(

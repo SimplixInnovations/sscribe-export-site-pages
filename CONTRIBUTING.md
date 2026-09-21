@@ -1,16 +1,17 @@
 # Contributing to SScribe
 
-## Branch policy (`main` / `develop` / tags)
+## Branch policy (`main` / transient review branches / tags)
 
-- `main` and `develop` are the only long-lived branches and must always point to the **same SHA** between releases (alias model).
-- Day-to-day work: commit on `develop`, push to origin, then advance `main` to match by fast-forward only. Never force-push `main` or `develop`, including during a release cut.
-- No `release/*`, `feature/*`, `hotfix/*`, or `support/*` branch may persist between releases. Transient hotfix branches must be merged into `develop` and deleted before a tag cut.
+- `main` is the **only** long-lived branch.
+- Day-to-day work uses a short-lived topic branch created from current `main`; changes enter `main` through a reviewed pull request.
+- Audit, release, feature, hotfix, and support branches are transient review state only and must be deleted after merge or abandonment.
+- Never force-push or rewrite `main`. Repository protection/rulesets should require the documented checks and pull-request review when the hosting plan permits it.
 - Tags are **immutable**. The release ZIP certified against a tag is immutable: never move, rebuild, or replace it.
 - Enforcement: `composer test:branch-policy`, `composer test:tag-policy`, `composer test:branch-protection`. Full policy: `docs/BRANCH_POLICY_v2.0.0.md`.
 
 ## No direct release-tag mutation
 
-Never commit onto a tag, delete/recreate a tag, or rebuild a certified artifact. All new work belongs to `develop` and the next release lineage.
+Never commit onto a tag, delete/recreate a tag, or rebuild a certified artifact. All new work starts from current `main` on a transient review branch and ships in the next release lineage.
 
 ## PHP coding standards
 
@@ -48,7 +49,7 @@ Never commit onto a tag, delete/recreate a tag, or rebuild a certified artifact.
 ## Commit expectations
 
 - Small, separated commits: `test:`, `chore:`, `docs:`, `build:`, `tooling:` prefixes. Never mix normalization/behavior/docs in one commit.
-- Cash the gates per commit where touched: unit tests + `stan` + `cs` minimum.
+- Run the gates per commit where touched: unit tests + `stan` + `cs` minimum.
 
 ## Release artifact policy
 

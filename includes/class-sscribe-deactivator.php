@@ -25,8 +25,46 @@ class SScribe_Deactivator {
 	 * Only cron hooks, transients, and temporary runtime data are cleared.
 	 * User options and data are removed only via uninstall.php when the user
 	 * explicitly deletes the plugin through the admin plugin management screen.
+	 *
+	 * @param bool $network_wide Whether the plugin is being network-deactivated.
 	 */
-	public static function deactivate(): void {
+	public static function deactivate( bool $network_wide = false ): void {
+		if ( $network_wide && is_multisite() ) {
+			$offset = 0;
+			$limit  = 100;
+
+			do {
+				$site_ids = get_sites(
+					array(
+						'fields' => 'ids',
+						'number' => $limit,
+						'offset' => $offset,
+					)
+				);
+
+				foreach ( $site_ids as $site_id ) {
+					switch_to_blog( (int) $site_id );
+					try {
+						self::deactivate_site();
+					} finally {
+						restore_current_blog();
+					}
+				}
+
+				$site_count = count( $site_ids );
+				$offset    += $site_count;
+			} while ( $site_count === $limit );
+
+			return;
+		}
+
+		self::deactivate_site();
+	}
+
+	/**
+	 * Clear runtime state for the current site without deleting user data.
+	 */
+	private static function deactivate_site(): void {
 		wp_clear_scheduled_hook( 'sscribe_cleanup_exports' );
 		wp_clear_scheduled_hook( 'sscribe_cleanup_sessions' );
 		wp_clear_scheduled_hook( 'sscribe_cleanup_audit_trail' );

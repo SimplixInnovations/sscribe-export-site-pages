@@ -165,9 +165,8 @@ failure looks like**, **how to debug**, **what manifest it writes**.
 
 - **Script:** `php scripts/verify-tag-policy.php`
 - **Gates:** tags follow `vMAJOR.MINOR.PATCH`, the tag is created on
-  `origin/main` (not `develop`), the tag SHA matches the head of
-  `origin/develop` at release time, and the tag is signed.
-- **Failure:** "Tag v2.0.1 was created on `develop`, must be `main`".
+  `origin/main`, the tag SHA matches the certified source SHA, and the tag is annotated; cryptographic signing is advisory when configured.
+- **Failure:** "Release tag does not point to the current certified origin/main HEAD".
 - **Debug:** `git tag -v v2.0.0` and inspect `dist/tag-policy-manifest.json`.
 - **Manifest:** `dist/tag-policy-manifest.json`.
 
@@ -436,35 +435,32 @@ failure looks like**, **how to debug**, **what manifest it writes**.
 ### `composer test:agent-final-report`
 
 - **Script:** `php scripts/verify-agent-final-report.php`
-- **Gates:** `docs/AGENT_FINAL_REPORT_v2.0.0.md` declares the
-  canonical sections (Why this exists, Canonical sections,
-  Format rules, How an independent auditor verifies this)
-  AND lists all 6 canonical report sections (Executive
-  summary, Release evidence, Blocker status, CI state, Open
-  items, Verification recipe). This is the canonical "what
-  shape must the final release report take?" gate.
-- **Failure:** "Every canonical report section must appear
-  in the format spec. Missing: ## Verification recipe".
-- **Debug:** `dist/agent-final-report-manifest.json`.
+- **Gates:** validates the tracked final-report contract in normal mode; in strict release certification it requires Phase 70/71/72 evidence bound to the exact current HEAD and produces a placeholder-free final release report for the exact package.
+- **Normal source gate:** validates `docs/AGENT_FINAL_REPORT_v2.0.0.md`
+  and `docs/RELEASE_REPORT_TEMPLATE_v2.0.0.md`; the tracked template is
+  explicitly not final proof.
+- **Strict release gate:** with `SSCRIBE_RELEASE_CERTIFICATION=1`, requires
+  release-ready Phase 70/71/72 manifests for the exact current HEAD, generates
+  `dist/final-release-report.md`, and verifies that report contains the current
+  version, source SHA, ZIP SHA-256, six canonical sections, and no placeholder
+  states.
+- **Failure:** a missing prerequisite manifest, non-release-ready evidence,
+  SHA mismatch, missing report section, or placeholder in strict proof.
+- **Debug:** `dist/agent-final-report-manifest.json` and
+  `dist/final-release-report.md`.
 - **Manifest:** `dist/agent-final-report-manifest.json`.
 
 ### `composer test:auditor-handoff`
 
 - **Script:** `php scripts/verify-auditor-handoff.php`
-- **Gates:** `docs/AUDITOR_HANDOFF_v2.0.0.md` declares the
-  canonical sections (Why this exists, Canonical handoff
-  artifacts, Verification recipe per artifact, How an
-  independent auditor verifies this) AND lists all 13
-  canonical handoff artifacts (release blockers, final CI
-  state, exact artifact evidence, agent final report,
-  branch protection, tag policy, release pipeline,
-  acceptance matrix, build transparency, third-party
-  licenses, plugin check triage, manual runtime tests,
-  exact ZIP). This is the canonical "is the release
-  ready for reviewer handoff?" gate.
-- **Failure:** "Every canonical handoff artifact must
-  appear in the handoff doc. Missing:
-  docs/TAG_POLICY_v2.0.0.md".
+- **Gates:** validates the tracked auditor handoff, exact ZIP/SHA pairing, and main-only release topology; strict release certification additionally requires the generated final release report and its HEAD-bound release-ready manifest.
+- **Normal source gate:** validates the tracked Phase 74 handoff contract,
+  tracked handoff artifacts, ZIP/SHA naming, and main-only branch topology.
+- **Strict release gate:** with `SSCRIBE_RELEASE_CERTIFICATION=1`, additionally
+  requires the generated `dist/final-release-report.md` and a release-ready
+  `dist/agent-final-report-manifest.json` bound to the exact current HEAD.
+- **Failure:** a missing tracked handoff input, invalid exact ZIP/SHA pairing,
+  stale branch topology, or missing/non-release-ready strict final report.
 - **Debug:** `dist/auditor-handoff-manifest.json`.
 - **Manifest:** `dist/auditor-handoff-manifest.json`.
 
@@ -520,15 +516,7 @@ failure looks like**, **how to debug**, **what manifest it writes**.
   canonical sections (Why this exists, Canonical
   long-lived branches, Forbidden patterns, Promotion
   rules, How an independent auditor verifies this) AND
-  the git topology matches: only `main` and `develop`
-  exist as local long-lived branches, both exist on
-  origin, both point to the same SHA locally and on
-  origin, and there are no local-only refs (every local
-  ref is mirrored on origin). This prevents the
-  multi-branch divergence problem that produced ~2600
-  divergent commits between `develop` and the old
-  `release/2.0.0-final-hardening` branch during the
-  v2.0.0 release hardening cycle.
+  the git topology matches the main-only contract: `main` is the only persistent local long-lived branch, `origin/main` exists, local main matches origin/main when present, and release-evidence refs are mirrored on origin. Transient pull-request branches are allowed only while active and are deleted after merge/abandonment.
 - **Failure:** "Branch-Policy contract invalid: <rule>".
 - **Debug:** `dist/branch-policy-manifest.json`.
 - **Manifest:** `dist/branch-policy-manifest.json`.

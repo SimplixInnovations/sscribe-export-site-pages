@@ -20,6 +20,23 @@ if ( ! class_exists( '\\SScribe_Settings', false ) ) {
 
 final class SScribe_Settings_Coverage_Test extends TestCase {
 
+	protected function setUp(): void {
+		parent::setUp();
+		$this->reset_debug_settings();
+	}
+
+	protected function tearDown(): void {
+		$this->reset_debug_settings();
+		parent::tearDown();
+	}
+
+	private function reset_debug_settings(): void {
+		delete_option( \SScribe_Settings::OPT_DEBUG_ENABLED );
+		delete_option( \SScribe_Settings::OPT_DEBUG_LOG_LEVEL );
+		delete_option( \SScribe_Settings::OPT_DEBUG_AUTO_REFRESH );
+		\SScribe_Logger::reset_instance();
+	}
+
 	public function test_is_debug_enabled_default_false(): void {
 		delete_option( \SScribe_Settings::OPT_DEBUG_ENABLED );
 		$this::assertFalse( \SScribe_Settings::is_debug_enabled() );

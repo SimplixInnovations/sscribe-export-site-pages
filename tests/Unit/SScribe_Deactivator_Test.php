@@ -33,7 +33,17 @@ final class SScribe_Deactivator_Test extends TestCase {
 	}
 
 	protected function tearDown(): void {
-		unset( $GLOBALS['sscribe_test_transients'], $GLOBALS['sscribe_test_scheduled_events'], $GLOBALS['sscribe_test_options'], $GLOBALS['sscribe_test_role_overrides'] );
+		unset(
+			$GLOBALS['sscribe_test_transients'],
+			$GLOBALS['sscribe_test_scheduled_events'],
+			$GLOBALS['sscribe_test_options'],
+			$GLOBALS['sscribe_test_role_overrides'],
+			$GLOBALS['sscribe_test_is_multisite'],
+			$GLOBALS['sscribe_test_sites'],
+			$GLOBALS['sscribe_test_blog_id'],
+			$GLOBALS['sscribe_test_blog_stack'],
+			$GLOBALS['sscribe_test_scheduled_events_by_blog']
+		);
 		parent::tearDown();
 	}
 
@@ -113,6 +123,39 @@ final class SScribe_Deactivator_Test extends TestCase {
 
 		unset( $GLOBALS['sscribe_test_role_overrides'] );
 	}
+
+
+	public function test_network_deactivation_cleans_runtime_hooks_on_every_site_and_restores_context(): void {
+		$GLOBALS['sscribe_test_is_multisite'] = true;
+		$GLOBALS['sscribe_test_sites']        = array( 1, 2, 3 );
+		$GLOBALS['sscribe_test_blog_id']      = 1;
+		$GLOBALS['sscribe_test_blog_stack']   = array();
+
+		$events = array(
+			'sscribe_cleanup_exports'     => array( 'timestamp' => time() + 3600, 'recurrence' => 'hourly' ),
+			'sscribe_cleanup_sessions'    => array( 'timestamp' => time() + 3600, 'recurrence' => 'hourly' ),
+			'sscribe_cleanup_audit_trail' => array( 'timestamp' => time() + 86400, 'recurrence' => 'daily' ),
+		);
+		$GLOBALS['sscribe_test_scheduled_events_by_blog'] = array(
+			1 => $events,
+			2 => $events,
+			3 => $events,
+		);
+
+		SScribe_Deactivator::deactivate( true );
+
+		foreach ( array( 1, 2, 3 ) as $blog_id ) {
+			$this->assertSame(
+				array(),
+				$GLOBALS['sscribe_test_scheduled_events_by_blog'][ $blog_id ],
+				"Network deactivation must clear SScribe cron hooks from blog {$blog_id}."
+			);
+		}
+
+		$this->assertSame( 1, get_current_blog_id(), 'Network deactivation must restore the original blog context.' );
+		$this->assertSame( array(), $GLOBALS['sscribe_test_blog_stack'], 'Every switch_to_blog() must have a matching restore_current_blog().' );
+	}
+
 
 	public function test_deactivate_preserves_user_options(): void {
 		// Per WP.org guidelines, deactivation must not delete user data.

@@ -45,6 +45,12 @@ final class SScribe_Page_Collector_Coverage_Test extends SScribe_WP_TestCase {
 	public function set_up(): void {
 		parent::set_up();
 
+		// Legacy collector coverage exercises draft/private branches that are
+		// only valid for an authorized editor. Security-specific tests below
+		// explicitly switch to restricted users when asserting denial paths.
+		$admin_user_id = (int) $this->factory()->user->create( array( 'role' => 'administrator' ) );
+		wp_set_current_user( $admin_user_id );
+
 		// Activate the plugin so the SEO reader dependency is fully wired.
 		SScribe_Activator::activate( false );
 
@@ -257,6 +263,158 @@ final class SScribe_Page_Collector_Coverage_Test extends SScribe_WP_TestCase {
 		}
 	}
 
+	public function test_get_page_ids_excludes_private_content_current_user_cannot_read(): void {
+		$owner_id = (int) $this->factory()->user->create( array( 'role' => 'administrator' ) );
+		$reader_id = (int) $this->factory()->user->create( array( 'role' => 'subscriber' ) );
+		$reader = get_user_by( 'id', $reader_id );
+		$this::assertInstanceOf( WP_User::class, $reader );
+		$reader->add_cap( 'sscribe_export' );
+
+		$private_id = (int) $this->factory()->post->create(
+			array(
+				'post_type'   => 'page',
+				'post_status' => 'private',
+				'post_author' => $owner_id,
+				'post_title'  => 'Private owner-only page',
+			)
+		);
+
+		wp_set_current_user( $reader_id );
+		$this::assertTrue( current_user_can( 'sscribe_export' ) );
+		$this::assertFalse( current_user_can( 'read_post', $private_id ) );
+
+		$ids = $this->collector->get_page_ids( '', 'private', 'page' );
+		$this::assertNotContains(
+			$private_id,
+			$ids,
+			'Export capability must not bypass WordPress per-post read permission.'
+		);
+	}
+
+	public function test_delegated_export_user_counts_exclude_unreadable_nonpublic_content(): void {
+		$owner_id  = (int) $this->factory()->user->create( array( 'role' => 'administrator' ) );
+		$reader_id = (int) $this->factory()->user->create( array( 'role' => 'subscriber' ) );
+		$reader    = get_user_by( 'id', $reader_id );
+		$this::assertInstanceOf( WP_User::class, $reader );
+		$reader->add_cap( 'sscribe_export' );
+
+		$private_id = (int) $this->factory()->post->create(
+			array(
+				'post_type'   => 'page',
+				'post_status' => 'private',
+				'post_author' => $owner_id,
+			)
+		);
+		$draft_id = (int) $this->factory()->post->create(
+			array(
+				'post_type'   => 'page',
+				'post_status' => 'draft',
+				'post_author' => $owner_id,
+			)
+		);
+
+		wp_set_current_user( $reader_id );
+		$this::assertTrue( current_user_can( 'sscribe_export' ) );
+		$this::assertFalse( current_user_can( 'read_post', $private_id ) );
+		$this::assertFalse( current_user_can( 'read_post', $draft_id ) );
+
+		$this::assertSame( 0, $this->collector->get_page_count_only( '', 'private', 'page' ) );
+		$this::assertSame( 0, $this->collector->get_page_count_only( '', 'draft', 'page' ) );
+
+		$counts = $this->collector->get_post_status_counts( '', 'page' );
+		$this::assertSame( 0, (int) ( $counts['private'] ?? -1 ) );
+		$this::assertSame( 0, (int) ( $counts['draft'] ?? -1 ) );
+	}
+
+	public function test_get_page_data_rejects_nonpublic_content_current_user_cannot_read(): void {
+		$owner_id = (int) $this->factory()->user->create( array( 'role' => 'administrator' ) );
+		$reader_id = (int) $this->factory()->user->create( array( 'role' => 'subscriber' ) );
+		$reader = get_user_by( 'id', $reader_id );
+		$this::assertInstanceOf( WP_User::class, $reader );
+		$reader->add_cap( 'sscribe_export' );
+
+		$draft_id = (int) $this->factory()->post->create(
+			array(
+				'post_type'    => 'page',
+				'post_status'  => 'draft',
+				'post_author'  => $owner_id,
+				'post_title'   => 'Unpublished owner-only page',
+				'post_content' => '<p>restricted draft body</p>',
+			)
+		);
+
+		wp_set_current_user( $reader_id );
+		$this::assertTrue( current_user_can( 'sscribe_export' ) );
+		$this::assertFalse( current_user_can( 'read_post', $draft_id ) );
+		$this::assertFalse(
+			$this->collector->get_page_data( $draft_id ),
+			'Direct hydration must fail closed when WordPress says the current user cannot read the post.'
+		);
+	}
+
+	public function test_filter_added_nonpublic_cpt_does_not_bypass_read_post_capability(): void {
+		register_post_type(
+			'sscribe_secret',
+			array(
+				'public'          => false,
+				'show_ui'         => true,
+				'capability_type' => array( 'sscribe_secret', 'sscribe_secrets' ),
+				'map_meta_cap'    => true,
+				'capabilities'    => array(
+					'read_post' => 'read_sscribe_secret',
+					'read'      => 'read_sscribe_secret',
+				),
+			)
+		);
+
+		$allow_secret = static function ( array $types ): array {
+			$types[] = 'sscribe_secret';
+			return array_values( array_unique( $types ) );
+		};
+		add_filter( 'sscribe_allowed_post_types', $allow_secret );
+
+		try {
+			$owner_id  = (int) $this->factory()->user->create( array( 'role' => 'administrator' ) );
+			$reader_id = (int) $this->factory()->user->create( array( 'role' => 'subscriber' ) );
+			$reader    = get_user_by( 'id', $reader_id );
+			$this::assertInstanceOf( WP_User::class, $reader );
+			$reader->add_cap( 'sscribe_export' );
+
+			$post_id = (int) $this->factory()->post->create(
+				array(
+					'post_type'    => 'sscribe_secret',
+					'post_status'  => 'publish',
+					'post_author'  => $owner_id,
+					'post_title'   => 'Filtered secret post',
+					'post_content' => '<p>restricted published CPT body</p>',
+				)
+			);
+
+			wp_set_current_user( $reader_id );
+			$this::assertTrue( current_user_can( 'sscribe_export' ) );
+			$this::assertFalse( current_user_can( 'read_post', $post_id ) );
+			$this::assertContains( 'sscribe_secret', $this->collector->get_selectable_post_types() );
+
+			$this::assertNotContains(
+				$post_id,
+				$this->collector->get_page_ids( '', 'publish', 'sscribe_secret' ),
+				'Filter-added non-public CPTs must still respect WordPress read_post.'
+			);
+			$this::assertSame(
+				0,
+				$this->collector->get_page_count_only( '', 'publish', 'sscribe_secret' ),
+				'Published counts for non-public CPTs must not disclose unreadable posts.'
+			);
+			$this::assertFalse(
+				$this->collector->get_page_data( $post_id ),
+				'Direct hydration must not treat a filter-added non-public CPT as public content.'
+			);
+		} finally {
+			remove_filter( 'sscribe_allowed_post_types', $allow_secret );
+			unregister_post_type( 'sscribe_secret' );
+		}
+	}
+
 	public function test_get_page_ids_skips_chunked_branch_when_filter_returns_false(): void {
 		// Install a filter that returns false → must drive the direct
 		// `get_page_ids_direct()` branch (line 154-156) instead of the
@@ -451,6 +609,36 @@ final class SScribe_Page_Collector_Coverage_Test extends SScribe_WP_TestCase {
 		);
 
 		$this::assertFalse( $this->collector->get_page_data( $cpt_id ) );
+	}
+
+	public function test_get_page_data_supports_selectable_public_custom_post_type(): void {
+		register_post_type(
+			'sscribe_portfolio',
+			array(
+				'public' => true,
+				'label'  => 'Portfolio',
+			)
+		);
+
+		try {
+			$post_id = $this->factory()->post->create(
+				array(
+					'post_type'    => 'sscribe_portfolio',
+					'post_status'  => 'publish',
+					'post_title'   => 'Portfolio Entry',
+					'post_content' => '<p>Custom post type export body</p>',
+				)
+			);
+
+			$this::assertContains( 'sscribe_portfolio', $this->collector->get_selectable_post_types() );
+			$data = $this->collector->get_page_data( $post_id );
+
+			$this::assertIsArray( $data );
+			$this::assertSame( $post_id, $data['id'] );
+			$this::assertStringContainsString( 'Custom post type export body', $data['content'] );
+		} finally {
+			unregister_post_type( 'sscribe_portfolio' );
+		}
 	}
 
 	public function test_get_page_data_returns_protected_shape_for_password_protected_page(): void {

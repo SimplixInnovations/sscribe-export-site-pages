@@ -54,7 +54,7 @@ if ( '' !== $cm_prefix && 'SScribeVendor_' !== $cm_prefix ) {
 	$errors[] = sprintf( 'composer.json `extra.strauss.classmap_prefix` is %s; expected `SScribeVendor_`.', $cm_prefix );
 }
 
-$expected_packages = array( 'mpdf/mpdf', 'phpoffice/phpword', 'psr/container' );
+$expected_packages = array( 'tecnickcom/tcpdf', 'phpoffice/phpword', 'psr/container' );
 $missing_packages  = array_diff( $expected_packages, $packages );
 if ( ! empty( $missing_packages ) ) {
 	$errors[] = sprintf( 'composer.json `extra.strauss.packages` is missing the canonical libraries: %s.', implode( ', ', $missing_packages ) );
@@ -71,7 +71,7 @@ $prefix_script = isset( $scripts['vendor:prefix'] ) ? (string) $scripts['vendor:
 if ( '' === $prefix_script ) {
 	$errors[] = 'composer.json is missing the `vendor:prefix` script entry.';
 } else {
-	foreach ( array( 'run-strauss.php', 'fix-prefixed-safe.php', 'fix-phpword-style-deprecation.php' ) as $script_name ) {
+	foreach ( array( 'prune-tcpdf-for-strauss.php', 'run-strauss.php', 'fix-prefixed-safe.php', 'fix-phpword-style-deprecation.php' ) as $script_name ) {
 		if ( ! str_contains( $prefix_script, $script_name ) ) {
 			$errors[] = sprintf( 'composer.json `vendor:prefix` script is missing the `%s` step.', $script_name );
 		}
@@ -90,7 +90,7 @@ if ( $verify_built ) {
 		}
 
 		$expected_dirs = array(
-			'mpdf/mpdf'         => 'mpdf',
+			'tecnickcom/tcpdf'    => 'tecnickcom',
 			'phpoffice/phpword' => 'phpoffice',
 			'psr/container'     => 'psr',
 		);
@@ -100,8 +100,35 @@ if ( $verify_built ) {
 			}
 		}
 
+		$forbidden_top_level_dirs = array( 'mpdf' );
+		foreach ( $forbidden_top_level_dirs as $forbidden_dir ) {
+			if ( is_dir( $prefixed_dir . '/' . $forbidden_dir ) ) {
+				$errors[] = sprintf(
+					'Prefixed vendor tree still contains removed package root `%s/%s`.',
+					$prefixed_dir,
+					$forbidden_dir
+				);
+			}
+		}
+
+		// TCPDF itself defines a global class named TCPDF. Strauss must apply
+		// the configured classmap prefix to that exact entrypoint. Do not scan
+		// for the raw substring "class TCPDF" globally: PHPWord legitimately
+		// defines a namespaced writer class with that short name.
+		$tcpdf_entry = $prefixed_dir . '/tecnickcom/tcpdf/tcpdf.php';
+		if ( ! is_file( $tcpdf_entry ) ) {
+			$errors[] = sprintf( 'Prefixed TCPDF entrypoint is missing: %s.', $tcpdf_entry );
+		} else {
+			$tcpdf_source = (string) file_get_contents( $tcpdf_entry );
+			if ( preg_match( '/^\\s*class\\s+TCPDF\\b/m', $tcpdf_source ) ) {
+				$errors[] = sprintf( 'Prefixed TCPDF entrypoint still declares the unprefixed global class in %s.', $tcpdf_entry );
+			}
+			if ( ! preg_match( '/^\\s*class\\s+SScribeVendor_TCPDF\\b/m', $tcpdf_source ) ) {
+				$errors[] = sprintf( 'Prefixed TCPDF entrypoint does not declare the expected SScribeVendor_TCPDF class in %s.', $tcpdf_entry );
+			}
+		}
+
 		$forbidden_namespaces = array(
-			'namespace Mpdf;',
 			'namespace PhpOffice\\PhpWord;',
 			'namespace Psr\\Container;',
 		);

@@ -79,7 +79,7 @@ final class SScribe_Auditor_Handoff_Test extends TestCase {
 			'docs/RELEASE_BLOCKERS_v2.0.0.md',
 			'docs/FINAL_CI_STATE_v2.0.0.md',
 			'docs/EXACT_ARTIFACT_EVIDENCE_v2.0.0.md',
-			'docs/RELEASE_REPORT_v2.0.0.md',
+			'docs/RELEASE_REPORT_TEMPLATE_v2.0.0.md',
 			'docs/BRANCH_PROTECTION_v2.0.0.md',
 			'docs/TAG_POLICY_v2.0.0.md',
 			'docs/RELEASE_PIPELINE_v2.0.0.md',
@@ -110,6 +110,7 @@ final class SScribe_Auditor_Handoff_Test extends TestCase {
 			'dist/final-ci-state-manifest.json',
 			'dist/release-certification-evidence.json',
 			'dist/exact-artifact-evidence-manifest.json',
+			'dist/final-release-report.md',
 		) as $expected ) {
 			$this->assertStringContainsString(
 				$expected,
@@ -117,6 +118,29 @@ final class SScribe_Auditor_Handoff_Test extends TestCase {
 				"Auditor handoff must document generated exact-SHA evidence: {$expected}"
 			);
 		}
+	}
+
+	public function test_auditor_handoff_verifier_has_strict_final_report_requirement(): void {
+		$source = (string) file_get_contents( $this->repo_root . '/scripts/verify-auditor-handoff.php' );
+
+		$this->assertStringContainsString( 'SSCRIBE_RELEASE_CERTIFICATION', $source );
+		$this->assertStringContainsString( 'dist/final-release-report.md', $source );
+		$this->assertStringContainsString( 'agent-final-report-manifest.json', $source );
+	}
+
+	public function test_auditor_handoff_branch_topology_recipe_matches_main_only_policy(): void {
+		$src = (string) file_get_contents( $this->handoff_doc_path );
+
+		$this->assertStringNotContainsString(
+			'both `main` + `develop`',
+			$src,
+			'Auditor handoff must not retain the obsolete two-long-lived-branch topology.'
+		);
+		$this->assertStringContainsString(
+			'main is the only canonical long-lived branch',
+			$src,
+			'Auditor handoff must explicitly match the current main-only branch policy.'
+		);
 	}
 
 	public function test_auditor_handoff_every_listed_artifact_exists_and_nonempty(): void {
@@ -127,7 +151,7 @@ final class SScribe_Auditor_Handoff_Test extends TestCase {
 			'docs/RELEASE_BLOCKERS_v2.0.0.md',
 			'docs/FINAL_CI_STATE_v2.0.0.md',
 			'docs/EXACT_ARTIFACT_EVIDENCE_v2.0.0.md',
-			'docs/RELEASE_REPORT_v2.0.0.md',
+			'docs/RELEASE_REPORT_TEMPLATE_v2.0.0.md',
 			'docs/BRANCH_PROTECTION_v2.0.0.md',
 			'docs/TAG_POLICY_v2.0.0.md',
 			'docs/RELEASE_PIPELINE_v2.0.0.md',

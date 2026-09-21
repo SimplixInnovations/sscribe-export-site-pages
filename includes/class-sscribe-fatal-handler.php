@@ -86,7 +86,7 @@ final class SScribe_Fatal_Handler {
 		$message = isset( $last['message'] ) ? (string) $last['message'] : '';
 		$line    = isset( $last['line'] ) ? (int) $last['line'] : 0;
 
-		\SScribe_Operational_Logger::record(
+		$recorded = \SScribe_Operational_Logger::record(
 			\SScribe_Operational_Logger::LEVEL_CRITICAL,
 			'PHP fatal during SScribe operation',
 			array(
@@ -96,6 +96,15 @@ final class SScribe_Fatal_Handler {
 				'error_message'  => self::sanitize_message( $message ),
 			)
 		);
+
+		// This callback is a PHP shutdown function registered after WordPress
+		// core's shutdown_action_hook(). The normal WordPress shutdown action
+		// (and therefore the operational logger's regular flush) may already
+		// have completed by the time capture() runs. Persist the scoped fatal
+		// immediately so it cannot remain stranded in the in-memory buffer.
+		if ( $recorded ) {
+			\SScribe_Operational_Logger::flush();
+		}
 	}
 
 	/**

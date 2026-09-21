@@ -99,90 +99,6 @@ class SScribe_Export_Query_Controller {
 		$this->error_handler    = $error_handler ?? new SScribe_Export_Error_Handler();
 	}
 
-	/**
-	 * AJAX handler for health check.
-	 *
-	 * Gated by the dedicated `sscribe_health` capability (not the
-	 * `sscribe_export` capability). Splitting the two lets a site admin
-	 * grant read-only diagnostic access without granting export
-	 * authority : useful for support staff who should be able to run
-	 * the "copy support info" action but not start an export.
-	 *
-	 * @return void
-	 */
-	public function ajax_health_check(): void {
-		if ( ! check_ajax_referer( 'sscribe_health_nonce', 'nonce', false ) ) {
-			SScribe_AJAX_Guard::error(
-				array(
-					'code'    => 'invalid_nonce',
-					'message' => __( 'Security check failed.', 'sscribe-export-site-pages' ),
-				),
-				403
-			);
-		}
-
-		/**
-		 * Filter the capability required to call the health diagnostics
-		 * endpoint. Defaults to the dedicated `sscribe_health` capability
-		 * (granted to administrators by {@see SScribe_Activator}).
-		 *
-		 * @since 1.1.3
-		 *
-		 * @param string $capability Capability name.
-		 */
-		$health_capability = SScribe_Capabilities::get_health_required();
-
-		if ( ! current_user_can( $health_capability ) ) {
-			SScribe_AJAX_Guard::error(
-				array(
-					'code'    => 'permission_denied',
-					'message' => __( 'Permission denied.', 'sscribe-export-site-pages' ),
-				),
-				403
-			);
-		}
-
-		$decision = $this->rate_limiter->check_rate_limit_decision( $health_capability, 'health' );
-		if ( ! $decision->allowed ) {
-			if ( class_exists( 'SScribe_Rate_Limit_Response' ) ) {
-				\SScribe_Rate_Limit_Response::emit( $decision );
-			} else {
-				SScribe_AJAX_Guard::error(
-					array(
-						'code'    => $decision->error_code(),
-						'message' => __( 'Too many requests. Please wait a moment.', 'sscribe-export-site-pages' ),
-						'retry'   => true,
-						'retry_in' => $decision->retry_after_ms,
-					),
-					$decision->http_status()
-				);
-			}
-		}
-
-		$force = '1' === SScribe_AJAX_Guard::get_text( 'force', '0', 1 );
-		$cache_key = 'sscribe_health_snapshot_' . $health_capability . '_' . get_current_user_id();
-		if ( ! $force ) {
-			$cached = get_transient( $cache_key );
-			if ( false !== $cached && is_array( $cached ) ) {
-				$cached['cache_hit'] = true;
-				SScribe_AJAX_Guard::success( $cached );
-			}
-		}
-
-		$diagnostics = $this->diagnostics->check_ajax_health();
-		$boot        = $this->diagnostics->get_boot_diagnostics();
-
-		$payload = array(
-			'ajax_health' => $diagnostics,
-			'boot_state'  => $boot,
-			'server_time' => current_time( 'mysql' ),
-			'server_utc'  => gmdate( 'Y-m-d H:i:s' ),
-		);
-
-		set_transient( $cache_key, $payload, 30 );
-
-		SScribe_AJAX_Guard::success( $payload );
-	}
 
 	/**
 	 * AJAX handler for getting post status counts.
@@ -201,10 +117,9 @@ class SScribe_Export_Query_Controller {
 		if ( self::SENTINEL_ALL !== $requested_language && '' === $language ) {
 			SScribe_AJAX_Guard::error( array( 'message' => __( 'Invalid or inactive language.', 'sscribe-export-site-pages' ) ), 400 );
 		}
-		$post_type = SScribe_AJAX_Guard::post_text( 'post_type', 'page', 30 );
-		if ( ! in_array( $post_type, array( 'page', 'post', 'any' ), true ) ) {
-			$post_type = 'page';
-		}
+		$post_type = $this->normalize_post_type_input(
+			SScribe_AJAX_Guard::post_text( 'post_type', 'page', 30 )
+		);
 
 		$payload          = $this->compute_counts_payload( $language, $post_type );
 		$client_generation = $this->read_client_generation();
@@ -237,10 +152,9 @@ class SScribe_Export_Query_Controller {
 			\SScribe_Rate_Limit_Response::emit( $decision );
 		}
 
-		$post_type = SScribe_AJAX_Guard::post_text( 'post_type', 'page', 30 );
-		if ( ! in_array( $post_type, array( 'page', 'post', 'any' ), true ) ) {
-			$post_type = 'page';
-		}
+		$post_type = $this->normalize_post_type_input(
+			SScribe_AJAX_Guard::post_text( 'post_type', 'page', 30 )
+		);
 
 		$languages = SScribe_AJAX_Guard::post_array( 'languages', 50 );
 		if ( empty( $languages ) ) {
@@ -285,20 +199,23 @@ class SScribe_Export_Query_Controller {
 	 * where the empty-status array key set lives.
 	 *
 	 * @param string $language   Normalized language code, or empty string for all languages.
-	 * @param string $post_type  'page', 'post', or 'any'.
+	 * @param string $post_type  Selectable post type or 'any'.
 	 * @return array{counts: array<string,int>, counts_page: array<string,int>, counts_post: array<string,int>, counts_any: array<string,int>}
 	 */
 	private function compute_counts_payload( string $language, string $post_type ): array {
 		$page_counts = $this->collector->get_post_status_counts( $language, 'page' );
 		$post_counts = $this->collector->get_post_status_counts( $language, 'post' );
+		$any_counts  = $this->collector->get_post_status_counts( $language, 'any' );
 
-		$any_counts = array();
-		$all_keys   = array_unique( array_merge( array_keys( $page_counts ), array_keys( $post_counts ) ) );
-		foreach ( $all_keys as $key ) {
-			$any_counts[ $key ] = ( $page_counts[ $key ] ?? 0 ) + ( $post_counts[ $key ] ?? 0 );
+		if ( 'any' === $post_type ) {
+			$counts = $any_counts;
+		} elseif ( 'page' === $post_type ) {
+			$counts = $page_counts;
+		} elseif ( 'post' === $post_type ) {
+			$counts = $post_counts;
+		} else {
+			$counts = $this->collector->get_post_status_counts( $language, $post_type );
 		}
-
-		$counts = 'any' === $post_type ? $any_counts : ( 'page' === $post_type ? $page_counts : $post_counts );
 
 		return array(
 			'counts'      => $counts,
@@ -306,6 +223,42 @@ class SScribe_Export_Query_Controller {
 			'counts_post' => $post_counts,
 			'counts_any'  => $any_counts,
 		);
+	}
+
+	/**
+	 * Normalize a requested post type against the collector's canonical list.
+	 *
+	 * The admin UI is built from the same selectable list, including public or
+	 * explicitly filter-added CPTs. Keeping this normalization here prevents
+	 * query/preview endpoints from silently falling back to pages when the UI
+	 * legitimately selected a custom type.
+	 *
+	 * @param string $post_type Raw requested post type.
+	 * @return string Canonical selectable type or "any".
+	 */
+	private function normalize_post_type_input( string $post_type ): string {
+		$post_type = sanitize_key( $post_type );
+		if ( 'any' === $post_type ) {
+			return 'any';
+		}
+
+		$allowed = array_values(
+			array_unique(
+				array_filter(
+					array_map( 'sanitize_key', $this->collector->get_selectable_post_types() )
+				)
+			)
+		);
+
+		if ( in_array( $post_type, $allowed, true ) ) {
+			return $post_type;
+		}
+
+		if ( in_array( 'page', $allowed, true ) ) {
+			return 'page';
+		}
+
+		return $allowed[0] ?? 'page';
 	}
 
 	/**
@@ -559,10 +512,9 @@ class SScribe_Export_Query_Controller {
 			$formats = \SScribe_Exporter_Factory::get_supported_formats();
 		}
 
-		$post_type = SScribe_AJAX_Guard::post_text( 'post_type', 'page', 30 );
-		if ( ! in_array( $post_type, array( 'page', 'post', 'any' ), true ) ) {
-			$post_type = 'page';
-		}
+		$post_type = $this->normalize_post_type_input(
+			SScribe_AJAX_Guard::post_text( 'post_type', 'page', 30 )
+		);
 
 		$page_count = $this->collector->get_page_count_only( $language, $post_status, $post_type );
 

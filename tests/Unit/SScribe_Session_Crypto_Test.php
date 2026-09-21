@@ -227,6 +227,26 @@ class SScribe_Session_Crypto_Test extends TestCase {
 			"Expected tampered legacy ciphertext to be rejected, but decryption returned a value after {$flipped} attempts." );
 	}
 
+	public function test_legacy_serialized_migration_canonicalizes_embedded_session_id(): void {
+		$session_id = '0123456789abcdef';
+		$legacy     = serialize(
+			array(
+				'session_id' => 'fedcba9876543210',
+				'user_id'    => 7,
+				'total'      => 1,
+				'processed'  => 0,
+				'page_ids'   => array( 123 ),
+			)
+		);
+
+		$migrated = $this->call_private( 'migrate_legacy_session', array( $session_id, $legacy ) );
+
+		$this->assertIsArray( $migrated );
+		$this->assertSame( $session_id, $migrated['session_id'] ?? null );
+		$this->assertIsString( $migrated['_sig'] ?? null );
+		$this->assertNotFalse( get_option( 'sscribe_session_' . $session_id, false ) );
+	}
+
 	public function test_decrypt_session_data_garbage_returns_null(): void {
 		$this->assertNull( $this->call_private( 'decrypt_session_data', array( 'not-base64' ) ) );
 		$this->assertNull( $this->call_private( 'decrypt_session_data', array( '' ) ) );

@@ -4,19 +4,19 @@
  *
  * Slice #5 of the canonical Linux/Xdebug coverage architecture.
  * The PDF exporter is the third-largest production file at 1140 LOC and
- * hosts the mPDF-rendering pipeline. Most of the heavy lifting lives in
+ * hosts the TCPDF-rendering pipeline. Most of the heavy lifting lives in
  * the `export()` method itself (lines 122-416) and in the runtime
  * helpers it composes — `process_images_in_page_data`,
  * `collect_temp_image_paths`, `sanitize_pdf_image_sources`,
- * `build_mpdf_config`, `resolve_pdf_page_size`,
- * `prepare_html_for_mpdf`, `filter_style_attribute`, `find_font_file`,
+ * `create_tcpdf_document`, `resolve_pdf_page_size`,
+ * `prepare_html_for_pdf_engine`, `filter_style_attribute`,
  * and the memory-pressure check.
  *
  * Strategy: drive the pure helpers via direct calls + reflection, plus
- * one full happy-path `export()` test that actually instantiates mPDF
- * and writes a real PDF (the canonical Linux run already has mPDF in
+ * one full happy-path `export()` test that actually instantiates TCPDF
+ * and writes a real PDF (the canonical Linux run already has TCPDF in
  * vendor-prefixed). That one test covers the largest part of `export()`
- * — the mPDF init leg, the time-guard leg, the WriteHTML leg, and the
+ * — the TCPDF init leg, the time-guard leg, the WriteHTML leg, and the
  * Output-to-file leg. Failure-path tests cover the early-out branches.
  *
  * @package SScribe_Export_Site_Pages
@@ -43,7 +43,7 @@ final class SScribe_PDF_Exporter_Coverage_Test extends SScribe_WP_TestCase {
 		// export call short-circuits at the `pdf_missing_library` guard
 		// instead of exercising the real rendering pipeline.
 		$prefixed_autoload = SSCRIBE_PLUGIN_DIR . 'vendor-prefixed/autoload.php';
-		if ( file_exists( $prefixed_autoload ) && ! class_exists( '\SScribeVendor\Mpdf\Mpdf', false ) ) {
+		if ( file_exists( $prefixed_autoload ) && ! class_exists( '\\SScribeVendor_TCPDF', false ) ) {
 			require_once $prefixed_autoload;
 		}
 
@@ -297,22 +297,30 @@ final class SScribe_PDF_Exporter_Coverage_Test extends SScribe_WP_TestCase {
 	// HTML preparation helpers
 	// -----------------------------------------------------------------
 
-	public function test_prepare_html_for_mpdf_with_no_style_blocks_unchanged(): void {
-		$prepare = $this->call_private( 'prepare_html_for_mpdf' );
+	public function test_prepare_html_for_pdf_engine_with_no_style_blocks_unchanged(): void {
+		$prepare = $this->call_private( 'prepare_html_for_pdf_engine' );
 
 		$html = '<p>hello</p>';
 		$this::assertSame( $html, $prepare( $html, false ) );
 	}
 
-	public function test_prepare_html_for_mpdf_strips_font_face_but_keeps_other_declarations(): void {
-		$prepare = $this->call_private( 'prepare_html_for_mpdf' );
+	public function test_prepare_html_for_pdf_engine_strips_font_and_remote_resource_controls(): void {
+		$prepare = $this->call_private( 'prepare_html_for_pdf_engine' );
 
-		$html   = '<style>.x { color: red; } @font-face { font-family: foo; } .y { color: blue; }</style><p>hi</p>';
+		$html = '<style>'
+			. '.x { color: red; font-family: Georgia; } '
+			. '@font-face { font-family: foo; src: url(https://bad.example/font.woff2); } '
+			. '@import url(https://bad.example/x.css); '
+			. '.y { color: blue; }'
+			. '</style><p>hi</p>';
 		$result = $prepare( $html, false );
 
 		$this::assertStringContainsString( 'color: red', $result );
 		$this::assertStringContainsString( 'color: blue', $result );
-		$this::assertStringNotContainsString( '@font-face', $result );
+		$this::assertStringNotContainsString( '@font-face', strtolower( $result ) );
+		$this::assertStringNotContainsString( '@import', strtolower( $result ) );
+		$this::assertStringNotContainsString( 'font-family', strtolower( $result ) );
+		$this::assertStringNotContainsString( 'bad.example', strtolower( $result ) );
 	}
 
 	public function test_filter_style_attribute_keeps_allowed_and_strips_disallowed_declarations(): void {
@@ -346,41 +354,10 @@ final class SScribe_PDF_Exporter_Coverage_Test extends SScribe_WP_TestCase {
 	}
 
 	// -----------------------------------------------------------------
-	// Font lookup, libxml helpers, mpdf-temp cleanup
+	// Temporary-image helpers
 	// -----------------------------------------------------------------
 
-	public function test_find_font_file_returns_null_when_no_match(): void {
-		$find_font = $this->call_private( 'find_font_file' );
 
-		$result = $find_font( sys_get_temp_dir(), 'nonexistent-font-pattern' );
-		$this::assertNull( $result );
-	}
-
-	public function test_find_font_file_finds_matching_basename(): void {
-		$find_font = $this->call_private( 'find_font_file' );
-
-		$dir = $this->output_dir . '/font-dir';
-		wp_mkdir_p( $dir );
-		file_put_contents( $dir . '/NotoSans-Regular.ttf', 'fake-bytes' );
-		file_put_contents( $dir . '/extra.css', 'not-a-font' );
-
-		$result = $find_font( $dir, 'notosans[-_]?regular' );
-		$this::assertStringEndsWith( 'NotoSans-Regular.ttf', (string) $result );
-
-		@unlink( $dir . '/NotoSans-Regular.ttf' );
-		@unlink( $dir . '/extra.css' );
-		@rmdir( $dir );
-	}
-
-	public function test_get_libxml_error_details_with_no_recent_errors(): void {
-		$get_libxml = $this->call_private( 'get_libxml_error_details' );
-
-		$result = $get_libxml();
-		$this::assertIsArray( $result );
-		// libxml_use_internal_errors is independent of recent parse errors,
-		// so we only assert the shape — either an empty array or one
-		// populated by libxml global state from earlier tests.
-	}
 
 	public function test_cleanup_temp_images_with_empty_list_is_noop(): void {
 		$cleanup = $this->call_private( 'cleanup_temp_images' );
@@ -388,19 +365,6 @@ final class SScribe_PDF_Exporter_Coverage_Test extends SScribe_WP_TestCase {
 		$this::assertTrue( true, 'cleanup_temp_images([]) must complete without throwing.' );
 	}
 
-	public function test_cleanup_mpdf_temp_with_empty_path_is_noop(): void {
-		$cleanup = $this->call_private( 'cleanup_mpdf_temp' );
-		$cleanup( '' );
-		$this::assertTrue( true, 'cleanup_mpdf_temp("") must return immediately.' );
-	}
-
-	public function test_cleanup_mpdf_temp_with_foreign_path_returns_early(): void {
-		$cleanup = $this->call_private( 'cleanup_mpdf_temp' );
-		// A path that doesn't live inside the SScribe mpdf-tmp parent
-		// is rejected by the parent-path comparison (line 553).
-		$cleanup( '/tmp/not-sscribe-run-' . bin2hex( random_bytes( 4 ) ) );
-		$this::assertTrue( true, 'cleanup_mpdf_temp on a foreign path must return without touching disk.' );
-	}
 
 	// -----------------------------------------------------------------
 	// export() — failure-path branches
@@ -455,7 +419,7 @@ final class SScribe_PDF_Exporter_Coverage_Test extends SScribe_WP_TestCase {
 		// Drive a 5 KiB payload through with the filter clamped to 0 — the
 		// guard branch (line 185) must NOT fire and the export proceeds.
 		// We don't expect a real PDF because rendering this much HTML via
-		// the actual mPDF class without the title would still work, but
+		// the actual TCPDF class without the title would still work, but
 		// what's important is that the SIZE guard short-circuits and we
 		// get past it (whatever the next branch decides).
 		$filter = static function () {
@@ -488,8 +452,8 @@ final class SScribe_PDF_Exporter_Coverage_Test extends SScribe_WP_TestCase {
 	}
 
 	// -----------------------------------------------------------------
-	// export() — happy path (full mPDF render). Last in the file so a
-	// failure here doesn't disqualify the cheaper tests above.
+	// export() — happy path (full TCPDF render). Last in the file so a
+	// failure here does not disqualify the cheaper tests above.
 	// -----------------------------------------------------------------
 
 	public function test_export_happy_path_writes_real_pdf(): void {
@@ -533,6 +497,30 @@ final class SScribe_PDF_Exporter_Coverage_Test extends SScribe_WP_TestCase {
 		if ( file_exists( $path ) ) {
 			unlink( $path );
 		}
+	}
+
+	public function test_export_rtl_arabic_writes_real_pdf(): void {
+		$result = $this->exporter->export(
+			array(
+				'id'       => 43,
+				'title'    => 'اختبار التصدير',
+				'content'  => '<h1>مرحبا بالعالم</h1><p>هذا اختبار لاتجاه النص العربي.</p>',
+				'language' => 'ar',
+				'author'   => 'SScribe',
+			),
+			$this->output_dir,
+			0,
+			1
+		);
+
+		$this::assertTrue(
+			$result->is_success(),
+			'RTL PDF export must succeed. Error: ' . (string) $result->get_error() . ' Context: ' . wp_json_encode( $result->get_context() )
+		);
+		$path = (string) ( $result->get_data()['path'] ?? '' );
+		$this::assertFileExists( $path );
+		$this::assertSame( '%PDF', file_get_contents( $path, false, null, 0, 4 ) );
+		@unlink( $path );
 	}
 
 	// -----------------------------------------------------------------

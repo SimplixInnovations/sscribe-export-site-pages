@@ -148,6 +148,36 @@ final class SScribe_Build_Transparency_Test extends TestCase {
 		);
 	}
 
+	public function test_third_party_vendor_tree_bypasses_first_party_rewriters(): void {
+		$builder = $this->read_live( 'scripts/build-release.php' );
+
+		$this::assertStringContainsString(
+			"'vendor-prefixed/'",
+			$builder,
+			'The release builder must identify the third-party prefixed vendor tree explicitly.'
+		);
+		$this::assertStringContainsString(
+			'$is_vendor_prefixed',
+			$builder,
+			'The release builder must route prefixed third-party source through a dedicated copy path.'
+		);
+		$this::assertStringContainsString(
+			"str_replace( '\\\\', '/', \$relative )",
+			$builder,
+			'Windows path separators must normalize one backslash at a time before vendor-tree classification.'
+		);
+		$this::assertStringContainsString(
+			'if ( $is_vendor_prefixed )',
+			$builder,
+			'Third-party vendor files must bypass SScribe-owned source rewriting.'
+		);
+		$this::assertStringContainsString(
+			'Unable to copy third-party vendor file',
+			$builder,
+			'The byte-preserving vendor copy path must fail closed on I/O errors.'
+		);
+	}
+
 	public function test_missing_development_section_fails(): void {
 		$live  = $this->read_live( 'readme.txt' );
 		$strip = preg_replace( '/^==\s*Development\s*==[\s\S]*?(?=^==\s*\w)/m', '', $live, 1 );

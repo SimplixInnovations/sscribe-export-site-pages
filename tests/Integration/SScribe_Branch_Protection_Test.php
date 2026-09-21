@@ -69,9 +69,9 @@ final class SScribe_Branch_Protection_Test extends TestCase {
 	public function test_doc_declares_canonical_branches_and_observed_live_state(): void {
 		$source = (string) file_get_contents( self::plugin_root() . '/' . self::DOC_PATH );
 		$this::assertMatchesRegularExpression(
-			'/^Branches:\s*main,\s*develop\s*$/mi',
+			'/^Branches:\s*main\s*$/mi',
 			$source,
-			'Branch-protection doc must declare the canonical long-lived branches.'
+			'Branch-protection doc must declare main as the single canonical long-lived branch.'
 		);
 		$this::assertMatchesRegularExpression(
 			'/Audited Date\s*:?/i',
@@ -79,7 +79,11 @@ final class SScribe_Branch_Protection_Test extends TestCase {
 			'Branch-protection doc must record an audited date.'
 		);
 		$this::assertMatchesRegularExpression( '/main:\s*UNPROTECTED/i', $source );
-		$this::assertMatchesRegularExpression( '/develop:\s*UNPROTECTED/i', $source );
+		$this::assertStringContainsString( 'default branch: develop (NON-CANONICAL)', $source );
+		$this::assertStringContainsString( 'rulesets: none', $source );
+		$this::assertStringContainsString( 'squash merge: enabled', $source );
+		$this::assertStringContainsString( 'rebase merge: enabled (NON-CANONICAL)', $source );
+		$this::assertStringContainsString( 'merge commits: enabled (NON-CANONICAL)', $source );
 		$this::assertMatchesRegularExpression(
 			'/not[\s\S]{0,100}WordPress\.org submission requirement/i',
 			$source,
@@ -106,68 +110,58 @@ final class SScribe_Branch_Protection_Test extends TestCase {
 		);
 	}
 
-	public function test_doc_requires_develop_pr_reviews_and_controlled_main_sync(): void {
+	public function test_doc_requires_main_pr_reviews_and_no_unrestricted_bypass(): void {
 		$source = (string) file_get_contents( self::plugin_root() . '/' . self::DOC_PATH );
 		$this::assertMatchesRegularExpression(
 			'/Changes enter through pull requests/i',
 			$source,
-			'Branch-protection doc must require reviewed pull requests into develop.'
+			'Branch-protection doc must require reviewed pull requests into main.'
 		);
 		$this::assertMatchesRegularExpression(
 			'/[Aa]t\s+least\s+\d+\s+(approving\s+)?review/i',
 			$source,
 			'Branch-protection doc must declare required approving reviews.'
 		);
-		$this::assertMatchesRegularExpression(
-			'/(conversation[ -]?resolution|review\s+comments?\s+resolved)/i',
-			$source,
-			'Branch-protection doc must require conversation resolution.'
-		);
-		$this::assertMatchesRegularExpression(
-			'/(--signoff|DCO|sign[ -]?off)/i',
-			$source,
-			'Branch-protection doc must require --signoff / DCO.'
-		);
-		$this::assertStringContainsString(
-			'controlled fast-forward synchronization',
-			$source,
-			'main must be synchronized to the exact reviewed develop SHA without creating a new merge commit.'
-		);
-		$this::assertStringContainsString(
-			'no unrestricted admin bypass',
-			strtolower( $source ),
-			'Only the narrowly scoped main synchronization actor may bypass update restrictions.'
-		);
+		$this::assertMatchesRegularExpression( '/conversation[ -]?resolution/i', $source );
+		$this::assertMatchesRegularExpression( '/(--signoff|DCO|sign[ -]?off)/i', $source );
+		$this::assertStringContainsString( 'no unrestricted admin bypass', strtolower( $source ) );
 	}
 
-	public function test_doc_pins_develop_squash_and_main_fast_forward_methods(): void {
+	public function test_doc_pins_main_squash_and_disables_history_changing_pr_methods(): void {
 		$source = (string) file_get_contents( self::plugin_root() . '/' . self::DOC_PATH );
-		$this::assertMatchesRegularExpression(
-			'/squash/i',
-			$source,
-			'Branch-protection doc must declare squash PR integration for develop.'
-		);
-		$this::assertMatchesRegularExpression(
-			'/(rebase[- ]?merge|rebase)\s+(is\s+)?(disabled|forbidden)/i',
-			$source,
-			'Branch-protection doc must explicitly disable rebase-merge.'
-		);
-		$this::assertStringContainsString(
-			'fast-forward synchronization only',
-			$source,
-			'Branch-protection doc must preserve exact-SHA main/develop aliasing.'
-		);
+		$this::assertStringContainsString( 'Pull requests into `main`: squash', $source );
+		$this::assertMatchesRegularExpression( '/rebase[- ]?merge:\s*disabled/i', $source );
+		$this::assertMatchesRegularExpression( '/merge commits:\s*disabled/i', $source );
+		$this::assertStringNotContainsString( 'fast-forward synchronization only', $source );
 	}
 
-	public function test_release_helpers_use_fast_forward_only_promotion(): void {
-		$commit = (string) file_get_contents( self::plugin_root() . '/scripts/release-commit.php' );
+	public function test_release_helpers_are_main_only_and_never_reference_develop(): void {
+		$commit  = (string) file_get_contents( self::plugin_root() . '/scripts/release-commit.php' );
 		$prepare = (string) file_get_contents( self::plugin_root() . '/scripts/release-prepare.php' );
 
 		$this::assertStringContainsString( 'git pull --ff-only origin main', $commit );
-		$this::assertStringContainsString( 'git merge --ff-only origin/develop', $commit );
 		$this::assertStringContainsString( 'git tag -a', $commit );
-		$this::assertStringNotContainsString( 'git merge --abort 2>NUL', $commit );
-		$this::assertStringContainsString( 'git merge --ff-only origin/develop', $prepare );
+		$this::assertStringNotContainsString( 'origin/develop', $commit );
+		$this::assertStringNotContainsString( 'origin develop', $commit );
+		$this::assertStringNotContainsString( 'origin/develop', $prepare );
+		$this::assertStringNotContainsString( 'git push origin develop', $prepare );
+	}
+
+	public function test_release_prepare_does_not_instruct_direct_main_commit_or_manual_tag_path(): void {
+		$prepare = (string) file_get_contents( self::plugin_root() . '/scripts/release-prepare.php' );
+
+		$this::assertStringNotContainsString(
+			'git commit -m \\"chore: release v',
+			$prepare,
+			'release-prepare must not instruct an operator to commit release changes directly before the transient-branch helper runs.'
+		);
+		$this::assertStringNotContainsString(
+			'git tag -a v{$new_version}',
+			$prepare,
+			'release-prepare must route tag creation through composer release:tag so main/tag safety checks cannot be bypassed.'
+		);
+		$this::assertStringContainsString( 'composer release:commit', $prepare );
+		$this::assertStringContainsString( 'composer release:tag', $prepare );
 	}
 
 	public function test_release_helpers_support_already_versioned_development_line(): void {
@@ -180,6 +174,18 @@ final class SScribe_Branch_Protection_Test extends TestCase {
 		$this::assertStringContainsString( 'null === $requested_version ? $canonical_version : $requested_version', $commit );
 		$this::assertStringContainsString( '2 !== $existing_tag_exit', $commit );
 		$this::assertStringContainsString( '"release:tag": "php scripts/release-commit.php --tag"', $composer );
+	}
+
+	public function test_manifest_discovers_required_ci_jobs_by_id_and_friendly_name(): void {
+		list( $code, $output ) = $this->run_verifier();
+		$this::assertSame( 0, $code, 'Branch-protection verifier must parse ci.yml job IDs correctly. Output:' . "\n" . $output );
+
+		$payload = json_decode( (string) file_get_contents( self::plugin_root() . '/' . self::MANIFEST_PATH ), true );
+		$this::assertIsArray( $payload );
+		$this::assertArrayHasKey( 'ci_jobs_discovered', $payload );
+		$this::assertSame( 'Version Sync Check', $payload['ci_jobs_discovered']['version-check'] ?? null );
+		$this::assertSame( 'Tests PHP ${{ matrix.php-version }}', $payload['ci_jobs_discovered']['test'] ?? null );
+		$this::assertSame( 'Submission Package Check', $payload['ci_jobs_discovered']['plugin-check'] ?? null );
 	}
 
 	public function test_doc_lists_required_jobs_by_ci_yml_friendly_name(): void {

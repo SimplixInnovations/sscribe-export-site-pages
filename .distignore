@@ -20,6 +20,7 @@ composer.lock
 # Testing
 tests/
 tests-wp/
+tests-js/
 fake-wp/
 tests-e2e/
 test-results/
@@ -97,9 +98,8 @@ vendor-prefixed/phpoffice/phpword/phpword.ini.dist
 vendor-prefixed/phpoffice/phpword/phpmd.xml.dist
 
 # Phase 22: dev-only root files that previously leaked into the
-# release ZIP. Per "Build-release .distignore glob blindness" memory,
-# the .distignore pattern matcher is segment-only (no real globs) —
-# these must live in base_excludes for guaranteed exclusion.
+# release ZIP. Keep these explicit alongside the wildcard-capable matcher
+# so their exclusion remains obvious in both policy and build configuration.
 .superpowers
 phpunit-wp.xml
 playwright.config.ts
@@ -216,9 +216,8 @@ tab-export-light.jpg
 tab-export-scrolled.jpeg
 
 # Scratch / ad-hoc audit outputs (review diffs, side-by-side comparisons,
-# transient dumps). Glob-blindness in build-release.php means these
-# patterns are advisory; filenames are also added to base_excludes
-# in scripts/build-release.php for guaranteed exclusion.
+# transient dumps). Wildcard rules are enforced by build-release.php;
+# high-risk fixed filenames are also listed in base_excludes as defense in depth.
 tmp_diffs/
 review-diff.patch
 System.Management

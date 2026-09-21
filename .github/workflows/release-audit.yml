@@ -2,8 +2,8 @@ name: release-audit
 
 # Single-pass promotion gate that runs the canonical cross-platform release audit.
 #
-# The repository uses main + develop as its only long-lived branches.
-# This workflow runs for promotion into main and may also be invoked
+# The repository uses main as its only long-lived branch.
+# This workflow runs for reviewed changes targeting main and may also be invoked
 # manually. It intentionally remains separate from ci.yml so release
 # certification has its own auditable check.
 
@@ -74,7 +74,7 @@ jobs:
                   composer test:wp:install
                   wp --path=tests-wp/_wordpress config create --dbname=sscribe --dbuser=sscribe --dbpass=sscribe --dbhost=localhost --skip-check
                   wp --path=tests-wp/_wordpress core install --url=http://localhost --title=SScribe --admin_user=admin --admin_password=sscribe-ci-password --admin_email=ci@example.invalid --skip-email
-                  wp --path=tests-wp/_wordpress plugin install plugin-check --activate
+                  wp --path=tests-wp/_wordpress plugin install plugin-check
                   ZIP_PATH="$(find dist -maxdepth 1 -type f -name 'sscribe-export-site-pages-*.zip' -print -quit)"
                   test -n "$ZIP_PATH"
                   wp --path=tests-wp/_wordpress plugin install "$ZIP_PATH" --force --activate

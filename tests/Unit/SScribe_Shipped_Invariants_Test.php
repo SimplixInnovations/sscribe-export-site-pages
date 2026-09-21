@@ -165,7 +165,7 @@ final class SScribe_Shipped_Invariants_Test extends TestCase {
 	/**
 	 * Invariant 1: shipped ZIP contains zero em-dash characters
 	 * in our own code. Vendor-prefixed/ is exempt because
-	 * third-party libraries (mpdf, PSR-7) ship with em-dashes
+	 * third-party libraries may ship with em-dashes
 	 * in their PHPDoc comments that are outside our control.
 	 */
 	public function test_zip_has_no_em_dashes(): void {
@@ -248,20 +248,25 @@ final class SScribe_Shipped_Invariants_Test extends TestCase {
 	}
 
 	/**
-	 * Invariant 4: shipped ZIP contains zero non-pragma comments
-	 * in PHP / CSS / JS. The build script strips them; this test
-	 * catches regressions in the build script itself.
+	 * Invariant 4: first-party shipped PHP / CSS / JS contains zero
+	 * non-pragma comments. vendor-prefixed/ is exempt because Strauss-generated
+	 * third-party source is intentionally copied byte-for-byte, including
+	 * upstream comments and license notices.
 	 *
 	 * PHP: T_DOC_COMMENT (PHPDoc /-star-star) is preserved.
 	 *      T_COMMENT with pragmas ("phpcs:", "translators:", "@preserve")
-	 *      is preserved. Everything else is stripped.
-	 * CSS: all /-star ... star-/ blocks stripped.
-	 * JS:  /-star ... star-/ (non /-star-!, non /-star-star) stripped; // stripped.
+	 *      is preserved. Everything else is stripped from first-party code.
+	 * CSS: all first-party /-star ... star-/ blocks stripped.
+	 * JS:  first-party /-star ... star-/ (non /-star-!, non /-star-star)
+	 *      stripped; // stripped.
 	 */
 	public function test_zip_has_no_non_pragma_comments(): void {
 		$violations = array();
 
 		foreach ( self::$extracted_files as $relative ) {
+			if ( str_contains( $relative, 'vendor-prefixed' . DIRECTORY_SEPARATOR ) ) {
+				continue;
+			}
 			$path     = self::$extract_dir . DIRECTORY_SEPARATOR . $relative;
 			$contents = (string) file_get_contents( $path );
 			$ext      = strtolower( pathinfo( $relative, PATHINFO_EXTENSION ) );
@@ -278,7 +283,7 @@ final class SScribe_Shipped_Invariants_Test extends TestCase {
 		$this->assertSame(
 			array(),
 			$violations,
-			'Non-pragma comments must not appear in shipped ZIP. First violations: ' . implode( '; ', array_slice( $violations, 0, 5 ) )
+			'Non-pragma comments must not appear in first-party shipped code. First violations: ' . implode( '; ', array_slice( $violations, 0, 5 ) )
 		);
 	}
 
@@ -653,13 +658,13 @@ final class SScribe_Shipped_Invariants_Test extends TestCase {
 		);
 	}
 
-	public function test_zip_excludes_unused_mpdf_request_handler(): void {
-		$handler = self::$extract_dir . DIRECTORY_SEPARATOR . self::PLUGIN_SLUG
-			. '/vendor-prefixed/mpdf/mpdf/data/out.php';
+	public function test_zip_excludes_removed_mpdf_package_root(): void {
+		$mpdf_root = self::$extract_dir . DIRECTORY_SEPARATOR . self::PLUGIN_SLUG
+			. '/vendor-prefixed/mpdf';
 
-		$this->assertFileDoesNotExist(
-			$handler,
-			'Unused vendor request handlers must not be shipped.'
+		$this->assertDirectoryDoesNotExist(
+			$mpdf_root,
+			'Removed mPDF packages and compatibility shims must not survive in the shipped ZIP.'
 		);
 	}
 
@@ -811,4 +816,37 @@ final class SScribe_Shipped_Invariants_Test extends TestCase {
 			'Status names must wrap inside compact desktop tracks when translations are longer than English.'
 		);
 	}
+	public function test_admin_html_escaping_is_safe_for_quoted_attribute_contexts(): void {
+		$script = (string) file_get_contents( self::$plugin_root . '/admin/js/sscribe-admin.js' );
+
+		$this->assertStringContainsString( 'return div.innerHTML.replace(', $script );
+		$this->assertStringContainsString(
+			'&quot;',
+			$script,
+			'The shared admin escaping helper must encode double quotes because its output is reused inside quoted HTML attributes.'
+		);
+		$this->assertStringContainsString(
+			'&#039;',
+			$script,
+			'The shared admin escaping helper must encode apostrophes because its output is reused inside quoted HTML attributes.'
+		);
+	}
+
+
+	public function test_release_transparency_names_the_renamed_phpword_license_path(): void {
+		$build = (string) file_get_contents( self::$plugin_root . '/scripts/build-release.php' );
+		$docs  = (string) file_get_contents( self::$plugin_root . '/docs/BUILD_TRANSFORMATIONS.md' );
+
+		$this->assertStringContainsString( 'Distribution paths created under a different relative name:', $build );
+		$this->assertStringContainsString( 'COPYING.LESSER.txt is copied byte-for-byte from', $build );
+		$this->assertStringContainsString( 'COPYING.LESSER.txt', $docs );
+		$this->assertStringContainsString( 'COPYING.LESSER', $docs );
+		$this->assertStringNotContainsString(
+			'Source files added to the ZIP that are NOT in the working tree:',
+			$build,
+			'The build report must not mislabel tracked root files as out-of-tree additions.'
+		);
+	}
+
+
 }

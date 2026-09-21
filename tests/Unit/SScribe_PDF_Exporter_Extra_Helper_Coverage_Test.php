@@ -9,7 +9,7 @@
  *   - sanitize_pdf_image_sources()  : include_images=true vs false, missing src
  *   - filter_style_attribute()      : empty, allowed decls, forbidden decls
  *   - process_images_in_page_data() : no-op when no images
- *   - build_mpdf_config()           : returns array or SScribe_Result
+ *   - create_tcpdf_document()           : returns array or SScribe_Result
  *
  * @package SScribe_Export_Site_Pages
  */
@@ -193,8 +193,8 @@ final class SScribe_PDF_Exporter_Extra_Helper_Coverage_Test extends TestCase {
 		$this::assertTrue( null === $result || is_bool( $result ) );
 	}
 
-	public function test_prepare_html_for_mpdf_returns_string(): void {
-		$result = $this->call( 'prepare_html_for_mpdf', array( '<p>hello</p>', false ) );
+	public function test_prepare_html_for_pdf_engine_returns_string(): void {
+		$result = $this->call( 'prepare_html_for_pdf_engine', array( '<p>hello</p>', false ) );
 		$this::assertIsString( $result );
 	}
 

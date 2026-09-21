@@ -484,7 +484,7 @@ final class SScribe_ZIP_Content_Rules_Test extends TestCase {
 
 	/**
 	 * The dist tree must not contain any dev-only top-level directory
-	 * — `.git/`, `.github/`, `tests/`, `node_modules/`, plain `vendor/`,
+	 * — `.git/`, `.github/`, `tests/`, `tests-js/`, `node_modules/`, plain `vendor/`,
 	 * `coverage/`, `scripts/`, etc. Add a `.git/HEAD` file to the tree
 	 * and confirm the verifier catches it.
 	 */
@@ -502,6 +502,7 @@ final class SScribe_ZIP_Content_Rules_Test extends TestCase {
 				'assets/icons/index.svg'        => '<svg/>',
 				'.git/HEAD'                     => "ref: refs/heads/main\n",
 				'tests/leftover.php'            => "<?php // leftover dev test\n",
+				'tests-js/leftover.test.mjs'     => "throw new Error('dev-only');\n",
 			);
 			foreach ( $tree as $rel => $content ) {
 				$path = $root . '/' . $rel;
@@ -517,6 +518,7 @@ final class SScribe_ZIP_Content_Rules_Test extends TestCase {
 		$this::assertSame( 1, $code, 'Forbidden top-segment must fail. Output:' . "\n" . $output );
 		$this::assertStringContainsString( 'dev-only top-level entry `.git/`', $output );
 		$this::assertStringContainsString( 'dev-only top-level entry `tests/`', $output );
+		$this::assertStringContainsString( 'dev-only top-level entry `tests-js/`', $output );
 	}
 
 	/**

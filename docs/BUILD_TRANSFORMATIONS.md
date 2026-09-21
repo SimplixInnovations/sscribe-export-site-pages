@@ -19,13 +19,14 @@ script's end-of-run summary is updated in the same commit.
 ## 1. Excluded paths (not shipped)
 
 These paths are present in the working tree but do not appear in
-the release ZIP. The matching is segment-level (per the
-`is_release_path_excluded` matcher in `scripts/build-release.php`)
-— patterns are **not** globs; filenames and full segments only.
+the release ZIP. The `is_release_path_excluded` matcher in `scripts/build-release.php`
+supports `*` and `?` wildcards. Rules without a slash also match individual
+path segments, so exact development-directory exclusions such as `tests/`
+continue to work alongside wildcard rules such as `*.log`.
 
 ### Dev-only directories
 
-`tests/`, `tests-wp/`, `tests-e2e/`, `scripts/`, `.github/`,
+`tests/`, `tests-wp/`, `tests-js/`, `tests-e2e/`, `scripts/`, `.github/`,
 `docs/`, `examples/`, `samples/`, `.audit/`, `.agent/`,
 `.claude/`, `.opencode/`, `.cursor/`, `.windsurf/`, `.continue/`,
 `.codeium/`, `.mimosa/`, `.omo/`, `.aider*`, `.aider.chat.history`,
@@ -71,36 +72,32 @@ the release ZIP. The matching is segment-level (per the
   `vendor-prefixed/phpoffice/phpword/phpword.ini.dist`,
   `vendor-prefixed/phpoffice/phpword/phpmd.xml.dist`.
 
-### mPDF font exclusions (unused variants)
+### TCPDF runtime pruning
 
-Sun-ExtA.ttf, Sun-ExtB.ttf, UnBatang_0613.ttf, Aegyptus.otf,
-Aegean.otf, Akkadian.otf, Jomolhari.ttf, KhmerOS.ttf,
-Abyssinica_SIL.ttf, AboriginalSansREGULAR.ttf, Padauk-book.ttf,
-SundaneseUnicode-1.0.5.ttf, SyrCOMEdessa.otf, TaameyDavidCLM-Medium.ttf,
-Tharlon-Regular.ttf, ayar.ttf, damase_v.2.ttf, kaputaunicode.ttf,
-lannaalif-v1-03.ttf, ZawgyiOne.ttf, DBSILBR.ttf, Eeyek-Regular.ttf,
-Pothana2000.ttf, Lohit-Kannada.ttf, Quivira.otf, TaiHeritagePro.ttf,
-Garuda.ttf, Garuda-Bold.ttf, Garuda-Oblique.ttf, Garuda-BoldOblique.ttf,
-XB RiyazBd.ttf, XB RiyazIt.ttf, XB RiyazBdIt.ttf,
-Dhyana-Regular.ttf, Dhyana-Bold.ttf.
+TCPDF ships a large general-purpose font catalog. SScribe's PDF exporter is
+pinned to TCPDF's built-in DejaVu Sans family (regular, bold, italic, and
+bold-italic) plus the initial Helvetica core metrics required during TCPDF
+construction. The release builder removes every other TCPDF font artifact and
+retains the DejaVu license files. This keeps the WordPress.org ZIP bounded
+without introducing runtime-generated font files.
 
-### FPDI parent-class exclusions
-
-`fpdi-fpdf-parent-landmine` memory: classes that extend FPDF must
-not ship because the parent class is not vendored. The
-`fpdi_excludes` configuration in `scripts/build-release.php` lists
-these by filename.
-
----
+The release tree also removes upstream examples, tests, tools, package-manager
+metadata, and other development-only vendor artifacts. TCPDF's `LICENSE.TXT`
+remains alongside its source.
 
 ## 2. In-place file transformations
 
-Every shipped PHP, CSS, or JS file is rewritten by one of the
-strip functions before it is written to `dist/`. Known non-code text
-files (for example `.pot`, `.txt`, `.json`, `.xml`, `.svg`) also pass
-through the AI-artifact sanitizer as a backstop. Binary assets such as
-fonts, images, and compiled translations are copied byte-for-byte and are
-never passed through string replacement.
+SScribe-owned PHP, CSS, JS, and known text assets are passed through
+the documented first-party strip/sanitization functions before they are
+written to `dist/`. Binary first-party assets such as images and compiled
+translations are copied byte-for-byte.
+
+The entire generated `vendor-prefixed/` tree is handled separately:
+after Strauss performs the intentional namespace/class isolation, third-party
+source and license files are copied byte-for-byte into the release staging
+tree. SScribe's comment stripper and Unicode sanitizer do not rewrite vendor
+content. Explicit vendor pruning and the PHPWord license-filename normalization
+listed below occur after that copy.
 
 ### PHP — `strip_php_comments( $source )`
 
@@ -131,9 +128,10 @@ lines. No license-banner preservation.
 
 ### Text files — `sanitize_ai_artifacts( $source )`
 
-Applied AFTER the strip pass to PHP, CSS, JS, and the builder's explicit
-text-extension allowlist. Binary files are copied verbatim. Replaces AI-artifact Unicode characters with ASCII
-equivalents:
+Applied only to SScribe-owned files: after the strip pass for first-party
+PHP/CSS/JS and to the builder's explicit first-party text-extension allowlist.
+Third-party `vendor-prefixed/` content and binary files bypass this sanitizer.
+It replaces AI-artifact Unicode characters with ASCII equivalents:
 
 | Char | Code | Replacement | Reason |
 |------|------|-------------|--------|
@@ -154,8 +152,13 @@ would fail the build.
 
 ---
 
-## 3. Vendor-specific rewrites
+## 3. Vendor-specific handling
 
+- All `vendor-prefixed/` files that survive exclusion/pruning are copied
+  byte-for-byte from the Strauss-generated tree. No SScribe comment stripping
+  or Unicode sanitization is applied to third-party source or notices.
+- TCPDF's extensionless development metadata `Makefile` and `VERSION` are
+  removed before release-content validation.
 - `vendor-prefixed/phpoffice/phpword/COPYING.LESSER` is renamed to
   `COPYING.LESSER.txt` in the dist. WP.org plugin-check rejects
   the bare `.lesser` extension as an unexpected file type, but the
@@ -168,21 +171,31 @@ would fail the build.
   These are configuration samples never read by SScribe code.
 - `includes/sscribe-vendor-compat.php` is removed. This is a
   local-development compatibility shim that re-exposes the
-  unprefixed `PhpWord` / `Mpdf` class names so non-prefixed
+  unprefixed `PhpWord` / `TCPDF` class names so non-prefixed
   examples work in the dev environment. The release code only
   uses prefixed vendors.
 
 ---
 
-## 4. Files present in ZIP but not in the working tree
+## 4. Distribution paths created under a different relative name
 
-None. Every file in `dist/sscribe-export-site-pages/` traces back
-to a file in the working tree. (No synthesized files, no template
-generation.)
+One release path differs from its tracked source path:
+
+- `vendor-prefixed/phpoffice/phpword/COPYING.LESSER.txt` is copied
+  byte-for-byte from
+  `vendor-prefixed/phpoffice/phpword/COPYING.LESSER`. The renamed
+  `.txt` path preserves the required LGPL notice while avoiding the
+  unexpected-extension warning emitted by WordPress Plugin Check.
+
+Every other file in `dist/sscribe-export-site-pages/` retains the
+same relative path as its tracked source.
 
 ---
 
-## 5. Source files that are rewritten and shipped
+## 5. First-party source files that are rewritten and shipped
+
+Only SScribe-owned source is rewritten by the strip/sanitize stage.
+`vendor-prefixed/` is excluded from these transformations.
 
 Examples (illustrative — full list varies per release):
 
@@ -195,9 +208,11 @@ Examples (illustrative — full list varies per release):
 
 ---
 
-## 6. Files in the ZIP that are NOT in the working tree
+## 6. Files in the ZIP that do not exist at the same tracked path
 
-None.
+Only `vendor-prefixed/phpoffice/phpword/COPYING.LESSER.txt`; it is the
+byte-for-byte renamed copy documented in Sections 3 and 4. No file
+content is synthesized.
 
 ---
 
@@ -212,9 +227,9 @@ arrays at the top of `scripts/build-release.php`.
 ## How to verify a build
 
 ```bash
-rm -rf dist/sscribe-export-site-pages dist/sscribe-export-site-pages-2.0.0.zip
+rm -rf dist/sscribe-export-site-pages dist/sscribe-export-site-pages-2.0.3.zip
 composer release 2>&1 | tee build.log
-diff <(unzip -l dist/sscribe-export-site-pages-2.0.0.zip | awk '{print $4}' | sort) \
+diff <(unzip -l dist/sscribe-export-site-pages-2.0.3.zip | awk '{print $4}' | sort) \
      <(find dist/sscribe-export-site-pages -type f | sed 's|dist/sscribe-export-site-pages/||' | sort)
 # Last command should produce no output (ZIP listing == dist listing).
 ```

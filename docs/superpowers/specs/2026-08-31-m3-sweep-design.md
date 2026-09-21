@@ -42,7 +42,7 @@ Approach: **three projects under one `@playwright/test` config** (rejected: one 
 
 - **WP-Playground 3.1.44** ([`@wp-playground/cli`](https://github.com/WordPress/wordpress-playground)) runs in-process PHP via `@php-wasm/node`. Spawned once by `globalSetup`, killed at teardown.
 - **Chromium 1.62.x** via `@playwright/test` (already in `package.json`). Installed via `npx playwright install chromium` in CI.
-- **fs-ext-extra-prebuilt no-op lock stub** (TS port of [wp-playground-fs-ext-stub](../../../../../memory/wp-playground-fs-ext-stub.md) memory) applied at the very start of `globalSetup` so the lock files don't trip on Windows + Node v26. Idempotent — safe to call multiple times.
+- **fs-ext-extra-prebuilt no-op lock stub** (TS port of `wp-playground-fs-ext-stub` (historical external memory reference) memory) applied at the very start of `globalSetup` so the lock files don't trip on Windows + Node v26. Idempotent — safe to call multiple times.
 - The plugin is mounted as `dist/sscribe-export-site-pages.zip` (the existing build artifact from `composer release:prepare`). **Playwright runs against the real ship artifact, not loose source.** CI produces the ZIP, then runs Playwright against it.
 
 ### 1.2 Process topology
@@ -183,7 +183,7 @@ The build step writes the `dist/*.zip` to a path the blueprint can reference (`/
 
 | File | Responsibility |
 |---|---|
-| `tests-e2e/helpers/stub-fs-ext.ts` | TS port of the [wp-playground-fs-ext-stub](../../../../../memory/wp-playground-fs-ext-stub.md) memory. Replaces `flockSync` / `fcntlSync` / `lockFileExSync` / `unlockFileExSync` with no-ops via `require.cache` shim, keeps `F_RDLCK` / `F_WRLCK` / `F_UNLCK` constants intact |
+| `tests-e2e/helpers/stub-fs-ext.ts` | TS port of the `wp-playground-fs-ext-stub` (historical external memory reference) memory. Replaces `flockSync` / `fcntlSync` / `lockFileExSync` / `unlockFileExSync` with no-ops via `require.cache` shim, keeps `F_RDLCK` / `F_WRLCK` / `F_UNLCK` constants intact |
 | `tests-e2e/helpers/perf-sink.ts` | Custom fixture: opens a JSONL file under `wp-content/uploads/sscribe-perf/{session}.jsonl`, exposes `recordSample()` + `getMetrics()`. Reads back via `page.evaluate(() => fetch(...))` so the test thread never blocks on PHP |
 | `tests-e2e/helpers/axe-rules.ts` | Exports axe `Tags` constants (`wcag2a`, `wcag2aa`, `wcag21a`, `wcag21aa`, `wcag22a`, `wcag22aa`, `best-practice`) + `runAxe(page, opts)` wrapper that fails on any violation with rule id, target HTML, help URL |
 | `tests-e2e/helpers/login.ts` | `loginAsAdmin(page)` — single helper that every test reuses |
@@ -470,7 +470,7 @@ Three repo-config changes are required before the first M3 commit, otherwise the
 
 2. **Add `tests-e2e/.cache/`, `test-results/`, `playwright-report/` to `.gitignore`** — all generated, all already excluded by `.distignore` patterns.
 
-3. **Verify `@axe-core/playwright` source availability** — try `npm install @axe-core/playwright --save-dev`; on failure switch to git source per [composer-install-firewall-workaround](../../../../../memory/composer-install-firewall-workaround.md); on second failure fall back to `axe-core` + custom Playwright assertion.
+3. **Verify `@axe-core/playwright` source availability** — try `npm install @axe-core/playwright --save-dev`; on failure switch to git source per `composer-install-firewall-workaround` (historical external memory reference); on second failure fall back to `axe-core` + custom Playwright assertion.
 
 ---
 
@@ -504,7 +504,7 @@ Three repo-config changes are required before the first M3 commit, otherwise the
 
 | Path | Change |
 |---|---|
-| `package.json` | Add `test:e2e`, `test:e2e:smoke`, `test:e2e:fast`, `test:e2e:full`, `test:e2e:e2e`, `test:e2e:a11y`, `test:e2e:perf` scripts. Add `@axe-core/playwright` as devDep (git-source install per [composer-install-firewall-workaround](../../../../../memory/composer-install-firewall-workaround.md) — verify source availability before locking) |
+| `package.json` | Add `test:e2e`, `test:e2e:smoke`, `test:e2e:fast`, `test:e2e:full`, `test:e2e:e2e`, `test:e2e:a11y`, `test:e2e:perf` scripts. Add `@axe-core/playwright` as devDep (git-source install per `composer-install-firewall-workaround` (historical external memory reference) — verify source availability before locking) |
 | `.gitignore` | Add `tests-e2e/.cache/`, `test-results/`, `playwright-report/`. Replace the `docs/superpowers/` line with `docs/superpowers/analysis/` and `docs/superpowers/plans/` so only spec subdirs commit. See §5.7 |
 
 ### 6.3 NOT modified
@@ -524,16 +524,16 @@ Three repo-config changes are required before the first M3 commit, otherwise the
 | [`includes/class-sscribe-export-resource-monitor.php`](../../../../includes/class-sscribe-export-resource-monitor.php) | `get_memory_usage_percent()`, `get_remaining_time()` — used by perf specs to assert against the same numbers the plugin sees |
 | [`includes/class-sscribe-adaptive-metrics.php`](../../../../includes/class-sscribe-adaptive-metrics.php) | `BASELINE_SECONDS` / `BASELINE_MB` constants — perf spec baselines read from `format-baselines.json` which mirrors this shape |
 | `sscribe_after_export_page($page_id, $formats, $success, $elapsed_ms = null, $peak_mem_bytes = null)` action | The mu-plugin hooks this; signature must match production — **verify before finalizing** |
-| [wp-playground-fs-ext-stub.md](../../../../../memory/wp-playground-fs-ext-stub.md) | The TypeScript port of this memory is the `stub-fs-ext.ts` helper |
-| [real-wp-testbench-learnings-m3.md](../../../../../memory/real-wp-testbench-learnings-m3.md) | Not directly reused (different runtime), but the same mental model: 1 global bootstrap, 1 teardown race suppressor, separate config per suite |
-| [dark-mode-aa-regressions.md](../../../../../memory/dark-mode-aa-regressions.md) | The 4 dark-mode contrast regressions are the 4 `a11y/admin-tabs.spec.ts` color-scheme-dark tests |
-| [toggle-ui-assets-gating.md](../../../../../memory/toggle-ui-assets-gating.md) | `e2e/debug/toggle.spec.ts` asserts the debug tab's CSS/JS load independent of the flag |
-| [two-click-confirm-pointer-events-landmine.md](../../../../../memory/two-click-confirm-pointer-events-landmine.md) | `e2e/history/delete-two-click.spec.ts` asserts computed `pointer-events` after second click |
-| [markdown-format-card-word-break.md](../../../../../memory/markdown-format-card-word-break.md) | `a11y/format-cards.spec.ts` includes the Markdown card word-break visual regression |
-| [rotated-log-file-name-color-tokens.md](../../../../../memory/rotated-log-file-name-color-tokens.md) | `a11y/admin-tabs.spec.ts` (debug tab) asserts rotated-log filename is not invisible on light surface |
-| [audit-screenshot-build-leak.md](../../../../../memory/audit-screenshot-build-leak.md) | M3 outputs land under `tests-e2e/.cache/`, `playwright-report/`, `test-results/` — all gitignored, all already covered by `.distignore` patterns |
-| [composer-install-firewall-workaround.md](../../../../../memory/composer-install-firewall-workaround.md) | If `@axe-core/playwright` install fails, switch to git source per this workaround |
-| [sandbox-firewall-composer-update-blocked.md](../../../../../memory/sandbox-firewall-composer-update-blocked.md) | Constraint: major `npm install` blocked; `@playwright/test` already cached, `@axe-core/playwright` needs source fallback |
+| `wp-playground-fs-ext-stub.md` (historical external memory reference) | The TypeScript port of this memory is the `stub-fs-ext.ts` helper |
+| `real-wp-testbench-learnings-m3.md` (historical external memory reference) | Not directly reused (different runtime), but the same mental model: 1 global bootstrap, 1 teardown race suppressor, separate config per suite |
+| `dark-mode-aa-regressions.md` (historical external memory reference) | The 4 dark-mode contrast regressions are the 4 `a11y/admin-tabs.spec.ts` color-scheme-dark tests |
+| `toggle-ui-assets-gating.md` (historical external memory reference) | `e2e/debug/toggle.spec.ts` asserts the debug tab's CSS/JS load independent of the flag |
+| `two-click-confirm-pointer-events-landmine.md` (historical external memory reference) | `e2e/history/delete-two-click.spec.ts` asserts computed `pointer-events` after second click |
+| `markdown-format-card-word-break.md` (historical external memory reference) | `a11y/format-cards.spec.ts` includes the Markdown card word-break visual regression |
+| `rotated-log-file-name-color-tokens.md` (historical external memory reference) | `a11y/admin-tabs.spec.ts` (debug tab) asserts rotated-log filename is not invisible on light surface |
+| `audit-screenshot-build-leak.md` (historical external memory reference) | M3 outputs land under `tests-e2e/.cache/`, `playwright-report/`, `test-results/` — all gitignored, all already covered by `.distignore` patterns |
+| `composer-install-firewall-workaround.md` (historical external memory reference) | If `@axe-core/playwright` install fails, switch to git source per this workaround |
+| `sandbox-firewall-composer-update-blocked.md` (historical external memory reference) | Constraint: major `npm install` blocked; `@playwright/test` already cached, `@axe-core/playwright` needs source fallback |
 
 ---
 
@@ -582,7 +582,7 @@ These three memories replace the v1.2.0 "deliberately deferred" items #1 (manual
 
 | Risk | Mitigation |
 |---|---|
-| `@axe-core/playwright` fails to install (sandbox firewall) | Try tarball install first; on failure, switch to git source per [composer-install-firewall-workaround](../../../../../memory/composer-install-firewall-workaround.md); on second failure, fall back to plain `axe-core` + custom Playwright assertion |
+| `@axe-core/playwright` fails to install (sandbox firewall) | Try tarball install first; on failure, switch to git source per `composer-install-firewall-workaround` (historical external memory reference); on second failure, fall back to plain `axe-core` + custom Playwright assertion |
 | `sscribe_after_export_page` signature doesn't pass elapsed_ms / peak_mem_bytes | The mu-plugin accepts up to 5 args with null defaults; production's 3-arg signature still works. **Verify the actual production signature before finalizing** |
 | WP-Playground scratch dir leaks memory across CI runs | `/tmp/wp-playground-*` uploaded on failure only; CI runner resets `/tmp` between jobs |
 | Perf baselines drift as the exporter improves | `format-baselines.json` lives in the repo; updated by a deliberate PR with measurement of new median, not by silent CI re-baselining |

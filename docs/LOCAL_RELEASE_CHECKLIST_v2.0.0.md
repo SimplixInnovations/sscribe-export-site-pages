@@ -1,12 +1,12 @@
-# SScribe v2.0.0 — Local Final Release Checklist
+# SScribe Local Final Release Checklist — governance schema v2.0.0
+
+> **Release identity:** derive the current release from `SSCRIBE_VERSION`. The `_v2.0.0` filename denotes the checklist schema, not the artifact version.
 
 GitHub Actions availability is not a prerequisite for merging the finished
 source. It **is** still necessary to verify the exact final source/package
 before tagging or uploading to WordPress.org.
 
-Run this checklist from `develop`. Any tracked fix must be committed before
-final evidence is generated. At final closure, `main` is fast-forwarded to
-the exact certified `develop` SHA.
+Run this checklist from a clean `main` checkout after the reviewed release pull request has merged. Any tracked fix must go through a new transient pull-request branch before final evidence is regenerated. The certified source SHA is `origin/main`.
 
 For Bash/Git Bash evidence commands, enable fail-fast pipeline behavior before
 using `tee`, otherwise a failing command can be masked by a successful `tee`:
@@ -20,6 +20,8 @@ set -euo pipefail
 > lives in gitignored `dist/` evidence files and generated manifests. If any
 > tracked file changes after final evidence is generated, discard that evidence,
 > commit the source change, and repeat final certification.
+
+Resolve the release version once at the start and substitute it for `{VERSION}` below. The authoritative value is the `SSCRIBE_VERSION` constant in `sscribe-export-site-pages.php`.
 
 ## 1. Clean dependency install
 
@@ -81,7 +83,7 @@ composer release
 The canonical artifact is:
 
 ```text
-dist/sscribe-export-site-pages-2.0.0.zip
+dist/sscribe-export-site-pages-{VERSION}.zip
 ```
 
 Do not test one ZIP and upload another.
@@ -102,7 +104,7 @@ under the ignored evidence directory:
 
 ```bash
 mkdir -p dist/evidence
-"${SSCRIBE_WP_BIN:-wp}" --path="$SSCRIBE_WP_ROOT" plugin install   "$PWD/dist/sscribe-export-site-pages-2.0.0.zip" --force --activate
+"${SSCRIBE_WP_BIN:-wp}" --path="$SSCRIBE_WP_ROOT" plugin install   "$PWD/dist/sscribe-export-site-pages-{VERSION}.zip" --force --activate
 
 "${SSCRIBE_WP_BIN:-wp}" --path="$SSCRIBE_WP_ROOT" plugin check   sscribe-export-site-pages 2>&1 | tee dist/evidence/plugin-check-preliminary.log
 ```
@@ -217,8 +219,8 @@ cp .cache/final-build.log dist/evidence/build.log
 The exact artifact must now be:
 
 ```text
-dist/sscribe-export-site-pages-2.0.0.zip
-dist/sscribe-export-site-pages-2.0.0.sha256
+dist/sscribe-export-site-pages-{VERSION}.zip
+dist/sscribe-export-site-pages-{VERSION}.sha256
 ```
 
 Now run and save the remaining required signal evidence against this same
@@ -263,7 +265,7 @@ final output:
 
 ```bash
 "${SSCRIBE_WP_BIN:-wp}" --path="$SSCRIBE_WP_ROOT" plugin install \
-  "$PWD/dist/sscribe-export-site-pages-2.0.0.zip" --force --activate
+  "$PWD/dist/sscribe-export-site-pages-{VERSION}.zip" --force --activate
 
 "${SSCRIBE_WP_BIN:-wp}" --path="$SSCRIBE_WP_ROOT" plugin check \
   sscribe-export-site-pages 2>&1 | tee dist/evidence/plugin-check.log
@@ -374,22 +376,22 @@ exit 0.
 
 After strict certification passes, make no tracked changes.
 
-Fast-forward `main` to the exact certified `develop` commit and push both.
-Then verify:
+After strict certification passes, verify that the clean local `main` checkout and `origin/main` resolve to the exact certified SHA and that no completed transient branch remains:
 
 ```bash
 git fetch origin --prune
+git rev-parse HEAD
 git rev-parse origin/main
-git rev-parse origin/develop
-git diff --stat origin/main..origin/develop
-git rev-list --left-right --count origin/main...origin/develop
+git status --short --branch
+git branch -a
 ```
 
 Required result:
 
-- both branches resolve to the exact certified SHA;
-- no diff;
-- ahead/behind is `0 0`.
+- local `HEAD` equals `origin/main` and the exact certified SHA;
+- the working tree is clean;
+- `main` is the only persistent long-lived branch;
+- completed audit/release/feature/hotfix branches have been deleted.
 
 Only after that may `v2.0.0` be created, subject to the repository tag policy,
 signing requirements, and WordPress.org source-transparency requirement.

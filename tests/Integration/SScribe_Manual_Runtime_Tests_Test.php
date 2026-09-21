@@ -90,6 +90,14 @@ final class SScribe_Manual_Runtime_Tests_Test extends TestCase {
 		}
 	}
 
+	public function test_runbook_uses_current_versioned_release_artifact_contract(): void {
+		$src = (string) file_get_contents( self::plugin_root() . '/' . self::RUNBOOK_DOC );
+
+		$this::assertStringContainsString( 'sscribe-export-site-pages-{VERSION}.zip', $src );
+		$this::assertStringNotContainsString( 'dist/sscribe-export-site-pages.zip', $src );
+		$this::assertStringContainsString( 'SSCRIBE_VERSION', $src );
+	}
+
 	public function test_runbook_covers_six_required_environments(): void {
 		$src = (string) file_get_contents( self::plugin_root() . '/' . self::RUNBOOK_DOC );
 		foreach ( array(

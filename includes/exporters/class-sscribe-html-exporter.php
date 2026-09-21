@@ -100,7 +100,7 @@ class SScribe_HTML_Exporter implements SScribe_Exporter_Interface {
 	/**
 	 * Generate HTML string for a page without writing to disk.
 	 *
-	 * Used by the PDF exporter to obtain the HTML content for mPDF rendering
+	 * Used by the PDF exporter to obtain the HTML content for TCPDF rendering
 	 * without creating a .html side-effect file.
 	 *
 	 * @param array $page_data Page data.

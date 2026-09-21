@@ -9,7 +9,7 @@ all cite. Without this contract:
 
 - Tags drift from `SSCRIBE_VERSION` (a release at `v2.0.0` ships
   source still on `v1.9.x` — the historic incident).
-- Tags land on the wrong ref (the tag points at `develop` HEAD
+- Tags land on the wrong ref (the tag points at a transient review branch HEAD
   instead of `main` HEAD, so the GH Release ZIP build never matches
   what was reviewed).
 - Tags are absent or lightweight (no proof that the released commit
@@ -28,7 +28,7 @@ rule blocks the release.
 
 | #  | Rule                                                                              | Enforced by                       |
 |----|-----------------------------------------------------------------------------------|-----------------------------------|
-| 1  | The tag name equals `SSCRIBE_VERSION` exactly (e.g. `v2.0.1`).                    | Phase 16 + Phase 54 verifier.     |
+| 1  | The tag name equals `SSCRIBE_VERSION` exactly (e.g. `v2.0.3`).                    | Phase 16 + Phase 54 verifier.     |
 | 2  | New release tags from v2.0.3 onward are annotated tags (`git tag -a` or `git tag -s`), not lightweight tags. Historical v2.0.2-and-earlier tags are preserved exactly as originally published. | Phase 54 verifier. |
 | 3  | The tag points exactly at `origin/main` HEAD at certification time.               | Phase 54 verifier + Phase 77.     |
 | 4  | The tag points at the exact certified source SHA (the SHA recorded in the build evidence). | Phase 54 verifier + Phase 72. |
@@ -75,8 +75,9 @@ If the maintainer organization deliberately chooses mandatory
 cryptographic signing as a policy, then implement it properly:
 
 ```bash
-git tag -s v2.0.1 -m "SScribe 2.0.1"
-git tag -v v2.0.1    # must verify with no `gpg: BAD signature`
+VERSION=2.0.3
+git tag -s "v${VERSION}" -m "SScribe ${VERSION}"
+git tag -v "v${VERSION}"    # optional signing policy: must verify cleanly when used
 ```
 
 If cryptographic signing is not configured, do not turn that into a
@@ -84,16 +85,7 @@ release-stop blocker. WP.org submission does not require it.
 
 ## Why "origin/main HEAD" specifically
 
-The release artifact (`dist/sscribe-export-site-pages-{VERSION}.zip`) is built from the certified shared `origin/main == origin/develop` SHA by `scripts/build-release.php`. `composer release:audit` verifies the already-built artifact; it does not build it. The tag and artifact MUST resolve to the same certified source SHA, otherwise the ZIP the reviewer audits differs from the source the WP.org reviewer clones. The branch topology
-policy (Phase 77) guarantees `main` and `develop` are in lock-step,
-so an `origin/main` HEAD tag is by construction the same source the
-develop branch reviewed.
-
-If `main` and `develop` were permitted to diverge, the tag-policy
-would have to choose which one was the authoritative source, and the
-auditors would have to verify both. The Phase 77 branch topology
-invariant keeps it simple: tag = origin/main HEAD is sufficient and
-unique.
+The release artifact (`dist/sscribe-export-site-pages-{VERSION}.zip`) is built from the certified `origin/main` source by `scripts/build-release.php`. `composer release:audit` verifies the already-built artifact; it does not build it. The tag and artifact MUST resolve to the same certified source SHA, otherwise the ZIP the reviewer audits differs from the source the WP.org reviewer clones. Phase 77 makes `main` the only persistent authoritative branch, so `tag = origin/main HEAD = certified source SHA` is sufficient and unique.
 
 ## How an independent auditor verifies this
 
@@ -127,8 +119,7 @@ policy.
 
 ## What this contract does NOT cover
 
-- **Branch topology** — Phase 77 separately enforces only `main` +
-  `develop` are long-lived.
+- **Branch topology** — Phase 77 separately enforces `main` as the only persistent long-lived branch.
 - **Artifact evidence** — Phase 72 separately records the ZIP
   SHA-256, byte size, and file count.
 - **CI state** — Phase 71 separately verifies every required job is

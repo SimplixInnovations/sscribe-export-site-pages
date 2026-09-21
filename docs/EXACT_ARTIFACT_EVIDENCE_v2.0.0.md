@@ -1,4 +1,6 @@
-# Exact Artifact Evidence — v2.0.0
+# Exact Artifact Evidence — governance schema v2.0.0
+
+> **Scope:** the filename/schema version is historical governance nomenclature, not the plugin release being certified. Resolve the live release from `SSCRIBE_VERSION`; never substitute a literal `2.0.0` artifact for the current release.
 
 ## Why this exists
 
@@ -47,8 +49,8 @@ SHA/checksum/build values out of Git.
 
 | # | Field | Recorded value |
 |---|---|---|
-| 1 | version | 2.0.0 |
-| 2 | zip_filename | dist/sscribe-export-site-pages-2.0.0.zip |
+| 1 | version | {VERSION_FROM_SSCRIBE_VERSION} |
+| 2 | zip_filename | dist/sscribe-export-site-pages-{VERSION}.zip |
 | 3 | zip_sha256 | PENDING_FINAL_CERTIFICATION |
 | 4 | zip_byte_size | PENDING_FINAL_CERTIFICATION |
 | 5 | zip_file_count | PENDING_FINAL_CERTIFICATION |
@@ -124,7 +126,7 @@ composer test:exact-artifact-evidence
 SSCRIBE_RELEASE_CERTIFICATION=1 composer test:exact-artifact-evidence
 
 # Independent spot checks.
-sha256sum dist/sscribe-export-site-pages-2.0.0.zip
+sha256sum dist/sscribe-export-site-pages-{VERSION}.zip
 git rev-parse HEAD
 git status --short
 ```

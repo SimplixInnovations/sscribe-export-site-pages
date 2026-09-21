@@ -651,6 +651,7 @@
 						const pageTotal = self.parseLocalizedInt(pageCounts.all) || 0;
 						const postTotal = self.parseLocalizedInt(postCounts.all) || 0;
 						const anyTotal = self.parseLocalizedInt(anyCounts.all) || 0;
+						const selectedTypeTotal = self.parseLocalizedInt(allCounts.all) || 0;
 						$('[data-sscribe-count-for="page"]')
 							.text(pageTotal.toLocaleString())
 							.attr('data-count', pageTotal);
@@ -660,6 +661,14 @@
 						$('[data-sscribe-count-for="any"]')
 							.text(anyTotal.toLocaleString())
 							.attr('data-count', anyTotal);
+						if (postType !== 'page' && postType !== 'post' && postType !== 'any') {
+							const $selectedTypeCount = $('[data-sscribe-count-for]').filter(function () {
+								return $(this).attr('data-sscribe-count-for') === postType;
+							});
+							$selectedTypeCount
+								.text(selectedTypeTotal.toLocaleString())
+								.attr('data-count', selectedTypeTotal);
+						}
 						// Phase 3: authoritative countsState — written ONLY
 						// on a successful response whose generation, post_type,
 						// and language all match the current selection.
@@ -673,6 +682,9 @@
 							post: postTotal,
 							any: anyTotal,
 						};
+						if (postType !== 'page' && postType !== 'post' && postType !== 'any') {
+							self.countsState.typeCounts[postType] = selectedTypeTotal;
+						}
 						self.countsState.loaded = true;
 						self.countsState.error = null;
 						self.countsState.errorCode = null;
@@ -832,12 +844,16 @@
 							const pageTotal = self.parseLocalizedInt(pageCounts.all) || 0;
 							const postTotal = self.parseLocalizedInt(postCounts.all) || 0;
 							const anyTotal = self.parseLocalizedInt(anyCounts.all) || 0;
-							const displayTotal =
-								'post' === currentPostType
-									? postTotal
-									: 'any' === currentPostType
-										? anyTotal
-										: pageTotal;
+							const selectedCounts = entry.counts || {};
+							const selectedTotal = self.parseLocalizedInt(selectedCounts.all) || 0;
+							let displayTotal = selectedTotal;
+							if ('page' === currentPostType) {
+								displayTotal = pageTotal;
+							} else if ('post' === currentPostType) {
+								displayTotal = postTotal;
+							} else if ('any' === currentPostType) {
+								displayTotal = anyTotal;
+							}
 							const $langLabel = $('input[name="sscribe_language"][value="' + langCode + '"]').closest(
 								'.sscribe-lang-card-label'
 							);
@@ -2955,8 +2971,8 @@
 				return '';
 			}
 			const div = document.createElement('div');
-			div.textContent = str;
-			return div.innerHTML;
+			div.textContent = String(str);
+			return div.innerHTML.replace(/"/g, '&quot;').replace(/'/g, '&#039;');
 		},
 		/**
 		 * Accept only same-origin HTTP(S) URLs before placing server data in a URL attribute.
@@ -4099,15 +4115,16 @@
 		},
 		downloadExport: function (e) {
 			const $link = $(e.currentTarget);
-			const href = $link.attr('href');
-			if (href && href !== '#') {
+			const href = $link.attr('href') || '';
+			const safeHref = this.getSafeSameOriginUrl(href);
+			if (safeHref) {
 				return;
 			}
+
+			// History rows are rendered only with a validated same-origin
+			// download URL. If markup is stale or tampered with, fail closed
+			// instead of treating a filename/data attribute as a navigation URL.
 			e.preventDefault();
-			const filename = $link.data('filename') || $link.attr('href');
-			if (filename && filename !== '#') {
-				window.location.href = filename;
-			}
 		},
 		retry: function (e) {
 			e.preventDefault();

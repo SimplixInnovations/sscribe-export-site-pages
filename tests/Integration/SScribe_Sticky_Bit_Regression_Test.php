@@ -5,9 +5,11 @@
  * SScribe refuses a private-storage base directory that doesn't pass
  * its containment invariant:
  *
- *   - Current process UID owns the directory → ACCEPT.
- *   - Foreign-owned + mode 0700/0755 → REJECT (no world-writable,
- *     no sticky bit; any local user could substitute a target).
+ *   - Current-owned mode 0700/0755 → ACCEPT when PHP can write it.
+ *   - Current-owned group/world-writable without sticky protection → REJECT.
+ *   - Foreign-owned + mode 0700/0755 → ACCEPT only when PHP has
+ *     effective write access (for example via ACL/container mapping)
+ *     and group/other write bits remain clear.
  *   - Foreign-owned + mode 0777 (world-writable, no sticky) →
  *     REJECT (non-owner could rename or delete the base).
  *   - Foreign-owned + mode 01777 (world-writable AND sticky bit)
@@ -89,7 +91,29 @@ final class SScribe_Sticky_Bit_Regression_Test extends TestCase {
 
 	#[RunInSeparateProcess]
 	#[PreserveGlobalState( false )]
-	public function test_foreign_owned_0755_is_rejected(): void {
+	public function test_current_owned_0777_without_sticky_is_rejected(): void {
+		if ( 'Windows' === PHP_OS_FAMILY ) {
+			$this->markTestSkipped( 'POSIX mode-bit policy is exercised on non-Windows hosts.' );
+		}
+
+		$base = sys_get_temp_dir() . '/sscribe-phase39-current-world-' . uniqid();
+		wp_mkdir_p( $base );
+		chmod( $base, 0777 );
+
+		try {
+			$this->assertFalse(
+				self::invoke_ownership_check( $base ),
+				'Ownership must not bypass group/world-write protection on a candidate private-storage base.'
+			);
+		} finally {
+			chmod( $base, 0700 );
+			rmdir( $base );
+		}
+	}
+
+	#[RunInSeparateProcess]
+	#[PreserveGlobalState( false )]
+	public function test_foreign_owned_0755_follows_effective_php_writability(): void {
 		if ( 'Windows' === PHP_OS_FAMILY ) {
 			$this->markTestSkipped( 'Foreign-owner rejection is exercised on POSIX hosts.' );
 		}
@@ -114,10 +138,12 @@ final class SScribe_Sticky_Bit_Regression_Test extends TestCase {
 			$this->markTestSkipped( 'Cannot flip fileowner() inside the test runner (rootless container).' );
 		}
 
-		$result = self::invoke_ownership_check( $base );
-		$this->assertFalse(
+		$writable = wp_is_writable( $base );
+		$result   = self::invoke_ownership_check( $base );
+		$this->assertSame(
+			$writable,
 			$result,
-			'Foreign-owned 0755 base must be rejected (no world-writable, no sticky bit).'
+			'Foreign-owned 0755 must be accepted only when PHP has effective write access (for example through ACL/container mapping).'
 		);
 
 		chown( $base, $original_owner );
@@ -162,7 +188,7 @@ final class SScribe_Sticky_Bit_Regression_Test extends TestCase {
 	 * Phase 68 #21 — sticky-bit ownership: foreign-owned 01777
 	 * (sticky-bit set) directories must be accepted because the
 	 * shared-host /tmp convention requires world-writable +
-	 * sticky-bit. Foreign-owned 0777/0755 must be rejected.
+	 * sticky-bit. Foreign-owned 0777 without sticky protection must be rejected.
 	 */
 	public function test_foreign_owned_01777_with_sticky_is_accepted(): void {
 		if ( 'Windows' === PHP_OS_FAMILY ) {

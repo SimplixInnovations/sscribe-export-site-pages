@@ -122,7 +122,8 @@ function sscribe_release_audit(): void {
 	);
 	foreach ( $tail_gates as $name => $script ) {
 		fwrite( STDOUT, "== {$name} ==\n" );
-		$gate( $name, array( $composer, $script ) );
+		$tail_env = in_array( $name, array( 'Agent-Final-Report', 'Branch-Policy', 'Auditor-Handoff' ), true ) ? $cert : array();
+		$gate( $name, array( $composer, $script ), $tail_env );
 	}
 
 	fwrite( STDOUT, "== PHPStan ==\n" );
@@ -147,14 +148,27 @@ function sscribe_release_audit(): void {
 	}
 	if ( is_string( $wp_root ) && '' !== $wp_root && is_dir( $wp_root . '/wp-content/plugins/plugin-check' ) && $wp_found && '' !== $wp_bin ) {
 		$plugin_dir       = $wp_root . '/wp-content/plugins/sscribe-export-site-pages';
-		$plugin_check_cli = $wp_root . '/wp-content/plugins/plugin-check/cli.php';
-		if ( ! is_dir( $plugin_dir ) || ! is_file( $plugin_check_cli ) ) {
-			fwrite( STDERR, "Plugin Check runtime prerequisites are incomplete: exact plugin directory or plugin-check/cli.php is missing.\n" );
+		$plugin_check_cli       = $wp_root . '/wp-content/plugins/plugin-check/cli.php';
+		$plugin_check_bootstrap = __DIR__ . '/plugin-check-cli-bootstrap.php';
+		if ( ! is_dir( $plugin_dir ) || ! is_file( $plugin_check_cli ) || ! is_file( $plugin_check_bootstrap ) ) {
+			fwrite( STDERR, "Plugin Check runtime prerequisites are incomplete: exact plugin directory or runtime bootstrap is missing.\n" );
 			$summary[] = array( 'status' => 'FAIL', 'ms' => 0, 'name' => 'Plugin-Check' );
 			$fail++;
 			printf( "%s %-32s %6sms\n", 'FAIL', 'Plugin-Check', '0' );
 		} else {
-			$gate( 'Plugin-Check', array( $wp_bin, '--path=' . $wp_root, 'plugin', 'check', $plugin_dir, '--format=json', '--require=' . $plugin_check_cli, '--allow-root' ) );
+			$gate(
+				'Plugin-Check',
+				array(
+					$wp_bin,
+					'--path=' . $wp_root,
+					'plugin',
+					'check',
+					$plugin_dir,
+					'--format=json',
+					'--require=' . $plugin_check_bootstrap,
+					'--allow-root',
+				)
+			);
 		}
 	} else {
 		fwrite( STDERR, "Plugin Check testbench unavailable. Set SSCRIBE_WP_ROOT to a WordPress install containing the official Plugin Check plugin and optionally SSCRIBE_WP_BIN to the wp-cli executable. release audit is fail-closed.\n" );

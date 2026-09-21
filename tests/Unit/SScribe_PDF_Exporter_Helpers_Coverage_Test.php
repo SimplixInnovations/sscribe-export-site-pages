@@ -1,14 +1,6 @@
 <?php
 /**
- * SScribe PDF Exporter helper coverage test
- *
- * Targets the pure private helpers of SScribe_PDF_Exporter via reflection:
- *
- *   - normalize_scalar()       : non-scalar, empty, populated, default
- *   - get_format_option()      : missing key, populated key
- *   - resolve_pdf_page_size()  : A4 default, valid custom, invalid fallback
- *   - find_font_file()         : missing dir, missing file, present match
- *   - get_libxml_error_details() : empty list, populated list
+ * SScribe PDF exporter helper coverage tests.
  *
  * @package SScribe_Export_Site_Pages
  */
@@ -27,144 +19,86 @@ if ( ! class_exists( '\\SScribe_PDF_Exporter', false ) ) {
 final class SScribe_PDF_Exporter_Helpers_Coverage_Test extends TestCase {
 
 	private \SScribe_PDF_Exporter $exporter;
-	private ReflectionClass $ref;
+	private ReflectionClass $reflection;
 
 	protected function setUp(): void {
 		parent::setUp();
-		$this->exporter = new \SScribe_PDF_Exporter();
-		$this->ref      = new ReflectionClass( $this->exporter );
+		$this->exporter   = new \SScribe_PDF_Exporter();
+		$this->reflection = new ReflectionClass( $this->exporter );
 	}
 
-	/**
-	 * @param string $name Method name.
-	 * @param array  $args Invocation arguments.
-	 */
 	private function call( string $name, array $args = array() ): mixed {
-		$m = $this->ref->getMethod( $name );
-		return $m->invokeArgs( $this->exporter, $args );
+		return $this->reflection->getMethod( $name )->invokeArgs( $this->exporter, $args );
 	}
 
 	public function test_normalize_scalar_returns_string_for_scalar(): void {
-		$result = $this->call( 'normalize_scalar', array( 'hello', 'default' ) );
-		$this::assertSame( 'hello', $result );
+		$this::assertSame( 'hello', $this->call( 'normalize_scalar', array( 'hello', 'default' ) ) );
 	}
 
-	public function test_normalize_scalar_returns_default_for_empty_string(): void {
-		$result = $this->call( 'normalize_scalar', array( '   ', 'fallback' ) );
-		$this::assertSame( 'fallback', $result );
-	}
-
-	public function test_normalize_scalar_returns_default_for_non_scalar(): void {
-		$this::assertSame( 'default', $this->call( 'normalize_scalar', array( array( 'x' ), 'default' ) ) );
-		$this::assertSame( 'default', $this->call( 'normalize_scalar', array( new \stdClass(), 'default' ) ) );
-		$this::assertSame( 'default', $this->call( 'normalize_scalar', array( null, 'default' ) ) );
+	public function test_normalize_scalar_returns_default_for_empty_and_non_scalar_values(): void {
+		$this::assertSame( 'fallback', $this->call( 'normalize_scalar', array( '   ', 'fallback' ) ) );
+		$this::assertSame( 'fallback', $this->call( 'normalize_scalar', array( array( 'x' ), 'fallback' ) ) );
+		$this::assertSame( 'fallback', $this->call( 'normalize_scalar', array( new \stdClass(), 'fallback' ) ) );
+		$this::assertSame( 'fallback', $this->call( 'normalize_scalar', array( null, 'fallback' ) ) );
 	}
 
 	public function test_normalize_scalar_trims_whitespace(): void {
-		$result = $this->call( 'normalize_scalar', array( '  hello  ', 'default' ) );
-		$this::assertSame( 'hello', $result );
+		$this::assertSame( 'hello', $this->call( 'normalize_scalar', array( '  hello  ', 'default' ) ) );
 	}
 
-	public function test_get_format_option_returns_default_for_missing_key(): void {
-		$result = $this->call( 'get_format_option', array( 'missing', 'fallback' ) );
-		$this::assertSame( 'fallback', $result );
-	}
-
-	public function test_get_format_option_returns_value_for_present_key(): void {
+	public function test_get_format_option_returns_default_and_present_value(): void {
+		$this::assertSame( 'fallback', $this->call( 'get_format_option', array( 'missing', 'fallback' ) ) );
 		$this->exporter->apply_format_options( array( 'page_size' => 'A3' ) );
-		$result = $this->call( 'get_format_option', array( 'page_size', 'A4' ) );
-		$this::assertSame( 'A3', $result );
+		$this::assertSame( 'A3', $this->call( 'get_format_option', array( 'page_size', 'A4' ) ) );
 	}
 
-	public function test_resolve_pdf_page_size_returns_a4_default(): void {
-		$result = $this->call( 'resolve_pdf_page_size' );
-		$this::assertSame( 'A4', $result );
-	}
-
-	public function test_resolve_pdf_page_size_accepts_valid_values(): void {
+	public function test_resolve_pdf_page_size_defaults_and_accepts_supported_values(): void {
+		$this::assertSame( 'A4', $this->call( 'resolve_pdf_page_size' ) );
 		foreach ( array( 'A3', 'Letter', 'Legal', 'A4' ) as $size ) {
 			$this->exporter->apply_format_options( array( 'sscribe_pdf_page_size' => $size ) );
-			$result = $this->call( 'resolve_pdf_page_size' );
-			$this::assertSame( $size, $result );
+			$this::assertSame( $size, $this->call( 'resolve_pdf_page_size' ) );
 		}
 	}
 
-	public function test_resolve_pdf_page_size_falls_back_for_invalid(): void {
+	public function test_resolve_pdf_page_size_falls_back_for_invalid_value(): void {
 		$this->exporter->apply_format_options( array( 'sscribe_pdf_page_size' => 'BOGUS' ) );
-		$result = $this->call( 'resolve_pdf_page_size' );
-		$this::assertSame( 'A4', $result );
+		$this::assertSame( 'A4', $this->call( 'resolve_pdf_page_size' ) );
 	}
 
-	public function test_find_font_file_returns_null_for_missing_dir(): void {
-		$result = $this->call( 'find_font_file', array( '/no/such/dir_' . uniqid(), 'X' ) );
-		$this::assertNull( $result );
+	public function test_prepare_html_for_pdf_engine_keeps_plain_markup(): void {
+		$html = '<p>hello</p>';
+		$this::assertSame( $html, $this->call( 'prepare_html_for_pdf_engine', array( $html, false ) ) );
 	}
 
-	public function test_find_font_file_finds_match_in_real_dir(): void {
-		$tmp = sys_get_temp_dir() . '/sscribe_font_' . uniqid();
-		mkdir( $tmp, 0755, true );
-		file_put_contents( $tmp . '/DejaVuSans.ttf', 'x' );
-		file_put_contents( $tmp . '/Other.ttf', 'x' );
+	public function test_prepare_html_for_pdf_engine_strips_font_and_remote_resource_controls(): void {
+		$html = '<style>@import "https://bad.example/x.css";'
+			. '@font-face{font-family:x;src:url(https://bad.example/x.woff2);}'
+			. '.x{font-family:Georgia;color:red;background:url(https://bad.example/a.png);}'
+			. '</style><p>hello</p>';
 
-		$result = $this->call( 'find_font_file', array( $tmp, 'DejaVuSans' ) );
-		$this::assertSame( 'DejaVuSans.ttf', $result );
+		$result = $this->call( 'prepare_html_for_pdf_engine', array( $html, false ) );
 
-		$result = $this->call( 'find_font_file', array( $tmp, 'Other' ) );
-		$this::assertSame( 'Other.ttf', $result );
-
-		@unlink( $tmp . '/DejaVuSans.ttf' );
-		@unlink( $tmp . '/Other.ttf' );
-		@rmdir( $tmp );
+		$this::assertStringNotContainsString( 'bad.example', $result );
+		$this::assertStringNotContainsString( '@font-face', strtolower( $result ) );
+		$this::assertStringNotContainsString( '@import', strtolower( $result ) );
+		$this::assertStringNotContainsString( 'font-family', strtolower( $result ) );
+		$this::assertStringContainsString( 'color:red', str_replace( ' ', '', $result ) );
 	}
 
-	public function test_find_font_file_returns_null_when_no_match(): void {
-		$tmp = sys_get_temp_dir() . '/sscribe_font_' . uniqid();
-		mkdir( $tmp, 0755, true );
-		file_put_contents( $tmp . '/Foo.ttf', 'x' );
-
-		$result = $this->call( 'find_font_file', array( $tmp, 'NotThere' ) );
-		$this::assertNull( $result );
-
-		@unlink( $tmp . '/Foo.ttf' );
-		@rmdir( $tmp );
-	}
-
-	public function test_get_libxml_error_details_returns_empty_array_when_no_errors(): void {
-		libxml_use_internal_errors( true );
-		libxml_clear_errors();
-
-		$result = $this->call( 'get_libxml_error_details' );
-		$this::assertIsArray( $result );
-		$this::assertEmpty( $result );
-
-		libxml_clear_errors();
-	}
-
-	public function test_get_extension_returns_pdf(): void {
+	public function test_public_pdf_contract_is_stable(): void {
 		$this::assertSame( 'pdf', $this->exporter->get_extension() );
-	}
-
-	public function test_get_mime_type_returns_pdf(): void {
 		$this::assertSame( 'application/pdf', $this->exporter->get_mime_type() );
+		$this::assertTrue( method_exists( $this->exporter, 'export' ) );
+		$this::assertTrue( method_exists( $this->exporter, 'apply_format_options' ) );
 	}
 
-	public function test_apply_format_options_keeps_state(): void {
-		$this->exporter->apply_format_options( array( 'page_size' => 'A4' ) );
-		$result = $this->call( 'get_format_option', array( 'page_size', null ) );
-		$this::assertSame( 'A4', $result );
-	}
-
-	public function test_export_returns_failure_object_for_missing_id(): void {
-		// Without wp_normalize_path stubbed, export() cannot run cleanup_mpdf_temp.
-		// We only verify the constructor/format-options surface here, plus a
-		// typed signature check that export() returns SScribe_Result.
+	public function test_export_return_type_is_result(): void {
 		$ref = new \ReflectionMethod( $this->exporter, 'export' );
 		$this::assertSame( 'SScribe_Result', $ref->getReturnType()->getName() );
 	}
 
 	public function test_construct_accepts_null_arguments(): void {
-		$e = new \SScribe_PDF_Exporter( null, null, null );
-		$this::assertInstanceOf( \SScribe_PDF_Exporter::class, $e );
-		$this::assertSame( 'pdf', $e->get_extension() );
+		$exporter = new \SScribe_PDF_Exporter( null, null, null );
+		$this::assertInstanceOf( \SScribe_PDF_Exporter::class, $exporter );
 	}
 }

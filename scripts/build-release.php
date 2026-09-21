@@ -35,7 +35,7 @@ $config = array(
 		'package.json', 'package-lock.json', 'opencode.json', 'CONTRIBUTING.md', 'CHANGELOG.md',
 		'phpunit.xml', 'phpunit.xml.dist', 'phpstan.neon', 'phpstan.neon.dist',
 		'phpcs.xml', 'phpstan-bootstrap.php', '.editorconfig', '.wp-env.json',
-		'tests', 'tests-wp', 'tests-e2e', 'scripts', '.github', '.gitattributes', 'docs', 'examples', 'samples',
+		'tests', 'tests-wp', 'tests-js', 'tests-e2e', 'scripts', '.github', '.gitattributes', 'docs', 'examples', 'samples',
 		// bin/ holds real-WP testbench shell helpers (install-wp-tests.sh etc.)
 		// added in 14379d2. Never ship them in the release ZIP.
 		'bin',
@@ -103,119 +103,9 @@ $config = array(
 		'.superpowers', 'phpunit-wp.xml', 'playwright.config.ts',
 	),
 
-	'font_excludes'    => array(
+	'font_excludes'    => array(),
 
-		// Sun-ExtA / Sun-ExtB - mPDF's auto-selected fonts for CJK and
-		// SIP characters (LanguageToFont::getLanguageOptions maps Chinese
-		// / Korean / Japanese to 'sun-exta'). The PDF exporter remaps
-		// these fontdata entries to DejaVuSans so the export does not
-		// crash on CJK content; characters DejaVu does not cover render
-		// as '?' tofu but the PDF still writes. UnBatang is the Korean
-		// CJK fallback; same treatment.
-		'Sun-ExtA.ttf', 'Sun-ExtB.ttf', 'UnBatang_0613.ttf', 'Aegyptus.otf',
-		'Aegean.otf', 'Akkadian.otf', 'Jomolhari.ttf', 'KhmerOS.ttf',
-		'Abyssinica_SIL.ttf', 'AboriginalSansREGULAR.ttf', 'Padauk-book.ttf',
-		'SundaneseUnicode-1.0.5.ttf', 'SyrCOMEdessa.otf', 'TaameyDavidCLM-Medium.ttf',
-		'Tharlon-Regular.ttf', 'ayar.ttf', 'damase_v.2.ttf', 'kaputaunicode.ttf',
-		'lannaalif-v1-03.ttf', 'ZawgyiOne.ttf', 'DBSILBR.ttf', 'Eeyek-Regular.ttf',
-		'Pothana2000.ttf', 'Lohit-Kannada.ttf', 'Quivira.otf', 'TaiHeritagePro.ttf',
 
-		'Garuda.ttf', 'Garuda-Bold.ttf', 'Garuda-Oblique.ttf', 'Garuda-BoldOblique.ttf',
-
-		// XB Riyaz Arabic - only the Regular face is wired into mPDF's fontdata
-		// (see class-sscribe-pdf-exporter.php::build_mpdf_config). The Bold,
-		// Italic, and BoldItalic variants are present in the mPDF ttfonts dir
-		// but never registered, so mPDF would synthetic-bold the Regular face
-		// anyway. Drop the unreferenced variants to save ~3.37 MB.
-		'XB RiyazBd.ttf', 'XB RiyazIt.ttf', 'XB RiyazBdIt.ttf',
-
-		'Dhyana-Regular.ttf', 'Dhyana-Bold.ttf',
-
-		// XB Riyaz Regular - the whole family is now superseded by Amiri
-		// (shipped in assets/fonts/amiri/, wired into build_mpdf_config as
-		// 'amiri' in fontdata). mPDF's default fontdata still references
-		// the Regular face, but the PDF exporter's fonttrans map rewrites
-		// every "xbriyaz" lookup to 'amiri' (or 'freeserif' fallback) for
-		// RTL pages, so the file is never actually opened.
-		'XB Riyaz.ttf',
-
-		// Lateef (Arabic) - superseded by Amiri. fonttrans rewrites every
-		// "lateef" lookup to the active RTL font.
-		'LateefRegOT.ttf', 'Lateef font OFL.txt',
-
-		// Uthman (Arabic calligraphic) - never referenced in the production
-		// PDF exporter config. fonttrans rewrites it to the active RTL font
-		// for RTL pages; for LTR pages it's never selected.
-		'Uthman.otf',
-
-		// OCR-B - only useful for OCR rasterization, which the exporter
-		// never does. Not referenced by the PDF exporter's fontdata.
-		'ocrb10.ttf', 'ocrbinfo.txt',
-
-		// DejaVu Condensed - the Regular/Bold/Italic/BoldItalic faces of
-		// DejaVu Sans/Serif are still kept (the LTR Latin baseline). The
-		// Condensed variants are referenced by mPDF's default fontdata
-		// entries (dejavusanscondensed, dejavuserifcondensed) and sit at
-		// the head of the sans_fonts / serif_fonts chain - the chain mPDF
-		// walks when CSS specifies `font-family: serif` or any name that
-		// resolves through the generic families. The PDF exporter remaps
-		// those fontdata entries to the non-condensed DejaVu faces (see
-		// build_mpdf_config in includes/exporters/class-sscribe-pdf-exporter.php),
-		// so the Condensed TTFs are never opened.
-		'DejaVuSansCondensed.ttf', 'DejaVuSansCondensed-Bold.ttf',
-		'DejaVuSansCondensed-Oblique.ttf', 'DejaVuSansCondensed-BoldOblique.ttf',
-		'DejaVuSerifCondensed.ttf', 'DejaVuSerifCondensed-Bold.ttf',
-		'DejaVuSerifCondensed-Italic.ttf', 'DejaVuSerifCondensed-BoldItalic.ttf',
-
-		// FreeSans + FreeMono - the LTR baseline is FreeSerif (wired into
-		// mPDF config as 'default_font' for LTR and as the fallback in the
-		// RTL fonttrans). FreeSans and FreeMono ARE referenced by mPDF's
-		// default fontdata entries (freesans, freemono) and would be
-		// auto-selected when CSS specifies `font-family: sans-serif` or
-		// `font-family: monospace` - the PDF exporter remaps those
-		// fontdata entries to the shipped DejaVu Sans / DejaVu SansMono
-		// faces (see build_mpdf_config). GNUFreeFontinfo.txt is the shared
-		// license for all three families; drop it once both siblings are
-		// excluded.
-		'FreeSans.ttf', 'FreeSansBold.ttf', 'FreeSansBoldOblique.ttf', 'FreeSansOblique.ttf',
-		'FreeMono.ttf', 'FreeMonoBold.ttf', 'FreeMonoBoldOblique.ttf', 'FreeMonoOblique.ttf',
-		'GNUFreeFontinfo.txt',
-
-		'DhyanaOFL.txt', 'Jomolhari-OFL.txt', 'KhmerOFL.txt',
-		'LohitKannadaOFL.txt', 'SyrCOMEdessa_license.txt', 'TaameyDavidCLM-LICENSE.txt',
-		'TharlonOFL.txt', 'XW Zar Font Info.txt',
-	),
-
-	// setasign/fpdi ships in vendor-prefixed/ but setasign/fpdf (the
-	// parent class) is NOT shipped. Fpdi extends FpdfTpl extends
-	// \FPDF, so any autoload-triggered class_exists() or new \Fpdi\Fpdi
-	// throws "Class FPDF not found" fatal. The FPDI package is
-	// included for potential future use of its PDF-import feature but
-	// no production code path constructs an Fpdi instance today. Drop
-	// the 5 FPDF-extending classes so the autoloader hits the
-	// missing-class branch instead of the missing-parent branch - and
-	// any future plugin/theme that does `new \setasign\Fpdi\Fpdi()`
-	// gets a clean "Class not found" instead of a confusing
-	// "Class FPDF not found" that misleads operators into thinking
-	// FPDF is the missing dependency.
-	'fpdi_excludes'    => array(
-		'vendor-prefixed/setasign/fpdi/src/Fpdi.php',
-		'vendor-prefixed/setasign/fpdi/src/FpdfTpl.php',
-		'vendor-prefixed/setasign/fpdi/src/FpdfTplTrait.php',
-		'vendor-prefixed/setasign/fpdi/src/FpdiProtection.php',
-		'vendor-prefixed/setasign/fpdi/src/PdfParser/FpdiPdfParser.php',
-		'vendor-prefixed/setasign/fpdi/src/PdfReader/FpdiPdfReader.php',
-		// TcpdfFpdi / Tfpdf adapters - same parent dependency issue and
-		// not used by any production code path.
-		'vendor-prefixed/setasign/fpdi/src/TcpdfFpdi.php',
-		'vendor-prefixed/setasign/fpdi/src/Tfpdf',
-		'vendor-prefixed/setasign/fpdi/src/Tcpdf',
-		// FpdfTrait is dead weight: never `use`d anywhere in the codebase
-		// (verified by grep), only autoloadable. Removing it shrinks the
-		// shipped ZIP without affecting any production code path.
-		// Memory: FPDI/FPDF parent landmine.
-		'vendor-prefixed/setasign/fpdi/src/FpdfTrait.php',
-	),
 
 	'show_excluded'    => true,
 );
@@ -620,7 +510,7 @@ $filter = new RecursiveCallbackFilterIterator(
 		}
 		$relative = str_replace( $root . DIRECTORY_SEPARATOR, '', $current->getPathname() );
 		$relative = str_replace( $root . '/', '', $relative );
-		$relative_norm = str_replace( '\\', '/', $relative );
+	$relative_norm      = str_replace( '\\', '/', $relative );
 
 		return ! is_release_path_excluded( $relative_norm, $excludes );
 	}
@@ -630,9 +520,11 @@ $iterator   = new RecursiveIteratorIterator( $filter, RecursiveIteratorIterator:
 $copied     = 0;
 
 foreach ( $iterator as $file ) {
-	$relative = str_replace( $root . DIRECTORY_SEPARATOR, '', $file->getPathname() );
-	$relative = str_replace( $root . '/', '', $relative );
-	$dest     = $plugin_dir . '/' . $relative;
+	$relative           = str_replace( $root . DIRECTORY_SEPARATOR, '', $file->getPathname() );
+	$relative           = str_replace( $root . '/', '', $relative );
+	$relative_norm      = str_replace( '\\', '/', $relative );
+	$dest               = $plugin_dir . '/' . $relative;
+	$is_vendor_prefixed = str_starts_with( $relative_norm, 'vendor-prefixed/' );
 
 	if ( $file->isDir() ) {
 		if ( ! is_dir( $dest ) && ! mkdir( $dest, 0755, true ) && ! is_dir( $dest ) ) {
@@ -643,7 +535,15 @@ foreach ( $iterator as $file ) {
 		if ( ! is_dir( $dest_parent ) && ! mkdir( $dest_parent, 0755, true ) && ! is_dir( $dest_parent ) ) {
 			throw new RuntimeException( 'Unable to create release parent directory: ' . dirname( $relative ) );
 		}
-		if ( $config['strip_comments'] ) {
+		if ( $is_vendor_prefixed ) {
+			// Strauss is the intentional third-party source transformation.
+			// Preserve its generated vendor tree byte-for-byte here: SScribe's
+			// first-party comment/Unicode sanitizer must never rewrite upstream
+			// source or license notices after namespace isolation.
+			if ( ! copy( $file->getPathname(), $dest ) ) {
+				throw new RuntimeException( 'Unable to copy third-party vendor file: ' . $relative );
+			}
+		} elseif ( $config['strip_comments'] ) {
 			$ext = strtolower( pathinfo( $file->getPathname(), PATHINFO_EXTENSION ) );
 			if ( 'php' === $ext ) {
 				$src = file_get_contents( $file->getPathname() );
@@ -707,7 +607,7 @@ if ( is_file( $lgpl_source ) ) {
 }
 
 if ( $config['strip_comments'] ) {
-	echo "  🧹 Stripping non-docblock comments from PHP / CSS / JS files...\n";
+	echo "  🧹 Stripping non-docblock comments from first-party PHP / CSS / JS files...\n";
 }
 
 echo "  Pruning vendor development files...\n";
@@ -728,13 +628,10 @@ if ( is_dir( $vendor_dir ) ) {
 		// the bundled code. Removing them was a WP.org compliance bug.
 		// Keeping them here leaves license.txt's "preserved alongside
 		// its source" claim accurate, and lets a reviewer grep the ZIP
-		// for a license when checking FPDI/mPDF/PHPWord attribution.
+		// for a license when checking TCPDF/PHPWord attribution.
 		'.github_changelog_generator', 'roave-bc-check.yaml',
 		/* Development-only package files. */
 		'psalm-autoload.php',
-		/* mpdf/mpdf: development-only functions (runtime is functions.php) */
-		'functions-dev.php',
-		'build_phar.php',
 		/* setasign/fpdi: ad-hoc manual test scripts that read files from
 		 * outside the package directory; not autoloaded, never referenced
 		 * by the runtime PDFs we generate. */
@@ -760,7 +657,10 @@ if ( is_dir( $vendor_dir ) ) {
 	$pruned_count = 0;
 	// Extensions that WordPress.org Plugin Check rejects as build artifacts.
 	$prune_extensions = array( 'sh', 'bat', 'cmd', 'exe', 'msi', 'pkg', 'dmg', 'phar' );
-	$prune_files      = array( 'mpdf/mpdf/data/out.php' );
+	$prune_files      = array(
+		'tecnickcom/tcpdf/Makefile',
+		'tecnickcom/tcpdf/VERSION',
+	);
 
 	$v_iterator = new RecursiveIteratorIterator(
 		new RecursiveDirectoryIterator( $vendor_dir, RecursiveDirectoryIterator::SKIP_DOTS ),
@@ -783,6 +683,41 @@ if ( is_dir( $vendor_dir ) ) {
 			$pruned_count++;
 		}
 	}
+	// TCPDF ships ~25 MB of font assets. SScribe pins PDF rendering to
+	// DejaVu Sans (regular/bold/italic/bold-italic) and TCPDF's initial
+	// Helvetica core font, so all other generated fonts are unreachable.
+	// Retain the upstream DejaVu license texts alongside the generated data.
+	$tcpdf_fonts_dir = $vendor_dir . '/tecnickcom/tcpdf/fonts';
+	if ( is_dir( $tcpdf_fonts_dir ) ) {
+		$tcpdf_font_allow = array(
+			'helvetica.php',
+			'dejavusans.php', 'dejavusans.z', 'dejavusans.ctg.z',
+			'dejavusansb.php', 'dejavusansb.z', 'dejavusansb.ctg.z',
+			'dejavusansi.php', 'dejavusansi.z', 'dejavusansi.ctg.z',
+			'dejavusansbi.php', 'dejavusansbi.z', 'dejavusansbi.ctg.z',
+			'dejavu-fonts-ttf-2.33/LICENSE',
+			'dejavu-fonts-ttf-2.34/LICENSE',
+		);
+		$font_iterator = new RecursiveIteratorIterator(
+			new RecursiveDirectoryIterator( $tcpdf_fonts_dir, RecursiveDirectoryIterator::SKIP_DOTS ),
+			RecursiveIteratorIterator::CHILD_FIRST
+		);
+		foreach ( $font_iterator as $font_item ) {
+			$font_relative = str_replace( '\\', '/', substr( $font_item->getPathname(), strlen( $tcpdf_fonts_dir ) + 1 ) );
+			if ( $font_item->isDir() ) {
+				$children = new RecursiveDirectoryIterator( $font_item->getPathname(), RecursiveDirectoryIterator::SKIP_DOTS );
+				if ( 0 === iterator_count( $children ) ) {
+					@rmdir( $font_item->getPathname() );
+				}
+				continue;
+			}
+			if ( ! in_array( $font_relative, $tcpdf_font_allow, true ) ) {
+				@unlink( $font_item->getPathname() );
+				++$pruned_count;
+			}
+		}
+	}
+
 	// After pruning matched files, sweep up any directory under vendor-prefixed
 	// that is now empty. CHILD_FIRST ordering means we already attempted to
 	// delete every matched directory; this pass catches directories that only
@@ -820,8 +755,7 @@ $required_release_files = array(
 	'composer.json',
 	'vendor-prefixed/autoload.php',
 	'vendor-prefixed/phpoffice/phpword/COPYING.LESSER.txt',
-	'vendor-prefixed/mpdf/psr-http-message-shim/NOTICE',
-	'vendor-prefixed/mpdf/psr-log-aware-trait/NOTICE',
+	'vendor-prefixed/tecnickcom/tcpdf/LICENSE.TXT',
 );
 foreach ( $required_release_files as $required_release_file ) {
 	if ( ! is_file( $plugin_dir . '/' . $required_release_file ) ) {
@@ -975,7 +909,7 @@ echo "===========================================\n\n";
 echo "Build transformations applied (working tree -> shipped ZIP):\n\n";
 echo "  Excluded paths:\n";
 echo "    - All base_excludes entries (dev-only dirs: tests, tests-wp,\n";
-echo "      tests-e2e, scripts, .github, docs, examples, samples,\n";
+echo "      tests-js, tests-e2e, scripts, .github, docs, examples, samples,\n";
 echo "      .superpowers, .audit, .agent, .claude, .opencode, .cursor,\n";
 echo "      .windsurf, .continue, .codeium, .aider*, .mimosa, .omo,\n";
 echo "      node_modules, vendor-prefixed/.github, vendor-prefixed/.git,\n";
@@ -996,15 +930,13 @@ echo "    - .distignore entries (segment-level match against\n";
 echo "      vendor-prefixed/*/tests, vendor-prefixed/*/docs,\n";
 echo "      vendor-prefixed/phpoffice/phpword/COPYING.LESSER,\n";
 echo "      vendor-prefixed/phpoffice/phpword/phpword.ini.dist, etc.).\n";
-echo "    - font_excludes entries (unreferenced mPDF fonts: Sun-ExtA/B,\n";
-echo "      UnBatang, Aegyptus, Aegean, Akkadian, Jomolhari, KhmerOS,\n";
-echo "      Abyssinica SIL, etc.; XB Riyaz Bold/Italic/BoldItalic;\n";
-echo "      Dhyana; Garuda; DejaVuSans variants not registered).\n";
-echo "    - fpdi_excludes entries (FPDI parent classes — see fpdi-fpdf-\n";
-echo "      parent-landmine memory).\n\n";
+echo "    - TCPDF release pruning removes unreachable generated font assets,\n";
+echo "      retaining core metrics plus DejaVu Sans regular/bold/italic/\n";
+echo "      bold-italic and their upstream license files.\n";
+echo "    - TCPDF development metadata Makefile and VERSION are removed.\n\n";
 
-echo "  In-place transformations (each shipped PHP/CSS/JS file is\n";
-echo "  rewritten before being written to dist/):\n";
+echo "  First-party in-place transformations (vendor-prefixed/ bypasses\n";
+echo "  these rewriters and is copied byte-for-byte before explicit pruning):\n";
 echo "    - PHP: T_DOC_COMMENT preserved (for @preserve/@var/@type);\n";
 echo "      T_COMMENT stripped unless pragma-annotated (phpcs:|@preserve);\n";
 echo "      T_OPEN_TAG / T_STRING / T_VARIABLE untouched.\n";
@@ -1022,7 +954,10 @@ echo "      leaked Unicode into the ZIP. Known text assets also pass\n";
 echo "      through the sanitizer as a backstop; binary assets (fonts,\n";
 echo "      images, compiled translations) are copied byte-for-byte.\n\n";
 
-echo "  Vendor-specific rewrites:\n";
+echo "  Vendor-specific handling:\n";
+echo "    - vendor-prefixed/ files are copied byte-for-byte after Strauss\n";
+echo "      namespace isolation; first-party comment/Unicode sanitizers do\n";
+echo "      not rewrite third-party source or notices.\n";
 echo "    - vendor-prefixed/phpoffice/phpword/COPYING.LESSER renamed to\n";
 echo "      COPYING.LESSER.txt (WP.org plugin-check rejects the bare\n";
 echo "      .lesser extension as an unexpected file type).\n";
@@ -1034,10 +969,10 @@ echo "      SScribe code).\n";
 echo "    - includes/sscribe-vendor-compat.php removed (local-dev\n";
 echo "      shim — release code uses only prefixed vendors).\n\n";
 
-echo "  Source files added to the ZIP that are NOT in the working tree:\n";
-echo "    - dist/sscribe-export-site-pages/license.txt is a verbatim\n";
-echo "      copy of ./license.txt (already tracked in git).\n";
-echo "    - dist/sscribe-export-site-pages/readme.txt is a verbatim\n";
-echo "      copy of ./readme.txt (already tracked in git).\n\n";
+echo "  Distribution paths created under a different relative name:\n";
+echo "    - vendor-prefixed/phpoffice/phpword/COPYING.LESSER.txt is copied byte-for-byte from\n";
+echo "      vendor-prefixed/phpoffice/phpword/COPYING.LESSER so the required LGPL notice\n";
+echo "      ships under an extension accepted by WordPress Plugin Check.\n";
+echo "    - All other distribution files retain their source-relative path.\n\n";
 
 echo "Build successful. No development files or unused fonts included.\n\n";

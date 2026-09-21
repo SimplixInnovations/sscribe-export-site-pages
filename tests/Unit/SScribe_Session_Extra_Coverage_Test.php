@@ -34,12 +34,14 @@ final class SScribe_Session_Extra_Coverage_Test extends TestCase {
 		\SScribe_Session::enable_test_mode();
 		$GLOBALS['sscribe_test_options']   = array();
 		$GLOBALS['sscribe_test_db_tables'] = array();
+		unset( $GLOBALS['sscribe_test_update_option_failure'] );
 	}
 
 	protected function tearDown(): void {
 		\SScribe_Session::test_reset();
 		$GLOBALS['sscribe_test_options']   = array();
 		$GLOBALS['sscribe_test_db_tables'] = array();
+		unset( $GLOBALS['sscribe_test_update_option_failure'] );
 		parent::tearDown();
 	}
 
@@ -230,6 +232,83 @@ final class SScribe_Session_Extra_Coverage_Test extends TestCase {
 		$this::assertCount( 1, $s->get_sessions_for_user( 8 ) );
 	}
 
+	public function test_clear_user_sessions_preserves_session_and_lock_when_processing_lock_is_held(): void {
+		$session = $this->new_session();
+		$sid     = $session->create(
+			array(
+				'user_id'   => 7,
+				'page_ids'  => array( 1 ),
+				'total'     => 2,
+				'processed' => 0,
+				'status'    => 'processing',
+			)
+		);
+		$this::assertNotSame( '', $sid );
+
+		$lock_manager = new \SScribe_Export_Lock_Manager();
+		$lock_token   = $lock_manager->acquire_lock( $sid, 30, 25 );
+		$this::assertNotNull( $lock_token );
+
+		try {
+			$this::assertSame( 0, $session->clear_user_sessions( 7 ) );
+			$this::assertNotNull( $session->get( $sid ) );
+			$this::assertIsString( get_option( 'sscribe_export_lock_' . $sid, false ) );
+		} finally {
+			$lock_manager->release_lock( $sid, $lock_token );
+			$session->delete( $sid );
+		}
+	}
+
+	public function test_create_with_user_id_fails_closed_when_admission_lock_is_held(): void {
+		$lock_manager = new \SScribe_Export_Lock_Manager();
+		$lock_name    = 'session-create-user-7';
+		$lock_token   = $lock_manager->acquire_lock( $lock_name, 30, 25 );
+
+		$this::assertNotNull( $lock_token );
+
+		try {
+			$session = $this->new_session();
+			$session_id = $session->create(
+				array(
+					'user_id'   => 7,
+					'page_ids'  => array( 1 ),
+					'total'     => 1,
+					'processed' => 0,
+					'status'    => 'processing',
+				)
+			);
+
+			$this::assertSame( '', $session_id );
+			$this::assertCount( 0, $session->get_sessions_for_user( 7 ) );
+		} finally {
+			$lock_manager->release_lock( $lock_name, $lock_token );
+		}
+	}
+
+	public function test_cleanup_expired_preserves_locked_processing_session(): void {
+		$session = $this->new_session();
+		$sid     = $this->make_session( 9, 'processing', 0, 2 );
+		$option  = 'sscribe_session_' . $sid;
+		$decoded = json_decode( (string) ( $GLOBALS['sscribe_test_options'][ $option ] ?? '' ), true );
+		$this::assertIsArray( $decoded );
+		$decoded['created_at'] = time() - 3600;
+		$decoded['updated_at'] = time() - 3600;
+		$GLOBALS['sscribe_test_options'][ $option ] = wp_json_encode( $decoded );
+
+		$lock_manager = new \SScribe_Export_Lock_Manager();
+		$lock_token   = $lock_manager->acquire_lock( $sid, 30, 25 );
+		$this::assertNotNull( $lock_token );
+
+		try {
+			$this::assertSame( 0, $session->cleanup_expired( 1 ) );
+			$this::assertNotNull( $session->get( $sid ) );
+			$this::assertIsString( get_option( 'sscribe_export_lock_' . $sid, false ) );
+		} finally {
+			$lock_manager->release_lock( $sid, $lock_token );
+			$session->delete( $sid );
+		}
+	}
+
 	public function test_cleanup_expired_with_no_sessions_returns_zero(): void {
 		$s = $this->new_session();
 		$this::assertIsInt( $s->cleanup_expired( 0 ) );
@@ -312,6 +391,19 @@ final class SScribe_Session_Extra_Coverage_Test extends TestCase {
 		$s = $this->new_session();
 		$ok = $s->rotate_signing_key();
 		$this::assertTrue( $ok );
+	}
+
+	public function test_rotate_signing_key_reports_failure_when_new_key_cannot_persist(): void {
+		$s = $this->new_session();
+		$GLOBALS['sscribe_test_options']['sscribe_session_signing_key']      = 'current-key';
+		$GLOBALS['sscribe_test_options']['sscribe_session_signing_key_prev'] = 'older-key';
+		$GLOBALS['sscribe_test_options']['sscribe_session_signing_key_prev_rotated_at'] = 123;
+		$GLOBALS['sscribe_test_update_option_failure'] = 'sscribe_session_signing_key';
+
+		$this::assertFalse( $s->rotate_signing_key() );
+		$this::assertSame( 'current-key', get_option( 'sscribe_session_signing_key' ) );
+		$this::assertSame( 'older-key', get_option( 'sscribe_session_signing_key_prev' ) );
+		$this::assertSame( 123, get_option( 'sscribe_session_signing_key_prev_rotated_at' ) );
 	}
 
 	public function test_maybe_rotate_signing_key_runs_without_error(): void {

@@ -120,9 +120,13 @@ final class SScribe_Operational_Logger {
 	}
 
 	/**
-	 * Phase 20: shutdown hook that flushes the buffer AND captures
-	 * the most recent fatal/parse error if one occurred during the
-	 * request. Recursive fatal logging is guarded by a static lock.
+	 * Flush pending operational entries during the WordPress shutdown action.
+	 *
+	 * Fatal attribution is intentionally owned by SScribe_Fatal_Handler, which
+	 * applies plugin/request scoping plus secret redaction and performs its own
+	 * immediate flush from the later PHP shutdown callback. Keeping this hook
+	 * flush-only prevents unrelated WordPress/plugin fatals from being recorded
+	 * as SScribe incidents and avoids duplicate fatal records.
 	 *
 	 * @return void
 	 */
@@ -131,29 +135,6 @@ final class SScribe_Operational_Logger {
 			return;
 		}
 		self::$shutdown_flush_in_progress = true;
-
-		// Capture the most recent fatal, if any. error_get_last() can
-		// return E_NOTICE / E_WARNING from the live request - filter
-		// to the categories that genuinely indicate a fatal.
-		$last = function_exists( 'error_get_last' ) ? error_get_last() : null;
-		if ( is_array( $last ) && isset( $last['type'] ) ) {
-			$fatal_types = array( E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR, E_USER_ERROR );
-			if ( in_array( (int) $last['type'], $fatal_types, true ) ) {
-				$basename = isset( $last['file'] ) ? basename( (string) $last['file'] ) : '';
-				$line     = isset( $last['line'] ) ? (int) $last['line'] : 0;
-				$message  = isset( $last['message'] ) ? (string) $last['message'] : 'PHP fatal error';
-				self::record(
-					self::LEVEL_CRITICAL,
-					$message,
-					array(
-						'category' => 'fatal',
-						'file'     => $basename,
-						'line'     => $line,
-					)
-				);
-			}
-		}
-
 		self::flush();
 	}
 
@@ -248,13 +229,8 @@ final class SScribe_Operational_Logger {
 	public static function sanitize_context( array $context ): array {
 		$deny_keys = array(
 			'nonce',
-			'password',
 			'pass',
 			'pwd',
-			'cookie',
-			'cookies',
-			'token',
-			'download_token',
 			'auth',
 			'request_body',
 			'body',
@@ -266,11 +242,34 @@ final class SScribe_Operational_Logger {
 			'export_content',
 			'raw_html',
 		);
+		$sensitive_parts = array(
+			'password',
+			'token',
+			'secret',
+			'credential',
+			'private_key',
+			'cookie',
+			'bearer',
+			'api_key',
+			'apikey',
+			'access_key',
+			'session_key',
+			'authorization',
+		);
 
 		$allowed = array();
 		foreach ( $context as $key => $value ) {
 			$key_lc = strtolower( (string) $key );
-			if ( in_array( $key_lc, $deny_keys, true ) ) {
+			$sensitive = in_array( $key_lc, $deny_keys, true );
+			if ( ! $sensitive ) {
+				foreach ( $sensitive_parts as $part ) {
+					if ( str_contains( $key_lc, $part ) ) {
+						$sensitive = true;
+						break;
+					}
+				}
+			}
+			if ( $sensitive ) {
 				continue;
 			}
 			if ( ! preg_match( '/^[a-zA-Z][a-zA-Z0-9_]{0,63}$/', (string) $key ) ) {
@@ -381,15 +380,24 @@ final class SScribe_Operational_Logger {
 		$dir = dirname( $log_file );
 		$pattern = $dir . '/' . self::LOG_FILE_PREFIX . '*.log';
 		$files = glob( $pattern );
-		if ( ! is_array( $files ) || count( $files ) <= self::RETAIN_ROTATED ) {
+		if ( ! is_array( $files ) ) {
 			return;
 		}
-		sort( $files );
-		$excess = array_slice( $files, 0, count( $files ) - self::RETAIN_ROTATED );
+
+		$rotated = array_values(
+			array_filter(
+				$files,
+				static fn ( string $file ): bool => $file !== $log_file
+			)
+		);
+		if ( count( $rotated ) <= self::RETAIN_ROTATED ) {
+			return;
+		}
+
+		sort( $rotated );
+		$excess = array_slice( $rotated, 0, count( $rotated ) - self::RETAIN_ROTATED );
 		foreach ( $excess as $old ) {
-			if ( $old !== $log_file ) {
-				wp_delete_file( $old );
-			}
+			wp_delete_file( $old );
 		}
 	}
 }

@@ -75,7 +75,7 @@ final class SScribe_Real_WP_Matrix_Test extends TestCase {
 		$source = (string) file_get_contents( self::plugin_root() . '/' . self::CI_PATH );
 		// Find real-wp-tests job slice.
 		$this::assertMatchesRegularExpression(
-			'/real-wp-tests:[\s\S]{0,500}?strategy:[\s\S]{0,200}?matrix:\s*\n/m',
+			'/real-wp-tests:[\s\S]{0,2000}?strategy:[\s\S]{0,500}?matrix:\s*\n/m',
 			$source,
 			'real-wp-tests job must declare `strategy.matrix` block.'
 		);
@@ -143,9 +143,98 @@ final class SScribe_Real_WP_Matrix_Test extends TestCase {
 		$this::assertStringContainsString( '--version', $source );
 	}
 
+	public function test_installer_pins_wp_phpunit_to_matching_wordpress_tree(): void {
+		$source = (string) file_get_contents( self::plugin_root() . '/' . self::INSTALLER );
+
+		$this::assertStringContainsString(
+			"'tree-'",
+			$source,
+			'The installer must derive the wp-phpunit branch from the resolved WordPress major/minor version.'
+		);
+		$this::assertStringContainsString(
+			"'--branch'",
+			$source,
+			'The wp-phpunit clone must pin a version-matched branch instead of cloning master.'
+		);
+		$this::assertStringContainsString(
+			"'/wp-phpunit-'",
+			$source,
+			'The wp-phpunit cache must be version-specific so sequential local matrix installs cannot reuse an incompatible test library.'
+		);
+	}
+
+	public function test_previous_wordpress_resolver_selects_a_distinct_release_line(): void {
+		$source = (string) file_get_contents( self::plugin_root() . '/' . self::INSTALLER );
+
+		$this::assertStringNotContainsString( 'return $m[1][1];', $source );
+		$this::assertStringContainsString( '$latest_release_line', $source );
+		$this::assertStringContainsString( '$candidate_release_line', $source );
+	}
+
 	public function test_installer_supports_sqlite_dropin(): void {
 		$source = (string) file_get_contents( self::plugin_root() . '/' . self::INSTALLER );
 		$this::assertStringContainsString( '--sqlite', $source );
+	}
+
+
+	public function test_sqlite_installer_uses_pinned_wordpress_org_artifact_without_github_latest_api(): void {
+		$source = (string) file_get_contents( self::plugin_root() . '/' . self::INSTALLER );
+
+		$this::assertStringContainsString( "'3.0.2'", $source );
+		$this::assertStringContainsString( 'https://downloads.wordpress.org/plugin/sqlite-database-integration.', $source );
+		$this::assertStringNotContainsString( 'api.github.com/repos/WordPress/sqlite-database-integration/releases/latest', $source );
+	}
+
+	public function test_matrix_declares_both_sqlite_and_mysql_database_modes(): void {
+		$source = (string) file_get_contents( self::plugin_root() . '/' . self::CI_PATH );
+
+		$this::assertMatchesRegularExpression(
+			"/database:\\s*\\[[^\\]]*['\"]sqlite['\"][^\\]]*\\]/m",
+			$source,
+			'Rolling real-WordPress legs must explicitly declare SQLite as a database mode.'
+		);
+		$this::assertMatchesRegularExpression(
+			"/database:\\s*['\"]mysql['\"]/m",
+			$source,
+			'The real-WordPress matrix must include at least one MySQL leg.'
+		);
+	}
+
+	public function test_declared_wp61_php82_floor_uses_mysql_not_sqlite(): void {
+		$source = (string) file_get_contents( self::plugin_root() . '/' . self::CI_PATH );
+
+		$this::assertMatchesRegularExpression(
+			"/-\\s+php-version:\\s*['\"]8\\.2['\"][\\s\\S]{0,220}?wp-version:\\s*['\"]6\\.1['\"][\\s\\S]{0,220}?database:\\s*['\"]mysql['\"]/",
+			$source,
+			'The WordPress 6.1 / PHP 8.2 floor must use MySQL because maintained SQLite Database Integration releases require newer WordPress.'
+		);
+	}
+
+	public function test_real_wp_job_provisions_mysql_and_selects_installer_by_database_mode(): void {
+		$source = (string) file_get_contents( self::plugin_root() . '/' . self::CI_PATH );
+
+		$this::assertMatchesRegularExpression(
+			"/real-wp-tests:[\\s\\S]{0,700}?services:[\\s\\S]{0,350}?mysql:/m",
+			$source,
+			'The real-WP job must provision a real MySQL service for its MySQL matrix leg.'
+		);
+		$this::assertStringContainsString( "matrix.database == 'sqlite'", $source );
+		$this::assertStringContainsString( "matrix.database == 'mysql'", $source );
+	}
+
+	public function test_installer_refuses_sqlite_for_pre_64_wordpress_instead_of_pinning_dead_release(): void {
+		$source = (string) file_get_contents( self::plugin_root() . '/' . self::INSTALLER );
+
+		$this::assertStringNotContainsString(
+			"array( '2', '1', '0' )",
+			$source,
+			'The installer must not pin the removed SQLite Database Integration 2.1.0 archive.'
+		);
+		$this::assertMatchesRegularExpression(
+			"/version_compare\\([^\\n]+['\"]6\\.4['\"]\\s*,\\s*['\"]<['\"]\\s*\\)[\\s\\S]{0,500}?RuntimeException/",
+			$source,
+			'SQLite mode must fail explicitly for WordPress versions below the integration plugin compatibility floor.'
+		);
 	}
 
 	public function test_branch_protection_doc_lists_real_wp_matrix_label(): void {

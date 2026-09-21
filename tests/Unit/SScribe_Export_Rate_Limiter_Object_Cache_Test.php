@@ -38,6 +38,7 @@ final class SScribe_Export_Rate_Limiter_Object_Cache_Test extends TestCase {
 		$GLOBALS['sscribe_test_current_user_id']         = 1;
 		$GLOBALS['sscribe_test_current_user_can']        = null;
 		$GLOBALS['sscribe_test_filters']                 = array();
+		unset( $GLOBALS['sscribe_test_before_wpdb_option_delete'] );
 		$GLOBALS['sscribe_test_using_ext_object_cache']  = true;
 	}
 
@@ -48,6 +49,7 @@ final class SScribe_Export_Rate_Limiter_Object_Cache_Test extends TestCase {
 		$GLOBALS['sscribe_test_current_user_id']         = null;
 		$GLOBALS['sscribe_test_current_user_can']        = null;
 		$GLOBALS['sscribe_test_filters']                 = array();
+		unset( $GLOBALS['sscribe_test_before_wpdb_option_delete'] );
 		$GLOBALS['sscribe_test_using_ext_object_cache']  = false;
 		parent::tearDown();
 	}
@@ -58,6 +60,30 @@ final class SScribe_Export_Rate_Limiter_Object_Cache_Test extends TestCase {
 	 * counter monotonically and never store an array on the
 	 * :count key.
 	 */
+	public function test_persistent_cache_counter_uses_cas_database_serialization_lock(): void {
+		$bucket_key = 'sscribe_rate_export_1';
+		$lock_key   = 'sscribe_rate_lock_' . substr( hash( 'sha256', $bucket_key ), 0, 32 );
+		$successor  = time() . '|successor-owner-token';
+
+		$GLOBALS['sscribe_test_before_wpdb_option_delete'] = static function ( array $where ) use ( $lock_key, $successor ): void {
+			if ( ( $where['option_name'] ?? '' ) === $lock_key ) {
+				$GLOBALS['sscribe_test_options'][ $lock_key ] = $successor;
+			}
+		};
+
+		$limiter  = new \SScribe_Export_Rate_Limiter();
+		$decision = $limiter->check_rate_limit_decision();
+
+		$this::assertTrue( $decision->allowed );
+		$this::assertSame(
+			$successor,
+			get_option( $lock_key ),
+			'Persistent-cache counters must still serialize through ownership-conditional database locks.'
+		);
+		$this::assertSame( 1, $GLOBALS['sscribe_test_wp_cache'][ $bucket_key . ':count' ] ?? null );
+	}
+
+
 	public function test_persistent_cache_path_advances_counter_monotonically(): void {
 		$limiter = new \SScribe_Export_Rate_Limiter();
 

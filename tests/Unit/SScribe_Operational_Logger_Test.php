@@ -62,6 +62,26 @@ class SScribe_Operational_Logger_Test extends TestCase {
 		$this->assertSame( 7, $out['user_id'] );
 	}
 
+	public function test_sanitize_context_strips_compound_sensitive_keys(): void {
+		$out = \SScribe_Operational_Logger::sanitize_context(
+			array(
+				'category'             => 'network',
+				'api_token'            => 'tok-secret',
+				'client_secret_value'  => 'client-secret',
+				'authorization_header' => 'Bearer abc',
+				'database_password'    => 'pw',
+				'session_cookie_name'  => 'sid=xyz',
+			)
+		);
+
+		$this::assertSame( 'network', $out['category'] ?? null );
+		$this::assertArrayNotHasKey( 'api_token', $out );
+		$this::assertArrayNotHasKey( 'client_secret_value', $out );
+		$this::assertArrayNotHasKey( 'authorization_header', $out );
+		$this::assertArrayNotHasKey( 'database_password', $out );
+		$this::assertArrayNotHasKey( 'session_cookie_name', $out );
+	}
+
 	public function test_sanitize_context_strips_invalid_keys(): void {
 		$out = \SScribe_Operational_Logger::sanitize_context( array(
 			'good_key'      => 'value',
@@ -132,6 +152,52 @@ class SScribe_Operational_Logger_Test extends TestCase {
 		) );
 		$this->assertLessThanOrEqual( 204, strlen( $out['msg'] ) );
 	}
+	public function test_prune_retains_five_rotated_copies_plus_current_log(): void {
+		$dir = sys_get_temp_dir() . '/sscribe-ops-prune-' . bin2hex( random_bytes( 6 ) );
+		$this->assertTrue( mkdir( $dir, 0700, true ) );
+
+		$current = $dir . '/sscribe_ops_2099-01-01.log';
+		file_put_contents( $current, "current\n" );
+		for ( $i = 1; $i <= 7; $i++ ) {
+			file_put_contents( $dir . '/sscribe_ops_2098-12-31_00-00-0' . $i . '-abcdef.log', "rotated\n" );
+		}
+
+		$prune = \Closure::bind(
+			static function ( string $path ): void {
+				\SScribe_Operational_Logger::prune( $path );
+			},
+			null,
+			\SScribe_Operational_Logger::class
+		);
+
+		try {
+			$prune( $current );
+			$files = glob( $dir . '/sscribe_ops_*.log' );
+			$this->assertIsArray( $files );
+			$this->assertCount( 6, $files, 'Retention means five rotated copies plus the current live log.' );
+			$this->assertContains( $current, $files );
+		} finally {
+			foreach ( (array) glob( $dir . '/*' ) as $path ) {
+				@unlink( $path );
+			}
+			@rmdir( $dir );
+		}
+	}
+
+	public function test_operational_shutdown_hook_flushes_only_and_does_not_recapture_unscoped_fatals(): void {
+		$source = (string) file_get_contents(
+			dirname( __DIR__, 2 ) . '/includes/class-sscribe-operational-logger.php'
+		);
+
+		$this->assertStringNotContainsString(
+			'error_get_last',
+			$source,
+			'Fatal attribution belongs exclusively to SScribe_Fatal_Handler so unrelated WordPress/plugin fatals are not logged as SScribe incidents.'
+		);
+		$this->assertStringContainsString( 'public static function flush_on_shutdown(): void', $source );
+		$this->assertStringContainsString( 'self::flush();', $source );
+	}
+
 	public function test_shutdown_recursion_lock_is_class_scoped_not_dynamic_global(): void {
 		$source = (string) file_get_contents(
 			dirname( __DIR__, 2 ) . '/includes/class-sscribe-operational-logger.php'

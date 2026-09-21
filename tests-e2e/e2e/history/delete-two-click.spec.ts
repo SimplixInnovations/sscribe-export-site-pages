@@ -37,32 +37,32 @@ test.describe('e2e / history / delete-two-click', () => {
     await adminPage.goto('/wp-admin/admin.php?page=sscribe-export');
     await adminPage.locator('#sscribe-tab-btn-history').click();
 
-    // The per-row delete button class names from SELECTORS.md §10:
-    // `button.sscribe-delete-btn`. If no rows are present, the spec falls
-    // through with a soft skip - the regression-discipline harness still
-    // validates the static pointer-events contract via a separate path.
-    const deleteBtns = adminPage.locator('button.sscribe-delete-btn[data-filename]');
-    const count = await deleteBtns.count();
-    test.skip(count === 0, 'no history rows to delete; wizard-happy-path test populates them (run order-dependent)');
-
-    const firstDelete = deleteBtns.first();
-    await firstDelete.scrollIntoViewIfNeeded();
-
-    // STATIC CONTRACT (regression contract): `.sscribe-btn-confirming` must
-    // NOT have pointer-events: none. If a regression slips in, the second
-    // click would be swallowed silently by the browser. This is the
-    // assertion the regression-discipline.mjs revert is designed to break.
-    const confirmingComputed = await firstDelete.evaluate((el) => {
-      el.classList.add('sscribe-btn-confirming');
-      const cs = window.getComputedStyle(el);
-      const pointerEvents = cs.pointerEvents;
-      el.classList.remove('sscribe-btn-confirming');
+    // STATIC CONTRACT (regression contract): assert the confirming-state
+    // CSS even when History is empty. Mutation discipline executes this spec
+    // in isolation, so relying on wizard-happy-path to create a row made the
+    // regression check silently skip and let pointer-events:none survive.
+    const confirmingComputed = await adminPage.evaluate(() => {
+      const probe = document.createElement('button');
+      probe.className = 'sscribe-button sscribe-btn-confirming';
+      document.body.appendChild(probe);
+      const pointerEvents = window.getComputedStyle(probe).pointerEvents;
+      probe.remove();
       return pointerEvents;
     });
     expect(
       confirmingComputed,
       '.sscribe-btn-confirming must NOT have pointer-events: none (regression: two-click-confirm-pointer-events-landmine)'
     ).not.toBe('none');
+
+    // LIVE CONTRACT: requires a real History row. Keep this portion isolated
+    // from the static CSS contract above so an empty fixture cannot mask the
+    // mutation regression.
+    const deleteBtns = adminPage.locator('button.sscribe-delete-btn[data-filename]');
+    const count = await deleteBtns.count();
+    test.skip(count === 0, 'no history rows to delete; static confirming-state contract was still verified');
+
+    const firstDelete = deleteBtns.first();
+    await firstDelete.scrollIntoViewIfNeeded();
 
     // LIVE CONTRACT: the production JS swaps .sscribe-btn-confirming into
     // .sscribe-btn-busy on the second click. We verify the transition is

@@ -153,12 +153,14 @@ class SScribe_Filesystem {
 			return $file;
 		}
 
-		if ( false === strpos( $file, '..' ) && false === strpos( $file, "\0" ) ) {
-			return $file;
+		// A NUL-bearing path is invalid input. Never turn it into a different
+		// valid filename by stripping bytes: callers must fail closed instead.
+		if ( false !== strpos( $file, "\0" ) ) {
+			return '';
 		}
 
 		if ( false === strpos( $file, '..' ) ) {
-			return str_replace( "\0", '', $file );
+			return $file;
 		}
 
 		$is_unix_absolute = '/' === $file[0];
@@ -484,16 +486,36 @@ class SScribe_Filesystem {
 
 		$target = rtrim( $export_root, '/\\' ) . DIRECTORY_SEPARATOR . implode( DIRECTORY_SEPARATOR, $clean );
 
-		if ( is_link( $target ) ) {
-			self::$last_error = 'Target path is a symlink';
-			$this->logger->warning( 'Refused mkdir_under_private_root : target is symlink', array( 'target' => $target ) );
-			return '';
-		}
+		// Walk each component before creating the next one. A final
+		// realpath() containment check is too late: wp_mkdir_p() would
+		// already have followed an attacker-planted intermediate symlink
+		// and could create directories outside the private root before the
+		// escape was detected.
+		$cursor = rtrim( $export_root, '/\\' );
+		foreach ( $clean as $segment ) {
+			$cursor .= DIRECTORY_SEPARATOR . $segment;
+			clearstatcache( true, $cursor );
 
-		if ( ! is_dir( $target ) ) {
-			if ( ! wp_mkdir_p( $target ) ) {
+			if ( is_link( $cursor ) ) {
+				self::$last_error = 'Path contains a symlink';
+				$this->logger->warning( 'Refused mkdir_under_private_root : intermediate symlink', array( 'target' => $cursor ) );
+				return '';
+			}
+			if ( file_exists( $cursor ) ) {
+				if ( ! is_dir( $cursor ) ) {
+					self::$last_error = 'Path component is not a directory';
+					return '';
+				}
+				continue;
+			}
+			if ( ! wp_mkdir_p( $cursor ) ) {
 				self::$last_error = 'wp_mkdir_p failed for contained target';
-				$this->logger->error( 'mkdir_under_private_root : wp_mkdir_p failed', array( 'target' => $target ) );
+				$this->logger->error( 'mkdir_under_private_root : wp_mkdir_p failed', array( 'target' => $cursor ) );
+				return '';
+			}
+			clearstatcache( true, $cursor );
+			if ( is_link( $cursor ) || ! is_dir( $cursor ) ) {
+				self::$last_error = 'Created path component is unsafe';
 				return '';
 			}
 		}
@@ -955,11 +977,20 @@ class SScribe_Filesystem {
 
 			return self::SSCRIBE_PATH_REJECT;
 		}
-		if ( is_link( $file ) ) {
-			$target = realpath( $file );
-			if ( false === $target || 0 !== strpos( self::normalize_path( $target ), self::normalize_path( $allowed_root ) ) ) {
-
+		// Never write through a symlink, even when its current target appears
+		// to resolve inside the private root. Besides preventing prefix-sibling
+		// containment mistakes, this removes a target-swap race between validation
+		// and the subsequent filesystem operation.
+		$relative_path = ltrim( substr( $file_abs, strlen( rtrim( $allowed_abs, '/' ) ) ), '/' );
+		$cursor        = rtrim( $allowed_root, '/\\' );
+		foreach ( array_filter( explode( '/', $relative_path ), static fn ( string $segment ): bool => '' !== $segment ) as $segment ) {
+			$cursor .= DIRECTORY_SEPARATOR . $segment;
+			clearstatcache( true, $cursor );
+			if ( is_link( $cursor ) ) {
 				return self::SSCRIBE_PATH_REJECT;
+			}
+			if ( ! file_exists( $cursor ) ) {
+				break;
 			}
 		}
 

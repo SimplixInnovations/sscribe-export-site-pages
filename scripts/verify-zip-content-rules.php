@@ -278,7 +278,7 @@ if ( ! is_dir( $dist_dir ) ) {
 
 	// 11. No dev-only top-level directory may appear anywhere in the
 	//     dist tree at any depth. WP.org reviewers must not see a
-	//     `.git/`, `.github/`, `tests/`, `tests-e2e/`, `coverage/`,
+	//     `.git/`, `.github/`, `tests/`, `tests-js/`, `tests-e2e/`, `coverage/`,
 	//     `node_modules/`, `scripts/`, `.audit/`, `.idea/`,
 	//     `.vscode/`, or any other development-only directory in the
 	//     submitted ZIP. We check the FIRST segment of every relative
@@ -299,6 +299,7 @@ if ( ! is_dir( $dist_dir ) ) {
 		'.phpunit.result.cache',
 		'node_modules',
 		'tests',
+		'tests-js',
 		'tests-e2e',
 		'tests-wp',
 		'coverage',

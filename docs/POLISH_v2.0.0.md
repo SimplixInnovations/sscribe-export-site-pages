@@ -1,5 +1,7 @@
 # SScribe v2.0.0 — Phase 36 Polish + Tag Alignment
 
+> **Historical evidence only.** This captures the retired v2.0.0 hardening branch and must not be used as the current release procedure. Current flow is defined by `README.md`, `docs/RELEASE_PIPELINE_v2.0.0.md`, `docs/TAG_POLICY_v2.0.0.md`, and `docs/BRANCH_POLICY_v2.0.0.md`.
+
 Captured 2026-09-02 against the final HEAD of `release/2.0.0-final-hardening`.
 
 This file is the polish pass before the release tag. Every check is

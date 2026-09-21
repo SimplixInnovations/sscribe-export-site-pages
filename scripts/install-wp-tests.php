@@ -27,6 +27,7 @@ declare( strict_types=1 );
 require_once __DIR__ . '/lib/cross-platform.php';
 
 const SSCRIBE_INSTALL_TAG = 'install-wp-tests';
+const SSCRIBE_SQLITE_INTEGRATION_VERSION = '3.0.2';
 
 function sscribe_install_usage(): void {
 	fwrite( STDOUT, "Usage: php scripts/install-wp-tests.php [--sqlite] [--version <version>]\n" );
@@ -84,30 +85,62 @@ function sscribe_resolve_latest_wp(): string {
 }
 
 /**
- * Resolve the previous stable WordPress version via wordpress.org.
+ * Resolve the newest stable WordPress version from the release line
+ * immediately preceding the current major.minor line.
  *
- * Mirrors the shell implementation: the second "version" occurrence in
- * the version-check payload, falling back to latest-minus-0.1.
+ * The version-check API can repeat the current release in more than one
+ * offer, so positional selection (for example, the second "version" field)
+ * is invalid. Walk the ordered offers and return the first valid candidate
+ * whose major.minor release line differs from the first valid offer.
  *
  * @return string Version number.
- * @throws RuntimeException When resolution fails.
+ * @throws RuntimeException When no distinct previous release line is available.
  */
 function sscribe_resolve_previous_wp(): string {
-	sscribe_log( SSCRIBE_INSTALL_TAG, 'Resolving previous WordPress version from wordpress.org...' );
-	$body = sscribe_http_get( 'https://api.wordpress.org/core/version-check/1.7/' );
-	if ( preg_match_all( '/"version":"([^"]+)"/', $body, $m ) && isset( $m[1][1] ) && '' !== $m[1][1] ) {
-		return $m[1][1];
+	sscribe_log( SSCRIBE_INSTALL_TAG, 'Resolving previous WordPress release line from wordpress.org...' );
+	$body    = sscribe_http_get( 'https://api.wordpress.org/core/version-check/1.7/' );
+	$payload = json_decode( $body, true );
+	$offers  = is_array( $payload ) && isset( $payload['offers'] ) && is_array( $payload['offers'] ) ? $payload['offers'] : array();
+
+	$latest_release_line = '';
+	foreach ( $offers as $offer ) {
+		if ( ! is_array( $offer ) ) {
+			continue;
+		}
+		$candidate = isset( $offer['version'] ) && is_string( $offer['version'] ) ? trim( $offer['version'] ) : '';
+		if ( ! preg_match( '/^(\\d+)\\.(\\d+)(?:\\.\\d+)?(?:[-+].*)?$/', $candidate, $matches ) ) {
+			continue;
+		}
+		$candidate_release_line = $matches[1] . '.' . $matches[2];
+		if ( '' === $latest_release_line ) {
+			$latest_release_line = $candidate_release_line;
+			continue;
+		}
+		if ( $candidate_release_line !== $latest_release_line ) {
+			return $candidate;
+		}
 	}
-	sscribe_log( SSCRIBE_INSTALL_TAG, 'Falling back to current-0.1 for previous version...' );
-	$current = sscribe_resolve_latest_wp();
-	$parts   = explode( '.', $current );
-	$major   = isset( $parts[0] ) ? (int) $parts[0] : 0;
-	$minor   = isset( $parts[1] ) ? (int) $parts[1] : 0;
-	$prev    = sprintf( '%d.%d.0', $major, $minor - 1 );
-	if ( '' === $prev ) {
-		throw new RuntimeException( 'could not resolve previous WordPress version from wordpress.org API' );
+
+	throw new RuntimeException( 'could not resolve a distinct previous WordPress release line from wordpress.org API' );
+}
+
+/**
+ * Resolve the wp-phpunit branch matching a WordPress release line.
+ *
+ * wp-phpunit mirrors WordPress core test libraries on tree-X.Y branches.
+ * Mixing the repository's master branch with an older WordPress core tree
+ * can make the testbench fail before plugin tests even start.
+ *
+ * @param string $wp_version Resolved WordPress version.
+ * @return string Version-matched wp-phpunit branch.
+ * @throws RuntimeException When the version cannot be mapped safely.
+ */
+function sscribe_wp_phpunit_branch( string $wp_version ): string {
+	if ( ! preg_match( '/^(\\d+)\\.(\\d+)(?:\\.\\d+)?(?:[-+].*)?$/', $wp_version, $matches ) ) {
+		throw new RuntimeException( "cannot map WordPress version {$wp_version} to a wp-phpunit release tree" );
 	}
-	return $prev;
+
+	return 'tree-' . $matches[1] . '.' . $matches[2];
 }
 
 /**
@@ -322,18 +355,34 @@ function sscribe_install_wp_tests( array $argv ): void {
 		sscribe_rmdir( $src_dir );
 
 		// 2. WordPress test suite.
-		sscribe_log( SSCRIBE_INSTALL_TAG, 'Downloading WordPress test suite from wp-phpunit/wp-phpunit...' );
-		$suite_cache = $cache_dir . '/wp-phpunit';
+		$wp_phpunit_branch = sscribe_wp_phpunit_branch( $wp_version );
+		sscribe_log(
+			SSCRIBE_INSTALL_TAG,
+			"Downloading WordPress test suite from wp-phpunit/wp-phpunit ({$wp_phpunit_branch})..."
+		);
+		$suite_cache = $cache_dir . '/wp-phpunit-' . str_replace( '.', '-', $wp_phpunit_branch );
 		if ( ! is_dir( $suite_cache . '/includes' ) ) {
 			sscribe_rmdir( $suite_cache );
 			$git = sscribe_which( 'git' );
-			$res = sscribe_run_argv( array( $git, 'clone', '--depth', '1', 'https://github.com/wp-phpunit/wp-phpunit.git', $suite_cache ) );
+			$res = sscribe_run_argv(
+				array(
+					$git,
+					'clone',
+					'--depth',
+					'1',
+					'--branch',
+					$wp_phpunit_branch,
+					'--single-branch',
+					'https://github.com/wp-phpunit/wp-phpunit.git',
+					$suite_cache,
+				)
+			);
 			if ( 0 !== $res['code'] || ! is_dir( $suite_cache . '/includes' ) ) {
-				throw new RuntimeException( 'wp-phpunit clone has no includes/ directory' );
+				throw new RuntimeException( "wp-phpunit {$wp_phpunit_branch} clone has no includes/ directory" );
 			}
 		}
 		if ( ! is_dir( $suite_cache . '/includes' ) ) {
-			throw new RuntimeException( 'wp-phpunit clone has no includes/ directory' );
+			throw new RuntimeException( "wp-phpunit {$wp_phpunit_branch} clone has no includes/ directory" );
 		}
 		sscribe_log( SSCRIBE_INSTALL_TAG, "Copying test suite into {$tests_dir}..." );
 		sscribe_rmdir( $tests_dir );
@@ -357,14 +406,23 @@ function sscribe_install_wp_tests( array $argv ): void {
 		if ( $args['sqlite'] ) {
 			sscribe_log( SSCRIBE_INSTALL_TAG, 'Installing SQLite Database Integration drop-in...' );
 			$sqlite_dir = $core_dir . '/wp-content/plugins/sqlite-database-integration';
+
+			// Maintained SQLite Database Integration releases require WordPress 6.4+.
+			// Do not pin removed or unsupported historical plugin archives merely to
+			// keep the declared WordPress 6.1 floor green. Older supported WordPress
+			// versions are exercised against the real MySQL service in CI instead.
+			if ( version_compare( $wp_version, '6.4', '<' ) ) {
+				throw new RuntimeException( 'SQLite Database Integration requires WordPress 6.4 or newer; use MySQL for older supported WordPress versions.' );
+			}
+
+			$sqlite_cache_suffix = SSCRIBE_SQLITE_INTEGRATION_VERSION;
+
 			if ( ! is_dir( $sqlite_dir ) ) {
-				$sqlite_zip = $cache_dir . '/sqlite-database-integration.zip';
+				$sqlite_zip = $cache_dir . '/sqlite-database-integration-' . $sqlite_cache_suffix . '.zip';
 				if ( ! is_file( $sqlite_zip ) ) {
-					$releases = sscribe_http_get( 'https://api.github.com/repos/WordPress/sqlite-database-integration/releases/latest' );
-					if ( ! preg_match( '/"browser_download_url":\s*"([^"]+\.zip)"/', $releases, $m ) ) {
-						throw new RuntimeException( 'could not resolve SQLite Database Integration release URL' );
-					}
-					sscribe_download_file( $m[1], $sqlite_zip );
+					$sqlite_url = 'https://downloads.wordpress.org/plugin/sqlite-database-integration.' . SSCRIBE_SQLITE_INTEGRATION_VERSION . '.zip';
+					sscribe_log( SSCRIBE_INSTALL_TAG, 'Downloading SQLite Database Integration ' . SSCRIBE_SQLITE_INTEGRATION_VERSION . ' from WordPress.org...' );
+					sscribe_download_file( $sqlite_url, $sqlite_zip );
 				}
 				if ( ! class_exists( 'ZipArchive' ) ) {
 					throw new RuntimeException( 'PHP zip extension is required to install the SQLite drop-in (ZipArchive unavailable).' );
