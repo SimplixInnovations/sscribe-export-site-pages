@@ -77,7 +77,7 @@ If the maintainer organization deliberately chooses mandatory
 cryptographic signing as a policy, then implement it properly:
 
 ```bash
-VERSION=2.0.3
+VERSION=$(php -r '$s=file_get_contents("sscribe-export-site-pages.php"); preg_match("/define\\s*\\(\\s*[\x27\x22]SSCRIBE_VERSION[\x27\x22]\\s*,\\s*[\x27\x22]([^\x27\x22]+)[\x27\x22]/",$s,$m); echo $m[1] ?? "";')
 git tag -s "v${VERSION}" -m "SScribe ${VERSION}"
 git tag -v "v${VERSION}"    # optional signing policy: must verify cleanly when used
 ```
