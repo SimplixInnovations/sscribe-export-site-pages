@@ -98,6 +98,19 @@ and the machine-verifiable summary at:
 
 The JSON must contain the exact current `source_sha`, the fresh SHA-256 of the exact current-version ZIP as `zip_sha256`, and these six environment keys under `environments`: `standard_wordpress`, `wpml`, `redis_on`, `redis_off`, `openlitespeed`, and `cloudflare_proxy`. Every environment must record `"status": "PASS"` plus a non-empty `evidence` reference.
 
+The log itself must contain the exact `source_sha` and `zip_sha256` values and one structured success marker for every environment:
+
+```text
+[standard_wordpress] PASS
+[wpml] PASS
+[redis_on] PASS
+[redis_off] PASS
+[openlitespeed] PASS
+[cloudflare_proxy] PASS
+```
+
+Only write a PASS marker after that environment was actually executed successfully.
+
 Do not commit exact-release runtime results to `docs/CI_EVIDENCE_v2.0.0.md`; that document is historical, and committing final evidence after building the ZIP would change the source SHA and invalidate certification.
 
 ## How an independent auditor verifies this
