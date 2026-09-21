@@ -112,7 +112,9 @@ mkdir -p dist/evidence
 The final `bash bin/release-audit.sh` comes later, after strict evidence has
 been prepared.
 
-## 7. Browser/runtime and clean-install validation
+## 7. Preliminary browser/runtime and clean-install validation
+
+Run the automated browser suite against the preliminary package:
 
 ```bash
 npx playwright install chromium --with-deps
@@ -120,92 +122,77 @@ npm run test:e2e:smoke
 npm run test:e2e:full
 ```
 
-Manually verify on the production-like site as well:
+Also exercise the complete Phase 69 runbook in
+`docs/MANUAL_RUNTIME_TESTS_v2.0.0.md`: Standard WordPress, WordPress + WPML,
+Redis object cache ON, Redis object cache OFF, OpenLiteSpeed, and
+Cloudflare/proxy. At this preliminary stage the purpose is to expose defects
+before the source is frozen. Do not create final certification JSON yet.
 
-- Auto-download is OFF after a fresh page load.
-- Enabling Auto-download downloads exactly once; disabling it does not.
-- Pages / Posts / All Types counts are correct.
-- All Languages works for counts, Preview, Start, batch processing, finalize,
-  summary and the exported object count.
-- Status counts respect selected Content Type + Language.
-- Preview count equals Export Summary and the actual export total.
-- A hard preflight error cannot be bypassed.
-- Warning-only preflight requires explicit Continue.
-- Debug OFF → ON refreshes the console state.
-- ERROR filter with zero matches shows a filter-empty state, not a Debug-off
-  prompt.
-- Run DOCX, PDF, HTML, Markdown and All Formats.
-- Test a small export and a representative larger multilingual export.
-- Confirm no repeated 429/500 retry storm.
-- If a terminal failure occurs, confirm a request reference is visible and the
-  operational log contains the correlated failure without secrets/full paths.
-- Download token is single-use and the archive is inaccessible without the
-  authorized flow.
+The production-like validation must include DOCX, PDF, HTML, Markdown, All
+Formats, All Languages, Arabic/RTL, retry/finalize behavior, single-use
+downloads, unauthorized-download rejection, Debug OFF/ON behavior,
+deactivate/reactivate, and uninstall cleanup.
 
-Write the executed clean-install/runtime result to an **untracked** evidence
-file such as `dist/evidence/clean-install.md`. It must describe the exact ZIP,
-environment, commands/actions performed, and pass/fail result.
+Any defect found here requires a tracked fix through a transient pull request
+before final certification.
 
 ## 8. WordPress.org reviewer source access
 
-Before upload, make the exact v2.0.0 source and build inputs publicly accessible
-and maintained, as required by the WordPress.org plugin guidelines when build
-tooling is omitted from the deployed ZIP.
+Before upload, make the exact current-release source and build inputs publicly
+accessible and maintained, as required when build tooling is omitted from the
+deployed ZIP.
 
-The canonical repository may be made public, or an equivalent maintained
-public source mirror may be used, but it must contain the exact corresponding
-tagged source plus the build tooling/documentation used to produce the ZIP.
-Private/reviewer-only access is not sufficient for this release.
+The canonical repository may be public, or an equivalent maintained public
+source mirror may be used, but it must expose the exact source corresponding to
+the release plus `composer.json`, `scripts/build-release.php`, and
+`docs/BUILD_TRANSFORMATIONS.md`. Anonymous HTTP access must work.
 
-## 9. Resolve tracked release blockers, then freeze source
+Do not describe a private/reviewer-only source location as satisfying this
+requirement.
 
-After preliminary checks and external requirements are genuinely satisfied,
-update `docs/RELEASE_BLOCKERS_v2.0.0.md` so every DEFERRED row that is actually
-closed becomes RESOLVED with a truthful evidence description.
+## 9. Resolve tracked source/governance issues, then freeze source
 
-Do **not** put the final commit SHA, ZIP checksum, or other self-referential
-final values into this tracked document.
+Dynamic Phase 70 rows deliberately remain `DEFERRED` in
+`docs/RELEASE_BLOCKERS_v2.0.0.md`; do **not** flip them to `RESOLVED` in
+tracked Markdown. Strict certification upgrades them at runtime from ignored
+`dist/` evidence. Editing the tracked registry after exact evidence is
+generated would change the source SHA and invalidate that evidence.
 
-Commit every tracked source/documentation change. Then verify:
+Before freezing, finish every legitimate tracked source/documentation fix and
+reconcile repository governance documented by the branch-policy/protection
+contracts. Any tracked correction must merge through a transient pull request.
+
+Then verify:
 
 ```bash
 git status --short
 git rev-parse HEAD
 ```
 
-The tracked working tree must be clean. The resulting commit is now the
-candidate final source SHA.
+The tracked working tree must be clean. The resulting commit is the candidate
+final source SHA. From this point onward, any tracked change invalidates final
+evidence and requires certification to restart on the new SHA.
 
-If blocker 18 (public source/build access) is not actually resolved, stop:
-the release is not ready.
+## 10. Re-run final signals on the exact frozen SHA and exact ZIP
 
-## 10. Re-run the required release signals on the exact frozen SHA
-
-Because committing blocker/source changes creates a new SHA, rerun final
-release evidence after the source is frozen.
-
-First regenerate dependency/build inputs from the locked source and ensure they
-do not dirty tracked files:
+Resolve and retain the frozen identity:
 
 ```bash
+set -euo pipefail
 FINAL_SHA="$(git rev-parse HEAD)"
-printf '%s\n' "$FINAL_SHA"
+VERSION="$(php -r '$s=file_get_contents("sscribe-export-site-pages.php"); preg_match("/define\\s*\\(\\s*[\x27\x22]SSCRIBE_VERSION[\x27\x22]\\s*,\\s*[\x27\x22]([^\x27\x22]+)[\x27\x22]/",$s,$m); echo $m[1] ?? "";')"
+printf 'FINAL_SHA=%s\nVERSION=%s\n' "$FINAL_SHA" "$VERSION"
 
 composer install --no-interaction --no-progress
 composer vendor:prefix
 git status --short
 ```
 
-If `git status --short` shows any tracked change, stop. Review and commit the
-legitimate change, then restart section 10 from the new SHA.
+If dependency preparation changes tracked files, stop, review the change, merge
+the legitimate correction, and restart from the new `origin/main`.
 
-The real package builder is `composer release`
-(`php scripts/build-release.php`). **Do not use `composer release:prepare`
-for packaging**; that command is the interactive version-bump preparation
-workflow.
-
-Because the builder intentionally cleans `dist/`, capture its output outside
-`dist/` first, then copy it back after the build:
+Build the exact package. Because the builder cleans `dist/`, capture build
+output outside `dist/` first:
 
 ```bash
 mkdir -p .cache
@@ -214,24 +201,21 @@ BUILD_TIMESTAMP="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 
 mkdir -p dist/evidence
 cp .cache/final-build.log dist/evidence/build.log
+
+ZIP="dist/sscribe-export-site-pages-${VERSION}.zip"
+ZIP_SHA="$(sha256sum "$ZIP" | awk '{print $1}')"
+printf 'ZIP=%s\nZIP_SHA=%s\n' "$ZIP" "$ZIP_SHA"
 ```
 
-The exact artifact must now be:
-
-```text
-dist/sscribe-export-site-pages-{VERSION}.zip
-dist/sscribe-export-site-pages-{VERSION}.sha256
-```
-
-Now run and save the remaining required signal evidence against this same
-frozen SHA/artifact:
+Run every final signal against this same frozen checkout/artifact and save
+non-empty proof:
 
 ```bash
 composer version:check 2>&1 | tee dist/evidence/version-check.log
 
-# Run the repository-required PHP syntax/version matrix here and save its
-# consolidated output to dist/evidence/lint.log. The current CI contract
-# validates syntax on PHP 8.2, 8.3, 8.4 and 8.5.
+# Run the repository-required PHP syntax/version matrix (8.2, 8.3, 8.4, 8.5)
+# and save its consolidated output:
+#   dist/evidence/lint.log
 
 composer test 2>&1 | tee dist/evidence/test.log
 
@@ -258,50 +242,49 @@ composer test 2>&1 | tee dist/evidence/test.log
   composer test:coverage
   composer test:coverage:check
 } 2>&1 | tee dist/evidence/coverage.log
-```
 
-Run official Plugin Check against the already-built exact ZIP and save the
-final output:
-
-```bash
 "${SSCRIBE_WP_BIN:-wp}" --path="$SSCRIBE_WP_ROOT" plugin install \
-  "$PWD/dist/sscribe-export-site-pages-{VERSION}.zip" --force --activate
+  "$PWD/$ZIP" --force --activate
 
 "${SSCRIBE_WP_BIN:-wp}" --path="$SSCRIBE_WP_ROOT" plugin check \
   sscribe-export-site-pages 2>&1 | tee dist/evidence/plugin-check.log
-```
 
-Repeat the clean-install smoke using this exact final ZIP and write the
-executed result to `dist/evidence/clean-install.md`.
-
-Then run final E2E:
-
-```bash
 {
   npm run test:e2e:smoke
   npm run test:e2e:full
 } 2>&1 | tee dist/evidence/e2e.log
 ```
 
-All commands must exit 0. Verify the tracked tree is still clean:
+Now repeat the **actual final** clean-install/runtime work on `$ZIP`:
+
+- execute the clean-install lifecycle and write
+  `dist/evidence/clean-install.md`;
+- exercise DOCX, PDF, HTML, Markdown, All Formats, All Languages, Arabic/RTL,
+  retry, finalize, single-use download, and unauthorized-download rejection,
+  writing `dist/evidence/runtime-exports.log`;
+- execute all six Phase 69 environments from
+  `docs/MANUAL_RUNTIME_TESTS_v2.0.0.md`, writing
+  `dist/evidence/manual-runtime.log`.
+
+These logs must describe the exact environment, actions/commands, and observed
+PASS/FAIL result. Do not mark an unexecuted environment PASS.
+
+Finally prove the source did not move:
 
 ```bash
 git status --short
 test "$(git rev-parse HEAD)" = "$FINAL_SHA"
+test "$(sha256sum "$ZIP" | awk '{print $1}')" = "$ZIP_SHA"
 ```
 
-If any tracked source fix is needed, stop, commit the fix, delete stale final
-evidence, and restart section 10.
+## 11. Create the ignored exact-release evidence bundle
 
-## 11. Create untracked exact-SHA evidence inputs
+All files in this section stay untracked under `dist/`. Do not put exact
+SHA/checksum/status values into tracked Markdown.
 
-Do not edit the tracked Phase 71/72 Markdown templates.
+### 11.1 Final execution state
 
-Create `dist/final-execution-evidence.json` using the actual output of
-`git rev-parse HEAD`.
-
-When GitHub never started the corresponding jobs, use `LOCAL_PASS` and the
-non-empty local logs:
+Create `dist/final-execution-evidence.json`:
 
 ```json
 {
@@ -321,8 +304,11 @@ non-empty local logs:
 }
 ```
 
-If a GitHub job actually executed successfully on the exact final SHA, use
-`SUCCESS` and its concrete `https://` execution URL instead.
+When a signal executed successfully on GitHub Actions for this **exact final
+SHA**, `SUCCESS` plus its concrete HTTPS run URL may be used instead of
+`LOCAL_PASS`.
+
+### 11.2 Artifact / Plugin Check evidence
 
 Create `dist/release-certification-evidence.json`:
 
@@ -337,53 +323,155 @@ Create `dist/release-certification-evidence.json`:
 }
 ```
 
-Both JSON files are ignored by Git and must remain uncommitted.
+### 11.3 Exact clean-install evidence
+
+Create `dist/clean-install-evidence.json`; `source_sha` and
+`zip_sha256` are mandatory identity fields:
+
+```json
+{
+  "source_sha": "<FINAL_40_HEX_SHA>",
+  "zip_sha256": "<EXACT_64_HEX_ZIP_SHA256>",
+  "generated_at": "<ISO_8601_TIMESTAMP>",
+  "checks": {
+    "activation": "PASS",
+    "deactivation": "PASS",
+    "no_fatal": "PASS",
+    "no_warning_attributable": "PASS",
+    "db_tables_present": "PASS",
+    "capabilities_present": "PASS",
+    "cron_hooks_present": "PASS",
+    "admin_ui_loads": "PASS",
+    "export_basic": "PASS",
+    "reactivate_no_duplicates": "PASS",
+    "uninstall_cleanup": "PASS"
+  }
+}
+```
+
+### 11.4 Runtime-export evidence
+
+Create `dist/runtime-export-evidence.json`:
+
+```json
+{
+  "source_sha": "<FINAL_40_HEX_SHA>",
+  "zip_sha256": "<EXACT_64_HEX_ZIP_SHA256>",
+  "generated_at": "<ISO_8601_TIMESTAMP>",
+  "checks": {
+    "activation": "PASS",
+    "docx": "PASS",
+    "pdf": "PASS",
+    "html": "PASS",
+    "markdown": "PASS",
+    "all_formats": "PASS",
+    "all_languages": "PASS",
+    "arabic_rtl": "PASS",
+    "retry_behavior": "PASS",
+    "finalize": "PASS",
+    "single_use_download": "PASS",
+    "unauthorized_download_rejected": "PASS"
+  }
+}
+```
+
+### 11.5 Six-environment Phase 69 evidence
+
+Create `dist/manual-runtime-evidence.json`. Every `evidence` value must point
+to an actual observation recorded in the non-empty
+`dist/evidence/manual-runtime.log`:
+
+```json
+{
+  "source_sha": "<FINAL_40_HEX_SHA>",
+  "zip_sha256": "<EXACT_64_HEX_ZIP_SHA256>",
+  "generated_at": "<ISO_8601_TIMESTAMP>",
+  "environments": {
+    "standard_wordpress": {"status":"PASS","evidence":"dist/evidence/manual-runtime.log#standard-wordpress"},
+    "wpml": {"status":"PASS","evidence":"dist/evidence/manual-runtime.log#wpml"},
+    "redis_on": {"status":"PASS","evidence":"dist/evidence/manual-runtime.log#redis-on"},
+    "redis_off": {"status":"PASS","evidence":"dist/evidence/manual-runtime.log#redis-off"},
+    "openlitespeed": {"status":"PASS","evidence":"dist/evidence/manual-runtime.log#openlitespeed"},
+    "cloudflare_proxy": {"status":"PASS","evidence":"dist/evidence/manual-runtime.log#cloudflare-proxy"}
+  }
+}
+```
+
+### 11.6 Public source/build-transparency evidence
+
+After anonymous HTTP verification of the public source and build inputs, create
+`dist/source-transparency-evidence.json`:
+
+```json
+{
+  "source_sha": "<FINAL_40_HEX_SHA>",
+  "public_url": "<PUBLIC_EXACT_SOURCE_URL>",
+  "composer_json_url": "<PUBLIC_COMPOSER_JSON_URL>",
+  "build_script_url": "<PUBLIC_BUILD_RELEASE_PHP_URL>",
+  "build_doc_url": "<PUBLIC_BUILD_TRANSFORMATIONS_URL>",
+  "checks": {
+    "public_url": "PASS",
+    "composer_json": "PASS",
+    "build_script": "PASS",
+    "build_doc": "PASS"
+  }
+}
+```
+
+Do not create a PASS value from assumption. Each dynamic evidence file must
+reflect an execution or external access check that actually happened.
 
 ## 12. Strict final certification
 
-First verify the tracked tree is still clean:
+First prove the tracked tree is still clean:
 
 ```bash
 git status --short
+test "$(git rev-parse HEAD)" = "$FINAL_SHA"
 ```
 
-Then run:
+Run every fail-closed exact-release gate:
 
 ```bash
+SSCRIBE_RELEASE_CERTIFICATION=1 composer test:manual-runtime-tests
 SSCRIBE_RELEASE_CERTIFICATION=1 composer test:release-blockers
 SSCRIBE_RELEASE_CERTIFICATION=1 composer test:final-ci-state
 SSCRIBE_RELEASE_CERTIFICATION=1 composer test:exact-artifact-evidence
+SSCRIBE_RELEASE_CERTIFICATION=1 composer test:agent-final-report
+SSCRIBE_RELEASE_CERTIFICATION=1 composer test:auditor-handoff
+SSCRIBE_RELEASE_CERTIFICATION=1 composer release:audit
 ```
 
-Inspect:
+The release audit also requires the official Plugin Check WordPress testbench
+(`SSCRIBE_WP_ROOT`, and `SSCRIBE_WP_BIN` when `wp` is not on PATH).
 
+Inspect at minimum:
+
+- `dist/manual-runtime-tests-manifest.json`
 - `dist/release-blockers-manifest.json`
 - `dist/final-ci-state-manifest.json`
 - `dist/exact-artifact-evidence-manifest.json`
+- `dist/agent-final-report-manifest.json`
+- `dist/auditor-handoff-manifest.json`
 
-All must report zero errors and strict release readiness where applicable.
+Every strict manifest must have zero errors and report release readiness where
+applicable. A failure means **do not tag**.
 
-Finally run the full fail-closed audit:
-
-```bash
-bash bin/release-audit.sh
-```
-
-The audit requires the official Plugin Check testbench configuration and must
-exit 0.
-
-## 13. Branch closure and tag rule
+## 13. Branch closure and immutable tag rule
 
 After strict certification passes, make no tracked changes.
 
-After strict certification passes, verify that the clean local `main` checkout and `origin/main` resolve to the exact certified SHA and that no completed transient branch remains:
+Verify local and remote source identity and branch topology:
 
 ```bash
-git fetch origin --prune
+git fetch origin --prune --tags
+git switch main
+git reset --hard origin/main
 git rev-parse HEAD
 git rev-parse origin/main
 git status --short --branch
 git branch -a
+git worktree list
 ```
 
 Required result:
@@ -391,10 +479,23 @@ Required result:
 - local `HEAD` equals `origin/main` and the exact certified SHA;
 - the working tree is clean;
 - `main` is the only persistent long-lived branch;
-- completed audit/release/feature/hotfix branches have been deleted.
+- completed audit/release/feature/hotfix branches are deleted;
+- no extra worktree carries an authoritative divergent ref.
 
-Only after that may `v2.0.0` be created, subject to the repository tag policy,
-signing requirements, and WordPress.org source-transparency requirement.
+Only then create the annotated immutable current-version tag through the guarded
+helper:
+
+```bash
+composer release:tag
+```
+
+For this release that helper must resolve the version from
+`SSCRIBE_VERSION` (currently 2.0.3), create `v{VERSION}` on the exact
+certified `origin/main` HEAD, and push it without force. The tag-triggered
+`.github/workflows/release.yml` must then complete verify → audit → test →
+certify → publish successfully. Submit to WordPress.org only the exact
+certified ZIP from that release, with the same SHA-256 as the certification
+evidence.
 
 ## Release rule
 
