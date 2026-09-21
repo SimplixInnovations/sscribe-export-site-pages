@@ -127,6 +127,32 @@ final class SScribe_Release_Invariants_Test extends TestCase {
 		);
 	}
 
+	public function test_clean_build_determinism_gate_is_executable_and_wired(): void {
+		$determinism_script = $this->repo_root . '/scripts/verify-build-determinism.php';
+		$this->assertFileExists(
+			$determinism_script,
+			'Release invariant #5 requires an executable clean-build determinism verifier.'
+		);
+
+		$source = (string) file_get_contents( $determinism_script );
+		$this->assertStringContainsString( 'composer install --no-interaction --no-progress --optimize-autoloader', $source );
+		$this->assertStringContainsString( 'composer vendor:prefix', $source );
+		$this->assertStringContainsString( 'scripts/build-release.php --skip-validation', $source );
+		$this->assertStringContainsString( "if ( \\$first['sha256'] !== \\$second['sha256'] )", $source );
+
+		$composer = json_decode( (string) file_get_contents( $this->repo_root . '/composer.json' ), true );
+		$this->assertIsArray( $composer );
+		$this->assertSame(
+			'php scripts/verify-build-determinism.php',
+			$composer['scripts']['release:determinism'] ?? null,
+			'composer release:determinism must invoke the clean-build verifier.'
+		);
+
+		$workflow = (string) file_get_contents( $this->repo_root . '/.github/workflows/release-audit.yml' );
+		$this->assertStringContainsString( 'Verify two clean builds are byte-identical', $workflow );
+		$this->assertStringContainsString( 'composer release:determinism', $workflow );
+	}
+
 	public function test_composer_test_release_invariants_script_wired(): void {
 		$composer_json_path = $this->repo_root . '/composer.json';
 		$this->assertFileExists( $composer_json_path );
