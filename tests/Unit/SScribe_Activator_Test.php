@@ -26,6 +26,13 @@ class SScribe_Activator_Test extends TestCase {
 		);
 	}
 
+	public function test_activation_checks_session_crypto_provider_before_setup(): void {
+		$source = (string) file_get_contents( dirname( __DIR__, 2 ) . '/includes/class-sscribe-activator.php' );
+
+		$this::assertStringContainsString( 'SScribe_Vendor_Bootstrap::has_session_crypto_provider()', $source );
+		$this::assertStringContainsString( 'Sodium or OpenSSL AES-256-GCM', $source );
+	}
+
 	public function test_activate_single_site_completes_core_setup(): void {
 		\SScribe_Activator::activate( false );
 
