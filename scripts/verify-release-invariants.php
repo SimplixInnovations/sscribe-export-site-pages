@@ -85,6 +85,7 @@ $canonical_invariants = array(
 	'every Phase 70 blocker is RESOLVED',
 	'every Phase 71 required execution signal is SUCCESS or documented LOCAL_PASS',
 	'Phase 72 evidence matches the actual ZIP',
+	'Branch topology policy holds',
 	'Public maintained exact source/build inputs',
 );
 
