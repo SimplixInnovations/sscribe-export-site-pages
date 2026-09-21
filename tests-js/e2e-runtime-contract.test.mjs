@@ -248,10 +248,15 @@ if (/spawn\(\s*'php'/.test(adapterSrc)) {
 // PHP_CLI_SERVER_WORKERS opts into the experimental forked-worker mode,
 // which has no value for this SQLite release fixture and can destabilize CI.
 const phpCliWorkerAssignment = /(?:^|[\s,{])PHP_CLI_SERVER_WORKERS\s*:/m.test(adapterSrc) || /process\.env\.PHP_CLI_SERVER_WORKERS\s*=/.test(adapterSrc);
+const phpCliWorkerRemoval =
+  /delete\s+phpServerEnv\.PHP_CLI_SERVER_WORKERS\s*;/.test(adapterSrc) &&
+  /env:\s*\{[\s\S]*?\.\.\.phpServerEnv[\s\S]*?SSCRIBE_E2E_TESTBED/.test(adapterSrc);
 if (phpCliWorkerAssignment) {
   fail('native adapter enables experimental PHP_CLI_SERVER_WORKERS mode');
+} else if (!phpCliWorkerRemoval) {
+  fail('native adapter does not strip inherited PHP_CLI_SERVER_WORKERS before spawning PHP');
 } else {
-  pass('native adapter leaves PHP CLI server in default single-process mode');
+  pass('native adapter strips PHP_CLI_SERVER_WORKERS and uses default single-process mode');
 }
 
 // 25. Browser release certification is intentionally serialized. The native
