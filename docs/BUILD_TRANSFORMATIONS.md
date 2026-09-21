@@ -90,6 +90,10 @@ Symbol, Zapf Dingbats) and DejaVu Sans regular/bold/italic/bold-italic data,
 plus `core/LICENSE` and `dejavu/LICENSE`.
 
 Strauss then prefixes TCPDF and its transitive `tc-lib-*` dependency graph.
+Composer's `config.autoloader-suffix` is pinned to
+`SScribeExportSitePages` so Strauss's generated `vendor-prefixed/autoload.php`
+and `vendor-prefixed/composer/autoload_{real,static}.php` are byte-stable
+across clean runs instead of receiving a random initializer suffix.
 The release builder re-validates the same allow-list at
 `vendor-prefixed/tecnickcom/tc-lib-pdf-font/target/fonts/`, removes any
 unexpected font artifact, and fails if a required font or license file is
