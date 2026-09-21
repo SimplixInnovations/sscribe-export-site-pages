@@ -38,6 +38,19 @@ final class SScribe_Vendor_Compat_Test extends TestCase {
 		$this::assertTrue( defined( 'SSCRIBE_VENDOR_AUTOLOADED' ) || ! defined( 'SSCRIBE_VENDOR_AUTOLOADED' ) );
 	}
 
+	public function test_vendor_compat_maps_upstream_tcpdf_to_prefixed_runtime_name(): void {
+		$path = SSCRIBE_PLUGIN_DIR . 'includes/sscribe-vendor-compat.php';
+		$this::assertFileExists( $path );
+
+		$source = file_get_contents( $path );
+		$this::assertIsString( $source );
+		$this::assertMatchesRegularExpression(
+			"/'TCPDF'\\s*=>\\s*'SScribeVendor_TCPDF'/",
+			$source,
+			'The supported vendor/autoload.php layout must expose upstream TCPDF through the runtime class name expected by the PDF exporter.'
+		);
+	}
+
 	public function test_vendor_compat_aliases_are_idempotent(): void {
 		// Walk the SScribe_Vendor_Bootstrap's is_available probe path
 		// twice. The shim must not double-register aliases when the
