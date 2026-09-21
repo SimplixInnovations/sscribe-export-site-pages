@@ -373,19 +373,9 @@ failure looks like**, **how to debug**, **what manifest it writes**.
 ### `composer test:manual-runtime-tests`
 
 - **Script:** `php scripts/verify-manual-runtime-tests.php`
-- **Gates:** `docs/MANUAL_RUNTIME_TESTS_v2.0.0.md` exists,
-  declares the canonical sections (Why this exists, Canonical
-  scenarios, Per-scenario acceptance criteria, What "exact
-  ZIP" means, Evidence recording, How an independent auditor
-  verifies this), and explicitly lists all 6 required
-  environments (Standard WordPress, WordPress + WPML, Redis
-  object cache ON, Redis object cache OFF, OpenLiteSpeed,
-  Cloudflare / proxy). Companion PHPUnit integration test
-  pinned at
-  `tests/Integration/SScribe_Manual_Runtime_Tests_Test.php`.
-- **Failure:** 'Manual runtime test runbook must cover 6
-  canonical environments. Missing: OpenLiteSpeed'.
-- **Debug:** `dist/manual-runtime-tests-manifest.json`.
+- **Gates:** in normal source CI, validates the immutable Phase 69 runbook, its canonical sections, versioned exact-ZIP contract, six required environments, and the rule that release evidence stays untracked. With `SSCRIBE_RELEASE_CERTIFICATION=1`, additionally requires `dist/manual-runtime-evidence.json` and a non-empty `dist/evidence/manual-runtime.log`, proves `source_sha` equals the current git HEAD, proves `zip_sha256` equals a fresh hash of the exact current-version ZIP, and requires PASS + a non-empty evidence reference for Standard WordPress, WPML, Redis ON, Redis OFF, OpenLiteSpeed, and Cloudflare/proxy.
+- **Failure:** normal mode reports a missing runbook/schema requirement; strict mode reports missing/stale evidence, source/ZIP identity mismatch, or the exact environment that is not PASS.
+- **Debug:** inspect `dist/manual-runtime-tests-manifest.json`, `dist/manual-runtime-evidence.json`, and `dist/evidence/manual-runtime.log`.
 - **Manifest:** `dist/manual-runtime-tests-manifest.json`.
 
 ### `composer test:release-blockers`
@@ -673,8 +663,8 @@ failure looks like**, **how to debug**, **what manifest it writes**.
 - **Purpose:** runs the most critical gates in one run-all summary.
   Normal mode validates the tracked/source/artifact contracts and is suitable
   for branch CI. Set `SSCRIBE_RELEASE_CERTIFICATION=1` only for a real
-  release-certification run after the ignored Phase 70/71/72 evidence files
-  have been generated for the exact source SHA and artifact.
+  release-certification run after the ignored Phase 69/70/71/72 evidence bundle
+  has been generated for the exact source SHA and artifact.
 
 ### `composer release:prepare` / `composer release:commit`
 
