@@ -89,6 +89,12 @@ $canonical_invariants = array(
 	'Public maintained exact source/build inputs',
 );
 
+$record(
+	'canonical_invariant_registry_shape',
+	34 === count( $canonical_invariants ) && 34 === count( array_unique( $canonical_invariants ) ),
+	'Canonical release-invariant registry must contain exactly 34 unique fingerprints.'
+);
+
 if ( is_file( $invariants_doc ) ) {
 	$doc_src = (string) file_get_contents( $invariants_doc );
 
@@ -107,6 +113,14 @@ if ( is_file( $invariants_doc ) ) {
 		'invariants_doc_has_canonical_sections',
 		0 === count( $missing_sections ),
 		'Release invariants doc is missing canonical sections: ' . implode( ', ', $missing_sections )
+	);
+
+	preg_match_all( '/^\\|\\s*(\\d+)\\s*\\|/m', $doc_src, $row_matches );
+	$doc_rows = array_map( 'intval', $row_matches[1] ?? array() );
+	$record(
+		'invariants_doc_has_exact_canonical_rows',
+		range( 1, 34 ) === $doc_rows,
+		'Release invariants doc must contain exactly canonical rows 1 through 34 in order.'
 	);
 
 	// Every canonical invariant must appear (case-insensitive substring match).
