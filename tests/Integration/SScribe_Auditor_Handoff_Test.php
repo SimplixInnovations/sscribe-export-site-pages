@@ -113,6 +113,7 @@ final class SScribe_Auditor_Handoff_Test extends TestCase {
 			'dist/final-release-report.md',
 			'dist/manual-runtime-evidence.json',
 			'dist/evidence/manual-runtime.log',
+			'dist/repository-governance-evidence.json',
 		) as $expected ) {
 			$this->assertStringContainsString(
 				$expected,
