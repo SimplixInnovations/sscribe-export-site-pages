@@ -60,6 +60,7 @@ $strict_certification = '1' === (string) getenv( 'SSCRIBE_RELEASE_CERTIFICATION'
  *   `plugin-check-evidence`  — dist/release-certification-evidence.json plugin_check_url.
  *   `clean-install-evidence` — dist/clean-install-evidence.json + dist/evidence/clean-install.md.
  *   `runtime-export-evidence`— dist/runtime-export-evidence.json + dist/evidence/runtime-exports.log.
+ *   `manual-runtime-evidence` — dist/manual-runtime-evidence.json + dist/evidence/manual-runtime.log.
  *   `source-transparency-evidence` — dist/source-transparency-evidence.json.
  */
 $valid_closure_sources = array(
@@ -69,6 +70,7 @@ $valid_closure_sources = array(
 	'plugin-check-evidence',
 	'clean-install-evidence',
 	'runtime-export-evidence',
+	'manual-runtime-evidence',
 	'source-transparency-evidence',
 );
 
@@ -115,6 +117,7 @@ $canonical_blockers = array(
 	'Source / build transparency unresolved',
 	'License inventory unresolved',
 	'Release path capable of rebuilding untested bytes',
+	'Manual runtime environment matrix not executed on exact ZIP',
 );
 
 $valid_statuses = array( 'RESOLVED', 'DEFERRED' );
@@ -487,6 +490,87 @@ function check_closure_evidence( string $root_dir, string $closure_source ): arr
 				'passes'  => true,
 				'verdict' => 'runtime_export_all_pass',
 				'detail'  => 'all required runtime-export checks PASS',
+			);
+
+
+		case 'manual-runtime-evidence':
+			$json_path = $root_dir . '/dist/manual-runtime-evidence.json';
+			$log_path  = $root_dir . '/dist/evidence/manual-runtime.log';
+			if ( ! is_file( $json_path ) ) {
+				return array(
+					'passes'  => false,
+					'verdict' => 'missing_evidence',
+					'detail'  => 'dist/manual-runtime-evidence.json does not exist',
+				);
+			}
+			if ( ! is_file( $log_path ) || 0 === filesize( $log_path ) ) {
+				return array(
+					'passes'  => false,
+					'verdict' => 'manual_runtime_log_missing_or_empty',
+					'detail'  => 'dist/evidence/manual-runtime.log missing or empty',
+				);
+			}
+			$payload = json_decode( (string) file_get_contents( $json_path ), true );
+			if ( ! is_array( $payload ) ) {
+				return array(
+					'passes'  => false,
+					'verdict' => 'malformed_manual_runtime_evidence',
+					'detail'  => 'dist/manual-runtime-evidence.json is not valid JSON',
+				);
+			}
+
+			$current_sha = trim( (string) shell_exec( 'git rev-parse HEAD 2> ' . ( '\\' === DIRECTORY_SEPARATOR ? 'NUL' : '/dev/null' ) ) );
+			if ( ! preg_match( '/^[a-f0-9]{40}$/', $current_sha )
+				|| ! hash_equals( $current_sha, (string) ( $payload['source_sha'] ?? '' ) )
+			) {
+				return array(
+					'passes'  => false,
+					'verdict' => 'manual_runtime_source_sha_mismatch',
+					'detail'  => 'manual runtime evidence source_sha does not match current git HEAD',
+				);
+			}
+
+			$mainfile = $root_dir . '/sscribe-export-site-pages.php';
+			$version  = '';
+			if ( is_file( $mainfile ) ) {
+				$main_src = (string) file_get_contents( $mainfile );
+				if ( preg_match( "/define\\s*\\(\\s*['\"]SSCRIBE_VERSION['\"]\\s*,\\s*['\"]([^'\"]+)['\"]/", $main_src, $match ) ) {
+					$version = (string) $match[1];
+				}
+			}
+			$zip_path = '' !== $version ? $root_dir . '/dist/sscribe-export-site-pages-' . $version . '.zip' : '';
+			$zip_sha  = '' !== $zip_path && is_file( $zip_path ) ? hash_file( 'sha256', $zip_path ) : false;
+			if ( ! is_string( $zip_sha )
+				|| ! preg_match( '/^[a-f0-9]{64}$/', $zip_sha )
+				|| ! hash_equals( $zip_sha, (string) ( $payload['zip_sha256'] ?? '' ) )
+			) {
+				return array(
+					'passes'  => false,
+					'verdict' => 'manual_runtime_zip_sha_mismatch',
+					'detail'  => 'manual runtime evidence zip_sha256 does not match the exact current-version ZIP',
+				);
+			}
+
+			$required = array( 'standard_wordpress', 'wpml', 'redis_on', 'redis_off', 'openlitespeed', 'cloudflare_proxy' );
+			$bad = array();
+			foreach ( $required as $key ) {
+				$status = (string) ( $payload['environments'][ $key ]['status'] ?? '' );
+				$proof  = trim( (string) ( $payload['environments'][ $key ]['evidence'] ?? '' ) );
+				if ( 'PASS' !== $status || '' === $proof ) {
+					$bad[] = $key . '=' . ( '' !== $status ? $status : 'MISSING' );
+				}
+			}
+			if ( $bad ) {
+				return array(
+					'passes'  => false,
+					'verdict' => 'manual_runtime_environments_not_all_pass',
+					'detail'  => 'manual runtime environments not all PASS with evidence: ' . implode( ', ', $bad ),
+				);
+			}
+			return array(
+				'passes'  => true,
+				'verdict' => 'manual_runtime_all_pass',
+				'detail'  => 'all six Phase 69 manual runtime environments PASS on the exact current source SHA and ZIP',
 			);
 
 		case 'source-transparency-evidence':
