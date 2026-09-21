@@ -79,6 +79,11 @@ final class SScribe_Branch_Protection_Test extends TestCase {
 			'Branch-protection doc must record an audited date.'
 		);
 		$this::assertMatchesRegularExpression( '/main:\s*UNPROTECTED/i', $source );
+		$this::assertStringContainsString( 'default branch: develop (NON-CANONICAL)', $source );
+		$this::assertStringContainsString( 'rulesets: none', $source );
+		$this::assertStringContainsString( 'squash merge: enabled', $source );
+		$this::assertStringContainsString( 'rebase merge: enabled (NON-CANONICAL)', $source );
+		$this::assertStringContainsString( 'merge commits: enabled (NON-CANONICAL)', $source );
 		$this::assertMatchesRegularExpression(
 			'/not[\s\S]{0,100}WordPress\.org submission requirement/i',
 			$source,
