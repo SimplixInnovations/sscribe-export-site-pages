@@ -317,4 +317,16 @@ final class SScribe_Build_Transparency_Test extends TestCase {
 		$this::assertSame( 1, $code, 'Missing Author URI must fail. Output:' . "\n" . $output );
 		$this::assertStringContainsString( 'Author URI', $output );
 	}
+
+	public function test_tcpdf7_font_staging_is_documented_as_a_build_transformation(): void {
+		$doc = $this->read_live( 'docs/BUILD_TRANSFORMATIONS.md' );
+
+		$this->assertStringContainsString( 'tecnickcom/tc-lib-pdf-font/target/fonts', $doc );
+		$this->assertStringContainsString( 'scripts/resources/tcpdf-fonts', $doc );
+		$this->assertStringContainsString( 'core/LICENSE', $doc );
+		$this->assertStringContainsString( 'dejavu/LICENSE', $doc );
+		$this->assertStringContainsString( 'Makefile', $doc );
+		$this->assertStringContainsString( 'VERSION', $doc );
+	}
+
 }
