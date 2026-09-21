@@ -311,6 +311,9 @@ if ( ! is_dir( $dist_dir ) ) {
 		'.gitignore',
 		'.gitattributes',
 		'phpunit.xml.dist',
+		'phpunit-coverage.xml',
+		'phpunit-coverage-core.xml',
+		'phpunit-coverage-wp.xml',
 		'phpunit-wp.xml',
 		'playwright.config.ts',
 		'composer.lock',
@@ -338,6 +341,47 @@ if ( ! is_dir( $dist_dir ) ) {
 	}
 	if ( ! empty( $seen_top_violations ) ) {
 		$counts['forbidden_top_segments'] = count( $seen_top_violations );
+	}
+
+	// 11b. vendor-prefixed must contain runtime code/assets/licenses only.
+	// Nested upstream test suites and tool metadata are development artifacts
+	// even though they do not appear as top-level plugin paths.
+	$forbidden_vendor_dir_segments = array( 'test', 'tests' );
+	$forbidden_vendor_basenames = array(
+		'codecov.yml',
+		'.codecov.yml',
+		'context7.json',
+		'mago.src.toml',
+		'mago.test.toml',
+	);
+	$seen_vendor_dev = array();
+	foreach ( $iterator as $file ) {
+		if ( ! $file->isFile() ) {
+			continue;
+		}
+		$abs_path = $file->getPathname();
+		$rel_path = str_replace( '\\', '/', substr( $abs_path, strlen( $dist_dir ) + 1 ) );
+		if ( ! str_starts_with( $rel_path, 'vendor-prefixed/' ) ) {
+			continue;
+		}
+		$segments = array_map( 'strtolower', explode( '/', $rel_path ) );
+		$basename = strtolower( (string) $file->getBasename() );
+		$has_dev_dir = false;
+		foreach ( $forbidden_vendor_dir_segments as $segment ) {
+			if ( in_array( $segment, $segments, true ) ) {
+				$has_dev_dir = true;
+				break;
+			}
+		}
+		if ( $has_dev_dir || in_array( $basename, $forbidden_vendor_basenames, true ) ) {
+			if ( ! isset( $seen_vendor_dev[ $rel_path ] ) ) {
+				$seen_vendor_dev[ $rel_path ] = true;
+				$errors[] = "[{$rel_path}] vendor development artifact leaked into the dist tree.";
+			}
+		}
+	}
+	if ( ! empty( $seen_vendor_dev ) ) {
+		$counts['forbidden_vendor_dev'] = count( $seen_vendor_dev );
 	}
 
 	// 12. No IDE / temp / environment / log file patterns may ship.
@@ -428,7 +472,8 @@ echo "JS files:            {$counts['js_files_checked']}\n";
 echo "Empty files:         {$counts['empty_files']}\n";
 echo "OS metadata files:   {$counts['os_metadata_files']}\n";
 echo "Forbidden top segs:  " . ( isset( $counts['forbidden_top_segments'] ) ? (int) $counts['forbidden_top_segments'] : 0 ) . "\n";
-echo "Forbidden basenames: " . ( isset( $counts['forbidden_basenames'] ) ? (int) $counts['forbidden_basenames'] : 0 ) . "\n\n";
+echo "Forbidden basenames: " . ( isset( $counts['forbidden_basenames'] ) ? (int) $counts['forbidden_basenames'] : 0 ) . "\n";
+echo "Vendor dev artifacts: " . ( isset( $counts['forbidden_vendor_dev'] ) ? (int) $counts['forbidden_vendor_dev'] : 0 ) . "\n\n";
 
 if ( ! empty( $errors ) ) {
 	echo "Errors:\n";
