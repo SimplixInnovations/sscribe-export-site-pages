@@ -33,7 +33,7 @@ $config = array(
 		'dist', 'vendor', '.git', '.gitignore', '.distignore', '.cache', '.phpunit.cache',
 		'.sisyphus', '.wp-env', '.playground-cache', 'wordpress', 'wordpress-tests-lib',
 		'package.json', 'package-lock.json', 'opencode.json', 'CONTRIBUTING.md', 'CHANGELOG.md',
-		'phpunit.xml', 'phpunit.xml.dist', 'phpstan.neon', 'phpstan.neon.dist',
+		'phpunit.xml', 'phpunit.xml.dist', 'phpunit-coverage*.xml', 'phpstan.neon', 'phpstan.neon.dist',
 		'phpcs.xml', 'phpstan-bootstrap.php', '.editorconfig', '.wp-env.json',
 		'tests', 'tests-wp', 'tests-js', 'tests-e2e', 'scripts', '.github', '.gitattributes', 'docs', 'examples', 'samples',
 		// bin/ holds real-WP testbench shell helpers (install-wp-tests.sh etc.)
@@ -256,8 +256,8 @@ function run_tests( string $root ): bool {
 	$config = $root . '/phpunit.xml';
 
 	if ( ! file_exists( $phpunit ) || ! file_exists( $config ) ) {
-		echo "     ⚠️  PHPUnit not found - skipping\n";
-		return true;
+		echo "     ❌ PHPUnit or phpunit.xml not found - release builds fail closed\n";
+		return false;
 	}
 
 	$output = array();
@@ -283,8 +283,8 @@ function run_phpstan( string $root ): bool {
 
 	$phpstan = $root . '/vendor/bin/phpstan';
 	if ( ! file_exists( $phpstan ) ) {
-		echo "     ⚠️  PHPStan not found - skipping\n";
-		return true;
+		echo "     ❌ PHPStan not found - release builds fail closed\n";
+		return false;
 	}
 
 	$output = array();
@@ -311,8 +311,8 @@ function run_phpcs( string $root ): bool {
 	$standard = $root . '/phpcs.xml';
 
 	if ( ! file_exists( $phpcs ) || ! file_exists( $standard ) ) {
-		echo "     ⚠️  PHPCS not found - skipping\n";
-		return true;
+		echo "     ❌ PHPCS or phpcs.xml not found - release builds fail closed\n";
+		return false;
 	}
 
 	$output = array();
@@ -614,7 +614,7 @@ echo "  Pruning vendor development files...\n";
 $vendor_dir = $plugin_dir . '/vendor-prefixed';
 if ( is_dir( $vendor_dir ) ) {
 	$prune_patterns = array(
-		'tests', 'docs', '.github', 'samples', 'examples', 'utils', 'bin',
+		'test', 'tests', 'docs', '.github', 'samples', 'examples', 'utils', 'bin',
 		'other',
 		/* PHP 5 polyfill; not autoloaded on the plugin's PHP 8.2+ runtime. */
 		'random_compat',
@@ -630,7 +630,8 @@ if ( is_dir( $vendor_dir ) ) {
 		// Keeping them here leaves license.txt's "preserved alongside
 		// its source" claim accurate, and lets a reviewer grep the ZIP
 		// for a license when checking TCPDF/PHPWord attribution.
-		'.github_changelog_generator', 'roave-bc-check.yaml',
+		'.github_changelog_generator', 'roave-bc-check.yaml', 'codecov.yml', '.codecov.yml',
+		'context7.json', 'mago.src.toml', 'mago.test.toml',
 		/* Development-only package files. */
 		'psalm-autoload.php',
 		/* Vendor-local manual test scripts; never autoloaded at runtime. */
