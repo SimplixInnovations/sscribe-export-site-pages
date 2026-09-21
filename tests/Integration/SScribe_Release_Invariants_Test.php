@@ -103,8 +103,8 @@ final class SScribe_Release_Invariants_Test extends TestCase {
 			'every required new test',
 			'Manual runtime tests runbook covers',
 			'every Phase 70 blocker is RESOLVED',
-			'every Phase 71 required CI job is SUCCESS',
-			'every Phase 72 artifact evidence field',
+			'every Phase 71 required execution signal is SUCCESS or documented LOCAL_PASS',
+			'Phase 72 evidence matches the actual ZIP',
 			'Branch topology policy holds',
 			'Public maintained exact source/build inputs',
 		);
