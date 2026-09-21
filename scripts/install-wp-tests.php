@@ -94,21 +94,31 @@ function sscribe_resolve_latest_wp(): string {
  * @throws RuntimeException When resolution fails.
  */
 function sscribe_resolve_previous_wp(): string {
-	sscribe_log( SSCRIBE_INSTALL_TAG, 'Resolving previous WordPress version from wordpress.org...' );
-	$body = sscribe_http_get( 'https://api.wordpress.org/core/version-check/1.7/' );
-	if ( preg_match_all( '/"version":"([^"]+)"/', $body, $m ) && isset( $m[1][1] ) && '' !== $m[1][1] ) {
-		return $m[1][1];
+	sscribe_log( SSCRIBE_INSTALL_TAG, 'Resolving previous WordPress release line from wordpress.org...' );
+	$body    = sscribe_http_get( 'https://api.wordpress.org/core/version-check/1.7/' );
+	$payload = json_decode( $body, true );
+	$offers  = is_array( $payload ) && isset( $payload['offers'] ) && is_array( $payload['offers'] ) ? $payload['offers'] : array();
+
+	$latest_release_line = '';
+	foreach ( $offers as $offer ) {
+		if ( ! is_array( $offer ) ) {
+			continue;
+		}
+		$candidate = isset( $offer['version'] ) && is_string( $offer['version'] ) ? trim( $offer['version'] ) : '';
+		if ( ! preg_match( '/^(\\d+)\\.(\\d+)(?:\\.\\d+)?(?:[-+].*)?$/', $candidate, $matches ) ) {
+			continue;
+		}
+		$candidate_release_line = $matches[1] . '.' . $matches[2];
+		if ( '' === $latest_release_line ) {
+			$latest_release_line = $candidate_release_line;
+			continue;
+		}
+		if ( $candidate_release_line !== $latest_release_line ) {
+			return $candidate;
+		}
 	}
-	sscribe_log( SSCRIBE_INSTALL_TAG, 'Falling back to current-0.1 for previous version...' );
-	$current = sscribe_resolve_latest_wp();
-	$parts   = explode( '.', $current );
-	$major   = isset( $parts[0] ) ? (int) $parts[0] : 0;
-	$minor   = isset( $parts[1] ) ? (int) $parts[1] : 0;
-	$prev    = sprintf( '%d.%d.0', $major, $minor - 1 );
-	if ( '' === $prev ) {
-		throw new RuntimeException( 'could not resolve previous WordPress version from wordpress.org API' );
-	}
-	return $prev;
+
+	throw new RuntimeException( 'could not resolve a distinct previous WordPress release line from wordpress.org API' );
 }
 
 /**
