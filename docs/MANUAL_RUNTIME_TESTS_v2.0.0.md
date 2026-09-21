@@ -30,7 +30,7 @@ Each row below records a required environment and the canonical exercises the re
 | 2  | WordPress + WPML                 | Activate WPML with ≥ 2 active languages; verify Language cards render; export All Languages; verify batch response includes `__all__`; verify single-language export.                            | REQUIRED    |
 | 3  | Redis object cache ON            | Enable Redis object cache (e.g. Redis Object Cache plugin); repeat the export flow; verify the rate-limit counter advances monotonically across 50 successive calls; verify no `wp_cache_*` failures. | REQUIRED    |
 | 4  | Redis object cache OFF           | Disable Redis; repeat the export flow; verify the transients-fallback path serves the rate-limit counter correctly; verify no warnings.                                                            | REQUIRED    |
-| 5  | OpenLiteSpeed (where possible)   | Deploy to an OpenLiteSpeed fronting Apache-style WordPress; verify the export download (single-shot, `dl_token`) survives the LSAPI boundary; verify no `X-LiteSpeed` header rejection.            | REQUIRED    |
+| 5  | OpenLiteSpeed   | Deploy to an OpenLiteSpeed fronting Apache-style WordPress; verify the export download (single-shot, `dl_token`) survives the LSAPI boundary; verify no `X-LiteSpeed` header rejection.            | REQUIRED    |
 | 6  | Cloudflare / proxy environment   | Front the WP install with Cloudflare (or equivalent); verify the export download is delivered without `403` from the WAF; verify the rate-limit `Retry-After` survives the proxy without re-encoding. | REQUIRED    |
 
 ## Per-scenario acceptance criteria
@@ -144,10 +144,7 @@ A green normal gate proves the runbook contract is intact. A green strict gate p
 - **Production-load stress testing** — beyond the 50-call counter
   advancement assertion in scenario 3, Phase 69 does not mandate
   load testing. A future milestone may add this.
-- **WPML licensing** — real-WPML testing may require a licensed environment. The Phase 69
-  runbook documents the EXERCISES; whether those exercises are
-  executed against real WPML or a fixture is a release-engineering
-  decision recorded in evidence.
+- **WPML licensing** — strict Phase 69 certification requires an actual WPML-enabled WordPress environment. Test fixtures may support automated regression but cannot satisfy the final `wpml` manual-runtime evidence row. If a licensed WPML environment is unavailable, strict certification remains blocked.
 
 ## Change log
 
