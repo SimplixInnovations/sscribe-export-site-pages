@@ -148,11 +148,22 @@ final class SScribe_Release_Invariants_Test extends TestCase {
 			'composer release:determinism must invoke the clean-build verifier.'
 		);
 
-		$this->assertSame(
-			'SScribeExportSitePages',
-			$composer['config']['autoloader-suffix'] ?? null,
-			'Composer/Strauss autoload generation must use a stable plugin-unique suffix.'
+		$normalizer = $this->repo_root . '/scripts/normalize-prefixed-autoloader.php';
+		$this->assertFileExists(
+			$normalizer,
+			'Strauss clean builds require a deterministic generated-autoloader normalizer.'
 		);
+		$normalizer_src = (string) file_get_contents( $normalizer );
+		$this->assertStringContainsString( "\$stable_suffix = 'SScribeExportSitePages';", $normalizer_src );
+		$this->assertStringContainsString( "preg_match( '/^[a-f0-9]{32}$/'", $normalizer_src );
+
+		$vendor_prefix = $composer['scripts']['vendor:prefix'] ?? '';
+		$this->assertStringContainsString(
+			'scripts/run-strauss.php && php scripts/normalize-prefixed-autoloader.php',
+			$vendor_prefix,
+			'composer vendor:prefix must normalize Strauss autoloader entropy immediately after generation.'
+		);
+
 
 		$workflow = (string) file_get_contents( $this->repo_root . '/.github/workflows/release-audit.yml' );
 		$this->assertStringContainsString( 'Verify two clean builds are byte-identical', $workflow );
