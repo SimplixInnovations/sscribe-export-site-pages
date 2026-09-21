@@ -57,6 +57,27 @@ final class SScribe_PDF_Exporter_CSS_Keyword_Font_Policy_Test extends TestCase {
 		$this::assertStringContainsString( 'color:blue', str_replace( ' ', '', $result ) );
 	}
 
+	public function test_visible_content_that_looks_like_css_is_never_rewritten(): void {
+		$html = '<p>Literal url(https://example.test/image.png) and font-family: serif;</p>'
+			. '<code>font: 16px serif;</code>'
+			. '<style>.a{font-family: Georgia;background-image:url(https://evil.example/pixel.png);color:blue;}</style>';
+
+		$result = $this->call_private( 'prepare_html_for_pdf_engine', array( $html, false ) );
+
+		$this::assertStringContainsString(
+			'<p>Literal url(https://example.test/image.png) and font-family: serif;</p>',
+			$result,
+			'CSS-like text in document content must not be modified by PDF style sanitization.'
+		);
+		$this::assertStringContainsString(
+			'<code>font: 16px serif;</code>',
+			$result,
+			'Code samples containing CSS syntax must remain byte-for-byte visible.'
+		);
+		$this::assertStringNotContainsString( 'evil.example', $result );
+		$this::assertStringContainsString( 'color:blue', str_replace( ' ', '', $result ) );
+	}
+
 	public function test_inline_style_filter_rejects_font_and_active_resource_values(): void {
 		$input = 'font-family: Georgia; font: 12px serif; color: red; '
 			. 'background: url(https://evil.example/x.png); '
