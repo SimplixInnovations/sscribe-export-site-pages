@@ -6,7 +6,7 @@ This document defines repository governance for the single canonical long-lived 
 
 ```
 Branches: main
-Audited Date: 2026-09-20
+Audited Date: 2026-09-21
 ```
 
 ## Observed live status
@@ -17,9 +17,12 @@ At the recorded repository audit GitHub reported:
 default branch: develop (NON-CANONICAL)
 rulesets: none
 main: UNPROTECTED
+squash merge: enabled
+rebase merge: enabled (NON-CANONICAL)
+merge commits: enabled (NON-CANONICAL)
 ```
 
-The default-branch mismatch and the absence of server-side protection are repository-administration gaps, not WordPress plugin runtime defects. The default branch MUST be changed to `main` and the retired `develop` branch removed before strict release certification; branch protection remains strongly recommended governance but is not itself a WordPress.org submission requirement.
+The default-branch mismatch, non-canonical merge methods, and absence of server-side protection are repository-administration gaps, not WordPress plugin runtime defects. The default branch MUST be changed to `main`, the retired `develop` branch removed, and rebase/merge-commit integration disabled before strict release certification; branch protection remains strongly recommended governance but is not itself a WordPress.org submission requirement.
 
 ## Required status checks (desired server-side policy)
 
