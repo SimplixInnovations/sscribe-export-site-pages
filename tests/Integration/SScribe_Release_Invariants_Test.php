@@ -148,6 +148,12 @@ final class SScribe_Release_Invariants_Test extends TestCase {
 			'composer release:determinism must invoke the clean-build verifier.'
 		);
 
+		$this->assertSame(
+			'SScribeExportSitePages',
+			$composer['config']['autoloader-suffix'] ?? null,
+			'Composer/Strauss autoload generation must use a stable plugin-unique suffix.'
+		);
+
 		$workflow = (string) file_get_contents( $this->repo_root . '/.github/workflows/release-audit.yml' );
 		$this->assertStringContainsString( 'Verify two clean builds are byte-identical', $workflow );
 		$this->assertStringContainsString( 'composer release:determinism', $workflow );
