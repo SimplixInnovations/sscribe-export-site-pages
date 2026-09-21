@@ -396,7 +396,7 @@ $sections            = array(
 		$required = $diag_ref->getConstant( 'TCPDF_REQUIRED_FONT_FILES' );
 
 		$this->assertIsArray( $required );
-		foreach ( array( 'helvetica.php', 'dejavusans.php', 'dejavusansb.php', 'dejavusansi.php', 'dejavusansbi.php' ) as $required_file ) {
+		foreach ( array( 'core/helvetica.json', 'dejavu/dejavusans.json', 'dejavu/dejavusansb.json', 'dejavu/dejavusansi.json', 'dejavu/dejavusansbi.json' ) as $required_file ) {
 			$this->assertContains( $required_file, $required );
 		}
 

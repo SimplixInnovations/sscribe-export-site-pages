@@ -113,8 +113,13 @@ final class SScribe_PDF_Exporter_CSS_Keyword_Font_Policy_Test extends TestCase {
 
 		$this::assertStringContainsString( '<p>Literal url(https://example.test/image.png)</p>', $result );
 		$this::assertStringContainsString( '<code>font: 16px serif; font-family: Georgia;</code>', $result );
-		$this::assertStringNotContainsString( 'background-image:url(', str_replace( ' ', '', strtolower( $result ) ) );
-		$this::assertStringNotContainsString( 'font:16pxserif', str_replace( ' ', '', strtolower( $result ) ) );
-		$this::assertStringContainsString( 'color:red', str_replace( ' ', '', strtolower( $result ) ) );
+
+		$matched = preg_match( '/<style\\b[^>]*>(.*?)<\\/style>/is', $result, $style_match );
+		$this::assertSame( 1, $matched );
+		$style = str_replace( ' ', '', strtolower( (string) $style_match[1] ) );
+		$this::assertStringNotContainsString( 'background-image:url(', $style );
+		$this::assertStringNotContainsString( 'font:16pxserif', $style );
+		$this::assertStringNotContainsString( 'font-family:', $style );
+		$this::assertStringContainsString( 'color:red', $style );
 	}
 }
