@@ -100,7 +100,7 @@ final class SScribe_Definition_Of_Done_Test extends TestCase {
 			'AJAX network trace covers',
 			'UI refactor discipline holds',
 			'Phase 68 test coverage holds',
-			'Manual runtime tests runbook covers',
+			'Strict manual runtime evidence proves all 6 canonical environments PASS',
 			'Release blockers checklist complete',
 			'Final execution state holds',
 			'Strict exact-artifact evidence matches',
