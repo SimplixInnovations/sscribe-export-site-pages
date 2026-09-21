@@ -129,6 +129,18 @@ class SScribe_Fatal_Handler_Test extends TestCase {
 		$this->assertFalse($fn('/plugin/other-plugin/fatal.php'));
 	}
 
+	public function test_capture_flushes_operational_record_immediately_at_php_shutdown(): void {
+		$source = (string) file_get_contents(
+			dirname( __DIR__, 2 ) . '/includes/class-sscribe-fatal-handler.php'
+		);
+
+		$this->assertMatchesRegularExpression(
+			'/SScribe_Operational_Logger::record\\([\\s\\S]*?SScribe_Operational_Logger::flush\\(\\);/',
+			$source,
+			'PHP shutdown capture must flush immediately because the WordPress shutdown action may already have run.'
+		);
+	}
+
 	public function test_boot_is_idempotent(): void {
 		\SScribe_Fatal_Handler::boot('/first');
 		\SScribe_Fatal_Handler::boot('/second');
