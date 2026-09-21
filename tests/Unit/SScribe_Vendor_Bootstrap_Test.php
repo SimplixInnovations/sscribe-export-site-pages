@@ -48,6 +48,14 @@ final class SScribe_Vendor_Bootstrap_Test extends TestCase {
 		$this->loaded_prop->setValue( null, false );
 	}
 
+	public function test_session_crypto_provider_contract_is_explicit(): void {
+		$this::assertTrue( method_exists( \SScribe_Vendor_Bootstrap::class, 'has_session_crypto_provider' ) );
+		$this::assertTrue(
+			\SScribe_Vendor_Bootstrap::has_session_crypto_provider(),
+			'The supported test runtime must provide Sodium secretbox or OpenSSL AES-256-GCM for authenticated session encryption.'
+		);
+	}
+
 	public function test_is_available_returns_false_when_plugin_dir_undefined(): void {
 		// Snapshot the existing constant, hide it, restore afterwards.
 		$had_plugin_dir = defined( 'SSCRIBE_PLUGIN_DIR' );
