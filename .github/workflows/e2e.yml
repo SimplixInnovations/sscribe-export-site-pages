@@ -95,5 +95,11 @@ jobs:
       - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
         if: failure()
         with:
-          name: playwright-report
-          path: playwright-report/
+          name: e2e-failure-evidence
+          if-no-files-found: warn
+          path: |
+            playwright-report/
+            test-results/
+            tests-e2e/.cache/e2e-wordpress/runtime/php-server.log
+            tests-e2e/.cache/e2e-wordpress/runtime/wordpress/wp-content/debug.log
+            tests-e2e/.cache/e2e-wordpress/runtime/wordpress/wp-content/.sscribe-bootstrap.log
