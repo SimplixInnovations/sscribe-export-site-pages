@@ -1483,7 +1483,11 @@ class SScribe_Session {
 			return null;
 		}
 
-		$data['_sig'] = $this->sign_session_id( $session_id );
+		// The option key is the authoritative identity during migration. A legacy
+		// serialized row copied under another option key must not retain a stale
+		// embedded session_id and then receive a valid signature for the new key.
+		$data['session_id'] = $session_id;
+		$data['_sig']       = $this->sign_session_id( $session_id );
 
 		$encoded_data = wp_json_encode( $data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES );
 
