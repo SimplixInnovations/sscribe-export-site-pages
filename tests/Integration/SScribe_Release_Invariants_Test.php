@@ -109,6 +109,20 @@ final class SScribe_Release_Invariants_Test extends TestCase {
 			'Public maintained exact source/build inputs',
 		);
 
+		$this->assertCount( 34, $canonical_invariants, 'Release-invariant PHPUnit mirror must contain exactly 34 fingerprints.' );
+		$this->assertSame(
+			$canonical_invariants,
+			array_values( array_unique( $canonical_invariants ) ),
+			'Release-invariant PHPUnit mirror must not contain duplicate fingerprints.'
+		);
+
+		preg_match_all( '/^\\|\\s*(\\d+)\\s*\\|/m', $src, $row_matches );
+		$this->assertSame(
+			range( 1, 34 ),
+			array_map( 'intval', $row_matches[1] ?? array() ),
+			'Release-invariants doc must contain exactly rows 1 through 34 in order.'
+		);
+
 		foreach ( $canonical_invariants as $expected ) {
 			// Strip markdown backticks around identifiers so the
 			// fingerprint survives the doc's ``code`` formatting.
