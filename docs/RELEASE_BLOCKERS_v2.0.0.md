@@ -44,6 +44,7 @@ are vocabulary-reserved and will fail validation.
 | `plugin-check-evidence`     | `dist/release-certification-evidence.json` — `plugin_check_url` points at a real log and the log records PASS.     |
 | `clean-install-evidence`    | `dist/clean-install-evidence.json` — required checks all `PASS`.                                                    |
 | `runtime-export-evidence`   | `dist/runtime-export-evidence.json` — required export checks all `PASS`.                                            |
+| `manual-runtime-evidence`   | `dist/manual-runtime-evidence.json` + `dist/evidence/manual-runtime.log` — all six exact-ZIP environment runs are `PASS`. |
 | `source-transparency-evidence` | `dist/source-transparency-evidence.json` — public source URL is reachable and contains the expected artifacts.   |
 
 ## Canonical blockers
@@ -70,6 +71,7 @@ are vocabulary-reserved and will fail validation.
 | 18 | Source / build transparency unresolved                                                    | DEFERRED | source-transparency-evidence | Build/source documentation is complete; canonical repository or an equivalent maintained exact-source/build mirror must be public so a WordPress.org reviewer can reproduce the build. Evidence captured to `dist/source-transparency-evidence.json` after anonymous HTTP verification of source / `composer.json` / `scripts/build-release.php` / build docs. **Genuine owner-controlled external action; if not authorized, release to WP.org cannot ship.** |
 | 19 | License inventory unresolved                                                              | RESOLVED | static                      | Phase 37 contract + `docs/SECURITY_MATRIX_v2.0.0.md` + `SScribe_Third_Party_License_Test` + `SScribe_License_SPDIX_Test`. |
 | 20 | Release path capable of rebuilding untested bytes                                         | RESOLVED | static                      | Phase 53 contract + `SScribe_Release_Pipeline_Test` + `SScribe_Artifact_Certification_Test`.                         |
+| 21 | Manual runtime environment matrix not executed on exact ZIP                                | DEFERRED | manual-runtime-evidence     | Phase 69 strict evidence binds Standard WordPress, WPML, Redis ON/OFF, OpenLiteSpeed, and Cloudflare/proxy PASS results to the exact current source SHA and ZIP SHA-256. |
 
 ## How an independent auditor verifies this
 
@@ -116,6 +118,7 @@ genuine external action on #18).
 - 2026-09-05: Removed the historical v2.0.0 hardcoded SHA from any
   tracked file. Source SHA / ZIP SHA / timestamp live in ignored
   `dist/` JSONs only.
+- 2026-09-21: Added fail-closed Phase 69 manual-runtime execution as dynamic blocker #21, using ignored exact-SHA/exact-ZIP evidence.
 - 2026-09-15: Phase 70 synchronized with native WordPress E2E.
   Obsolete zero-test Playwright perf requirement removed from blocker #4.
   Performance remains enforced by `composer test:perf`. Current PHPUnit
