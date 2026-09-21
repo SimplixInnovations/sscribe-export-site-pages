@@ -120,9 +120,13 @@ final class SScribe_Operational_Logger {
 	}
 
 	/**
-	 * Phase 20: shutdown hook that flushes the buffer AND captures
-	 * the most recent fatal/parse error if one occurred during the
-	 * request. Recursive fatal logging is guarded by a static lock.
+	 * Flush pending operational entries during the WordPress shutdown action.
+	 *
+	 * Fatal attribution is intentionally owned by SScribe_Fatal_Handler, which
+	 * applies plugin/request scoping plus secret redaction and performs its own
+	 * immediate flush from the later PHP shutdown callback. Keeping this hook
+	 * flush-only prevents unrelated WordPress/plugin fatals from being recorded
+	 * as SScribe incidents and avoids duplicate fatal records.
 	 *
 	 * @return void
 	 */
@@ -131,29 +135,6 @@ final class SScribe_Operational_Logger {
 			return;
 		}
 		self::$shutdown_flush_in_progress = true;
-
-		// Capture the most recent fatal, if any. error_get_last() can
-		// return E_NOTICE / E_WARNING from the live request - filter
-		// to the categories that genuinely indicate a fatal.
-		$last = function_exists( 'error_get_last' ) ? error_get_last() : null;
-		if ( is_array( $last ) && isset( $last['type'] ) ) {
-			$fatal_types = array( E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR, E_USER_ERROR );
-			if ( in_array( (int) $last['type'], $fatal_types, true ) ) {
-				$basename = isset( $last['file'] ) ? basename( (string) $last['file'] ) : '';
-				$line     = isset( $last['line'] ) ? (int) $last['line'] : 0;
-				$message  = isset( $last['message'] ) ? (string) $last['message'] : 'PHP fatal error';
-				self::record(
-					self::LEVEL_CRITICAL,
-					$message,
-					array(
-						'category' => 'fatal',
-						'file'     => $basename,
-						'line'     => $line,
-					)
-				);
-			}
-		}
-
 		self::flush();
 	}
 
