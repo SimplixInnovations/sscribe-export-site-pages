@@ -270,6 +270,42 @@ if ( is_file( $checklist_doc ) ) {
 }
 
 /**
+ * Prove an evidence payload belongs to the exact current source and ZIP.
+ *
+ * @param string $root_dir Repository root.
+ * @param array  $payload  Evidence payload.
+ * @return array{passes: bool, detail: string}
+ */
+function check_exact_release_identity( string $root_dir, array $payload ): array {
+	$current_sha = trim( (string) shell_exec( 'git rev-parse HEAD 2> ' . ( '\\' === DIRECTORY_SEPARATOR ? 'NUL' : '/dev/null' ) ) );
+	if ( ! preg_match( '/^[a-f0-9]{40}$/', $current_sha ) ) {
+		return array( 'passes' => false, 'detail' => 'could not resolve current git HEAD' );
+	}
+	if ( ! hash_equals( $current_sha, (string) ( $payload['source_sha'] ?? '' ) ) ) {
+		return array( 'passes' => false, 'detail' => 'evidence source_sha does not match current git HEAD' );
+	}
+
+	$mainfile = $root_dir . '/sscribe-export-site-pages.php';
+	$version  = '';
+	if ( is_file( $mainfile ) ) {
+		$main_src = (string) file_get_contents( $mainfile );
+		if ( preg_match( "/define\\s*\\(\\s*['\"]SSCRIBE_VERSION['\"]\\s*,\\s*['\"]([^'\"]+)['\"]/", $main_src, $match ) ) {
+			$version = (string) $match[1];
+		}
+	}
+	$zip_path = '' !== $version ? $root_dir . '/dist/sscribe-export-site-pages-' . $version . '.zip' : '';
+	$zip_sha  = '' !== $zip_path && is_file( $zip_path ) ? hash_file( 'sha256', $zip_path ) : false;
+	if ( ! is_string( $zip_sha ) || ! preg_match( '/^[a-f0-9]{64}$/', $zip_sha ) ) {
+		return array( 'passes' => false, 'detail' => 'could not resolve SHA-256 of the exact current-version ZIP' );
+	}
+	if ( ! hash_equals( $zip_sha, (string) ( $payload['zip_sha256'] ?? '' ) ) ) {
+		return array( 'passes' => false, 'detail' => 'evidence zip_sha256 does not match the exact current-version ZIP' );
+	}
+
+	return array( 'passes' => true, 'detail' => 'source_sha and zip_sha256 match the exact current release' );
+}
+
+/**
  * Verify a closure-source evidence file under dist/.
  *
  * @return array{passes: bool, verdict: string, detail: string}
@@ -427,6 +463,14 @@ function check_closure_evidence( string $root_dir, string $closure_source ): arr
 					'detail'  => 'dist/clean-install-evidence.json is not valid JSON',
 				);
 			}
+			$identity = check_exact_release_identity( $root_dir, $payload );
+			if ( ! $identity['passes'] ) {
+				return array(
+					'passes'  => false,
+					'verdict' => 'clean_install_release_identity_mismatch',
+					'detail'  => $identity['detail'],
+				);
+			}
 			$required = array( 'activation', 'deactivation', 'no_fatal', 'no_warning_attributable', 'db_tables_present', 'capabilities_present', 'cron_hooks_present', 'admin_ui_loads', 'export_basic', 'reactivate_no_duplicates', 'uninstall_cleanup' );
 			$bad = array();
 			foreach ( $required as $key ) {
@@ -470,6 +514,14 @@ function check_closure_evidence( string $root_dir, string $closure_source ): arr
 					'passes'  => false,
 					'verdict' => 'malformed_runtime_export_evidence',
 					'detail'  => 'dist/runtime-export-evidence.json is not valid JSON',
+				);
+			}
+			$identity = check_exact_release_identity( $root_dir, $payload );
+			if ( ! $identity['passes'] ) {
+				return array(
+					'passes'  => false,
+					'verdict' => 'runtime_export_release_identity_mismatch',
+					'detail'  => $identity['detail'],
 				);
 			}
 			$required = array( 'activation', 'docx', 'pdf', 'html', 'markdown', 'all_formats', 'all_languages', 'arabic_rtl', 'retry_behavior', 'finalize', 'single_use_download', 'unauthorized_download_rejected' );
