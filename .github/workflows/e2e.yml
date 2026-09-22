@@ -97,6 +97,7 @@ jobs:
         with:
           name: e2e-failure-evidence
           if-no-files-found: warn
+          include-hidden-files: true
           path: |
             playwright-report/
             test-results/

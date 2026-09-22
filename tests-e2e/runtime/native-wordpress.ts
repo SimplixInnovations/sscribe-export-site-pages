@@ -280,7 +280,11 @@ if ( ! $root || ! is_dir( $root ) ) {
     echo 'router misconfigured';
     return true;
 }
-$path = parse_url( $_SERVER['REQUEST_URI'], PHP_URL_PATH );
+$method      = isset( $_SERVER['REQUEST_METHOD'] ) ? (string) $_SERVER['REQUEST_METHOD'] : 'UNKNOWN';
+$request_uri = isset( $_SERVER['REQUEST_URI'] ) ? (string) $_SERVER['REQUEST_URI'] : '';
+fwrite( STDERR, '[sscribe-router] START method=' . $method . ' uri=' . $request_uri . PHP_EOL );
+
+$path = parse_url( $request_uri, PHP_URL_PATH );
 $file = $root . $path;
 
 // Don't serve the router script itself.
