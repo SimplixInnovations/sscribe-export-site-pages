@@ -267,6 +267,34 @@ if (!/workers:\s*1\b/.test(pwConfig)) {
   pass('Playwright release certification is serialized to one worker');
 }
 
+// 26. The SQLite-only E2E fixture must not boot WordPress 7.1's global
+// Command Palette. Its core-data REST hydration is unrelated to SScribe and
+// can monopolize the intentionally single-process PHP/SQLite fixture.
+const muBootstrapPath = join(root, 'tests-e2e/fixtures/mu-plugins/00-sscribe-test-bootstrap.php');
+const muBootstrapSrc = readFileSync(muBootstrapPath, 'utf-8');
+if (!/remove_action\(\s*['"]admin_enqueue_scripts['"]\s*,\s*['"]wp_enqueue_command_palette_assets['"]\s*\)/.test(muBootstrapSrc)) {
+  fail('E2E fixture does not remove WordPress command-palette enqueue from the SQLite testbed');
+} else {
+  pass('E2E fixture isolates WordPress command palette from the SQLite testbed');
+}
+
+// 27. The native router must log request START before dispatch. PHP's built-in
+// access log writes method/URI only after completion, which made a wedged
+// single-process request impossible to identify from failure evidence.
+if (!/\[sscribe-router\] START method=/.test(adapterSrc)) {
+  fail('native router does not log request start before WordPress dispatch');
+} else {
+  pass('native router records request-start diagnostics');
+}
+
+// 28. Failure artifacts must retain dot-prefixed bootstrap evidence.
+const e2eWorkflow = readFileSync(join(root, '.github/workflows/e2e.yml'), 'utf-8');
+if (!/include-hidden-files:\s*true/.test(e2eWorkflow)) {
+  fail('E2E failure artifact does not include hidden diagnostic files');
+} else {
+  pass('E2E failure artifact retains hidden diagnostic files');
+}
+
 if (process.exitCode === 1) {
   console.error('\nRUNTIME CONTRACT: FAIL');
 } else {
