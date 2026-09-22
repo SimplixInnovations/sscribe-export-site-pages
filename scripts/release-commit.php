@@ -75,6 +75,51 @@ if ( $create_tag ) {
 		exit( 1 );
 	}
 
+	// Tagging is the irreversible publication boundary. Re-run every strict
+	// exact-release gate here instead of trusting a previous terminal command.
+	// The gates bind the ignored evidence bundle and exact ZIP to this HEAD.
+	$certified_sha = $local_main;
+	putenv( 'SSCRIBE_RELEASE_CERTIFICATION=1' );
+	$_ENV['SSCRIBE_RELEASE_CERTIFICATION']    = '1';
+	$_SERVER['SSCRIBE_RELEASE_CERTIFICATION'] = '1';
+	$strict_gates = array(
+		'scripts/verify-manual-runtime-tests.php',
+		'scripts/verify-release-blockers.php',
+		'scripts/verify-final-ci-state.php',
+		'scripts/verify-exact-artifact-evidence.php',
+		'scripts/verify-agent-final-report.php',
+		'scripts/verify-auditor-handoff.php',
+		'scripts/release-audit.php',
+	);
+	foreach ( $strict_gates as $gate ) {
+		echo "Running strict release gate: {$gate}\n";
+		$gate_command = escapeshellarg( PHP_BINARY ) . ' ' . escapeshellarg( $root_dir . '/' . $gate );
+		passthru( $gate_command, $gate_exit );
+		if ( 0 !== $gate_exit ) {
+			echo "Error: Strict release certification failed at {$gate}; no tag was created.\n";
+			exit( 1 );
+		}
+	}
+
+	// Strict gates may write ignored dist evidence only. Any tracked mutation,
+	// remote-main movement, or local HEAD movement invalidates the certification.
+	$status = trim( (string) shell_exec( 'git status --porcelain' ) );
+	if ( '' !== $status ) {
+		echo "Error: strict certification left tracked/unignored changes; refusing to tag.\n";
+		exit( 1 );
+	}
+	exec( 'git fetch origin main', $post_cert_fetch_output, $post_cert_fetch_exit );
+	if ( 0 !== $post_cert_fetch_exit ) {
+		echo "Error: could not refresh origin/main after certification; refusing to tag.\n";
+		exit( 1 );
+	}
+	$post_cert_local  = trim( (string) shell_exec( 'git rev-parse HEAD' ) );
+	$post_cert_remote = trim( (string) shell_exec( 'git rev-parse origin/main' ) );
+	if ( $post_cert_local !== $certified_sha || $post_cert_remote !== $certified_sha ) {
+		echo "Error: main moved during strict certification; evidence is stale and no tag was created.\n";
+		exit( 1 );
+	}
+
 	$tag = 'v' . $new_version;
 	exec( sprintf( 'git ls-remote --exit-code --tags origin refs/tags/%s', $tag ), $existing_tag_output, $existing_tag_exit );
 	if ( 0 === $existing_tag_exit ) {

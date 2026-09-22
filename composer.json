@@ -104,7 +104,7 @@
         "cs:fix": "phpcbf -d memory_limit=512M --standard=phpcs.xml",
         "i18n:make-pot": "@php scripts/make-pot.php",
         "version:check": "php scripts/verify-version-sync.php",
-        "vendor:prefix": "php scripts/prune-tcpdf-for-strauss.php && php -d memory_limit=512M -d error_reporting=\"E_ALL & ~E_DEPRECATED & ~E_WARNING\" scripts/run-strauss.php && php -d memory_limit=512M scripts/fix-prefixed-safe.php && php scripts/fix-phpword-style-deprecation.php",
+        "vendor:prefix": "php scripts/prune-tcpdf-for-strauss.php && php -d memory_limit=512M -d error_reporting=\"E_ALL & ~E_DEPRECATED & ~E_WARNING\" scripts/run-strauss.php && php scripts/normalize-prefixed-autoloader.php && php -d memory_limit=512M scripts/fix-prefixed-safe.php && php scripts/fix-phpword-style-deprecation.php",
         "clean": "composer clean:cache && composer clean:coverage",
         "clean:cache": "php -r \"array_map('unlink', glob('.cache/**/*.*')); array_map('rmdir', glob('.cache/*', GLOB_ONLYDIR)); is_dir('.cache') && rmdir('.cache'); echo 'Cache cleared.\\n';\"",
         "clean:coverage": "php -r \"is_dir('coverage') && array_map('unlink', glob('coverage/*.*')) && rmdir('coverage'); echo 'Coverage cleared.\\n';\"",
@@ -115,7 +115,8 @@
         "release:audit": "@php scripts/release-audit.php",
         "audit:npm": "node scripts/npm-audit-high.mjs",
         "release": "php scripts/build-release.php",
-        "full": "composer verify:source && composer release && composer verify:artifact"
+        "full": "composer verify:source && composer release && composer verify:artifact",
+        "release:determinism": "php scripts/verify-build-determinism.php"
     },
     "extra": {
         "strauss": {

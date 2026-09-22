@@ -3,7 +3,7 @@ Contributors: simplixinnovations
 Tags: export, docx, pdf, html, markdown
 Requires at least: 6.1
 Tested up to: 7.1
-Stable tag: 2.0.3
+Stable tag: 2.0.4
 Requires PHP: 8.2
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -117,6 +117,11 @@ Build transformations are documented in docs/BUILD_TRANSFORMATIONS.md.
 
 == Changelog ==
 
+= 2.0.4 =
+* Removed development-only test/config/tool files from the WordPress.org package and added regressions against future leaks.
+* Made release tagging fail closed unless all strict exact-SHA, exact-ZIP, runtime, and audit gates pass.
+* Reconciled repository governance documentation. Runtime export behavior is unchanged from 2.0.3.
+
 = 2.0.3 =
 * Fixed activation on managed hosting and container environments by accepting validated writable private bases without weakening public-path or symlink protections.
 * Removed a dynamic global shutdown lock flagged by WordPress Plugin Check; the operational logger now uses class-scoped state and retains the documented five rotated logs plus the live log.
@@ -152,6 +157,9 @@ Build transformations are documented in docs/BUILD_TRANSFORMATIONS.md.
 * Initial public release with DOCX, PDF, HTML, Markdown, WPML, RTL, batch processing, and secure downloads.
 
 == Upgrade Notice ==
+
+= 2.0.4 =
+Release-package and tag-admission hardening only; no runtime or migration change.
 
 = 2.0.3 =
 Fixes private-storage activation compatibility, Plugin Check compliance, export finalization reliability, custom post type exports, session concurrency safety, and admin-output hardening. No manual data migration is required.

@@ -33,7 +33,7 @@ $config = array(
 		'dist', 'vendor', '.git', '.gitignore', '.distignore', '.cache', '.phpunit.cache',
 		'.sisyphus', '.wp-env', '.playground-cache', 'wordpress', 'wordpress-tests-lib',
 		'package.json', 'package-lock.json', 'opencode.json', 'CONTRIBUTING.md', 'CHANGELOG.md',
-		'phpunit.xml', 'phpunit.xml.dist', 'phpstan.neon', 'phpstan.neon.dist',
+		'phpunit.xml', 'phpunit.xml.dist', 'phpunit-coverage*.xml', 'phpstan.neon', 'phpstan.neon.dist',
 		'phpcs.xml', 'phpstan-bootstrap.php', '.editorconfig', '.wp-env.json',
 		'tests', 'tests-wp', 'tests-js', 'tests-e2e', 'scripts', '.github', '.gitattributes', 'docs', 'examples', 'samples',
 		// bin/ holds real-WP testbench shell helpers (install-wp-tests.sh etc.)
@@ -256,8 +256,8 @@ function run_tests( string $root ): bool {
 	$config = $root . '/phpunit.xml';
 
 	if ( ! file_exists( $phpunit ) || ! file_exists( $config ) ) {
-		echo "     ⚠️  PHPUnit not found - skipping\n";
-		return true;
+		echo "     ❌ PHPUnit or phpunit.xml not found - release builds fail closed\n";
+		return false;
 	}
 
 	$output = array();
@@ -283,8 +283,8 @@ function run_phpstan( string $root ): bool {
 
 	$phpstan = $root . '/vendor/bin/phpstan';
 	if ( ! file_exists( $phpstan ) ) {
-		echo "     ⚠️  PHPStan not found - skipping\n";
-		return true;
+		echo "     ❌ PHPStan not found - release builds fail closed\n";
+		return false;
 	}
 
 	$output = array();
@@ -311,8 +311,8 @@ function run_phpcs( string $root ): bool {
 	$standard = $root . '/phpcs.xml';
 
 	if ( ! file_exists( $phpcs ) || ! file_exists( $standard ) ) {
-		echo "     ⚠️  PHPCS not found - skipping\n";
-		return true;
+		echo "     ❌ PHPCS or phpcs.xml not found - release builds fail closed\n";
+		return false;
 	}
 
 	$output = array();
@@ -614,7 +614,7 @@ echo "  Pruning vendor development files...\n";
 $vendor_dir = $plugin_dir . '/vendor-prefixed';
 if ( is_dir( $vendor_dir ) ) {
 	$prune_patterns = array(
-		'tests', 'docs', '.github', 'samples', 'examples', 'utils', 'bin',
+		'test', 'tests', 'docs', '.github', 'samples', 'examples', 'utils', 'bin',
 		'other',
 		/* PHP 5 polyfill; not autoloaded on the plugin's PHP 8.2+ runtime. */
 		'random_compat',
@@ -630,7 +630,8 @@ if ( is_dir( $vendor_dir ) ) {
 		// Keeping them here leaves license.txt's "preserved alongside
 		// its source" claim accurate, and lets a reviewer grep the ZIP
 		// for a license when checking TCPDF/PHPWord attribution.
-		'.github_changelog_generator', 'roave-bc-check.yaml',
+		'.github_changelog_generator', 'roave-bc-check.yaml', 'codecov.yml', '.codecov.yml',
+		'context7.json', 'mago.src.toml', 'mago.test.toml', 'CHANGELOG.TXT',
 		/* Development-only package files. */
 		'psalm-autoload.php',
 		/* Vendor-local manual test scripts; never autoloaded at runtime. */
@@ -932,28 +933,29 @@ echo "      tests-js, tests-e2e, scripts, .github, docs, examples, samples,\n";
 echo "      .superpowers, .audit, .agent, .claude, .opencode, .cursor,\n";
 echo "      .windsurf, .continue, .codeium, .aider*, .mimosa, .omo,\n";
 echo "      node_modules, vendor-prefixed/.github, vendor-prefixed/.git,\n";
-echo "      vendor-prefixed/*/tests, vendor-prefixed/*/docs,\n";
+echo "      vendor-prefixed/*/test, vendor-prefixed/*/tests, vendor-prefixed/*/docs,\n";
 echo "      vendor-prefixed/*/utils, vendor-prefixed/*/tmp,\n";
 echo "      stubs, .stubs, dist, .git, .gitignore, .distignore,\n";
 echo "      .phpunit.cache, scratch, bin, etc.).\n";
 echo "    - Dev-only root files: phpunit-wp.xml, playwright.config.ts,\n";
 echo "      composer.lock, infection.json5, commit-message.txt,\n";
 echo "      strauss.json, CONTRIBUTING.md, CHANGELOG.md, phpstan*.neon*,\n";
-echo "      phpunit.xml*, phpcs.xml, phpstan-bootstrap.php,\n";
+echo "      phpunit.xml*, phpunit-coverage*.xml, phpcs.xml, phpstan-bootstrap.php,\n";
 echo "      .editorconfig, .prettierrc, .eslintrc.json, .stylelintrc.json,\n";
 echo "      .php-cs-fixer.php, mkdocs.yml, .travis.yml, .scrutinizer.yml,\n";
 echo "      .github_changelog_generator, ruleset.xml, CREDITS.txt,\n";
 echo "      .wp-env.json, .distignore, .gitattributes, .debug-journal.md,\n";
 echo "      WPScan, wordpress, wordpress-tests-lib.\n";
 echo "    - .distignore entries (segment-level match against\n";
-echo "      vendor-prefixed/*/tests, vendor-prefixed/*/docs,\n";
+echo "      vendor-prefixed/*/test, vendor-prefixed/*/tests, vendor-prefixed/*/docs,\n";
 echo "      vendor-prefixed/phpoffice/phpword/COPYING.LESSER,\n";
 echo "      vendor-prefixed/phpoffice/phpword/phpword.ini.dist, etc.).\n";
 echo "    - TCPDF 7 runtime font data is staged from tracked\n";
 echo "      scripts/resources/tcpdf-fonts into tc-lib-pdf-font/target/fonts,\n";
 echo "      retaining Core14 fallbacks plus DejaVu Sans regular/bold/italic/\n";
 echo "      bold-italic and both upstream license notices.\n";
-echo "    - TCPDF/tc-lib development Makefile and VERSION metadata and the\n";
+echo "    - TCPDF/tc-lib development Makefile/VERSION metadata, test suites,\n";
+echo "      codecov/context7/mago metadata, CHANGELOG.TXT, and the\n";
 echo "      tc-lib-pdf-font/util converter tree are removed.\n\n";
 
 echo "  First-party in-place transformations (vendor-prefixed/ bypasses\n";

@@ -14,15 +14,16 @@ Audited Date: 2026-09-21
 At the recorded repository audit GitHub reported:
 
 ```
-default branch: develop (NON-CANONICAL)
+default branch: main
 rulesets: none
 main: UNPROTECTED
 squash merge: enabled
-rebase merge: enabled (NON-CANONICAL)
-merge commits: enabled (NON-CANONICAL)
+rebase merge: disabled
+merge commits: disabled
+automatic head-branch deletion: enabled
 ```
 
-The default-branch mismatch, non-canonical merge methods, and absence of server-side protection are repository-administration gaps, not WordPress plugin runtime defects. The default branch MUST be changed to `main`, the retired `develop` branch removed, and rebase/merge-commit integration disabled before strict release certification; branch protection remains strongly recommended governance but is not itself a WordPress.org submission requirement.
+The default branch, persistent branch topology, and merge methods are now reconciled to the canonical `main` + squash-only policy. The remaining repository-administration gap is the absence of a server-side `main` protection rule/ruleset. Branch protection remains strongly recommended governance but is not itself a WordPress.org submission requirement; until enabled, the compensating controls below remain mandatory.
 
 ## Required status checks (desired server-side policy)
 

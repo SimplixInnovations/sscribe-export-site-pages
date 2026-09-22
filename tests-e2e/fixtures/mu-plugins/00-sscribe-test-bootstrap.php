@@ -91,6 +91,27 @@ if ( function_exists( 'add_filter' ) ) {
 	);
 }
 
+// WordPress 7.1 globally enqueues the admin Command Palette, whose
+// core-data hydration performs background REST work on every admin screen.
+// That feature is unrelated to SScribe. In this intentionally single-process
+// PHP + SQLite release fixture, a command-palette REST request can monopolize
+// the only PHP worker until max_execution_time kills the server, turning one
+// background core request into suite-wide ERR_CONNECTION_REFUSED failures.
+//
+// Remove only WordPress core's Command Palette enqueue inside this test-only
+// mu-plugin. Production SScribe code and real WordPress/MySQL sites are
+// untouched. The pinned 7.1.1 core registers this callback at priority 10;
+// priority -1000 removes it before it can execute.
+if ( function_exists( 'add_action' ) ) {
+	add_action(
+		'admin_enqueue_scripts',
+		static function () {
+			remove_action( 'admin_enqueue_scripts', 'wp_enqueue_command_palette_assets' );
+		},
+		-1000
+	);
+}
+
 // Once-only gate. WP-Playground's SQLite backend has a small per-worker
 // lock budget; running role_init + user_meta writes + a ~5 KB heartbeat
 // JSON dump on EVERY request causes "Error establishing a database

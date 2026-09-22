@@ -42,7 +42,7 @@ import { E2ERuntime, RuntimeMetadata } from './types';
 
 // ---- Pinned inputs ---------------------------------------------------------------
 
-const PINNED_WORDPRESS_VERSION = '7.1';
+const PINNED_WORDPRESS_VERSION = '7.1.1';
 const PINNED_SQLITE_INTEGRATION_VERSION = '3.0.2';
 
 const EXPECTED_SEED_PAGES = 50;
@@ -280,7 +280,11 @@ if ( ! $root || ! is_dir( $root ) ) {
     echo 'router misconfigured';
     return true;
 }
-$path = parse_url( $_SERVER['REQUEST_URI'], PHP_URL_PATH );
+$method      = isset( $_SERVER['REQUEST_METHOD'] ) ? (string) $_SERVER['REQUEST_METHOD'] : 'UNKNOWN';
+$request_uri = isset( $_SERVER['REQUEST_URI'] ) ? (string) $_SERVER['REQUEST_URI'] : '';
+error_log( '[sscribe-router] START method=' . $method . ' uri=' . $request_uri );
+
+$path = parse_url( $request_uri, PHP_URL_PATH );
 $file = $root . $path;
 
 // Don't serve the router script itself.
@@ -425,6 +429,9 @@ export class NativeWordpressRuntime implements E2ERuntime {
     // log ourselves — createWriteStream's fd isn't transferable to stdio.
     // The streams are drained into php-server.log by the .on('data',…)
     // handlers below.
+    const phpServerEnv = { ...process.env };
+    delete phpServerEnv.PHP_CLI_SERVER_WORKERS;
+
     this.phpProcess = spawn(
       this.phpBinary,
       [
@@ -440,19 +447,13 @@ export class NativeWordpressRuntime implements E2ERuntime {
         stdio: ['ignore', 'pipe', 'pipe'],
         detached: false,
         env: {
-          ...process.env,
+          ...phpServerEnv,
           SSCRIBE_E2E_TESTBED: '1',
           SSCRIBE_E2E_WP_ROOT: this.wpDir,
-          // Layer A fix: force PHP CLI server to a single worker.
-          // SQLite's file-level locking is process-based, and multiple
-          // PHP CLI workers on the same SQLite file cause SQLITE_BUSY /
-          // SQLITE_LOCKED races that leave wpdb's translator in a stuck
-          // transaction state — every subsequent query on the unlucky
-          // worker fails with "cannot start a transaction within a
-          // transaction". With PHP_CLI_SERVER_WORKERS=1 the runtime
-          // serializes requests, which is acceptable for E2E throughput
-          // (the testbed's page loads are <300ms each on native PHP).
-          PHP_CLI_SERVER_WORKERS: '1',
+          // PHP_CLI_SERVER_WORKERS is explicitly removed above. The built-in
+          // server is single-process/single-threaded by default; inheriting
+          // that variable would opt into PHP's experimental forked-worker
+          // mode and reintroduce concurrent access to this fixture's SQLite DB.
         },
       }
     );

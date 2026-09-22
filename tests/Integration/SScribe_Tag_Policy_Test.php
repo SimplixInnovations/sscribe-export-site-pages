@@ -39,6 +39,7 @@ final class SScribe_Tag_Policy_Test extends TestCase {
 	private const RELEASE_WORKFLOW = '.github/workflows/release.yml';
 	private const POLICY_DOC      = 'docs/TAG_POLICY_v2.0.0.md';
 	private const PLUGIN_FILE     = 'sscribe-export-site-pages.php';
+	private const RELEASE_COMMIT   = 'scripts/release-commit.php';
 
 	private static function plugin_root(): string {
 		return dirname( __DIR__, 2 );
@@ -185,6 +186,30 @@ final class SScribe_Tag_Policy_Test extends TestCase {
 			$policy,
 			'docs/TAG_POLICY_v2.0.0.md must state that cryptographic tag signing is recommended (not required).'
 		);
+	}
+
+	public function test_tag_helper_requires_strict_exact_release_certification_before_git_tag(): void {
+		$source = (string) file_get_contents( self::plugin_root() . '/' . self::RELEASE_COMMIT );
+		$this::assertStringContainsString( "putenv( 'SSCRIBE_RELEASE_CERTIFICATION=1' )", $source );
+
+		$tag_position = strpos( $source, "git tag -a" );
+		$this::assertNotFalse( $tag_position, 'Tag helper must create annotated release tags.' );
+
+		$required_gates = array(
+			'scripts/verify-manual-runtime-tests.php',
+			'scripts/verify-release-blockers.php',
+			'scripts/verify-final-ci-state.php',
+			'scripts/verify-exact-artifact-evidence.php',
+			'scripts/verify-agent-final-report.php',
+			'scripts/verify-auditor-handoff.php',
+			'scripts/release-audit.php',
+		);
+		foreach ( $required_gates as $gate ) {
+			$gate_position = strpos( $source, $gate );
+			$this::assertNotFalse( $gate_position, "Tag helper must execute strict gate {$gate}." );
+			$this::assertLessThan( $tag_position, $gate_position, "Strict gate {$gate} must execute before tag creation." );
+		}
+		$this::assertStringContainsString( 'Strict release certification failed', $source );
 	}
 
 	public function test_verifier_enforces_annotated_tags_for_v2_0_3_and_later(): void {

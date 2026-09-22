@@ -662,6 +662,23 @@ failure looks like**, **how to debug**, **what manifest it writes**.
   release-certification run after the ignored Phase 69/70/71/72 evidence bundle
   has been generated for the exact source SHA and artifact.
 
+### `composer release:determinism`
+
+- **Script:** `php scripts/verify-build-determinism.php`
+- **Purpose:** proves release invariant #5 with two clean builds. Each pass
+  removes `vendor/`, `vendor-prefixed/`, and `dist/`, reinstalls the
+  locked Composer toolchain, regenerates prefixed vendors, and builds the
+  canonical ZIP with validation skipped because the surrounding release-audit
+  workflow runs the full validation suite separately.
+- **Failure:** the two ZIP SHA-256 values differ, or either clean build fails.
+  On a hash mismatch the verifier reports staged-file and ZIP-metadata
+  differences to distinguish generated-content drift from archive-metadata
+  drift.
+- **Debug:** rerun `composer release:determinism`; compare the printed pass
+  hashes and first differing staged/ZIP entries.
+- **Manifest:** none; the command is direct executable evidence and leaves the
+  second canonical ZIP + sidecar in `dist/` for the subsequent release audit.
+
 ### `composer release:prepare` / `composer release:commit`
 
 - **Script:** `php scripts/release-prepare.php` /
@@ -671,10 +688,17 @@ failure looks like**, **how to debug**, **what manifest it writes**.
 
 ### `composer vendor:prefix`
 
-- **Script:** `php scripts/run-strauss.php && php scripts/fix-prefixed-safe.php && php scripts/fix-phpword-style-deprecation.php`
+- **Script:** stages the reviewed TCPDF font subset, runs Strauss, immediately
+  runs `scripts/normalize-prefixed-autoloader.php` to replace Strauss's
+  random generated Composer initializer suffix with
+  `SScribeExportSitePages`, then runs the safe/PHPWord compatibility fixes.
 - **Purpose:** Strauss-prefix all third-party PHP namespaces to
-  `SScribeVendor\` so they coexist with the host plugin. Required by
+  `SScribeVendor\` so they coexist with the host plugin while keeping the
+  generated prefixed autoloader reproducible across clean builds. Required by
   `composer ci:full` and the release workflow.
+- **Failure:** missing/unexpected Strauss generated-autoloader files, more than
+  one suffix, a suffix that is neither the stable value nor Strauss's expected
+  32-hex entropy, or any downstream prefix/fix failure.
 
 ### `composer release`
 

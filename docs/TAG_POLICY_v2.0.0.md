@@ -31,7 +31,7 @@ rule blocks the release.
 | 1  | The tag name equals `SSCRIBE_VERSION` exactly (e.g. `v2.0.3`).                    | Phase 16 + Phase 54 verifier.     |
 | 2  | New release tags from v2.0.3 onward are annotated tags (`git tag -a` or `git tag -s`), not lightweight tags. Historical v2.0.2-and-earlier tags are preserved exactly as originally published. | Phase 54 verifier. |
 | 3  | The tag points exactly at `origin/main` HEAD at certification time.               | Phase 54 verifier + Phase 77.     |
-| 4  | The tag points at the exact certified source SHA (the SHA recorded in the build evidence). | Phase 54 verifier + Phase 72. |
+| 4  | The tag points at the exact certified source SHA (the SHA recorded in the build evidence). | Phase 54 verifier + Phase 72 + fail-closed tag helper. |
 | 5  | The local `main` ref equals the remote `origin/main` at tag-cut time (no drift).  | Phase 77 + Phase 54.              |
 | 6  | No tag re-cut: once `v{VERSION}` exists it cannot be overwritten (`--force-with-lease` / `--force` banned on mainline release tags). | Phase 54 verifier. |
 | 7  | The release workflow consumes tags but does NOT create them — tag-cutting is a deliberate maintainer action outside CI. | Phase 54 verifier. |
@@ -42,11 +42,13 @@ The verifier asserts all 8 rules are declared and enforces annotated tag objects
 ## Rule 4 — exact certified source SHA
 
 The tag must point at the exact source SHA that produced the certified
-ZIP. Concretely, after `composer release` writes
-`dist/release-certification-evidence.json` with `source_sha`, the tag
-must be cut at that same SHA. The Phase 72 strict gate (exact-artifact
-evidence) cross-checks this binding: if `git rev-parse v{VERSION}` does
-not equal the `source_sha` in the build evidence, Phase 72 fails.
+ZIP. The ignored exact-release evidence bundle records `source_sha` and the
+exact ZIP identity after the final package/runtime work. Immediately before a
+tag is created, `scripts/release-commit.php --tag` sets strict certification
+mode and re-runs the manual-runtime, release-blocker, final-CI-state,
+exact-artifact, final-report, auditor-handoff, and release-audit gates. It then
+refreshes `origin/main` and refuses to tag if either local or remote `main`
+moved during certification.
 
 ## Rule 8 — `gh release create --verify-tag` verifies remote tag existence
 
@@ -75,7 +77,7 @@ If the maintainer organization deliberately chooses mandatory
 cryptographic signing as a policy, then implement it properly:
 
 ```bash
-VERSION=2.0.3
+VERSION=$(php -r '$s=file_get_contents("sscribe-export-site-pages.php"); preg_match("/define\\s*\\(\\s*[\x27\x22]SSCRIBE_VERSION[\x27\x22]\\s*,\\s*[\x27\x22]([^\x27\x22]+)[\x27\x22]/",$s,$m); echo $m[1] ?? "";')
 git tag -s "v${VERSION}" -m "SScribe ${VERSION}"
 git tag -v "v${VERSION}"    # optional signing policy: must verify cleanly when used
 ```
@@ -132,3 +134,4 @@ policy.
 - 2026-09-04: Rule count grew from 6 to 8: split "tag on main" into rules #3 (origin/main HEAD) and #4 (certified source SHA); split "no tag re-cut" (#6) from "CI does not cut tags" (#7). The historical wording of rule #8 was corrected on 2026-09-18.
 - 2026-09-05: Added a section clarifying cryptographic signing is recommended (not required).
 - 2026-09-18: Corrected `--verify-tag` semantics, added prospective annotated-tag enforcement for v2.0.3+, and preserved v2.0.2-and-earlier historical tag objects unchanged.
+- 2026-09-21: Added fail-closed tag admission: `composer release:tag` now re-runs every strict exact-release gate before tag creation and rechecks `origin/main` afterward.

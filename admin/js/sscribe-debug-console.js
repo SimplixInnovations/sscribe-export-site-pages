@@ -2,7 +2,7 @@
  * SScribe Debug Console JavaScript
  *
  * @package SScribe_Export_Site_Pages
- * @version 2.0.3
+ * @version 2.0.4
  */
 (function ($) {
 	'use strict';

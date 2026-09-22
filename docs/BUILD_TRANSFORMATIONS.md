@@ -42,7 +42,7 @@ continue to work alongside wildcard rules such as `*.log`.
 
 ### Dev-only root files
 
-`phpunit-wp.xml`, `playwright.config.ts`, `composer.lock`,
+`phpunit-wp.xml`, `phpunit-coverage*.xml`, `playwright.config.ts`, `composer.lock`,
 `CONTRIBUTING.md`, `CHANGELOG.md`, `phpstan.neon`,
 `phpstan.neon.dist`, `phpstan-baseline.neon`, `phpstan-bootstrap.php`,
 `phpunit.xml`, `phpunit.xml.dist`, `phpcs.xml`, `.editorconfig`,
@@ -57,7 +57,7 @@ continue to work alongside wildcard rules such as `*.log`.
 ### Vendor-prefixed exclusions
 
 - `vendor-prefixed/*/.github/`, `vendor-prefixed/*/.git/`,
-  `vendor-prefixed/*/tests/`, `vendor-prefixed/*/docs/`,
+  `vendor-prefixed/*/test/`, `vendor-prefixed/*/tests/`, `vendor-prefixed/*/docs/`,
   `vendor-prefixed/*/utils/`, `vendor-prefixed/*/tmp/`,
   `vendor-prefixed/*/.php-cs-fixer*`, `vendor-prefixed/*/.travis.yml`,
   `vendor-prefixed/*/.scrutinizer.yml`, `vendor-prefixed/*/mkdocs.yml`,
@@ -66,6 +66,8 @@ continue to work alongside wildcard rules such as `*.log`.
   `vendor-prefixed/*/CONTRIBUTING.md`, `vendor-prefixed/*/CREDITS.txt`,
   `vendor-prefixed/*/composer.json`, `vendor-prefixed/*/composer.lock`,
   `vendor-prefixed/*/ruleset.xml`, `vendor-prefixed/*/phpstan.neon*`,
+  nested `codecov.yml`, `.codecov.yml`, `context7.json`, `mago.src.toml`,
+  `mago.test.toml`, `CHANGELOG.TXT`,
   `vendor-prefixed/*/phpunit.xml*`, `vendor-prefixed/*/.github_changelog_generator`,
   `vendor-prefixed/phpoffice/phpword/src/PhpWord/Shared/PCLZip/`,
   `vendor-prefixed/phpoffice/phpword/COPYING.LESSER`,
@@ -88,11 +90,21 @@ Symbol, Zapf Dingbats) and DejaVu Sans regular/bold/italic/bold-italic data,
 plus `core/LICENSE` and `dejavu/LICENSE`.
 
 Strauss then prefixes TCPDF and its transitive `tc-lib-*` dependency graph.
+Strauss 0.28.1 deliberately seeds a fresh 32-hex Composer initializer suffix
+when it creates a new prefixed autoloader. Immediately after Strauss finishes,
+`scripts/normalize-prefixed-autoloader.php` fail-closed normalizes only the
+generated `ComposerAutoloaderInit*` / `ComposerStaticInit*` suffix across
+`vendor-prefixed/autoload.php`,
+`vendor-prefixed/composer/autoload_real.php`, and
+`vendor-prefixed/composer/autoload_static.php` to the stable,
+plugin-unique `SScribeExportSitePages` suffix. This removes build entropy
+without rewriting third-party package source.
 The release builder re-validates the same allow-list at
 `vendor-prefixed/tecnickcom/tc-lib-pdf-font/target/fonts/`, removes any
 unexpected font artifact, and fails if a required font or license file is
 missing or empty. It also removes transitive package `Makefile`/`VERSION`
-metadata and the build-only `tc-lib-pdf-font/util/` converter tree. TCPDF's
+metadata, upstream `test/` suite, tool metadata/changelog files, and the
+build-only `tc-lib-pdf-font/util/` converter tree. TCPDF's
 own `LICENSE.TXT` and every shipped tc-lib package license remain alongside
 their source.
 
@@ -165,9 +177,12 @@ would fail the build.
 
 ## 3. Vendor-specific handling
 
-- All `vendor-prefixed/` files that survive exclusion/pruning are copied
-  byte-for-byte from the Strauss-generated tree. No SScribe comment stripping
-  or Unicode sanitization is applied to third-party source or notices.
+- Third-party package source and license files under `vendor-prefixed/` that
+  survive exclusion/pruning are copied byte-for-byte from the post-prefix build
+  tree. SScribe does not comment-strip or Unicode-sanitize third-party source or
+  notices. The only deterministic pre-build rewrite in this tree is the
+  generated Composer initializer suffix normalization documented above; package
+  source is not rewritten by that step.
 - TCPDF and its transitive tc-lib packages' extensionless development metadata
   `Makefile` and `VERSION` are removed before release-content validation.
 - `vendor-prefixed/tecnickcom/tc-lib-pdf-font/util/` is removed after the
@@ -251,10 +266,20 @@ inspect the `base_excludes` and `font_excludes` arrays at the top of
 
 ## How to verify a build
 
+First prove the exact release bytes are reproducible from two clean generated
+dependency/prefix/dist trees:
+
 ```bash
-rm -rf dist/sscribe-export-site-pages dist/sscribe-export-site-pages-2.0.3.zip
+composer release:determinism
+```
+
+Then, for an individual build/tree listing comparison:
+
+```bash
+VERSION=$(php -r '$s=file_get_contents("sscribe-export-site-pages.php"); preg_match("/Version:\\s*([0-9.]+)/",$s,$m); echo $m[1] ?? "";')
+rm -rf dist/sscribe-export-site-pages "dist/sscribe-export-site-pages-${VERSION}.zip"
 composer release 2>&1 | tee build.log
-diff <(unzip -l dist/sscribe-export-site-pages-2.0.3.zip | awk '{print $4}' | sort) \
+diff <(unzip -l "dist/sscribe-export-site-pages-${VERSION}.zip" | awk '{print $4}' | sort) \
      <(find dist/sscribe-export-site-pages -type f | sed 's|dist/sscribe-export-site-pages/||' | sort)
 # Last command should produce no output (ZIP listing == dist listing).
 ```

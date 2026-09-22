@@ -94,10 +94,10 @@ if (/require\s*\(\s*['"][^'"]*sscribe-export-site-pages\.php['"]/.test(adapterSr
 }
 
 // 6. WordPress version pinned.
-if (!/PINNED_WORDPRESS_VERSION\s*=\s*['"]7\.1['"]/.test(adapterSrc)) {
-  fail('WordPress version not pinned to 7.1');
+if (!/PINNED_WORDPRESS_VERSION\s*=\s*['"]7\.1\.1['"]/.test(adapterSrc)) {
+  fail('WordPress version not pinned to current 7.1.1 maintenance/security release');
 } else {
-  pass('WordPress version pinned (7.1)');
+  pass('WordPress version pinned (7.1.1)');
 }
 
 // 7. DB integration version pinned.
@@ -241,6 +241,58 @@ if (/spawn\(\s*'php'/.test(adapterSrc)) {
   fail('native adapter hardcodes php binary instead of using configurable SSCRIBE_E2E_PHP_BINARY');
 } else {
   pass('native adapter uses configurable PHP binary');
+}
+
+
+// 24. Release E2E must use PHP's default single-process CLI server.
+// PHP_CLI_SERVER_WORKERS opts into the experimental forked-worker mode,
+// which has no value for this SQLite release fixture and can destabilize CI.
+const phpCliWorkerAssignment = /(?:^|[\s,{])PHP_CLI_SERVER_WORKERS\s*:/m.test(adapterSrc) || /process\.env\.PHP_CLI_SERVER_WORKERS\s*=/.test(adapterSrc);
+const phpCliWorkerRemoval =
+  /delete\s+phpServerEnv\.PHP_CLI_SERVER_WORKERS\s*;/.test(adapterSrc) &&
+  /env:\s*\{[\s\S]*?\.\.\.phpServerEnv[\s\S]*?SSCRIBE_E2E_TESTBED/.test(adapterSrc);
+if (phpCliWorkerAssignment) {
+  fail('native adapter enables experimental PHP_CLI_SERVER_WORKERS mode');
+} else if (!phpCliWorkerRemoval) {
+  fail('native adapter does not strip inherited PHP_CLI_SERVER_WORKERS before spawning PHP');
+} else {
+  pass('native adapter strips PHP_CLI_SERVER_WORKERS and uses default single-process mode');
+}
+
+// 25. Browser release certification is intentionally serialized. The native
+// WordPress fixture is a single-process HTTP server backed by one SQLite DB.
+if (!/workers:\s*1\b/.test(pwConfig)) {
+  fail('Playwright release certification must run with exactly one worker');
+} else {
+  pass('Playwright release certification is serialized to one worker');
+}
+
+// 26. The SQLite-only E2E fixture must not boot WordPress 7.1's global
+// Command Palette. Its core-data REST hydration is unrelated to SScribe and
+// can monopolize the intentionally single-process PHP/SQLite fixture.
+const muBootstrapPath = join(root, 'tests-e2e/fixtures/mu-plugins/00-sscribe-test-bootstrap.php');
+const muBootstrapSrc = readFileSync(muBootstrapPath, 'utf-8');
+if (!/remove_action\(\s*['"]admin_enqueue_scripts['"]\s*,\s*['"]wp_enqueue_command_palette_assets['"]\s*\)/.test(muBootstrapSrc)) {
+  fail('E2E fixture does not remove WordPress command-palette enqueue from the SQLite testbed');
+} else {
+  pass('E2E fixture isolates WordPress command palette from the SQLite testbed');
+}
+
+// 27. The native router must log request START before dispatch. PHP's built-in
+// access log writes method/URI only after completion, which made a wedged
+// single-process request impossible to identify from failure evidence.
+if (!/\[sscribe-router\] START method=/.test(adapterSrc)) {
+  fail('native router does not log request start before WordPress dispatch');
+} else {
+  pass('native router records request-start diagnostics');
+}
+
+// 28. Failure artifacts must retain dot-prefixed bootstrap evidence.
+const e2eWorkflow = readFileSync(join(root, '.github/workflows/e2e.yml'), 'utf-8');
+if (!/include-hidden-files:\s*true/.test(e2eWorkflow)) {
+  fail('E2E failure artifact does not include hidden diagnostic files');
+} else {
+  pass('E2E failure artifact retains hidden diagnostic files');
 }
 
 if (process.exitCode === 1) {

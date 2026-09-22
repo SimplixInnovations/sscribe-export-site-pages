@@ -12,7 +12,7 @@
  *
  *   - Invariants doc exists.
  *   - Doc declares the canonical sections.
- *   - All 32 canonical invariants are listed.
+ *   - All 34 canonical invariants are listed.
  *   - The companion verifier script exists.
  *
  * @package SScribe_Export_Site_Pages
@@ -103,8 +103,24 @@ final class SScribe_Release_Invariants_Test extends TestCase {
 			'every required new test',
 			'Manual runtime tests runbook covers',
 			'every Phase 70 blocker is RESOLVED',
-			'every Phase 71 required CI job is SUCCESS',
-			'every Phase 72 artifact evidence field',
+			'every Phase 71 required execution signal is SUCCESS or documented LOCAL_PASS',
+			'Phase 72 evidence matches the actual ZIP',
+			'Branch topology policy holds',
+			'Public maintained exact source/build inputs',
+		);
+
+		$this->assertCount( 34, $canonical_invariants, 'Release-invariant PHPUnit mirror must contain exactly 34 fingerprints.' );
+		$this->assertSame(
+			$canonical_invariants,
+			array_values( array_unique( $canonical_invariants ) ),
+			'Release-invariant PHPUnit mirror must not contain duplicate fingerprints.'
+		);
+
+		preg_match_all( '/^\\|\\s*(\\d+)\\s*\\|/m', $src, $row_matches );
+		$this->assertSame(
+			range( 1, 34 ),
+			array_map( 'intval', $row_matches[1] ?? array() ),
+			'Release-invariants doc must contain exactly rows 1 through 34 in order.'
 		);
 
 		foreach ( $canonical_invariants as $expected ) {
@@ -125,6 +141,48 @@ final class SScribe_Release_Invariants_Test extends TestCase {
 			$this->repo_root . '/scripts/verify-release-invariants.php',
 			'scripts/verify-release-invariants.php must exist so the verifier script can be invoked by CI.'
 		);
+	}
+
+	public function test_clean_build_determinism_gate_is_executable_and_wired(): void {
+		$determinism_script = $this->repo_root . '/scripts/verify-build-determinism.php';
+		$this->assertFileExists(
+			$determinism_script,
+			'Release invariant #5 requires an executable clean-build determinism verifier.'
+		);
+
+		$source = (string) file_get_contents( $determinism_script );
+		$this->assertStringContainsString( 'composer install --no-interaction --no-progress --optimize-autoloader', $source );
+		$this->assertStringContainsString( 'composer vendor:prefix', $source );
+		$this->assertStringContainsString( 'scripts/build-release.php --skip-validation', $source );
+		$this->assertStringContainsString( 'if ( $first[\'sha256\'] !== $second[\'sha256\'] )', $source );
+
+		$composer = json_decode( (string) file_get_contents( $this->repo_root . '/composer.json' ), true );
+		$this->assertIsArray( $composer );
+		$this->assertSame(
+			'php scripts/verify-build-determinism.php',
+			$composer['scripts']['release:determinism'] ?? null,
+			'composer release:determinism must invoke the clean-build verifier.'
+		);
+
+		$normalizer = $this->repo_root . '/scripts/normalize-prefixed-autoloader.php';
+		$this->assertFileExists(
+			$normalizer,
+			'Strauss clean builds require a deterministic generated-autoloader normalizer.'
+		);
+		$normalizer_src = (string) file_get_contents( $normalizer );
+		$this->assertStringContainsString( "\$stable_suffix = 'SScribeExportSitePages';", $normalizer_src );
+		$this->assertStringContainsString( "preg_match( '/^[a-f0-9]{32}$/'", $normalizer_src );
+
+		$vendor_prefix = $composer['scripts']['vendor:prefix'] ?? '';
+		$this->assertStringContainsString(
+			'scripts/run-strauss.php && php scripts/normalize-prefixed-autoloader.php',
+			$vendor_prefix,
+			'composer vendor:prefix must normalize Strauss autoloader entropy immediately after generation.'
+		);
+
+		$workflow = (string) file_get_contents( $this->repo_root . '/.github/workflows/release-audit.yml' );
+		$this->assertStringContainsString( 'Verify two clean builds are byte-identical', $workflow );
+		$this->assertStringContainsString( 'composer release:determinism', $workflow );
 	}
 
 	public function test_composer_test_release_invariants_script_wired(): void {

@@ -85,7 +85,14 @@ $canonical_invariants = array(
 	'every Phase 70 blocker is RESOLVED',
 	'every Phase 71 required execution signal is SUCCESS or documented LOCAL_PASS',
 	'Phase 72 evidence matches the actual ZIP',
+	'Branch topology policy holds',
 	'Public maintained exact source/build inputs',
+);
+
+$record(
+	'canonical_invariant_registry_shape',
+	34 === count( $canonical_invariants ) && 34 === count( array_unique( $canonical_invariants ) ),
+	'Canonical release-invariant registry must contain exactly 34 unique fingerprints.'
 );
 
 if ( is_file( $invariants_doc ) ) {
@@ -106,6 +113,14 @@ if ( is_file( $invariants_doc ) ) {
 		'invariants_doc_has_canonical_sections',
 		0 === count( $missing_sections ),
 		'Release invariants doc is missing canonical sections: ' . implode( ', ', $missing_sections )
+	);
+
+	preg_match_all( '/^\\|\\s*(\\d+)\\s*\\|/m', $doc_src, $row_matches );
+	$doc_rows = array_map( 'intval', $row_matches[1] ?? array() );
+	$record(
+		'invariants_doc_has_exact_canonical_rows',
+		range( 1, 34 ) === $doc_rows,
+		'Release invariants doc must contain exactly canonical rows 1 through 34 in order.'
 	);
 
 	// Every canonical invariant must appear (case-insensitive substring match).
@@ -131,6 +146,22 @@ $record(
 	'integration_test_exists',
 	is_file( $test_path ),
 	'tests/Integration/SScribe_Release_Invariants_Test.php must exist so the release-invariants contract is pinned at the PHPUnit boundary.'
+);
+
+$determinism_script = $root_dir . '/scripts/verify-build-determinism.php';
+$normalizer_script  = $root_dir . '/scripts/normalize-prefixed-autoloader.php';
+$composer_path       = $root_dir . '/composer.json';
+$release_audit_yml   = $root_dir . '/.github/workflows/release-audit.yml';
+$composer_src        = is_file( $composer_path ) ? (string) file_get_contents( $composer_path ) : '';
+$release_audit_src   = is_file( $release_audit_yml ) ? (string) file_get_contents( $release_audit_yml ) : '';
+$record(
+	'clean_build_determinism_gate_wired',
+	is_file( $determinism_script )
+		&& is_file( $normalizer_script )
+		&& false !== strpos( $composer_src, '"release:determinism": "php scripts/verify-build-determinism.php"' )
+		&& false !== strpos( $composer_src, 'scripts/run-strauss.php && php scripts/normalize-prefixed-autoloader.php' )
+		&& false !== strpos( $release_audit_src, 'composer release:determinism' ),
+	'Release invariant #5 must be enforced by clean-build determinism plus deterministic Strauss generated-autoloader normalization.'
 );
 
 // Persist manifest.
