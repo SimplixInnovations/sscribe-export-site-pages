@@ -282,7 +282,7 @@ if ( ! $root || ! is_dir( $root ) ) {
 }
 $method      = isset( $_SERVER['REQUEST_METHOD'] ) ? (string) $_SERVER['REQUEST_METHOD'] : 'UNKNOWN';
 $request_uri = isset( $_SERVER['REQUEST_URI'] ) ? (string) $_SERVER['REQUEST_URI'] : '';
-fwrite( STDERR, '[sscribe-router] START method=' . $method . ' uri=' . $request_uri . PHP_EOL );
+error_log( '[sscribe-router] START method=' . $method . ' uri=' . $request_uri );
 
 $path = parse_url( $request_uri, PHP_URL_PATH );
 $file = $root . $path;
