@@ -341,7 +341,7 @@ class SScribe_Page_Collector {
 			);
 			$found = array();
 			foreach ( is_array( $posts ) ? $posts : array() as $post ) {
-				if ( $post instanceof WP_Post && $post->ID > 0 ) {
+				if ( $post->ID > 0 ) {
 					$found[ (int) $post->ID ] = $post;
 				}
 			}
@@ -360,7 +360,8 @@ class SScribe_Page_Collector {
 	 * meta-capability so private, draft, pending, and scheduled content keeps
 	 * the post type's native ownership/read-private policy.
 	 *
-	 * @param int $page_id Post ID.
+	 * @param int          $page_id Post ID.
+	 * @param WP_Post|null $post    Optional already-hydrated post.
 	 * @return bool Whether the current request may read the post.
 	 */
 	private function is_post_readable_for_export( int $page_id, ?WP_Post $post = null ): bool {
