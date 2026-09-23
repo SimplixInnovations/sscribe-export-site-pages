@@ -70,7 +70,7 @@ composer test:wp:uninstall
 ```
 
 At minimum, separately confirm the declared minimum pair **WordPress 6.1 /
-PHP 8.2** and the latest maintained **WordPress 7.1.x** release (currently 7.1.1). Exercise every PHP
+PHP 8.2** and the latest maintained **WordPress 7.1.x** release (currently 7.1.2). Exercise every PHP
 version required by the repository's supported/CI matrix when those runtimes
 are available locally.
 
