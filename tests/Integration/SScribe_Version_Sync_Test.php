@@ -150,7 +150,7 @@ class SScribe_Version_Sync_Test extends TestCase {
 
 	public function test_historical_tag_policy_boundary_is_not_reported_as_stale_release_version(): void {
 		$verifier = (string) file_get_contents( self::plugin_root() . '/scripts/verify-version-sync.php' );
-		$this->assertStringContainsString( "'verify-tag-policy.php' === basename( $f )", $verifier );
+		$this->assertStringContainsString( "'verify-tag-policy.php' === basename( \$f )", $verifier );
 
 		$command = escapeshellarg( PHP_BINARY ) . ' ' . escapeshellarg( self::plugin_root() . '/scripts/verify-version-sync.php' );
 		exec( $command . ' 2>&1', $output, $exit_code );
