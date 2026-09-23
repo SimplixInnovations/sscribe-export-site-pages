@@ -53,6 +53,7 @@ final class SScribe_Deep_Audit_Regression_Test extends SScribe_WP_TestCase {
 	}
 
 	public function test_sqlite_old_schema_upgrade_reaches_current_version_without_mysql_only_ddl(): void {
+		set_current_screen( 'dashboard' );
 		delete_option( 'sscribe_upgrade_last_error' );
 		delete_option( 'sscribe_upgrade_next_attempt' );
 		delete_option( 'sscribe_upgrade_failures' );
