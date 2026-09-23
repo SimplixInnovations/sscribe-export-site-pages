@@ -4210,6 +4210,7 @@
 			$('#sscribe-progress-area').addClass('sscribe-hidden');
 			$('#sscribe-error-area').addClass('sscribe-hidden');
 			$('#sscribe-download-area').addClass('sscribe-hidden');
+			$('#sscribe-download-btn').removeAttr('href').attr('aria-disabled', 'true').attr('tabindex', '-1');
 			$('#sscribe-progress-bar').removeClass('sscribe-progress-initializing').css('transform', 'scaleX(0)');
 			$('.sscribe-progress-bar-container').removeClass('sscribe-progress-complete');
 			$('#sscribe-progress-text').text('0%');
