@@ -146,6 +146,17 @@ class SScribe {
 	 * Register admin-specific hooks.
 	 */
 	private function define_admin_hooks(): void {
+		// Content invalidation must be registered in every request context,
+		// including REST-driven saves, but the heavy admin service graph does not.
+		$this->loader->add_action( 'save_post', $this, 'invalidate_admin_page_cache' );
+		$this->loader->add_action( 'trashed_post', $this, 'invalidate_admin_page_cache' );
+		$this->loader->add_action( 'deleted_post', $this, 'invalidate_admin_page_cache' );
+		$this->loader->add_action( 'untrashed_post', $this, 'invalidate_admin_page_cache' );
+
+		if ( ! function_exists( 'is_admin' ) || ! is_admin() ) {
+			return;
+		}
+
 		$container = SScribe_Container::instance();
 		$admin     = $container->get( SScribe_Admin::class );
 
@@ -153,17 +164,16 @@ class SScribe {
 		$this->loader->add_action( 'admin_init', $admin, 'maybe_redirect_after_activation' );
 		$this->loader->add_action( 'admin_enqueue_scripts', $admin, 'enqueue_admin_assets' );
 		$this->loader->add_action( 'admin_notices', $this, 'render_vendor_dependency_notice' );
-		$this->loader->add_action( 'save_post', $this, 'invalidate_admin_page_cache' );
-		$this->loader->add_action( 'trashed_post', $this, 'invalidate_admin_page_cache' );
-		$this->loader->add_action( 'deleted_post', $this, 'invalidate_admin_page_cache' );
-		$this->loader->add_action( 'untrashed_post', $this, 'invalidate_admin_page_cache' );
 		$this->loader->add_filter( 'plugin_action_links_' . SSCRIBE_PLUGIN_BASENAME, $admin, 'add_plugin_action_links' );
 	}
-
 	/**
 	 * Display admin notice for missing vendor dependencies.
 	 */
 	public function render_vendor_dependency_notice(): void {
+		$screen = function_exists( 'get_current_screen' ) ? get_current_screen() : null;
+		if ( ! $screen || 'toplevel_page_sscribe-export' !== $screen->id ) {
+			return;
+		}
 		if ( ! current_user_can( SScribe_Capabilities::get_required() ) ) {
 			return;
 		}
@@ -244,6 +254,9 @@ class SScribe {
 	 * Register AJAX hooks for background processing.
 	 */
 	private function define_ajax_hooks(): void {
+		if ( function_exists( 'wp_doing_ajax' ) && ! wp_doing_ajax() ) {
+			return;
+		}
 		$container = SScribe_Container::instance();
 		$batch     = $container->get( SScribe_Batch_Processor::class );
 		$cap       = SScribe_Capabilities::get_required();
@@ -276,20 +289,25 @@ class SScribe {
 	 * Register scheduled task hooks.
 	 */
 	private function define_cron_hooks(): void {
-		$container = SScribe_Container::instance();
-		$zip       = $container->get( SScribe_Zip_Handler::class );
-		$this->loader->add_action( 'sscribe_cleanup_exports', $zip, 'cleanup_expired' );
-
+		$this->loader->add_action( 'sscribe_cleanup_exports', $this, 'cleanup_exports' );
 		$this->loader->add_action( 'sscribe_cleanup_sessions', $this, 'cleanup_sessions' );
-		$this->loader->add_action(
-			'sscribe_cleanup_sessions',
-			$container->get( SScribe_Session::class ),
-			'maybe_rotate_signing_key',
-			99
-		);
+		$this->loader->add_action( 'sscribe_cleanup_sessions', $this, 'rotate_session_signing_key', 99 );
 		$this->loader->add_action( 'sscribe_cleanup_audit_trail', $this, 'cleanup_audit_trail' );
 	}
 
+	/**
+	 * Lazily resolve export cleanup only when the cron event actually fires.
+	 */
+	public function cleanup_exports(): void {
+		SScribe_Container::instance()->get( SScribe_Zip_Handler::class )->cleanup_expired();
+	}
+
+	/**
+	 * Lazily resolve session crypto maintenance only on its cron event.
+	 */
+	public function rotate_session_signing_key(): void {
+		SScribe_Container::instance()->get( SScribe_Session::class )->maybe_rotate_signing_key();
+	}
 	/**
 	 * Register multisite lifecycle hooks.
 	 */
