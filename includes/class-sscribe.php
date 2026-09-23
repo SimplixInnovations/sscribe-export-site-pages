@@ -172,7 +172,7 @@ class SScribe {
 			return;
 		}
 		$screen    = get_current_screen();
-		$screen_id = is_object( $screen ) && isset( $screen->id ) ? (string) $screen->id : '';
+		$screen_id = $screen ? (string) $screen->id : '';
 		if ( ! in_array( $screen_id, array( 'toplevel_page_sscribe-export', 'plugins', 'plugins-network' ), true ) ) {
 			return;
 		}
