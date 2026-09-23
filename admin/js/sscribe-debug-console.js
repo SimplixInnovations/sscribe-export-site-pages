@@ -369,6 +369,8 @@
 					dialog.setAttribute('role', 'document');
 					dialog.setAttribute('tabindex', '-1');
 					const helpClone = helpContent.cloneNode(true);
+					const clonedTitle = helpClone.querySelector('#sscribe-debug-help-title');
+					const titleText = clonedTitle ? clonedTitle.textContent : 'Help';
 					if (helpClone && helpClone.removeAttribute) {
 						helpClone.removeAttribute('hidden');
 						helpClone.querySelectorAll('[id]').forEach(function (node) {
@@ -423,8 +425,6 @@
 					closeBtn.addEventListener('click', closeDialog);
 					const header = document.createElement('div');
 					header.className = 'sscribe-modal-header';
-					const clonedTitle = helpClone.querySelector('#sscribe-debug-help-title');
-					const titleText = clonedTitle ? clonedTitle.textContent : 'Help';
 					const headerTitle = document.createElement('h3');
 					headerTitle.id = 'sscribe-debug-help-dialog-title';
 					headerTitle.textContent = titleText;
