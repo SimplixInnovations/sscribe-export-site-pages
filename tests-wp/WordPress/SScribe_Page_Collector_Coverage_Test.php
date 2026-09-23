@@ -254,6 +254,55 @@ final class SScribe_Page_Collector_Coverage_Test extends SScribe_WP_TestCase {
 		);
 	}
 
+	public function test_get_breadcrumbs_keeps_more_than_five_ancestors(): void {
+		$parent = 0;
+		$chain  = array();
+		for ( $i = 0; $i < 8; ++$i ) {
+			$parent = (int) $this->factory()->post->create(
+				array(
+					'post_type'   => 'page',
+					'post_status' => 'publish',
+					'post_parent' => $parent,
+					'post_title'  => 'Breadcrumb depth ' . $i,
+				)
+			);
+			$chain[] = $parent;
+		}
+
+		$breadcrumbs = $this->invoke_private(
+			$this->collector,
+			'get_breadcrumbs',
+			array( $chain[ count( $chain ) - 1 ] )
+		);
+
+		$this::assertCount(
+			8,
+			$breadcrumbs,
+			'Breadcrumb export must not inherit get_posts()\' default five-result limit.'
+		);
+	}
+
+	public function test_batch_child_cache_records_leaf_parents_and_avoids_fallback_queries(): void {
+		$parents = $this->make_pages( 20, 'page', 'publish' );
+
+		$this->collector->get_child_pages_batch( $parents );
+
+		global $wpdb;
+		$before = (int) $wpdb->num_queries;
+		foreach ( $parents as $parent_id ) {
+			$page = $this->collector->get_page_data( (int) $parent_id );
+			$this::assertIsArray( $page );
+			$this::assertSame( array(), $page['children'] );
+		}
+		$queries = (int) $wpdb->num_queries - $before;
+
+		$this::assertLessThanOrEqual(
+			80,
+			$queries,
+			'Batch child priming must cache empty leaf-parent results instead of calling get_children() once per page.'
+		);
+	}
+
 	// -----------------------------------------------------------------
 	// Section 2 — page-id resolution
 	// -----------------------------------------------------------------
