@@ -636,26 +636,27 @@ class SScribe_Page_Collector {
 			return (int) ( $counts['all'] ?? 0 );
 		}
 
-		// The found_posts fast path is safe only when every resolved post type
-		// is actually registered public=true. The filter may add non-public CPTs;
-		// those counts remain permission-sensitive and must use readable IDs.
-		if ( 'publish' === $post_status ) {
-			$resolved_post_types = $this->resolve_post_type_for_query( $post_type );
-			$post_types_to_check = is_array( $resolved_post_types ) ? $resolved_post_types : array( $resolved_post_types );
-			$all_public          = ! empty( $post_types_to_check );
-			foreach ( $post_types_to_check as $resolved_post_type ) {
-				if ( ! $this->is_post_type_public( (string) $resolved_post_type ) ) {
-					$all_public = false;
-					break;
-				}
+		$resolved_post_types = $this->resolve_post_type_for_query( $post_type );
+		$post_types_to_check = is_array( $resolved_post_types ) ? $resolved_post_types : array( $resolved_post_types );
+		$all_public          = ! empty( $post_types_to_check );
+		foreach ( $post_types_to_check as $resolved_post_type ) {
+			if ( ! $this->is_post_type_public( (string) $resolved_post_type ) ) {
+				$all_public = false;
+				break;
 			}
-			if ( ! $all_public ) {
-				return count( $this->get_page_ids( $language, $post_status, $post_type, 10001 ) );
-			}
+		}
 
+		// Published content on public types is readable by definition. For
+		// non-public statuses/types, users holding the complete native read/edit
+		// capability set can also use the lightweight found_posts path because
+		// the per-post read_post result cannot exclude an item for that user.
+		$can_use_aggregate_count = ( 'publish' === $post_status && $all_public )
+			|| $this->current_user_can_read_all_posts( $post_types_to_check );
+
+		if ( $can_use_aggregate_count ) {
 			$args = array(
 				'post_type'      => $resolved_post_types,
-				'post_status'    => 'publish',
+				'post_status'    => $post_status,
 				'posts_per_page' => 1,
 				'fields'         => 'ids',
 				'no_found_rows'  => false,
@@ -684,12 +685,47 @@ class SScribe_Page_Collector {
 			return $count;
 		}
 
-		// Non-public counts are permission-sensitive. Reuse the same bounded ID
-		// collection path as export admission so delegated users cannot infer
-		// unreadable private/draft content from aggregate counts. 10,001 is a
-		// deliberate sentinel: it is enough to prove that the 10,000-item export
-		// cap has been exceeded without turning a UI count into an unbounded scan.
+		// Delegated users may not be able to read every draft/private/pending
+		// post. Reuse export admission's bounded ID + read_post path so aggregate
+		// counts cannot disclose unreadable content. 10,001 is the export-cap
+		// sentinel rather than an unbounded UI scan.
 		return count( $this->get_page_ids( $language, $post_status, $post_type, 10001 ) );
+	}
+
+	/**
+	 * Determine whether the current user can read every post for each type.
+	 *
+	 * Requiring edit_posts + edit_others_posts + read_private_posts is
+	 * intentionally conservative. If any capability is absent we fall back to
+	 * per-post read_post checks rather than risk an aggregate disclosure.
+	 *
+	 * @param array<int, string> $post_types Post types to inspect.
+	 * @return bool True when aggregate non-public counts are permission-safe.
+	 */
+	private function current_user_can_read_all_posts( array $post_types ): bool {
+		if ( empty( $post_types ) ) {
+			return false;
+		}
+
+		foreach ( $post_types as $post_type ) {
+			$object = get_post_type_object( (string) $post_type );
+			if ( ! is_object( $object ) || ! isset( $object->cap ) || ! is_object( $object->cap ) ) {
+				return false;
+			}
+
+			$required = array(
+				$object->cap->edit_posts ?? '',
+				$object->cap->edit_others_posts ?? '',
+				$object->cap->read_private_posts ?? '',
+			);
+			foreach ( $required as $capability ) {
+				if ( ! is_string( $capability ) || '' === $capability || ! current_user_can( $capability ) ) {
+					return false;
+				}
+			}
+		}
+
+		return true;
 	}
 
 	/**
