@@ -189,6 +189,9 @@ trait SScribe_Batch_Step_Handler {
 			$structured_errors = isset( $session['structured_errors'] ) && is_array( $session['structured_errors'] ) ? $session['structured_errors'] : array();
 			$start_time        = isset( $session['start_time'] ) ? $session['start_time'] : microtime( true );
 			$formats           = isset( $session['formats'] ) ? $session['formats'] : self::DEFAULT_FORMATS;
+			$post_type         = isset( $session['post_type'] ) && is_string( $session['post_type'] )
+				? sanitize_key( $session['post_type'] )
+				: 'page';
 
 			if ( in_array( 'pdf', $formats, true ) && function_exists( 'set_time_limit' ) ) {
 				$pdf_max_time = (int) apply_filters( 'sscribe_pdf_max_execution_time', 150 );
@@ -286,7 +289,7 @@ trait SScribe_Batch_Step_Handler {
 
 			if ( ! empty( $batch ) ) {
 				$this->collector->get_featured_images_batch( $batch );
-				$this->collector->get_child_pages_batch( $batch );
+				$this->collector->get_child_pages_batch( $batch, $post_type );
 				// Performance N+1 fix: warm the SEO postmeta cache for the
 				// whole batch so per-page get_post_meta() calls inside the
 				// six readers hit the in-memory cache instead of the DB.
