@@ -401,7 +401,7 @@ class SScribe {
 		if ( $is_ajax ) {
 			$this->define_ajax_hooks();
 		}
-		if ( $is_cron ) {
+		if ( $is_cron || ( defined( 'WP_CLI' ) && WP_CLI ) ) {
 			$this->define_cron_hooks();
 		}
 		if ( is_admin() ) {
