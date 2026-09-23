@@ -149,6 +149,62 @@ test.describe('a11y / admin-tabs', () => {
     expect(ratio, `lang-name contrast ${ratio.toFixed(2)}:1 must clear WCAG AA (4.5:1)`).toBeGreaterThanOrEqual(4.5);
   });
 
+  test('toast exposes a keyboard-operable dismiss button', async ({ adminPage }) => {
+    await adminPage.goto('/wp-admin/admin.php?page=sscribe-export');
+
+    await adminPage.evaluate(() => {
+      const api = (window as typeof window & { SScribe?: { showToast?: (message: string, type: string, duration: number) => void } }).SScribe;
+      if (!api || typeof api.showToast !== 'function') {
+        throw new Error('SScribe.showToast is unavailable');
+      }
+      api.showToast('Keyboard toast', 'info', 0);
+    });
+
+    const toast = adminPage.locator('.sscribe-toast').filter({ hasText: 'Keyboard toast' });
+    await expect(toast).toBeVisible();
+
+    const dismiss = toast.locator('button.sscribe-toast-dismiss');
+    await expect(dismiss).toBeVisible();
+    await dismiss.focus();
+    await expect(dismiss).toBeFocused();
+    await dismiss.press('Enter');
+    await expect(toast).toHaveCount(0);
+  });
+
+  test('preflight dismissal restores focus to the invoking control', async ({ adminPage }) => {
+    await adminPage.goto('/wp-admin/admin.php?page=sscribe-export');
+
+    const trigger = adminPage.locator('#sscribe-export-btn');
+    await trigger.focus();
+    await expect(trigger).toBeFocused();
+
+    await adminPage.evaluate(() => {
+      const api = (window as typeof window & {
+        SScribe?: {
+          showPreflightWarnings?: (
+            diagnostics: { checks: Record<string, { status: string; name: string; message: string }> },
+            onProceed: () => void,
+            allowProceed: boolean
+          ) => void;
+        };
+      }).SScribe;
+      if (!api || typeof api.showPreflightWarnings !== 'function') {
+        throw new Error('SScribe.showPreflightWarnings is unavailable');
+      }
+      api.showPreflightWarnings(
+        { checks: { warning: { status: 'warning', name: 'Test warning', message: 'Focus regression test' } } },
+        () => undefined,
+        true
+      );
+    });
+
+    const close = adminPage.locator('.sscribe-preflight-close');
+    await expect(close).toBeFocused();
+    await close.click();
+    await expect(adminPage.locator('.sscribe-preflight-banner')).toHaveCount(0);
+    await expect(trigger).toBeFocused();
+  });
+
   test('tab buttons expose the WAI-ARIA tabs pattern', async ({ adminPage }) => {
     await adminPage.goto('/wp-admin/admin.php?page=sscribe-export');
 
