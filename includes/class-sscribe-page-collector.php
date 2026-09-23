@@ -189,10 +189,15 @@ class SScribe_Page_Collector {
 		$post_status = $this->validate_post_status( $post_status );
 
 		$generation = $this->get_content_cache_generation();
-		$cache_key  = "sscribe_page_ids_v2_{$post_status}_{$generation}_" . md5( "{$language}_{$post_type}_{$limit}" );
+		$cache_key  = 'sscribe_page_ids_v3_' . $post_status . '_' . md5( "{$language}_{$post_type}_{$limit}" );
 		$cached     = get_transient( $cache_key );
-		if ( false !== $cached && is_array( $cached ) ) {
-			return $this->filter_readable_page_ids( $cached );
+		if (
+			is_array( $cached )
+			&& isset( $cached['generation'], $cached['ids'] )
+			&& (int) $cached['generation'] === $generation
+			&& is_array( $cached['ids'] )
+		) {
+			return $this->filter_readable_page_ids( $cached['ids'] );
 		}
 
 		$effective_limit = $limit > 0 ? min( $limit, 10000 ) : 10000;
@@ -251,7 +256,7 @@ class SScribe_Page_Collector {
 			}
 		}
 
-		set_transient( $cache_key, $page_ids, 5 * MINUTE_IN_SECONDS );
+		set_transient( $cache_key, array( 'generation' => $generation, 'ids' => $page_ids ), 5 * MINUTE_IN_SECONDS );
 
 		return $this->filter_readable_page_ids( $page_ids );
 	}
@@ -269,17 +274,50 @@ class SScribe_Page_Collector {
 	 * @return array<int> Readable post IDs.
 	 */
 	private function filter_readable_page_ids( array $page_ids ): array {
-		$readable = array();
-
-		foreach ( $page_ids as $page_id ) {
-			$page_id = absint( $page_id );
-			if ( $page_id <= 0 || ! $this->is_post_readable_for_export( $page_id ) ) {
-				continue;
-			}
-			$readable[] = $page_id;
+		$page_ids = array_values(
+			array_unique(
+				array_filter(
+					array_map( 'absint', $page_ids )
+				)
+			)
+		);
+		if ( empty( $page_ids ) ) {
+			return array();
 		}
 
-		return array_values( array_unique( $readable ) );
+		$this->prime_readability_post_cache( $page_ids );
+		$readable = array();
+		foreach ( $page_ids as $page_id ) {
+			if ( $this->is_post_readable_for_export( $page_id ) ) {
+				$readable[] = $page_id;
+			}
+		}
+
+		return $readable;
+	}
+
+	/**
+	 * Prime post objects before per-ID capability checks so an ID-only query or
+	 * transient hit cannot degrade into one SELECT per post.
+	 *
+	 * @param int[] $page_ids Post IDs.
+	 */
+	private function prime_readability_post_cache( array $page_ids ): void {
+		foreach ( array_chunk( $page_ids, 500 ) as $chunk ) {
+			get_posts(
+				array(
+					'post__in'               => $chunk,
+					'post_type'              => 'any',
+					'post_status'            => 'any',
+					'numberposts'            => count( $chunk ),
+					'orderby'                => 'post__in',
+					'no_found_rows'          => true,
+					'update_post_meta_cache' => false,
+					'update_post_term_cache' => false,
+					'suppress_filters'       => true,
+				)
+			);
+		}
 	}
 
 	/**
@@ -341,10 +379,15 @@ class SScribe_Page_Collector {
 		$post_types  = $this->resolve_post_type_for_query( $post_type );
 
 		$generation  = $this->get_content_cache_generation();
-		$cache_key   = 'sscribe_estimate_count_' . $generation . '_' . md5( $language . '|' . $post_status . '|' . ( is_array( $post_types ) ? implode( ',', $post_types ) : (string) $post_types ) );
+		$cache_key   = 'sscribe_estimate_count_v2_' . md5( $language . '|' . $post_status . '|' . ( is_array( $post_types ) ? implode( ',', $post_types ) : (string) $post_types ) );
 		$cached      = function_exists( 'get_transient' ) ? get_transient( $cache_key ) : false;
-		if ( is_int( $cached ) && $cached >= 0 ) {
-			return $cached;
+		if (
+			is_array( $cached )
+			&& isset( $cached['generation'], $cached['count'] )
+			&& (int) $cached['generation'] === $generation
+			&& is_numeric( $cached['count'] )
+		) {
+			return max( 0, (int) $cached['count'] );
 		}
 
 		if ( is_array( $post_types ) ) {
@@ -374,7 +417,7 @@ class SScribe_Page_Collector {
 		// phpcs:enable
 
 		if ( function_exists( 'set_transient' ) ) {
-			set_transient( $cache_key, $count, MINUTE_IN_SECONDS );
+			set_transient( $cache_key, array( 'generation' => $generation, 'count' => $count ), MINUTE_IN_SECONDS );
 		}
 
 		return $count;
@@ -1013,11 +1056,15 @@ class SScribe_Page_Collector {
 		$children    = array();
 		$child_pages = get_children(
 			array(
-				'post_parent' => $page_id,
-				'post_type'   => $post_type,
-				'post_status' => 'publish',
-				'orderby'     => 'menu_order title',
-				'order'       => 'ASC',
+				'post_parent'            => $page_id,
+				'post_type'              => $post_type,
+				'post_status'            => 'publish',
+				'orderby'                => 'menu_order title',
+				'order'                  => 'ASC',
+				'numberposts'             => 200,
+				'no_found_rows'           => true,
+				'update_post_meta_cache' => false,
+				'update_post_term_cache' => false,
 			)
 		);
 
@@ -1105,12 +1152,16 @@ class SScribe_Page_Collector {
 
 			$ancestor_posts = get_posts(
 				array(
-					'post__in'    => $ancestors,
-					'post_type'   => get_post_type( $page_id ),
-					'post_status' => 'publish',
-					'fields'      => 'all',
-					'orderby'     => 'post__in',
-					'order'       => 'ASC',
+					'post__in'               => $ancestors,
+					'post_type'              => get_post_type( $page_id ),
+					'post_status'            => 'publish',
+					'fields'                 => 'all',
+					'orderby'                => 'post__in',
+					'order'                  => 'ASC',
+					'numberposts'            => count( $ancestors ),
+					'no_found_rows'          => true,
+					'update_post_meta_cache' => false,
+					'update_post_term_cache' => false,
 				)
 			);
 
