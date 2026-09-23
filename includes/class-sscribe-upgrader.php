@@ -195,8 +195,9 @@ class SScribe_Upgrader {
 						$new_key = $key . '_page';
 						if ( ! isset( $metrics['formats'][ $new_key ] ) ) {
 							$metrics['formats'][ $new_key ] = $metrics['formats'][ $key ];
-							$migrated                       = true;
 						}
+						unset( $metrics['formats'][ $key ] );
+						$migrated = true;
 					}
 				}
 				if ( $migrated ) {
