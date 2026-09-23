@@ -118,9 +118,10 @@ Build transformations are documented in docs/BUILD_TRANSFORMATIONS.md.
 == Changelog ==
 
 = 2.0.4 =
-* Removed development-only test/config/tool files from the WordPress.org package and added regressions against future leaks.
-* Made release tagging fail closed unless all strict exact-SHA, exact-ZIP, runtime, and audit gates pass.
-* Reconciled repository governance documentation. Runtime export behavior is unchanged from 2.0.3.
+* Fixed SQLite upgrade portability and bounded failed-upgrade retries; expanded schema convergence and cleanup coverage.
+* Improved large-site exports with bulk permission hydration, bounded/paginated child queries, stable content-cache keys, shorter lock contention, and batched export-history metadata reads.
+* Fixed admin accessibility/UX issues including keyboard-operable toasts, focus restoration, hidden inactive tabs, semantic phase/heading state, live feedback, and reliable dismissals/download states.
+* Hardened deterministic WordPress.org packaging, exact-release admission, tag governance, and development-file exclusion.
 
 = 2.0.3 =
 * Fixed activation on managed hosting and container environments by accepting validated writable private bases without weakening public-path or symlink protections.
@@ -159,7 +160,7 @@ Build transformations are documented in docs/BUILD_TRANSFORMATIONS.md.
 == Upgrade Notice ==
 
 = 2.0.4 =
-Release-package and tag-admission hardening only; no runtime or migration change.
+Improves upgrade portability, large-site performance, admin accessibility, and release-package integrity. No manual migration action is required.
 
 = 2.0.3 =
 Fixes private-storage activation compatibility, Plugin Check compliance, export finalization reliability, custom post type exports, session concurrency safety, and admin-output hardening. No manual data migration is required.
