@@ -1042,37 +1042,46 @@ class SScribe_Page_Collector {
 			return array();
 		}
 
-		$args = array(
-			'post_type'              => $this->resolve_post_type_for_query( $post_type ),
-			'post_status'            => 'publish',
-			'posts_per_page'         => 500,
-			'post_parent__in'        => $page_ids,
-			'orderby'                => 'menu_order title',
-			'order'                  => 'ASC',
-
-			'no_found_rows'          => true,
-
-			'update_post_meta_cache' => false,
-			'update_post_term_cache' => false,
-		);
-
-		$query              = new WP_Query( $args );
+		$batch_size         = 500;
+		$paged              = 1;
 		$children_by_parent = array();
 
-		foreach ( $query->posts as $child ) {
-			if ( ! $child instanceof WP_Post || ! $this->is_post_readable_for_export( (int) $child->ID, $child ) ) {
-				continue;
-			}
-			$parent_id = $child->post_parent;
-			if ( ! isset( $children_by_parent[ $parent_id ] ) ) {
-				$children_by_parent[ $parent_id ] = array();
-			}
-			$children_by_parent[ $parent_id ][] = array(
-				'id'    => $child->ID,
-				'title' => html_entity_decode( $child->post_title, ENT_QUOTES | ENT_HTML5, 'UTF-8' ),
-				'url'   => $this->get_permalink_cached( (int) $child->ID ),
+		do {
+			$args = array(
+				'post_type'              => $this->resolve_post_type_for_query( $post_type ),
+				'post_status'            => 'publish',
+				'posts_per_page'         => $batch_size,
+				'paged'                  => $paged,
+				'post_parent__in'        => $page_ids,
+				'orderby'                => array(
+					'menu_order' => 'ASC',
+					'title'      => 'ASC',
+					'ID'         => 'ASC',
+				),
+				'no_found_rows'          => true,
+				'update_post_meta_cache' => false,
+				'update_post_term_cache' => false,
 			);
-		}
+
+			$query = new WP_Query( $args );
+			foreach ( $query->posts as $child ) {
+				if ( ! $child instanceof WP_Post || ! $this->is_post_readable_for_export( (int) $child->ID, $child ) ) {
+					continue;
+				}
+				$parent_id = (int) $child->post_parent;
+				if ( ! isset( $children_by_parent[ $parent_id ] ) ) {
+					$children_by_parent[ $parent_id ] = array();
+				}
+				$children_by_parent[ $parent_id ][] = array(
+					'id'    => $child->ID,
+					'title' => html_entity_decode( $child->post_title, ENT_QUOTES | ENT_HTML5, 'UTF-8' ),
+					'url'   => $this->get_permalink_cached( (int) $child->ID ),
+				);
+			}
+
+			$loaded = count( $query->posts );
+			++$paged;
+		} while ( $loaded === $batch_size );
 
 		foreach ( $children_by_parent as $k => $v ) {
 			$this->cache_add( $this->child_pages_cache, $k, $v );
