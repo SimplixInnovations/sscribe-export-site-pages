@@ -197,10 +197,15 @@ class SScribe_Page_Collector {
 		$post_status = $this->validate_post_status( $post_status );
 
 		$generation = $this->get_content_cache_generation();
-		$cache_key  = "sscribe_page_ids_v2_{$post_status}_{$generation}_" . md5( "{$language}_{$post_type}_{$limit}" );
+		$cache_key  = 'sscribe_page_ids_v3_' . $post_status . '_' . md5( "{$language}_{$post_type}_{$limit}" );
 		$cached     = get_transient( $cache_key );
-		if ( false !== $cached && is_array( $cached ) ) {
-			return $this->filter_readable_page_ids( $cached );
+		if (
+			is_array( $cached )
+			&& isset( $cached['generation'], $cached['ids'] )
+			&& (int) $cached['generation'] === $generation
+			&& is_array( $cached['ids'] )
+		) {
+			return $this->filter_readable_page_ids( $cached['ids'] );
 		}
 
 		$effective_limit = $limit > 0 ? min( $limit, 10000 ) : 10000;
@@ -259,7 +264,14 @@ class SScribe_Page_Collector {
 			}
 		}
 
-		set_transient( $cache_key, $page_ids, 5 * MINUTE_IN_SECONDS );
+		set_transient(
+			$cache_key,
+			array(
+				'generation' => $generation,
+				'ids'        => $page_ids,
+			),
+			5 * MINUTE_IN_SECONDS
+		);
 
 		return $this->filter_readable_page_ids( $page_ids );
 	}
@@ -412,11 +424,16 @@ class SScribe_Page_Collector {
 		$post_status = $this->validate_post_status( $post_status );
 		$post_types  = $this->resolve_post_type_for_query( $post_type );
 
-		$generation  = $this->get_content_cache_generation();
-		$cache_key   = 'sscribe_estimate_count_' . $generation . '_' . md5( $language . '|' . $post_status . '|' . ( is_array( $post_types ) ? implode( ',', $post_types ) : (string) $post_types ) );
-		$cached      = function_exists( 'get_transient' ) ? get_transient( $cache_key ) : false;
-		if ( is_int( $cached ) && $cached >= 0 ) {
-			return $cached;
+		$generation = $this->get_content_cache_generation();
+		$cache_key  = 'sscribe_estimate_count_v2_' . md5( $language . '|' . $post_status . '|' . ( is_array( $post_types ) ? implode( ',', $post_types ) : (string) $post_types ) );
+		$cached     = function_exists( 'get_transient' ) ? get_transient( $cache_key ) : false;
+		if (
+			is_array( $cached )
+			&& isset( $cached['generation'], $cached['count'] )
+			&& (int) $cached['generation'] === $generation
+			&& is_numeric( $cached['count'] )
+		) {
+			return max( 0, (int) $cached['count'] );
 		}
 
 		if ( is_array( $post_types ) ) {
@@ -446,7 +463,14 @@ class SScribe_Page_Collector {
 		// phpcs:enable
 
 		if ( function_exists( 'set_transient' ) ) {
-			set_transient( $cache_key, $count, MINUTE_IN_SECONDS );
+			set_transient(
+				$cache_key,
+				array(
+					'generation' => $generation,
+					'count'      => $count,
+				),
+				MINUTE_IN_SECONDS
+			);
 		}
 
 		return $count;
