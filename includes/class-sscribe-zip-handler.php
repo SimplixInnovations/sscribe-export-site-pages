@@ -40,6 +40,13 @@ class SScribe_Zip_Handler {
 	private ?string $cached_nonce = null;
 
 	/**
+	 * Rows already loaded by list_export_entries() during this request.
+	 *
+	 * @var array<string,array<string,mixed>>
+	 */
+	private array $export_entry_cache = array();
+
+	/**
 	 * Initialize the ZIP handler.
 	 */
 	public function __construct() {
@@ -738,7 +745,8 @@ class SScribe_Zip_Handler {
 				$row = get_option( $option_name, null );
 			}
 			if ( is_array( $row ) ) {
-				$entries[ $basename ] = $row;
+				$entries[ $basename ]              = $row;
+				$this->export_entry_cache[ $basename ] = $row;
 			}
 		}
 
@@ -753,11 +761,10 @@ class SScribe_Zip_Handler {
 	 * each other; the server rotates it only after a successful
 	 * redemption. A replay with the consumed token therefore fails.
 	 *
-	 * @param string                   $zip_filename ZIP filename.
-	 * @param array<string,mixed>|null $row          Optional already-loaded row.
+	 * @param string $zip_filename ZIP filename.
 	 * @return string
 	 */
-	public function get_ajax_download_url( string $zip_filename, ?array $row = null ): string {
+	public function get_ajax_download_url( string $zip_filename ): string {
 		$zip_filename = $this->normalize_zip_filename( $zip_filename );
 		if ( '' === $zip_filename || ! is_user_logged_in() ) {
 			return '';
@@ -765,9 +772,7 @@ class SScribe_Zip_Handler {
 		if ( null === $this->cached_nonce ) {
 			$this->cached_nonce = wp_create_nonce( 'sscribe_download' );
 		}
-		if ( null === $row ) {
-			$row = get_option( 'sscribe_export_row_' . md5( $zip_filename ), null );
-		}
+		$row = $this->export_entry_cache[ $zip_filename ] ?? get_option( 'sscribe_export_row_' . md5( $zip_filename ), null );
 		$token = is_array( $row ) && isset( $row['dl_token'] ) && is_string( $row['dl_token'] )
 			? $row['dl_token']
 			: '';
