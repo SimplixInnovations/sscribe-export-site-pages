@@ -45,7 +45,9 @@ class SScribe_Security {
 		$content      .= "  </IfModule>\n";
 		$content      .= "</Files>\n";
 
-		self::write_file( $htaccess_path, $content );
+		if ( ! self::file_contents_match( $htaccess_path, $content ) ) {
+			self::write_file( $htaccess_path, $content );
+		}
 
 		$index_path = $dir . '/index.php';
 		if ( ! file_exists( $index_path ) ) {
@@ -113,6 +115,30 @@ class SScribe_Security {
 		}
 
 		return $wp_filesystem->rmdir( $dir );
+	}
+
+	/**
+	 * Check whether a protected file already has the expected contents.
+	 *
+	 * @param string $file_path File path to inspect.
+	 * @param string $content   Expected contents.
+	 * @return bool True only for an existing non-symlink file with exact contents.
+	 */
+	private static function file_contents_match( string $file_path, string $content ): bool {
+		if ( ! is_file( $file_path ) || is_link( $file_path ) ) {
+			return false;
+		}
+
+		global $wp_filesystem;
+		$current = false;
+		if ( ! empty( $wp_filesystem ) || self::initialize_wp_filesystem() ) {
+			$current = $wp_filesystem->get_contents( $file_path );
+		} else {
+			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Bounded read of a validated plugin-owned guard file when WP_Filesystem is unavailable.
+			$current = @file_get_contents( $file_path );
+		}
+
+		return is_string( $current ) && hash_equals( $content, $current );
 	}
 
 	/**
