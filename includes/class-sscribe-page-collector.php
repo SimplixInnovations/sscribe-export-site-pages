@@ -1032,11 +1032,15 @@ class SScribe_Page_Collector {
 		$children    = array();
 		$child_pages = get_children(
 			array(
-				'post_parent' => $page_id,
-				'post_type'   => $post_type,
-				'post_status' => 'publish',
-				'orderby'     => 'menu_order title',
-				'order'       => 'ASC',
+				'post_parent'            => $page_id,
+				'post_type'              => $post_type,
+				'post_status'            => 'publish',
+				'numberposts'            => 200,
+				'orderby'                => 'menu_order title',
+				'order'                  => 'ASC',
+				'no_found_rows'          => true,
+				'update_post_meta_cache' => false,
+				'update_post_term_cache' => false,
 			)
 		);
 
@@ -1124,12 +1128,16 @@ class SScribe_Page_Collector {
 
 			$ancestor_posts = get_posts(
 				array(
-					'post__in'    => $ancestors,
-					'post_type'   => get_post_type( $page_id ),
-					'post_status' => 'publish',
-					'fields'      => 'all',
-					'orderby'     => 'post__in',
-					'order'       => 'ASC',
+					'post__in'               => $ancestors,
+					'post_type'              => get_post_type( $page_id ),
+					'post_status'            => 'publish',
+					'posts_per_page'         => min( 100, count( $ancestors ) ),
+					'fields'                 => 'all',
+					'orderby'                => 'post__in',
+					'order'                  => 'ASC',
+					'no_found_rows'          => true,
+					'update_post_meta_cache' => false,
+					'update_post_term_cache' => false,
 				)
 			);
 
