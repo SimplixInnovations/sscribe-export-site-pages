@@ -304,6 +304,10 @@ class SScribe_Page_Collector {
 	 */
 	private function prime_readability_post_cache( array $page_ids ): void {
 		foreach ( array_chunk( $page_ids, 500 ) as $chunk ) {
+			if ( function_exists( '_prime_post_caches' ) ) {
+				_prime_post_caches( $chunk, false, false );
+				continue;
+			}
 			get_posts(
 				array(
 					'post__in'               => $chunk,
