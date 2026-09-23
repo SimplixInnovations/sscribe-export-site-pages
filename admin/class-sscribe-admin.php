@@ -382,6 +382,8 @@ class SScribe_Admin {
 				'error_hide_details'     => __( 'Hide technical details', 'sscribe-export-site-pages' ),
 				'fix_steps'              => __( 'Steps to fix:', 'sscribe-export-site-pages' ),
 				'export_progress_prefix' => __( 'Export progress:', 'sscribe-export-site-pages' ),
+				'phase_current'          => __( 'Current step', 'sscribe-export-site-pages' ),
+				'phase_completed'        => __( 'Completed', 'sscribe-export-site-pages' ),
 				'format_docx'            => __( 'Word Document (DOCX)', 'sscribe-export-site-pages' ),
 				'format_pdf'             => __( 'PDF Document', 'sscribe-export-site-pages' ),
 				'format_html'            => __( 'HTML Page', 'sscribe-export-site-pages' ),
