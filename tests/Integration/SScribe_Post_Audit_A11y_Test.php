@@ -35,7 +35,7 @@ final class SScribe_Post_Audit_A11y_Test extends TestCase {
 		$js = (string) file_get_contents( self::root() . '/admin/js/sscribe-admin.js' );
 		$this->assertStringContainsString( "addClass('sscribe-toast-dismiss')", $js );
 		$this->assertStringContainsString( "sscribe_data.strings.dismiss_notification", $js );
-		$this->assertStringNotContainsString( "$toast.on('click.sscribe'", $js );
+		$this->assertStringNotContainsString( '$toast.on(\'click.sscribe\'', $js );
 	}
 
 	public function test_preflight_banner_restores_focus_for_every_exit_path(): void {
@@ -78,6 +78,6 @@ final class SScribe_Post_Audit_A11y_Test extends TestCase {
 	public function test_preflight_dynamic_headings_do_not_skip_levels(): void {
 		$js = (string) file_get_contents( self::root() . '/admin/js/sscribe-admin.js' );
 		$this->assertStringContainsString( "'<h2>'", $js );
-		$this->assertStringContainsString( "'<h3 class="sscribe-preflight-section-title">'", $js );
+		$this->assertStringContainsString( '\'<h3 class="sscribe-preflight-section-title">\'', $js );
 	}
 }
