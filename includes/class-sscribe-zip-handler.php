@@ -654,6 +654,72 @@ class SScribe_Zip_Handler {
 	}
 
 	/**
+	 * Prime per-export option rows in one database query on WordPress versions
+	 * that predate wp_prime_option_caches().
+	 *
+	 * @param array<int, string> $option_names Option names to prime.
+	 */
+	private function prime_export_row_options( array $option_names ): void {
+		$option_names = array_values( array_unique( array_filter( $option_names, 'is_string' ) ) );
+		if ( empty( $option_names ) ) {
+			return;
+		}
+
+		if ( function_exists( 'wp_prime_option_caches' ) ) {
+			wp_prime_option_caches( $option_names );
+			return;
+		}
+
+		global $wpdb;
+		$alloptions = wp_load_alloptions();
+		$notoptions = wp_cache_get( 'notoptions', 'options' );
+		$notoptions = is_array( $notoptions ) ? $notoptions : array();
+		$to_prime   = array();
+
+		foreach ( $option_names as $option_name ) {
+			if ( isset( $alloptions[ $option_name ] ) || isset( $notoptions[ $option_name ] ) ) {
+				continue;
+			}
+			$cached = wp_cache_get( $option_name, 'options' );
+			if ( false === $cached ) {
+				$to_prime[] = $option_name;
+			}
+		}
+
+		if ( empty( $to_prime ) ) {
+			return;
+		}
+
+		$placeholders = implode( ',', array_fill( 0, count( $to_prime ), '%s' ) );
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name is the core options table and placeholders are generated internally.
+		$sql = "SELECT option_name, option_value FROM {$wpdb->options} WHERE option_name IN ({$placeholders})";
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- Back-compat cache primer for WP < 6.4; values are immediately placed in the normal options cache.
+		$rows = $wpdb->get_results( $wpdb->prepare( $sql, $to_prime ) );
+
+		$found = array();
+		foreach ( (array) $rows as $row ) {
+			if ( ! isset( $row->option_name, $row->option_value ) ) {
+				continue;
+			}
+			$name = (string) $row->option_name;
+			$found[ $name ] = true;
+			wp_cache_set( $name, $row->option_value, 'options' );
+		}
+
+		$notoptions_changed = false;
+		foreach ( $to_prime as $option_name ) {
+			if ( isset( $found[ $option_name ] ) || isset( $notoptions[ $option_name ] ) ) {
+				continue;
+			}
+			$notoptions[ $option_name ] = true;
+			$notoptions_changed = true;
+		}
+		if ( $notoptions_changed ) {
+			wp_cache_set( 'notoptions', $notoptions, 'options' );
+		}
+	}
+
+	/**
 	 * Look up a single export entry by filename.
 	 *
 	 * @param string $zip_filename Basename of the ZIP.
@@ -678,17 +744,26 @@ class SScribe_Zip_Handler {
 	 * @return array<string, array<string, mixed>> Map of basename => row data.
 	 */
 	public function list_export_entries(): array {
-		$index   = get_option( 'sscribe_export_index', array() );
-		$index   = array_slice( (array) $index, -50 );
-		$entries = array();
+		$index = array_slice( (array) get_option( 'sscribe_export_index', array() ), -50 );
+
+		$basenames    = array();
+		$option_names = array();
 		foreach ( $index as $basename ) {
 			$basename = $this->normalize_zip_filename( (string) $basename );
 			if ( '' === $basename ) {
 				continue;
 			}
+			$basenames[]    = $basename;
+			$option_names[] = 'sscribe_export_row_' . md5( $basename );
+		}
+
+		$this->prime_export_row_options( $option_names );
+
+		$entries = array();
+		foreach ( $basenames as $basename ) {
 			$row = $this->get_export_entry( $basename );
 			if ( null !== $row ) {
-				$entries[ (string) $basename ] = $row;
+				$entries[ $basename ] = $row;
 			}
 		}
 		return $entries;
