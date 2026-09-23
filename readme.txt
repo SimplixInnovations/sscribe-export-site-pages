@@ -118,10 +118,9 @@ Build transformations are documented in docs/BUILD_TRANSFORMATIONS.md.
 == Changelog ==
 
 = 2.0.4 =
-* Fixed SQLite upgrade portability and bounded failed-upgrade retries; expanded schema convergence and cleanup coverage.
-* Improved large-site exports with bulk permission hydration, bounded/paginated child queries, stable content-cache keys, shorter lock contention, and batched export-history metadata reads.
-* Fixed admin accessibility/UX issues including keyboard-operable toasts, focus restoration, hidden inactive tabs, semantic phase/heading state, live feedback, and reliable dismissals/download states.
-* Hardened deterministic WordPress.org packaging, exact-release admission, tag governance, and development-file exclusion.
+* Fixed SQLite upgrades and bounded failed-upgrade retries.
+* Improved large-site query/cache behavior and admin accessibility/UX.
+* Hardened deterministic WordPress.org packaging and exact-release/tag admission.
 
 = 2.0.3 =
 * Fixed activation on managed hosting and container environments by accepting validated writable private bases without weakening public-path or symlink protections.
@@ -160,7 +159,7 @@ Build transformations are documented in docs/BUILD_TRANSFORMATIONS.md.
 == Upgrade Notice ==
 
 = 2.0.4 =
-Improves upgrade portability, large-site performance, admin accessibility, and release-package integrity. No manual migration action is required.
+Upgrade, large-site, accessibility, and release-package hardening; no manual migration action required.
 
 = 2.0.3 =
 Fixes private-storage activation compatibility, Plugin Check compliance, export finalization reliability, custom post type exports, session concurrency safety, and admin-output hardening. No manual data migration is required.
