@@ -3374,3 +3374,11 @@ msgstr ""
 #: includes/class-sscribe-diagnostics.php
 msgid "Reinstall the complete plugin package to restore the bundled TCPDF renderer"
 msgstr ""
+
+#: admin/class-sscribe-admin.php
+msgid "Current step"
+msgstr ""
+
+#: admin/class-sscribe-admin.php
+msgid "Completed"
+msgstr ""
