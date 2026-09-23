@@ -19,6 +19,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 class SScribe_Upgrader {
 
 	private const SCHEMA_VERSION_OPTION = 'sscribe_schema_version';
+	private const UPGRADE_FAILURES_OPTION = 'sscribe_upgrade_failures';
+	private const UPGRADE_NEXT_ATTEMPT_OPTION = 'sscribe_upgrade_next_attempt';
 
 	/**
 	 * Check and run any pending database migrations.
@@ -28,6 +30,19 @@ class SScribe_Upgrader {
 		$installed_version = is_scalar( $installed_version ) ? (string) $installed_version : '0';
 
 		if ( version_compare( $installed_version, SSCRIBE_VERSION, '>=' ) ) {
+			return;
+		}
+
+		$allowed_context = ( function_exists( 'is_admin' ) && is_admin() )
+			|| ( function_exists( 'wp_doing_ajax' ) && wp_doing_ajax() )
+			|| ( function_exists( 'wp_doing_cron' ) && wp_doing_cron() )
+			|| ( defined( 'WP_CLI' ) && WP_CLI );
+		if ( ! $allowed_context ) {
+			return;
+		}
+
+		$next_attempt = (int) get_option( self::UPGRADE_NEXT_ATTEMPT_OPTION, 0 );
+		if ( $next_attempt > time() ) {
 			return;
 		}
 
@@ -52,8 +67,14 @@ class SScribe_Upgrader {
 				update_option( self::SCHEMA_VERSION_OPTION, SSCRIBE_VERSION, false );
 				update_option( 'sscribe_version', SSCRIBE_VERSION, false );
 				delete_option( 'sscribe_upgrade_last_error' );
+				delete_option( self::UPGRADE_FAILURES_OPTION );
+				delete_option( self::UPGRADE_NEXT_ATTEMPT_OPTION );
 			} catch ( \Throwable $e ) {
 				$reference = substr( hash( 'sha256', get_class( $e ) . '|' . $e->getMessage() ), 0, 12 );
+				$failures  = max( 0, (int) get_option( self::UPGRADE_FAILURES_OPTION, 0 ) ) + 1;
+				$delay     = min( HOUR_IN_SECONDS, MINUTE_IN_SECONDS * ( 2 ** min( 6, $failures - 1 ) ) );
+				update_option( self::UPGRADE_FAILURES_OPTION, $failures, false );
+				update_option( self::UPGRADE_NEXT_ATTEMPT_OPTION, time() + $delay, false );
 				update_option(
 					'sscribe_upgrade_last_error',
 					array(
@@ -86,55 +107,64 @@ class SScribe_Upgrader {
 		if ( file_exists( $upgrade_functions ) ) {
 			require_once $upgrade_functions;
 		}
+		if ( ! function_exists( 'dbDelta' ) ) {
+			throw new \RuntimeException( 'WordPress database upgrade functions are unavailable.' );
+		}
+
+		$table_logs = $wpdb->prefix . 'sscribe_export_logs';
+		$sql_logs   = "CREATE TABLE $table_logs (
+			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+			timestamp DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			level VARCHAR(20) NOT NULL,
+			message TEXT NOT NULL,
+			context LONGTEXT,
+			session_id VARCHAR(60) DEFAULT NULL,
+			user_id BIGINT UNSIGNED,
+			request_id VARCHAR(12),
+			memory_usage VARCHAR(20),
+			PRIMARY KEY  (id),
+			KEY idx_timestamp (timestamp),
+			KEY idx_level (level),
+			KEY idx_session_id (session_id),
+			KEY idx_user_id (user_id),
+			KEY idx_request_id (request_id)
+		) $charset_collate;";
+
+		$table_stats = $wpdb->prefix . 'sscribe_export_stats';
+		$sql_stats   = "CREATE TABLE $table_stats (
+			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+			export_session_id VARCHAR(64) NOT NULL,
+			user_id BIGINT UNSIGNED NOT NULL,
+			export_date DATETIME NOT NULL,
+			total_pages INT UNSIGNED,
+			successful_pages INT UNSIGNED,
+			failed_pages INT UNSIGNED,
+			formats LONGTEXT,
+			memory_peak VARCHAR(20),
+			duration_seconds FLOAT,
+			file_size_mb DECIMAL(10, 2),
+			status VARCHAR(20) NOT NULL DEFAULT 'processing',
+			error_message TEXT,
+			created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			PRIMARY KEY  (id),
+			KEY idx_export_session_id (export_session_id),
+			KEY idx_user_id (user_id),
+			KEY idx_export_date (export_date),
+			KEY idx_status (status)
+		) $charset_collate;";
 
 		if ( version_compare( $from_version, '1.1.0', '<' ) ) {
-
-			$table_logs = $wpdb->prefix . 'sscribe_export_logs';
-			$sql_logs   = "CREATE TABLE $table_logs (
-				id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
-				timestamp DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-				level VARCHAR(20) NOT NULL,
-				message TEXT NOT NULL,
-				context LONGTEXT,
-				user_id BIGINT UNSIGNED,
-				request_id VARCHAR(12),
-				memory_usage VARCHAR(20),
-				PRIMARY KEY  (id),
-				KEY idx_timestamp (timestamp),
-				KEY idx_level (level),
-				KEY idx_user_id (user_id),
-				KEY idx_request_id (request_id)
-			) $charset_collate;";
 			dbDelta( $sql_logs );
-
-			$table_stats = $wpdb->prefix . 'sscribe_export_stats';
-			$sql_stats   = "CREATE TABLE $table_stats (
-				id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
-				export_session_id VARCHAR(64) NOT NULL,
-				user_id BIGINT UNSIGNED NOT NULL,
-				export_date DATETIME NOT NULL,
-				total_pages INT UNSIGNED,
-				successful_pages INT UNSIGNED,
-				failed_pages INT UNSIGNED,
-				formats LONGTEXT,
-				memory_peak VARCHAR(20),
-				duration_seconds FLOAT,
-				file_size_mb DECIMAL(10, 2),
-				status VARCHAR(20) NOT NULL DEFAULT 'processing',
-				error_message TEXT,
-				created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-				PRIMARY KEY  (id),
-				KEY idx_export_session_id (export_session_id),
-				KEY idx_user_id (user_id),
-				KEY idx_export_date (export_date),
-				KEY idx_status (status)
-			) $charset_collate;";
 			dbDelta( $sql_stats );
-
 			SScribe_Audit_Trail::create_table();
 		}
 
-		if ( version_compare( $from_version, '1.1.0', '<' ) ) {
+		$sqlite = self::is_sqlite_database();
+		if ( $sqlite && version_compare( $from_version, '1.1.7', '<' ) ) {
+			self::run_sqlite_schema_convergence( $sql_logs, $sql_stats );
+		}
+
+		if ( ! $sqlite && version_compare( $from_version, '1.1.0', '<' ) ) {
 			try {
 				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Schema introspection; plugin-controlled table name.
 				$index_check = $wpdb->get_results(
@@ -175,13 +205,13 @@ class SScribe_Upgrader {
 			}
 		}
 
-		if ( version_compare( $from_version, '1.1.0', '<' ) ) {
+		if ( ! $sqlite && version_compare( $from_version, '1.1.0', '<' ) ) {
 			try {
 				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Schema introspection; plugin-controlled table name.
 				$col          = $wpdb->get_row(
 					$wpdb->prepare(
 						'SHOW COLUMNS FROM ' . $wpdb->prefix . 'sscribe_export_stats LIKE %s',
-						'export_session_id'
+						$wpdb->esc_like( 'export_session_id' )
 					)
 				);
 				$needs_modify = true;
@@ -200,13 +230,13 @@ class SScribe_Upgrader {
 			}
 		}
 
-		if ( version_compare( $from_version, '1.1.3', '<' ) ) {
+		if ( ! $sqlite && version_compare( $from_version, '1.1.3', '<' ) ) {
 			try {
 				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Schema introspection; plugin-controlled table name.
 				$col = $wpdb->get_row(
 					$wpdb->prepare(
 						'SHOW COLUMNS FROM ' . $wpdb->prefix . 'sscribe_export_logs LIKE %s',
-						'session_id'
+						$wpdb->esc_like( 'session_id' )
 					)
 				);
 				if ( ! $col ) {
@@ -222,7 +252,7 @@ class SScribe_Upgrader {
 			}
 		}
 
-		if ( version_compare( $from_version, '1.1.7', '<' ) ) {
+		if ( ! $sqlite && version_compare( $from_version, '1.1.7', '<' ) ) {
 			try {
 				// phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.NotPrepared -- Plugin-controlled table and static schema migration.
 				$result = $wpdb->query( 'ALTER TABLE `' . $wpdb->prefix . "sscribe_export_stats` MODIFY COLUMN status VARCHAR(20) NOT NULL DEFAULT 'processing'" );
@@ -236,6 +266,20 @@ class SScribe_Upgrader {
 		if ( version_compare( $from_version, '2.0.0', '<' ) && ! SScribe_Private_Storage::migrate_legacy_storage() ) {
 			throw new \RuntimeException( 'Failed while migrating export artifacts to private storage.' );
 		}
+	}
+
+	private static function is_sqlite_database(): bool {
+		if ( defined( 'DB_ENGINE' ) && 'sqlite' === strtolower( (string) DB_ENGINE ) ) {
+			return true;
+		}
+		global $wpdb;
+		return is_object( $wpdb ) && false !== stripos( get_class( $wpdb ), 'sqlite' );
+	}
+
+	private static function run_sqlite_schema_convergence( string $sql_logs, string $sql_stats ): void {
+		dbDelta( $sql_logs );
+		dbDelta( $sql_stats );
+		SScribe_Audit_Trail::create_table();
 	}
 
 	/**
