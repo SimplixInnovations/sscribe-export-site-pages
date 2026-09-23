@@ -180,7 +180,7 @@ if ( ! function_exists( 'sscribe_humanize_export_filename' ) ) {
 		</div>
 	</div>
 
-	<div class="sscribe-workspace sscribe-flat-workspace" id="sscribe-main-content">
+	<div class="sscribe-workspace sscribe-flat-workspace" id="sscribe-main-content" tabindex="-1">
 		<div id="sscribe-tab-announce" class="screen-reader-text" aria-live="polite" aria-atomic="true"></div>
 		<nav class="sscribe-tabs-nav" role="tablist" aria-label="<?php esc_attr_e( 'Main Navigation', 'sscribe-export-site-pages' ); ?>" aria-orientation="horizontal">
 			<button type="button" class="sscribe-tab-btn sscribe-tab-active" id="sscribe-tab-btn-export" data-tab="export" role="tab" aria-selected="true" aria-controls="sscribe-tab-export">
@@ -778,7 +778,7 @@ if ( ! function_exists( 'sscribe_humanize_export_filename' ) ) {
 					</div>
 				</dl>
 				<div class="sscribe-success-actions">
-					<a id="sscribe-download-btn" href="#" class="sscribe-button sscribe-button-success" download aria-describedby="sscribe-download-hint">
+					<a id="sscribe-download-btn" class="sscribe-button sscribe-button-success" download aria-disabled="true" tabindex="-1" aria-describedby="sscribe-download-hint">
 						<span><?php esc_html_e( 'Download ZIP', 'sscribe-export-site-pages' ); ?></span>
 					</a>
 					<span id="sscribe-download-hint" class="screen-reader-text"><?php esc_html_e( 'Download the exported ZIP file to your computer', 'sscribe-export-site-pages' ); ?></span>
