@@ -52,6 +52,68 @@ final class SScribe_Deep_Audit_Regression_Test extends SScribe_WP_TestCase {
 		);
 	}
 
+	public function test_admin_status_counts_use_bounded_queries_on_large_nonpublic_inventory(): void {
+		global $wpdb;
+
+		for ( $i = 0; $i < 120; ++$i ) {
+			$this->factory()->post->create(
+				array(
+					'post_type'   => 'page',
+					'post_status' => 'draft',
+					'post_title'  => 'SScribe status-count regression ' . $i,
+				)
+			);
+		}
+
+		$collector = new SScribe_Page_Collector();
+		$before    = (int) $wpdb->num_queries;
+		$counts    = $collector->get_post_status_counts( '', 'page' );
+		$delta     = (int) $wpdb->num_queries - $before;
+
+		$this->assertGreaterThanOrEqual( 120, (int) ( $counts['draft'] ?? 0 ) );
+		$this->assertLessThan(
+			30,
+			$delta,
+			'An administrator must use aggregate count queries instead of materializing every non-public post. Queries: ' . $delta
+		);
+	}
+
+	public function test_export_history_rows_are_batch_loaded_from_options_table(): void {
+		global $wpdb;
+
+		$index = array();
+		for ( $i = 0; $i < 30; ++$i ) {
+			$filename = sprintf( 'deep-audit-history-%02d.zip', $i );
+			$option   = 'sscribe_export_row_' . md5( $filename );
+			$index[]  = $filename;
+			update_option(
+				$option,
+				array(
+					'user_id'    => get_current_user_id(),
+					'created_at' => time() - $i,
+					'dl_token'   => str_repeat( dechex( $i % 16 ), 32 ),
+				),
+				false
+			);
+			wp_cache_delete( $option, 'options' );
+		}
+		update_option( 'sscribe_export_index', $index, false );
+		wp_cache_delete( 'sscribe_export_index', 'options' );
+
+		$handler = new SScribe_Zip_Handler();
+		$before  = (int) $wpdb->num_queries;
+		$entries = $handler->list_export_entries();
+		$delta   = (int) $wpdb->num_queries - $before;
+
+		$this->assertCount( 30, $entries );
+		$this->assertLessThan( 8, $delta, 'History row loading must use one bounded options query. Queries: ' . $delta );
+
+		foreach ( $index as $filename ) {
+			delete_option( 'sscribe_export_row_' . md5( $filename ) );
+		}
+		delete_option( 'sscribe_export_index' );
+	}
+
 	public function test_sqlite_old_schema_upgrade_reaches_current_version_without_mysql_only_ddl(): void {
 		set_current_screen( 'dashboard' );
 		delete_option( 'sscribe_upgrade_last_error' );
