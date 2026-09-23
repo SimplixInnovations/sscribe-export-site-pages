@@ -168,6 +168,12 @@ class SScribe {
 			return;
 		}
 
+		$screen = function_exists( 'get_current_screen' ) ? get_current_screen() : null;
+		$screen_id = is_object( $screen ) && isset( $screen->id ) ? (string) $screen->id : '';
+		if ( ! in_array( $screen_id, array( 'toplevel_page_sscribe-export', 'plugins', 'plugins-network' ), true ) ) {
+			return;
+		}
+
 		static $missing = null;
 		if ( null === $missing ) {
 			$diagnostics = new SScribe_Diagnostics();
@@ -378,9 +384,19 @@ class SScribe {
 		\SScribe_Request_Id::current();
 
 		$this->register_services();
-		$this->define_admin_hooks();
-		$this->define_ajax_hooks();
-		$this->define_cron_hooks();
+
+		// Registration is context-scoped so an ordinary frontend page view does
+		// not instantiate the admin, export, ZIP, diagnostics and session graphs.
+		// The container bindings remain available in every context.
+		if ( is_admin() ) {
+			$this->define_admin_hooks();
+		}
+		if ( wp_doing_ajax() ) {
+			$this->define_ajax_hooks();
+		}
+		if ( wp_doing_cron() ) {
+			$this->define_cron_hooks();
+		}
 		$this->define_lifecycle_hooks();
 		$this->define_privacy_hooks();
 
