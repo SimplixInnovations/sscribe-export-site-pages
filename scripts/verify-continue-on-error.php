@@ -21,7 +21,9 @@
  *
  *   3. includes/class-sscribe-export-stats.php +
  *      includes/class-sscribe-activator.php — the failed_pages column
- *      is part of the schema and complete_export() updates it.
+ *      is part of the canonical schema and complete_export() updates it.
+ *      includes/class-sscribe-upgrader.php delegates schema convergence
+ *      to that same canonical activator definition.
  *
  *   4. includes/traits/trait-sscribe-export-finalizer.php — at ZIP
  *      finalization, the count of failed pages is computed from the
@@ -127,8 +129,8 @@ if ( ! preg_match( $action_pattern, $trait_src ) ) {
 if ( ! preg_match( '/failed_pages\s+INT\s+UNSIGNED/i', $activator_src ) ) {
 	$errors[] = 'Activator schema does not declare `failed_pages INT UNSIGNED`. The export_stats table cannot persist the failure count.';
 }
-if ( ! preg_match( '/failed_pages\s+INT\s+UNSIGNED/i', $upgrader_src ) ) {
-	$errors[] = 'Upgrader schema does not declare `failed_pages INT UNSIGNED`. New installs will create the column, but an upgrade path for older sites must keep it too.';
+if ( ! preg_match( '/SScribe_Activator::ensure_database_schema\s*\(\s*false\s*\)/', $upgrader_src ) ) {
+	$errors[] = 'Upgrader does not delegate schema convergence to SScribe_Activator::ensure_database_schema(false). Existing sites could drift from the canonical failed_pages schema.';
 }
 
 // 5. export_stats writes failed_pages via complete_export AND update_progress.
