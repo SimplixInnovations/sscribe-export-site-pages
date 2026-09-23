@@ -758,7 +758,7 @@ class SScribe_Admin {
 
 			$recent_exports[] = array(
 				'filename'  => $filename,
-				'url'       => $this->zip_handler->get_ajax_download_url( $filename, $data ),
+				'url'       => $this->zip_handler->get_ajax_download_url( $filename ),
 				'time'      => isset( $data['created_at'] ) ? (int) $data['created_at'] : $file_time,
 				'size'      => $file_size,
 				'lang_code' => $lang_code,
