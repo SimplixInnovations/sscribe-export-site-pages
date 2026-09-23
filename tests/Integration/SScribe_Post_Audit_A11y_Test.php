@@ -81,6 +81,16 @@ final class SScribe_Post_Audit_A11y_Test extends TestCase {
 		$this->assertStringContainsString( '\'<h3 class="sscribe-preflight-section-title">\'', $js );
 	}
 
+
+	public function test_export_configuration_labels_are_semantic_headings(): void {
+		$php = (string) file_get_contents( self::root() . '/admin/partials/sscribe-admin-display.php' );
+		$this->assertSame( 4, substr_count( $php, '<h3 class="sscribe-section-title">' ) );
+		$this->assertSame( 1, substr_count( $php, '<h3 class="sscribe-config-section-header">' ) );
+		$this->assertStringNotContainsString( '<div class="sscribe-section-title">', $php );
+		$this->assertStringNotContainsString( '<div class="sscribe-config-section-header">', $php );
+	}
+
+
 	public function test_dynamic_heading_fragments_never_cross_heading_levels(): void {
 		$js = (string) file_get_contents( self::root() . '/admin/js/sscribe-admin.js' );
 		$this->assertStringNotContainsString( "<h4>' + this.escapeHtml(strings.preview_sample_title || 'Sample:') + '</h3>", $js );
