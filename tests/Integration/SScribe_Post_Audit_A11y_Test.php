@@ -81,6 +81,14 @@ final class SScribe_Post_Audit_A11y_Test extends TestCase {
 		$this->assertStringContainsString( '\'<h3 class="sscribe-preflight-section-title">\'', $js );
 	}
 
+	public function test_dynamic_heading_fragments_never_cross_heading_levels(): void {
+		$js = (string) file_get_contents( self::root() . '/admin/js/sscribe-admin.js' );
+		$this->assertStringNotContainsString( "<h4>' + this.escapeHtml(strings.preview_sample_title || 'Sample:') + '</h3>", $js );
+		$this->assertStringNotContainsString( "<h4>' + this.escapeHtml(strings.log_page_details || 'Page Details') + '</h3>", $js );
+		$this->assertStringNotContainsString( "<h4>' + this.escapeHtml(strings.log_errors || 'Errors') + '</h3>", $js );
+		$this->assertStringNotContainsString( "sscribe-support-section-title", preg_replace( '/<h4[^>]*>[\\s\\S]*?<\\/h3>/', '', $js ) === $js ? '' : 'sscribe-support-section-title' );
+	}
+
 	public function test_debug_help_clone_cannot_duplicate_the_labelledby_id(): void {
 		$js = (string) file_get_contents( self::root() . '/admin/js/sscribe-debug-console.js' );
 		$this->assertStringContainsString( 'sscribe-debug-help-dialog-title', $js );
