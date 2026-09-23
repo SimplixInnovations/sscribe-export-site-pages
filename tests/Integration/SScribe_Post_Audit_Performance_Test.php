@@ -64,6 +64,20 @@ final class SScribe_Post_Audit_Performance_Test extends TestCase {
 		}
 	}
 
+
+	public function test_content_cache_invalidation_is_not_limited_to_page_and_post(): void {
+		$src = (string) file_get_contents( self::root() . '/includes/class-sscribe.php' );
+		$start = strpos( $src, 'public function invalidate_admin_page_cache' );
+		$end = strpos( $src, 'public function bump_content_cache_generation', $start );
+		$this->assertNotFalse( $start );
+		$this->assertNotFalse( $end );
+		$method = substr( $src, $start, $end - $start );
+		$this->assertStringNotContainsString( "array( 'page', 'post' )", $method );
+		$this->assertStringContainsString( 'get_post_type( $post_id )', $method );
+		$this->assertStringContainsString( 'bump_content_cache_generation', $method );
+	}
+
+
 	public function test_content_cache_generation_does_not_create_new_transient_keys(): void {
 		$src = (string) file_get_contents( self::root() . '/includes/class-sscribe-page-collector.php' );
 		$this->assertStringContainsString( "'sscribe_page_ids_v3_'", $src );
