@@ -1057,30 +1057,35 @@ class SScribe_Page_Collector {
 			return $this->filter_readable_child_rows( $cached );
 		}
 
-		$children    = array();
-		$child_pages = get_children(
-			array(
-				'post_parent'            => $page_id,
-				'post_type'              => $post_type,
-				'post_status'            => 'publish',
-				'orderby'                => 'menu_order title',
-				'order'                  => 'ASC',
-				'numberposts'             => 200,
-				'no_found_rows'           => true,
-				'update_post_meta_cache' => false,
-				'update_post_term_cache' => false,
-			)
-		);
+		$children   = array();
+		$offset     = 0;
+		$batch_size = 200;
+		do {
+			$child_pages = get_children(
+				array(
+					'post_parent'            => $page_id,
+					'post_type'              => $post_type,
+					'post_status'            => 'publish',
+					'orderby'                => 'menu_order title',
+					'order'                  => 'ASC',
+					'numberposts'             => $batch_size,
+					'offset'                  => $offset,
+					'no_found_rows'           => true,
+					'update_post_meta_cache' => false,
+					'update_post_term_cache' => false,
+				)
+			);
 
-		if ( $child_pages ) {
-			foreach ( $child_pages as $child ) {
+			foreach ( (array) $child_pages as $child ) {
 				$children[] = array(
 					'id'    => $child->ID,
 					'title' => html_entity_decode( $child->post_title, ENT_QUOTES | ENT_HTML5, 'UTF-8' ),
 					'url'   => $this->get_permalink_cached( (int) $child->ID ),
 				);
 			}
-		}
+			$loaded = count( (array) $child_pages );
+			$offset += $loaded;
+		} while ( $loaded === $batch_size );
 
 		wp_cache_set( $cache_key, $children, $cache_group, MINUTE_IN_SECONDS * 5 );
 		$this->child_pages_cache[ $page_id ] = $children;
@@ -1094,6 +1099,19 @@ class SScribe_Page_Collector {
 	 * @return array<int, array<string, mixed>> Readable child rows.
 	 */
 	private function filter_readable_child_rows( array $children ): array {
+		$ids = array();
+		foreach ( $children as $child ) {
+			if ( is_array( $child ) && isset( $child['id'] ) ) {
+				$id = absint( $child['id'] );
+				if ( $id > 0 ) {
+					$ids[] = $id;
+				}
+			}
+		}
+		if ( ! empty( $ids ) ) {
+			$this->prime_readability_post_cache( $ids );
+		}
+
 		return array_values(
 			array_filter(
 				$children,
