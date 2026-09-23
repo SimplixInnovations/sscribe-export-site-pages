@@ -212,18 +212,6 @@ class SScribe {
 			return;
 		}
 
-		$post_type = get_post_type( $post_id );
-		$post_type_object = $post_type && function_exists( 'get_post_type_object' )
-			? get_post_type_object( $post_type )
-			: null;
-		if (
-			! $post_type
-			|| 'attachment' === $post_type
-			|| ( $post_type_object && empty( $post_type_object->public ) )
-		) {
-			return;
-		}
-
 		$cache_key = 'sscribe_admin_page_data_v2_' . SSCRIBE_VERSION . '_' . get_current_blog_id();
 		delete_transient( $cache_key );
 
