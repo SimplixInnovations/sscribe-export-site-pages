@@ -1387,6 +1387,13 @@
 			);
 		},
 		showPreflightWarnings: function (diagnostics, onProceed, allowProceed) {
+			const activeElement = document.activeElement;
+			if (
+				activeElement &&
+				!$(activeElement).closest('.sscribe-preflight-banner').length
+			) {
+				this._preflightTrigger = activeElement;
+			}
 			const checks = diagnostics.checks || {};
 			const errors = [];
 			const warnings = [];
@@ -1472,6 +1479,18 @@
 			$('.sscribe-workspace').prepend(bannerHtml);
 			const $banner = $('.sscribe-preflight-banner');
 			$banner.attr('role', 'alert');
+			const restorePreflightFocus = function () {
+				const trigger = SScribe._preflightTrigger;
+				SScribe._preflightTrigger = null;
+				if (
+					trigger &&
+					typeof trigger.focus === 'function' &&
+					document.contains(trigger) &&
+					!trigger.disabled
+				) {
+					trigger.focus();
+				}
+			};
 			const $firstFocusable = $banner.find('.sscribe-preflight-close');
 			if ($firstFocusable.length && typeof $firstFocusable[0].focus === 'function') {
 				setTimeout(function () {
@@ -1484,11 +1503,15 @@
 						$banner.remove();
 					});
 					onProceed();
+					// The export path normally disables/moves away from its trigger.
+					// Restore only when the trigger remains a valid focus target.
+					restorePreflightFocus();
 				});
 			}
 			$banner.on('click.sscribe-preflight', '.sscribe-preflight-cancel', function () {
 				$banner.fadeOut(200, function () {
 					$banner.remove();
+					restorePreflightFocus();
 				});
 				SScribe.isPreparing = false;
 				SScribe.isProcessing = false;
@@ -1506,6 +1529,7 @@
 			$banner.on('click.sscribe-preflight', '.sscribe-preflight-close', function () {
 				$banner.fadeOut(200, function () {
 					$banner.remove();
+					restorePreflightFocus();
 				});
 				SScribe.isPreparing = false;
 				SScribe.isProcessing = false;
@@ -2853,10 +2877,17 @@
 				return;
 			}
 			const typeClass = 'sscribe-toast-' + type;
-			const $toast = $('<div>').addClass('sscribe-toast ' + typeClass);
+			const $toast = $('<div>').addClass('sscribe-toast ' + typeClass).attr('aria-atomic', 'true');
 			const $icon = $('<span>').addClass('sscribe-toast-icon').attr('aria-hidden', 'true');
 			const $body = $('<span>').addClass('sscribe-toast-body').text(message);
-			$toast.append($icon).append($body);
+			const dismissLabel =
+				(typeof sscribe_data !== 'undefined' && sscribe_data.strings && sscribe_data.strings.close) ||
+				'Dismiss notification';
+			const $dismiss = $('<button>')
+				.attr({ type: 'button', 'aria-label': dismissLabel })
+				.addClass('sscribe-toast-dismiss')
+				.append($('<span>').attr('aria-hidden', 'true').text('×'));
+			$toast.append($icon).append($body).append($dismiss);
 			$container.append($toast);
 			// Animate in
 			requestAnimationFrame(function () {
@@ -2872,8 +2903,9 @@
 			if (duration > 0) {
 				setTimeout(dismiss, duration);
 			}
-			// Click-to-dismiss
-			$toast.on('click.sscribe', function () {
+			// Dismiss through a semantic button so mouse, keyboard and assistive
+			// technology all expose the same action.
+			$dismiss.on('click.sscribe', function () {
 				dismiss();
 			});
 			return $toast;
