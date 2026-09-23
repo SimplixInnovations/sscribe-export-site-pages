@@ -31,6 +31,18 @@ final class SScribe_Page_Collector_Readability_Performance_Test extends TestCase
 		parent::tearDown();
 	}
 
+
+	public function test_all_status_normalization_remains_idempotent_and_uses_any_internally(): void {
+		$collector = new SScribe_Page_Collector();
+		$this->assertSame( 'any', $collector->validate_post_status( 'all' ) );
+		$this->assertSame( 'any', $collector->validate_post_status( 'any' ) );
+
+		$source = (string) file_get_contents( dirname( __DIR__, 2 ) . '/includes/class-sscribe-page-collector.php' );
+		$this->assertStringContainsString( "if ( 'any' === $post_status )", $source );
+		$this->assertStringContainsString( "if ( 'any' !== $post_status )", $source );
+	}
+
+
 	public function test_filter_readable_page_ids_bulk_hydrates_instead_of_get_post_per_id(): void {
 		$collector = new SScribe_Page_Collector();
 		$method = new ReflectionMethod( $collector, 'filter_readable_page_ids' );
