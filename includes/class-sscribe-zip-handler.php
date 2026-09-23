@@ -40,6 +40,13 @@ class SScribe_Zip_Handler {
 	private ?string $cached_nonce = null;
 
 	/**
+	 * Per-request export metadata cache keyed by normalized basename.
+	 *
+	 * @var array<string, array<string, mixed>|null>
+	 */
+	private array $export_row_cache = array();
+
+	/**
 	 * Initialize the ZIP handler.
 	 */
 	public function __construct() {
@@ -664,8 +671,12 @@ class SScribe_Zip_Handler {
 		if ( '' === $zip_filename ) {
 			return null;
 		}
+		if ( array_key_exists( $zip_filename, $this->export_row_cache ) ) {
+			return $this->export_row_cache[ $zip_filename ];
+		}
 		$row = get_option( 'sscribe_export_row_' . md5( $zip_filename ), null );
-		return is_array( $row ) ? $row : null;
+		$this->export_row_cache[ $zip_filename ] = is_array( $row ) ? $row : null;
+		return $this->export_row_cache[ $zip_filename ];
 	}
 
 	/**
@@ -678,17 +689,48 @@ class SScribe_Zip_Handler {
 	 * @return array<string, array<string, mixed>> Map of basename => row data.
 	 */
 	public function list_export_entries(): array {
-		$index   = get_option( 'sscribe_export_index', array() );
-		$index   = array_slice( (array) $index, -50 );
-		$entries = array();
+		global $wpdb;
+
+		$index = array_values(
+			array_filter(
+				array_map(
+					fn( $basename ): string => $this->normalize_zip_filename( (string) $basename ),
+					array_slice( (array) get_option( 'sscribe_export_index', array() ), -50 )
+				)
+			)
+		);
+		if ( empty( $index ) ) {
+			return array();
+		}
+
+		$option_to_basename = array();
 		foreach ( $index as $basename ) {
-			$basename = $this->normalize_zip_filename( (string) $basename );
-			if ( '' === $basename ) {
+			$option_to_basename[ 'sscribe_export_row_' . md5( $basename ) ] = $basename;
+		}
+		$option_names = array_keys( $option_to_basename );
+		$placeholders = implode( ',', array_fill( 0, count( $option_names ), '%s' ) );
+		$sql          = "SELECT option_name, option_value FROM {$wpdb->options} WHERE option_name IN ({$placeholders})";
+		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Bounded internal metadata batch; exact option names are prepared.
+		$rows = $wpdb->get_results( $wpdb->prepare( $sql, ...$option_names ) );
+
+		$loaded = array();
+		foreach ( is_array( $rows ) ? $rows : array() as $row ) {
+			$option_name = isset( $row->option_name ) ? (string) $row->option_name : '';
+			if ( ! isset( $option_to_basename[ $option_name ] ) ) {
 				continue;
 			}
-			$row = $this->get_export_entry( $basename );
+			$value = isset( $row->option_value ) ? maybe_unserialize( $row->option_value ) : null;
+			if ( is_array( $value ) ) {
+				$loaded[ $option_to_basename[ $option_name ] ] = $value;
+			}
+		}
+
+		$entries = array();
+		foreach ( $index as $basename ) {
+			$row = $loaded[ $basename ] ?? null;
+			$this->export_row_cache[ $basename ] = $row;
 			if ( null !== $row ) {
-				$entries[ (string) $basename ] = $row;
+				$entries[ $basename ] = $row;
 			}
 		}
 		return $entries;
@@ -713,7 +755,7 @@ class SScribe_Zip_Handler {
 		if ( null === $this->cached_nonce ) {
 			$this->cached_nonce = wp_create_nonce( 'sscribe_download' );
 		}
-		$row   = get_option( 'sscribe_export_row_' . md5( $zip_filename ), null );
+		$row   = $this->get_export_entry( $zip_filename );
 		$token = is_array( $row ) && isset( $row['dl_token'] ) && is_string( $row['dl_token'] )
 			? $row['dl_token']
 			: '';
@@ -772,7 +814,11 @@ class SScribe_Zip_Handler {
 		$token              = $this->generate_dl_token();
 		$row['dl_token']    = $token;
 		$row['dl_token_at'] = time();
-		return update_option( $option_name, $row, false ) ? $token : '';
+		if ( update_option( $option_name, $row, false ) ) {
+			$this->export_row_cache[ $zip_filename ] = $row;
+			return $token;
+		}
+		return '';
 	}
 
 	/**
