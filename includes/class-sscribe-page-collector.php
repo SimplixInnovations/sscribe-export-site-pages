@@ -74,6 +74,13 @@ class SScribe_Page_Collector {
 	private array $title_cache = array();
 
 	/**
+	 * Posts hydrated in bounded batches for permission checks.
+	 *
+	 * @var array<int, WP_Post|null>
+	 */
+	private array $readability_post_cache = array();
+
+	/**
 	 * Clear all page caches.
 	 *
 	 * @return void
@@ -84,6 +91,7 @@ class SScribe_Page_Collector {
 		$this->breadcrumb_cache      = array();
 		$this->permalink_cache       = array();
 		$this->title_cache           = array();
+		$this->readability_post_cache = array();
 	}
 
 	/**
@@ -269,17 +277,78 @@ class SScribe_Page_Collector {
 	 * @return array<int> Readable post IDs.
 	 */
 	private function filter_readable_page_ids( array $page_ids ): array {
-		$readable = array();
+		$page_ids = array_values(
+			array_unique(
+				array_filter(
+					array_map( 'absint', $page_ids )
+				)
+			)
+		);
+		if ( empty( $page_ids ) ) {
+			return array();
+		}
 
+		$this->prime_readability_posts( $page_ids );
+
+		$readable = array();
 		foreach ( $page_ids as $page_id ) {
-			$page_id = absint( $page_id );
-			if ( $page_id <= 0 || ! $this->is_post_readable_for_export( $page_id ) ) {
+			$post = $this->readability_post_cache[ $page_id ] ?? null;
+			if ( ! $post instanceof WP_Post || ! $this->is_post_readable_for_export( $page_id, $post ) ) {
 				continue;
 			}
 			$readable[] = $page_id;
 		}
 
-		return array_values( array_unique( $readable ) );
+		return $readable;
+	}
+
+	/**
+	 * Hydrate candidate posts in bounded bulk queries before permission checks.
+	 *
+	 * WP_Query requests that return only IDs do not prime the post-object cache.
+	 * Calling get_post() for every returned ID therefore becomes an N+1 query
+	 * pattern on large private/draft inventories. This helper loads the same
+	 * candidate set in chunks while keeping the final per-post read_post check.
+	 *
+	 * @param array<int> $page_ids Candidate IDs.
+	 * @return void
+	 */
+	private function prime_readability_posts( array $page_ids ): void {
+		$missing = array();
+		foreach ( $page_ids as $page_id ) {
+			$page_id = absint( $page_id );
+			if ( $page_id > 0 && ! array_key_exists( $page_id, $this->readability_post_cache ) ) {
+				$missing[] = $page_id;
+			}
+		}
+		if ( empty( $missing ) ) {
+			return;
+		}
+
+		foreach ( array_chunk( array_values( array_unique( $missing ) ), 500 ) as $chunk ) {
+			$posts = get_posts(
+				array(
+					'post__in'               => $chunk,
+					'post_type'              => $this->resolve_post_type_for_query( 'any' ),
+					'post_status'            => array_keys( $this->get_valid_post_statuses() ),
+					'posts_per_page'         => count( $chunk ),
+					'orderby'                => 'post__in',
+					'no_found_rows'          => true,
+					'suppress_filters'       => true,
+					'update_post_meta_cache' => false,
+					'update_post_term_cache' => false,
+				)
+			);
+			$found = array();
+			foreach ( is_array( $posts ) ? $posts : array() as $post ) {
+				if ( $post instanceof WP_Post && $post->ID > 0 ) {
+					$found[ (int) $post->ID ] = $post;
+				}
+			}
+			foreach ( $chunk as $page_id ) {
+				$this->readability_post_cache[ $page_id ] = $found[ $page_id ] ?? null;
+			}
+		}
 	}
 
 	/**
@@ -294,8 +363,10 @@ class SScribe_Page_Collector {
 	 * @param int $page_id Post ID.
 	 * @return bool Whether the current request may read the post.
 	 */
-	private function is_post_readable_for_export( int $page_id ): bool {
-		$post = get_post( $page_id );
+	private function is_post_readable_for_export( int $page_id, ?WP_Post $post = null ): bool {
+		if ( null === $post ) {
+			$post = get_post( $page_id );
+		}
 		if ( ! $post instanceof WP_Post ) {
 			return false;
 		}
@@ -735,7 +806,7 @@ class SScribe_Page_Collector {
 			return false;
 		}
 
-		if ( ! $this->is_post_readable_for_export( $page_id ) ) {
+		if ( ! $this->is_post_readable_for_export( $page_id, $post_object ) ) {
 			return false;
 		}
 
@@ -964,7 +1035,7 @@ class SScribe_Page_Collector {
 		$children_by_parent = array();
 
 		foreach ( $query->posts as $child ) {
-			if ( ! $this->is_post_readable_for_export( (int) $child->ID ) ) {
+			if ( ! $child instanceof WP_Post || ! $this->is_post_readable_for_export( (int) $child->ID, $child ) ) {
 				continue;
 			}
 			$parent_id = $child->post_parent;
@@ -1010,26 +1081,10 @@ class SScribe_Page_Collector {
 			return $this->filter_readable_child_rows( $cached );
 		}
 
-		$children    = array();
-		$child_pages = get_children(
-			array(
-				'post_parent' => $page_id,
-				'post_type'   => $post_type,
-				'post_status' => 'publish',
-				'orderby'     => 'menu_order title',
-				'order'       => 'ASC',
-			)
-		);
-
-		if ( $child_pages ) {
-			foreach ( $child_pages as $child ) {
-				$children[] = array(
-					'id'    => $child->ID,
-					'title' => html_entity_decode( $child->post_title, ENT_QUOTES | ENT_HTML5, 'UTF-8' ),
-					'url'   => $this->get_permalink_cached( (int) $child->ID ),
-				);
-			}
-		}
+		$batch    = $this->get_child_pages_batch( array( $page_id ), $post_type );
+		$children = isset( $batch[ $page_id ] ) && is_array( $batch[ $page_id ] )
+			? $batch[ $page_id ]
+			: array();
 
 		wp_cache_set( $cache_key, $children, $cache_group, MINUTE_IN_SECONDS * 5 );
 		$this->child_pages_cache[ $page_id ] = $children;
@@ -1043,12 +1098,30 @@ class SScribe_Page_Collector {
 	 * @return array<int, array<string, mixed>> Readable child rows.
 	 */
 	private function filter_readable_child_rows( array $children ): array {
+		$ids = array();
+		foreach ( $children as $child ) {
+			if ( is_array( $child ) && isset( $child['id'] ) ) {
+				$id = absint( $child['id'] );
+				if ( $id > 0 ) {
+					$ids[] = $id;
+				}
+			}
+		}
+		$this->prime_readability_posts( $ids );
+
 		return array_values(
 			array_filter(
 				$children,
-				fn( $child ): bool => is_array( $child )
-					&& isset( $child['id'] )
-					&& $this->is_post_readable_for_export( absint( $child['id'] ) )
+				function ( $child ): bool {
+					if ( ! is_array( $child ) || ! isset( $child['id'] ) ) {
+						return false;
+					}
+					$id   = absint( $child['id'] );
+					$post = $this->readability_post_cache[ $id ] ?? null;
+					return $id > 0
+						&& $post instanceof WP_Post
+						&& $this->is_post_readable_for_export( $id, $post );
+				}
 			)
 		);
 	}
@@ -1110,7 +1183,11 @@ class SScribe_Page_Collector {
 					'post_status' => 'publish',
 					'fields'      => 'all',
 					'orderby'     => 'post__in',
-					'order'       => 'ASC',
+					'order'                  => 'ASC',
+					'posts_per_page'         => count( $ancestors ),
+					'no_found_rows'          => true,
+					'update_post_meta_cache' => false,
+					'update_post_term_cache' => false,
 				)
 			);
 
@@ -1123,7 +1200,7 @@ class SScribe_Page_Collector {
 			foreach ( $ancestors as $ancestor_id ) {
 				if (
 					! isset( $ancestor_map[ $ancestor_id ] )
-					|| ! $this->is_post_readable_for_export( (int) $ancestor_id )
+					|| ! $this->is_post_readable_for_export( (int) $ancestor_id, $ancestor_map[ $ancestor_id ] )
 				) {
 					continue;
 				}
