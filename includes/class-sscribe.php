@@ -361,7 +361,12 @@ class SScribe {
 	public function run(): void {
 
 		require_once SSCRIBE_PLUGIN_DIR . 'includes/class-sscribe-upgrader.php';
-		SScribe_Upgrader::maybe_upgrade();
+		// Schema/filesystem upgrades are maintenance work, never anonymous
+		// frontend request work. Activation handles fresh installs; existing
+		// installs converge on the next admin, AJAX or cron execution.
+		if ( is_admin() || wp_doing_ajax() || wp_doing_cron() ) {
+			SScribe_Upgrader::maybe_upgrade();
+		}
 
 		require_once SSCRIBE_PLUGIN_DIR . 'includes/class-sscribe-request-id.php';
 		require_once SSCRIBE_PLUGIN_DIR . 'includes/class-sscribe-operational-logger.php';
