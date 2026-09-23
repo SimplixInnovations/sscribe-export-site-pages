@@ -1034,82 +1034,14 @@ class SScribe_Page_Collector {
 	 * @return array Child pages.
 	 */
 	private function get_child_pages( int $page_id, string $post_type = 'page' ): array {
-		if ( isset( $this->child_pages_cache[ $page_id ] ) ) {
-			return $this->filter_readable_child_rows( $this->child_pages_cache[ $page_id ] );
+		if ( $this->cache_has( $this->child_pages_cache, $page_id ) ) {
+			return (array) $this->cache_get( $this->child_pages_cache, $page_id );
 		}
 
-		$cache_key   = 'sscribe_child_pages_' . get_current_blog_id() . '_' . $page_id;
-		$cache_group = 'sscribe_page_collector';
-		$cached      = wp_cache_get( $cache_key, $cache_group );
-		if ( is_array( $cached ) ) {
-			$this->child_pages_cache[ $page_id ] = $cached;
-			return $this->filter_readable_child_rows( $cached );
-		}
-
-		$children    = array();
-		$child_pages = get_children(
-			array(
-				'post_parent'            => $page_id,
-				'post_type'              => $post_type,
-				'post_status'            => 'publish',
-				'numberposts'            => 500,
-				'orderby'                => 'menu_order title ID',
-				'order'                  => 'ASC',
-				'no_found_rows'          => true,
-				'update_post_meta_cache' => false,
-				'update_post_term_cache' => false,
-			)
-		);
-
-		if ( $child_pages ) {
-			foreach ( $child_pages as $child ) {
-				$children[] = array(
-					'id'    => $child->ID,
-					'title' => html_entity_decode( $child->post_title, ENT_QUOTES | ENT_HTML5, 'UTF-8' ),
-					'url'   => $this->get_permalink_cached( (int) $child->ID ),
-				);
-			}
-		}
-
-		wp_cache_set( $cache_key, $children, $cache_group, MINUTE_IN_SECONDS * 5 );
-		$this->child_pages_cache[ $page_id ] = $children;
-		return $this->filter_readable_child_rows( $children );
-	}
-
-	/**
-	 * Filter cached child metadata through the current user's post permissions.
-	 *
-	 * @param array<int, mixed> $children Child metadata rows loaded from query/object cache.
-	 * @return array<int, array<string, mixed>> Readable child rows.
-	 */
-	private function filter_readable_child_rows( array $children ): array {
-		return array_values(
-			array_filter(
-				$children,
-				fn( $child ): bool => is_array( $child )
-					&& isset( $child['id'] )
-					&& $this->is_post_readable_for_export( absint( $child['id'] ) )
-			)
-		);
-	}
-
-	/**
-	 * Get the language of a page.
-	 *
-	 * @param int $page_id Page ID.
-	 * @return string Language code.
-	 */
-	private function get_page_language( int $page_id ): string {
-		if ( $this->is_wpml_active() ) {
-			// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WPML hook.
-			$language_details = apply_filters( 'wpml_post_language_details', null, $page_id );
-			if ( $language_details && ! is_wp_error( $language_details ) ) {
-				$code = isset( $language_details['language_code'] ) ? $language_details['language_code'] : 'en';
-				return strtolower( substr( $code, 0, 2 ) );
-			}
-		}
-		$lang = get_bloginfo( 'language' );
-		return strtolower( substr( is_string( $lang ) ? $lang : '', 0, 2 ) );
+		$batched = $this->get_child_pages_batch( array( $page_id ), $post_type );
+		return isset( $batched[ $page_id ] ) && is_array( $batched[ $page_id ] )
+			? $batched[ $page_id ]
+			: array();
 	}
 
 	/**
