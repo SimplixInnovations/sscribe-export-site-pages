@@ -431,7 +431,14 @@
 					body.className = 'sscribe-modal-body';
 					const clonedHelpBody = helpClone.querySelectorAll(':scope > h3, :scope > h4, :scope > p');
 					clonedHelpBody.forEach(function (node) {
-						body.appendChild(node.cloneNode(true));
+						if (node === clonedTitle) {
+							return;
+						}
+						const clonedNode = node.cloneNode(true);
+						if (clonedNode.removeAttribute) {
+							clonedNode.removeAttribute('id');
+						}
+						body.appendChild(clonedNode);
 					});
 					dialog.appendChild(header);
 					dialog.appendChild(body);
@@ -1168,7 +1175,7 @@
 					}
 					const originalText = self.$clearBtn.data('original-text') || self.clearBtnOriginalText;
 					self.$clearBtn.text(originalText);
-					self.$clearBtn.after('<span class="sscribe-feedback sscribe-feedback-success">Cleared!</span>');
+					self.$clearBtn.after('<span class="sscribe-feedback sscribe-feedback-success" role="status" aria-live="polite">Cleared!</span>');
 					setTimeout(function () {
 						self.$clearBtn.siblings('.sscribe-feedback').remove();
 					}, 2000);
@@ -1179,7 +1186,7 @@
 					self.$clearBtn.text(originalText);
 					self.$clearBtn.data('confirming', false).removeClass('sscribe-btn-confirming');
 					self.$clearBtn.after(
-						'<span class="sscribe-feedback sscribe-feedback-error">' +
+						'<span class="sscribe-feedback sscribe-feedback-error" role="alert">' +
 							escHtml(self.getResponseMessage(response, 'Error')) +
 							'</span>'
 					);
@@ -1615,12 +1622,12 @@
 			if (!$btn.data('original-text')) {
 				$btn.data('original-text', $btn.text());
 			}
-			$btn.data('confirming', true).addClass('sscribe-btn-confirming').text('Click to confirm');
+			$btn.data('confirming', true).addClass('sscribe-btn-confirming').text('Click to confirm').attr('aria-label', 'Click again within 3 seconds to confirm deletion');
 			const revertTimeout = setTimeout(function () {
 				$btn.removeData('delete-timeout');
 				if ($btn.data('confirming')) {
 					const originalText = $btn.data('original-text') || 'Delete';
-					$btn.data('confirming', false).removeClass('sscribe-btn-confirming').text(originalText);
+					$btn.data('confirming', false).removeClass('sscribe-btn-confirming').text(originalText).removeAttr('aria-label');
 					$btn.prop('disabled', false);
 				}
 			}, 3000);
@@ -1651,7 +1658,7 @@
 						const $row = $btn.closest('.sscribe-debug-rotated-file');
 						if ($row.length) {
 							$row.find('.sscribe-debug-rotated-file-actions').after(
-								'<div class="sscribe-rotated-error">' +
+								'<div class="sscribe-rotated-error" role="alert">' +
 									escHtml(self.getResponseMessage(response, 'Error')) +
 									'</div>'
 							);
@@ -1671,7 +1678,7 @@
 					const $row = $btn.closest('.sscribe-debug-rotated-file');
 					if ($row.length) {
 						$row.find('.sscribe-debug-rotated-file-actions').after(
-							'<div class="sscribe-rotated-error">Error</div>'
+							'<div class="sscribe-rotated-error" role="alert">Error</div>'
 						);
 						setTimeout(function () {
 							$row.find('.sscribe-rotated-error').remove();
