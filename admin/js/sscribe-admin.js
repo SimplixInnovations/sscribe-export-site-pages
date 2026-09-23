@@ -1390,8 +1390,15 @@
 		showPreflightWarnings: function (diagnostics, onProceed, allowProceed) {
 			const previousFocus = document.activeElement;
 			const restorePreflightFocus = function () {
-				if (previousFocus && document.contains(previousFocus) && typeof previousFocus.focus === 'function') {
-					previousFocus.focus();
+				const previousUsable =
+					previousFocus &&
+					document.contains(previousFocus) &&
+					typeof previousFocus.focus === 'function' &&
+					!previousFocus.disabled;
+				const fallback = document.getElementById('sscribe-main-content');
+				const target = previousUsable ? previousFocus : fallback;
+				if (target && typeof target.focus === 'function') {
+					target.focus();
 				}
 			};
 			const checks = diagnostics.checks || {};
