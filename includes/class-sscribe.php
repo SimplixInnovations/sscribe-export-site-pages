@@ -153,11 +153,22 @@ class SScribe {
 		$this->loader->add_action( 'admin_init', $admin, 'maybe_redirect_after_activation' );
 		$this->loader->add_action( 'admin_enqueue_scripts', $admin, 'enqueue_admin_assets' );
 		$this->loader->add_action( 'admin_notices', $this, 'render_vendor_dependency_notice' );
+		$this->loader->add_filter( 'plugin_action_links_' . SSCRIBE_PLUGIN_BASENAME, $admin, 'add_plugin_action_links' );
+	}
+
+	/**
+	 * Register content-invalidation hooks in every request context.
+	 *
+	 * Posts can be changed through REST, imports, cron, WP-CLI or custom
+	 * frontend workflows, not only wp-admin. Keeping these light hooks global
+	 * preserves cache correctness without resolving the heavy admin service
+	 * graph on normal frontend reads.
+	 */
+	private function define_content_hooks(): void {
 		$this->loader->add_action( 'save_post', $this, 'invalidate_admin_page_cache' );
 		$this->loader->add_action( 'trashed_post', $this, 'invalidate_admin_page_cache' );
 		$this->loader->add_action( 'deleted_post', $this, 'invalidate_admin_page_cache' );
 		$this->loader->add_action( 'untrashed_post', $this, 'invalidate_admin_page_cache' );
-		$this->loader->add_filter( 'plugin_action_links_' . SSCRIBE_PLUGIN_BASENAME, $admin, 'add_plugin_action_links' );
 	}
 
 	/**
@@ -384,6 +395,7 @@ class SScribe {
 		\SScribe_Request_Id::current();
 
 		$this->register_services();
+		$this->define_content_hooks();
 
 		// Registration is context-scoped so an ordinary frontend page view does
 		// not instantiate the admin, export, ZIP, diagnostics and session graphs.
