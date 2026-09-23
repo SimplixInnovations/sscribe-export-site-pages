@@ -95,6 +95,16 @@ final class SScribe_Final_Runtime_Hardening_Test extends TestCase {
 		self::assertStringContainsString( '$this->prime_readability_post_cache( $page_ids );', $section );
 	}
 
+	public function test_content_cache_invalidation_covers_public_custom_post_types(): void {
+		$src = self::source( 'includes/class-sscribe.php' );
+		$start = strpos( $src, 'public function invalidate_admin_page_cache' );
+		self::assertNotFalse( $start );
+		$section = substr( $src, (int) $start, 1800 );
+		self::assertStringContainsString( 'get_post_type_object', $section );
+		self::assertStringContainsString( 'empty( $post_type_object->public )', $section );
+		self::assertStringNotContainsString( "array( 'page', 'post' )", $section );
+	}
+
 	public function test_rate_limiter_never_spins_for_seconds_under_contention(): void {
 		$src = self::source( 'includes/class-sscribe-export-rate-limiter.php' );
 		self::assertStringContainsString( 'private const LOCK_MAX_ATTEMPTS = 5;', $src );
