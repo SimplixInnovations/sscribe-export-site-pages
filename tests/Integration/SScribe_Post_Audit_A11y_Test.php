@@ -60,6 +60,11 @@ final class SScribe_Post_Audit_A11y_Test extends TestCase {
 		$js = (string) file_get_contents( self::root() . '/admin/js/sscribe-admin.js' );
 		$this->assertStringContainsString( "attr('aria-current', 'step')", $js );
 		$this->assertStringContainsString( "removeAttr('aria-current')", $js );
+		$this->assertStringContainsString( 'sscribe-phase-completed-label', $js );
+		$this->assertStringContainsString( "$completedLabel.prop('hidden', false)", $js );
+		$php = (string) file_get_contents( self::root() . '/admin/partials/sscribe-admin-display.php' );
+		$this->assertSame( 3, substr_count( $php, 'sscribe-phase-completed-label' ) );
+		$this->assertStringContainsString( 'aria-current="step"', $php );
 	}
 
 	public function test_debug_refresh_and_transient_feedback_are_live_regions(): void {
