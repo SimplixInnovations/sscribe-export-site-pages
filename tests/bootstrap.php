@@ -1406,6 +1406,7 @@ if ( ! function_exists( 'wp_reset_postdata' ) ) {
 
 if ( ! function_exists( 'get_post' ) ) {
 	function get_post( $post = null ) {
+		$GLOBALS['sscribe_test_get_post_calls'] = (int) ( $GLOBALS['sscribe_test_get_post_calls'] ?? 0 ) + 1;
 		if ( $post instanceof WP_Post ) {
 			return $post;
 		}
@@ -1415,6 +1416,22 @@ if ( ! function_exists( 'get_post' ) ) {
 			return $p;
 		}
 		return null;
+	}
+}
+
+if ( ! function_exists( 'get_posts' ) ) {
+	function get_posts( $args = array() ) {
+		$GLOBALS['sscribe_test_get_posts_calls'] = (int) ( $GLOBALS['sscribe_test_get_posts_calls'] ?? 0 ) + 1;
+		$ids = isset( $args['post__in'] ) && is_array( $args['post__in'] ) ? $args['post__in'] : array();
+		$posts = array();
+		foreach ( $ids as $id ) {
+			$post = new WP_Post();
+			$post->ID = (int) $id;
+			$post->post_status = 'publish';
+			$post->post_type = 'page';
+			$posts[] = $post;
+		}
+		return $posts;
 	}
 }
 
