@@ -95,9 +95,9 @@ if (/require\s*\(\s*['"][^'"]*sscribe-export-site-pages\.php['"]/.test(adapterSr
 
 // 6. WordPress version pinned.
 if (!/PINNED_WORDPRESS_VERSION\s*=\s*['"]7\.1\.1['"]/.test(adapterSrc)) {
-  fail('WordPress version not pinned to current 7.1.1 maintenance/security release');
+  fail('WordPress version not pinned to current 7.1.2 maintenance/security release');
 } else {
-  pass('WordPress version pinned (7.1.1)');
+  pass('WordPress version pinned (7.1.2)');
 }
 
 // 7. DB integration version pinned.
