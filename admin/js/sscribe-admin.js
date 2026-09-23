@@ -189,6 +189,7 @@
 			this.initializeTabs();
 			this.initializeRadiogroups();
 			this.initAutoDownloadPreference();
+			this.restoreDismissedGuidance();
 			this.adjustToastContainerPosition();
 			if (!SScribe._visibilityInstalled && typeof document !== 'undefined') {
 				document.addEventListener('visibilitychange', $.proxy(this, 'handleVisibilityChange'));
@@ -219,6 +220,32 @@
 			const supportSection = document.getElementById('sscribe-support-grid');
 			if (supportSection) {
 				observer.observe(supportSection);
+			}
+		},
+		restoreDismissedGuidance: function () {
+			try {
+				if (localStorage.getItem('sscribe_onboarding_dismissed') === '1') {
+					$('#sscribe-onboarding-banner').remove();
+				}
+			} catch (_localStorageError) {
+				try {
+					if (sessionStorage.getItem('sscribe_onboarding_dismissed') === '1') {
+						$('#sscribe-onboarding-banner').remove();
+					}
+				} catch (_sessionStorageError) {
+					// Storage can be unavailable in hardened/private browsing contexts.
+				}
+			}
+			try {
+				const dismissed = JSON.parse(sessionStorage.getItem('sscribe_preflight_dismissed') || '{}');
+				$('.sscribe-preflight-warning[data-warning-code]').each(function () {
+					const code = String($(this).attr('data-warning-code') || '');
+					if (code && dismissed && dismissed[code] === '1') {
+						$(this).attr('data-dismissed', 'true');
+					}
+				});
+			} catch (_dismissedStorageError) {
+				// Invalid/unavailable session storage leaves guidance visible.
 			}
 		},
 		bindEvents: function () {
@@ -1405,7 +1432,7 @@
 			bannerHtml += '<div class="sscribe-preflight-header">';
 			bannerHtml += '<span class="sscribe-preflight-icon" aria-hidden="true">⚠</span>';
 			bannerHtml +=
-				'<h3>' + this.escapeHtml(sscribe_data.strings.preflight_title || 'Export Readiness Check') + '</h3>';
+				'<h2>' + this.escapeHtml(sscribe_data.strings.preflight_title || 'Export Readiness Check') + '</h2>';
 			bannerHtml +=
 				'<button type="button" class="sscribe-preflight-close" aria-label="' +
 				this.escapeHtml(sscribe_data.strings.close || 'Close') +
@@ -1415,9 +1442,9 @@
 			if (errors.length > 0) {
 				bannerHtml += '<div class="sscribe-preflight-section sscribe-preflight-errors">';
 				bannerHtml +=
-					'<h4 class="sscribe-preflight-section-title">' +
+					'<h3 class="sscribe-preflight-section-title">' +
 					this.escapeHtml(sscribe_data.strings.preflight_errors || 'Critical Issues') +
-					'</h4>';
+					'</h3>';
 				bannerHtml += '<ul class="sscribe-preflight-list">';
 				const errorCount = errors.length;
 				for (let i = 0; i < errorCount; i++) {
@@ -1437,9 +1464,9 @@
 			if (warnings.length > 0) {
 				bannerHtml += '<div class="sscribe-preflight-section sscribe-preflight-warnings">';
 				bannerHtml +=
-					'<h4 class="sscribe-preflight-section-title">' +
+					'<h3 class="sscribe-preflight-section-title">' +
 					this.escapeHtml(sscribe_data.strings.preflight_warnings || 'Recommendations') +
-					'</h4>';
+					'</h3>';
 				bannerHtml += '<ul class="sscribe-preflight-list">';
 				const warnCount = warnings.length;
 				for (let j = 0; j < warnCount; j++) {
@@ -2086,7 +2113,7 @@
 					.fadeIn(400, function () {
 						const safeDownloadUrl = data.download_url ? self.getSafeSameOriginUrl(data.download_url) : '';
 						if (safeDownloadUrl) {
-							$('#sscribe-download-btn').attr('href', safeDownloadUrl);
+							$('#sscribe-download-btn').attr('href', safeDownloadUrl).attr('aria-disabled', 'false').removeAttr('tabindex');
 							if (isAutoDownload !== false && self.shouldAutoDownload()) {
 								const a = document.createElement('a');
 								a.href = safeDownloadUrl;
@@ -2098,7 +2125,7 @@
 								}, 1000);
 							}
 						} else {
-							$('#sscribe-download-btn').removeAttr('href');
+							$('#sscribe-download-btn').removeAttr('href').attr('aria-disabled', 'true').attr('tabindex', '-1');
 							self.showToast(
 								sscribe_data.strings.download_unavailable || 'Download unavailable.',
 								'warning'
@@ -2740,13 +2767,18 @@
 			$steps.each(function () {
 				const $step = $(this);
 				const stepPhase = $step.data('phase');
+				$step.removeAttr('aria-current').removeAttr('data-state');
 				if (stepPhase === phase) {
-					$step.removeClass('sscribe-phase-completed sscribe-phase-active').addClass('sscribe-phase-active');
+					$step
+						.removeClass('sscribe-phase-completed sscribe-phase-active')
+						.addClass('sscribe-phase-active')
+						.attr('aria-current', 'step')
+						.attr('data-state', 'active');
 					found = true;
 				} else if (!found) {
-					$step.removeClass('sscribe-phase-active').addClass('sscribe-phase-completed');
+					$step.removeClass('sscribe-phase-active').addClass('sscribe-phase-completed').attr('data-state', 'completed');
 				} else {
-					$step.removeClass('sscribe-phase-completed sscribe-phase-active');
+					$step.removeClass('sscribe-phase-completed sscribe-phase-active').attr('data-state', 'pending');
 				}
 			});
 		},
@@ -3200,7 +3232,7 @@
 			}
 			if (data.title && data.content) {
 				html += '<div class="sscribe-preview-sample">';
-				html += '<h4>' + this.escapeHtml(strings.preview_sample_title || 'Sample:') + '</h4>';
+				html += '<h4>' + this.escapeHtml(strings.preview_sample_title || 'Sample:') + '</h3>';
 				html += '<p class="sscribe-preview-title">' + this.escapeHtml(data.title) + '</p>';
 				html += '<p class="sscribe-preview-excerpt">' + this.escapeHtml(data.content) + '</p>';
 				html += '</div>';
@@ -3796,7 +3828,7 @@
 						this.escapeHtml(sectionKey) +
 						'">' +
 						this.escapeHtml(label) +
-						'</h4>';
+						'</h3>';
 					html += '<div class="sscribe-support-grid-inner">';
 					itemKeys.forEach(function (itemKey) {
 						const value = section.items[itemKey];
@@ -3845,7 +3877,7 @@
 				return;
 			}
 			// First click: enter the "click again to confirm" state with strong visual cues.
-			const $original = $row.find('.sscribe-history-filename');
+			const $original = $row.find('.sscribe-file-details > strong').first();
 			const $hint = $('<span>')
 				.addClass('sscribe-confirm-hint')
 				.attr('role', 'status')
@@ -4009,7 +4041,7 @@
 			html += '</div>';
 			if (pages.length > 0) {
 				html += '<div class="sscribe-log-pages">';
-				html += '<h4>' + this.escapeHtml(strings.log_page_details || 'Page Details') + '</h4>';
+				html += '<h4>' + this.escapeHtml(strings.log_page_details || 'Page Details') + '</h3>';
 				html += '<div class="sscribe-log-table-wrap"><table class="sscribe-log-table">';
 				html += '<thead><tr>';
 				html += '<th scope="col">' + this.escapeHtml(strings.log_col_id || 'ID') + '</th>';
@@ -4097,7 +4129,7 @@
 			}
 			if (errors.length > 0) {
 				html += '<div class="sscribe-log-errors">';
-				html += '<h4>' + this.escapeHtml(strings.log_errors || 'Errors') + '</h4>';
+				html += '<h4>' + this.escapeHtml(strings.log_errors || 'Errors') + '</h3>';
 				html += '<ul>';
 				errors.forEach(
 					function (errorEntry) {
