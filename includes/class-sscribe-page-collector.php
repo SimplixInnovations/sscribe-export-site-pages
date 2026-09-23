@@ -271,6 +271,25 @@ class SScribe_Page_Collector {
 	private function filter_readable_page_ids( array $page_ids ): array {
 		$readable = array();
 
+		// WP_Query with fields => 'ids' intentionally skips post-object cache
+		// priming. Permission filtering below calls get_post() for every ID, so a
+		// cached 10k-ID result would otherwise degrade into thousands of SELECTs.
+		// Prime only post objects (not term/meta caches) in bounded chunks before
+		// walking the list. get_post() then resolves from the object cache while
+		// preserving the per-user read_post capability check on every request.
+		if ( function_exists( '_prime_post_caches' ) ) {
+			$prime_ids = array_values(
+				array_unique(
+					array_filter(
+						array_map( 'absint', $page_ids )
+					)
+				)
+			);
+			foreach ( array_chunk( $prime_ids, 500 ) as $prime_chunk ) {
+				_prime_post_caches( $prime_chunk, false, false );
+			}
+		}
+
 		foreach ( $page_ids as $page_id ) {
 			$page_id = absint( $page_id );
 			if ( $page_id <= 0 || ! $this->is_post_readable_for_export( $page_id ) ) {
