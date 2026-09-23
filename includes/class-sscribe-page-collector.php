@@ -256,7 +256,14 @@ class SScribe_Page_Collector {
 			}
 		}
 
-		set_transient( $cache_key, array( 'generation' => $generation, 'ids' => $page_ids ), 5 * MINUTE_IN_SECONDS );
+		set_transient(
+			$cache_key,
+			array(
+				'generation' => $generation,
+				'ids'        => $page_ids,
+			),
+			5 * MINUTE_IN_SECONDS
+		);
 
 		return $this->filter_readable_page_ids( $page_ids );
 	}
@@ -402,7 +409,14 @@ class SScribe_Page_Collector {
 		// phpcs:enable
 
 		if ( function_exists( 'set_transient' ) ) {
-			set_transient( $cache_key, array( 'generation' => $generation, 'count' => $count ), MINUTE_IN_SECONDS );
+			set_transient(
+				$cache_key,
+				array(
+					'generation' => $generation,
+					'count'      => $count,
+				),
+				MINUTE_IN_SECONDS
+			);
 		}
 
 		return $count;
