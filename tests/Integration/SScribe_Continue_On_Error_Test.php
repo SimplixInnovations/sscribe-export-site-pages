@@ -102,6 +102,10 @@ final class SScribe_Continue_On_Error_Test extends TestCase {
 		return (string) file_get_contents( self::plugin_root() . '/includes/class-sscribe-export-stats.php' );
 	}
 
+	private function live_upgrader(): string {
+		return (string) file_get_contents( self::plugin_root() . '/includes/class-sscribe-upgrader.php' );
+	}
+
 	public function test_live_repo_passes(): void {
 		list( $code, $output ) = $this->run_with_mutations( array() );
 		$this::assertSame(
@@ -210,6 +214,25 @@ final class SScribe_Continue_On_Error_Test extends TestCase {
 		) );
 		$this::assertSame( 1, $code );
 		$this::assertStringContainsString( 'failed_pages', $output );
+	}
+
+	public function test_dropped_canonical_schema_delegation_in_upgrader_fails(): void {
+		$src = $this->live_upgrader();
+		$mutated = preg_replace(
+			'/SScribe_Activator::ensure_database_schema\s*\(\s*false\s*\)\s*;/',
+			'// canonical schema delegation dropped',
+			$src,
+			1,
+			$count
+		);
+		$this::assertSame( 1, $count );
+		list( $code, $output ) = $this->run_with_mutations(
+			array(
+				'includes/class-sscribe-upgrader.php' => $mutated,
+			)
+		);
+		$this::assertSame( 1, $code );
+		$this::assertStringContainsString( 'canonical', strtolower( $output ) );
 	}
 
 	public function test_dropped_failed_pages_in_complete_export_fails(): void {
