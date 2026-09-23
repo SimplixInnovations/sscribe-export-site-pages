@@ -227,6 +227,33 @@ final class SScribe_Page_Collector_Coverage_Test extends SScribe_WP_TestCase {
 		$this::assertSame( 'fr', $result[1]['native_name'], 'native_name must fall back to code.' );
 	}
 
+	/**
+	 * Regression: permission filtering must not issue one SELECT per post ID.
+	 *
+	 * WP_Query with fields=ids does not leave full WP_Post objects available
+	 * to get_post(). The filter therefore has to prime the post cache in bulk
+	 * before calling WordPress's per-post read capability mapping.
+	 */
+	public function test_filter_readable_page_ids_primes_posts_in_bulk(): void {
+		global $wpdb;
+
+		$ids = $this->make_pages( 40, 'page', 'publish' );
+		foreach ( $ids as $id ) {
+			clean_post_cache( $id );
+		}
+
+		$before = (int) $wpdb->num_queries;
+		$result = $this->invoke_private( $this->collector, 'filter_readable_page_ids', array( $ids ) );
+		$queries = (int) $wpdb->num_queries - $before;
+
+		$this::assertSame( $ids, $result );
+		$this::assertLessThanOrEqual(
+			4,
+			$queries,
+			'Readability filtering must bulk-prime posts instead of issuing an N+1 get_post() query per ID.'
+		);
+	}
+
 	// -----------------------------------------------------------------
 	// Section 2 — page-id resolution
 	// -----------------------------------------------------------------
