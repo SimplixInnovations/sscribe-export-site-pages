@@ -127,8 +127,8 @@ if ( ! preg_match( $action_pattern, $trait_src ) ) {
 if ( ! preg_match( '/failed_pages\s+INT\s+UNSIGNED/i', $activator_src ) ) {
 	$errors[] = 'Activator schema does not declare `failed_pages INT UNSIGNED`. The export_stats table cannot persist the failure count.';
 }
-if ( ! preg_match( '/failed_pages\s+INT\s+UNSIGNED/i', $upgrader_src ) ) {
-	$errors[] = 'Upgrader schema does not declare `failed_pages INT UNSIGNED`. New installs will create the column, but an upgrade path for older sites must keep it too.';
+if ( ! preg_match( '/SScribe_Activator::create_database_tables\(\s*false\s*\)/', $upgrader_src ) ) {
+	$errors[] = 'Upgrader does not reconcile through SScribe_Activator::create_database_tables(false). Upgrade paths must reuse the canonical dbDelta schema that declares failed_pages.';
 }
 
 // 5. export_stats writes failed_pages via complete_export AND update_progress.
