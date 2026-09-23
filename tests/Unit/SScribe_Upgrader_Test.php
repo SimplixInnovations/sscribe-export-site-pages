@@ -102,7 +102,7 @@ class SScribe_Upgrader_Test extends TestCase {
 			public string $prefix = 'wp_';
 			public string $options = 'wp_options';
 			public function get_charset_collate(): string {
-				return 'CHARACTER SET utf8mb4';
+				throw new \RuntimeException( 'forced schema failure' );
 			}
 			public function prepare( string $query, ...$args ): string {
 				return $query;
