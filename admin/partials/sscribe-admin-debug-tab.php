@@ -109,7 +109,7 @@ $sscribe_show_wp_debug_notice = ( defined( 'WP_DEBUG' ) && WP_DEBUG );
 		</div>
 		<div class="sscribe-debug-refresh-row">
 			<div class="sscribe-debug-refresh-mode">
-				<span class="sscribe-debug-refresh-paused sscribe-hidden" id="sscribe-debug-refresh-paused"><?php esc_html_e( 'Paused: tab inactive', 'sscribe-export-site-pages' ); ?></span>
+				<span class="sscribe-debug-refresh-paused sscribe-hidden" id="sscribe-debug-refresh-paused" role="status" aria-live="polite"><?php esc_html_e( 'Paused: tab inactive', 'sscribe-export-site-pages' ); ?></span>
 				<label class="sscribe-radio-label">
 					<input type="radio" name="sscribe_refresh_mode" value="auto" <?php checked( true, (bool) $sscribe_debug_settings['auto_refresh'] ); ?>>
 					<span class="sscribe-radio-text"><?php esc_html_e( 'Auto-refresh (10s)', 'sscribe-export-site-pages' ); ?></span>
@@ -143,7 +143,7 @@ $sscribe_show_wp_debug_notice = ( defined( 'WP_DEBUG' ) && WP_DEBUG );
 		</div>
 	</div>
 
-	<div class="sscribe-debug-console-card" role="log" aria-label="<?php esc_attr_e( 'Debug log entries', 'sscribe-export-site-pages' ); ?>">
+	<div class="sscribe-debug-console-card" role="region" aria-label="<?php esc_attr_e( 'Debug log entries', 'sscribe-export-site-pages' ); ?>">
 		<div class="sscribe-debug-console-header">
 			<span class="sscribe-debug-console-title"><?php esc_html_e( 'Console Output', 'sscribe-export-site-pages' ); ?></span>
 			<span class="sscribe-debug-console-count" id="sscribe-debug-entry-count" aria-live="polite" aria-atomic="true"><?php esc_html_e( 'Loading...', 'sscribe-export-site-pages' ); ?></span>
@@ -187,7 +187,7 @@ $sscribe_show_wp_debug_notice = ( defined( 'WP_DEBUG' ) && WP_DEBUG );
 	</details>
 
 	<div id="sscribe-debug-help-content" hidden>
-		<h3 id="sscribe-debug-help-title"><?php esc_html_e( 'Debug Console Help', 'sscribe-export-site-pages' ); ?></h3>
+		<h3 id="sscribe-debug-help-source-title"><?php esc_html_e( 'Debug Console Help', 'sscribe-export-site-pages' ); ?></h3>
 		<p><?php esc_html_e( 'View detailed export logs, toggle debug mode, and manage rotated log files. Logs capture detailed information about export operations including processing steps, errors, and performance metrics.', 'sscribe-export-site-pages' ); ?></p>
 		<h4><?php esc_html_e( 'Auto-refresh', 'sscribe-export-site-pages' ); ?></h4>
 		<p><?php esc_html_e( 'When enabled, logs refresh automatically every 10 seconds. Manual mode gives you full control over when to refresh.', 'sscribe-export-site-pages' ); ?></p>
