@@ -241,6 +241,13 @@ if ( $canonical_version ) {
 				continue;
 			}
 
+			// verify-tag-policy.php intentionally preserves v2.0.3 as the
+			// historical boundary from which annotated release tags became
+			// mandatory. It is policy data, not a stale current-version pin.
+			if ( 'verify-tag-policy.php' === basename( $f ) ) {
+				continue;
+			}
+
 			// Test fixtures intentionally encode historical version references
 			// (regression fixtures for diagnostics on older installs, change-log
 			// references in @since / comment blocks). Tests/ is not shipped in
