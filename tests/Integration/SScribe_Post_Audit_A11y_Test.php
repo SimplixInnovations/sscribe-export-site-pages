@@ -106,6 +106,17 @@ final class SScribe_Post_Audit_A11y_Test extends TestCase {
 		$this->assertStringNotContainsString( "headerTitle.id = 'sscribe-debug-help-title'", $js );
 	}
 
+
+	public function test_debug_help_captures_title_before_stripping_clone_ids(): void {
+		$js = (string) file_get_contents( self::root() . '/admin/js/sscribe-debug-console.js' );
+		$title_lookup = strpos( $js, "helpClone.querySelector('#sscribe-debug-help-title')" );
+		$id_cleanup   = strpos( $js, "helpClone.querySelectorAll('[id]')" );
+		$this->assertNotFalse( $title_lookup );
+		$this->assertNotFalse( $id_cleanup );
+		$this->assertLessThan( $id_cleanup, $title_lookup, 'Debug help title must be captured before clone IDs are stripped.' );
+	}
+
+
 	public function test_dismissed_onboarding_and_advisories_are_restored_on_init(): void {
 		$js = (string) file_get_contents( self::root() . '/admin/js/sscribe-admin.js' );
 		$this->assertStringContainsString( 'restoreDismissedAdvisories', $js );
