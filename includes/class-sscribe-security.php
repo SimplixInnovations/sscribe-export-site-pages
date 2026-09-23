@@ -45,7 +45,12 @@ class SScribe_Security {
 		$content      .= "  </IfModule>\n";
 		$content      .= "</Files>\n";
 
-		self::write_file( $htaccess_path, $content );
+		$htaccess_current = is_file( $htaccess_path ) && ! is_link( $htaccess_path )
+			? (string) file_get_contents( $htaccess_path )
+			: '';
+		if ( ! hash_equals( $content, $htaccess_current ) ) {
+			self::write_file( $htaccess_path, $content );
+		}
 
 		$index_path = $dir . '/index.php';
 		if ( ! file_exists( $index_path ) ) {
