@@ -1162,7 +1162,8 @@ $sscribe_test_ajax_nonce_valid = true;
 
 
 			if ( preg_match( "/SHOW TABLES LIKE\s+['`]([^'`]+)['`]/i", $query, $matches ) ) {
-				return array_key_exists( $matches[1], (array) $sscribe_test_db_tables ) ? $matches[1] : null;
+				$table_name = str_replace( array( '\\_', '\\%', '\\\\' ), array( '_', '%', '\\' ), $matches[1] );
+				return array_key_exists( $table_name, (array) $sscribe_test_db_tables ) ? $table_name : null;
 			}
 
 			return null;
