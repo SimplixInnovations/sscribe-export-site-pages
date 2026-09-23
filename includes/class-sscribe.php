@@ -200,12 +200,10 @@ class SScribe {
 	/**
 	 * Invalidate admin page cache when posts are saved.
 	 *
-	 * Bumps the global content cache generation option. All transient and
-	 * object-cache keys that participate in content-derived lookups include
-	 * the generation, so an increment is sufficient to invalidate the entire
-	 * population of cached page-ID lists, status counts, breadcrumbs, and
-	 * featured-image lookups without having to enumerate each key. Old keys
-	 * naturally TTL out (5 minutes for page IDs, 1 hour for status counts).
+	 * Bumps the global content cache generation option. Content-derived caches
+	 * keep a stable key and record the generation in the cached payload; a
+	 * mismatch invalidates the value without creating orphan option keys on
+	 * every post mutation.
 	 *
 	 * @param int $post_id Post ID that was saved.
 	 */
@@ -215,7 +213,14 @@ class SScribe {
 		}
 
 		$post_type = get_post_type( $post_id );
-		if ( ! $post_type || ! in_array( $post_type, array( 'page', 'post' ), true ) ) {
+		$post_type_object = $post_type && function_exists( 'get_post_type_object' )
+			? get_post_type_object( $post_type )
+			: null;
+		if (
+			! $post_type
+			|| 'attachment' === $post_type
+			|| ( $post_type_object && empty( $post_type_object->public ) )
+		) {
 			return;
 		}
 
