@@ -20,6 +20,14 @@ class SScribe_Upgrader {
 
 	private const SCHEMA_VERSION_OPTION = 'sscribe_schema_version';
 
+	private const UPGRADE_FAILURES_OPTION = 'sscribe_upgrade_failures';
+
+	private const UPGRADE_NEXT_ATTEMPT_OPTION = 'sscribe_upgrade_next_attempt';
+
+	private const UPGRADE_BACKOFF_BASE_SECONDS = 30;
+
+	private const UPGRADE_BACKOFF_MAX_SECONDS = 6 * HOUR_IN_SECONDS;
+
 	/**
 	 * Check and run any pending database migrations.
 	 */
@@ -28,6 +36,23 @@ class SScribe_Upgrader {
 		$installed_version = is_scalar( $installed_version ) ? (string) $installed_version : '0';
 
 		if ( version_compare( $installed_version, SSCRIBE_VERSION, '>=' ) ) {
+			return;
+		}
+
+		// Schema work must never turn an ordinary anonymous frontend request into
+		// a DDL retry loop. Admin, AJAX, cron, and WP-CLI are controlled execution
+		// contexts where an upgrade failure can be surfaced and retried safely.
+		if (
+			! is_admin()
+			&& ! wp_doing_ajax()
+			&& ! wp_doing_cron()
+			&& ! ( defined( 'WP_CLI' ) && WP_CLI )
+		) {
+			return;
+		}
+
+		$next_attempt = (int) get_option( self::UPGRADE_NEXT_ATTEMPT_OPTION, 0 );
+		if ( $next_attempt > time() ) {
 			return;
 		}
 
@@ -52,14 +77,27 @@ class SScribe_Upgrader {
 				update_option( self::SCHEMA_VERSION_OPTION, SSCRIBE_VERSION, false );
 				update_option( 'sscribe_version', SSCRIBE_VERSION, false );
 				delete_option( 'sscribe_upgrade_last_error' );
+				delete_option( self::UPGRADE_FAILURES_OPTION );
+				delete_option( self::UPGRADE_NEXT_ATTEMPT_OPTION );
 			} catch ( \Throwable $e ) {
 				$reference = substr( hash( 'sha256', get_class( $e ) . '|' . $e->getMessage() ), 0, 12 );
+				$failures  = max( 0, (int) get_option( self::UPGRADE_FAILURES_OPTION, 0 ) ) + 1;
+				$exponent  = min( 10, max( 0, $failures - 1 ) );
+				$delay     = min(
+					self::UPGRADE_BACKOFF_MAX_SECONDS,
+					self::UPGRADE_BACKOFF_BASE_SECONDS * ( 2 ** $exponent )
+				);
+				$next_attempt = time() + $delay;
+				update_option( self::UPGRADE_FAILURES_OPTION, $failures, false );
+				update_option( self::UPGRADE_NEXT_ATTEMPT_OPTION, $next_attempt, false );
 				update_option(
 					'sscribe_upgrade_last_error',
 					array(
-						'message'   => 'The database upgrade did not complete and will be retried.',
-						'reference' => $reference,
-						'time'      => gmdate( 'Y-m-d H:i:s \U\T\C' ),
+						'message'      => 'The database upgrade did not complete and will be retried.',
+						'reference'    => $reference,
+						'time'         => gmdate( 'Y-m-d H:i:s \U\T\C' ),
+						'failures'     => $failures,
+						'next_attempt' => gmdate( 'Y-m-d H:i:s \U\T\C', $next_attempt ),
 					),
 					false
 				);
@@ -79,157 +117,31 @@ class SScribe_Upgrader {
 	 * @throws \RuntimeException When a required schema change fails.
 	 */
 	private static function run_migrations( string $from_version ): void {
-		global $wpdb;
-		$charset_collate = $wpdb->get_charset_collate();
-
-		$upgrade_functions = ABSPATH . 'wp-admin/includes/upgrade.php';
-		if ( file_exists( $upgrade_functions ) ) {
-			require_once $upgrade_functions;
-		}
-
-		if ( version_compare( $from_version, '1.1.0', '<' ) ) {
-
-			$table_logs = $wpdb->prefix . 'sscribe_export_logs';
-			$sql_logs   = "CREATE TABLE $table_logs (
-				id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
-				timestamp DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-				level VARCHAR(20) NOT NULL,
-				message TEXT NOT NULL,
-				context LONGTEXT,
-				user_id BIGINT UNSIGNED,
-				request_id VARCHAR(12),
-				memory_usage VARCHAR(20),
-				PRIMARY KEY  (id),
-				KEY idx_timestamp (timestamp),
-				KEY idx_level (level),
-				KEY idx_user_id (user_id),
-				KEY idx_request_id (request_id)
-			) $charset_collate;";
-			dbDelta( $sql_logs );
-
-			$table_stats = $wpdb->prefix . 'sscribe_export_stats';
-			$sql_stats   = "CREATE TABLE $table_stats (
-				id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
-				export_session_id VARCHAR(64) NOT NULL,
-				user_id BIGINT UNSIGNED NOT NULL,
-				export_date DATETIME NOT NULL,
-				total_pages INT UNSIGNED,
-				successful_pages INT UNSIGNED,
-				failed_pages INT UNSIGNED,
-				formats LONGTEXT,
-				memory_peak VARCHAR(20),
-				duration_seconds FLOAT,
-				file_size_mb DECIMAL(10, 2),
-				status VARCHAR(20) NOT NULL DEFAULT 'processing',
-				error_message TEXT,
-				created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-				PRIMARY KEY  (id),
-				KEY idx_export_session_id (export_session_id),
-				KEY idx_user_id (user_id),
-				KEY idx_export_date (export_date),
-				KEY idx_status (status)
-			) $charset_collate;";
-			dbDelta( $sql_stats );
-
-			SScribe_Audit_Trail::create_table();
-		}
-
-		if ( version_compare( $from_version, '1.1.0', '<' ) ) {
-			try {
-				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Schema introspection; plugin-controlled table name.
-				$index_check = $wpdb->get_results(
-					$wpdb->prepare(
-						'SHOW INDEX FROM ' . $wpdb->prefix . 'sscribe_export_stats WHERE Key_name = %s',
-						'idx_export_session_id'
-					)
-				);
-				if ( empty( $index_check ) ) {
-					// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.NotPrepared -- Schema change; table name is plugin-controlled constant.
-					$result = $wpdb->query( 'ALTER TABLE `' . $wpdb->prefix . 'sscribe_export_stats` ADD INDEX idx_export_session_id (export_session_id)' );
-					self::assert_schema_query_succeeded( $result );
-				}
-			} catch ( \Throwable $e ) {
-				// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- The exception is handled internally by maybe_upgrade() and is never rendered.
-				throw new \RuntimeException( 'Failed while adding the export-session index.', 0, $e );
-			}
-		}
+		// One canonical schema definition is safer than a parallel set of MySQL-
+		// specific SHOW/ALTER statements. dbDelta() is the WordPress-supported
+		// reconciliation path and is already exercised by the plugin's real
+		// SQLite and MySQL integration matrices.
+		SScribe_Activator::create_database_tables( false );
 
 		if ( version_compare( $from_version, '1.1.1', '<' ) ) {
 			$metrics = get_option( 'sscribe_export_metrics', array() );
 			if ( isset( $metrics['formats'] ) && is_array( $metrics['formats'] ) ) {
 				$migrated      = false;
 				$known_formats = array( 'docx', 'pdf', 'html', 'markdown' );
-				foreach ( array_keys( $metrics['formats'] ) as $key ) {
-
-					if ( false === strpos( $key, '_' ) && in_array( $key, $known_formats, true ) ) {
-						$new_key = $key . '_page';
-						if ( ! isset( $metrics['formats'][ $new_key ] ) ) {
-							$metrics['formats'][ $new_key ] = $metrics['formats'][ $key ];
-							$migrated                       = true;
-						}
+				foreach ( $known_formats as $key ) {
+					if ( ! array_key_exists( $key, $metrics['formats'] ) ) {
+						continue;
 					}
+					$new_key = $key . '_page';
+					if ( ! array_key_exists( $new_key, $metrics['formats'] ) ) {
+						$metrics['formats'][ $new_key ] = $metrics['formats'][ $key ];
+					}
+					unset( $metrics['formats'][ $key ] );
+					$migrated = true;
 				}
 				if ( $migrated ) {
 					update_option( 'sscribe_export_metrics', $metrics, false );
 				}
-			}
-		}
-
-		if ( version_compare( $from_version, '1.1.0', '<' ) ) {
-			try {
-				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Schema introspection; plugin-controlled table name.
-				$col          = $wpdb->get_row(
-					$wpdb->prepare(
-						'SHOW COLUMNS FROM ' . $wpdb->prefix . 'sscribe_export_stats LIKE %s',
-						'export_session_id'
-					)
-				);
-				$needs_modify = true;
-				// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- MySQL SHOW COLUMNS result.
-				if ( $col && isset( $col->Type ) && stripos( $col->Type, 'varchar(64)' ) !== false ) {
-					$needs_modify = false;
-				}
-				if ( $needs_modify ) {
-					// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.NotPrepared -- Schema change; table name is plugin-controlled constant.
-					$result = $wpdb->query( 'ALTER TABLE `' . $wpdb->prefix . 'sscribe_export_stats` MODIFY COLUMN export_session_id VARCHAR(64) NOT NULL' );
-					self::assert_schema_query_succeeded( $result );
-				}
-			} catch ( \Throwable $e ) {
-				// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- The exception is handled internally by maybe_upgrade() and is never rendered.
-				throw new \RuntimeException( 'Failed while updating the export-session column.', 0, $e );
-			}
-		}
-
-		if ( version_compare( $from_version, '1.1.3', '<' ) ) {
-			try {
-				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Schema introspection; plugin-controlled table name.
-				$col = $wpdb->get_row(
-					$wpdb->prepare(
-						'SHOW COLUMNS FROM ' . $wpdb->prefix . 'sscribe_export_logs LIKE %s',
-						'session_id'
-					)
-				);
-				if ( ! $col ) {
-					// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Static DDL string; $wpdb->prefix is a plugin-controlled constant; the column definitions are hardcoded.
-					$alter_sql = 'ALTER TABLE `' . $wpdb->prefix . 'sscribe_export_logs` ADD COLUMN session_id VARCHAR(60) DEFAULT NULL AFTER context, ADD KEY idx_session_id (session_id)';
-					// phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.NotPrepared -- Schema change; $alter_sql is a hardcoded DDL string with no user input; $wpdb->prefix is a plugin-controlled constant.
-					$result = $wpdb->query( $alter_sql );
-					self::assert_schema_query_succeeded( $result );
-				}
-			} catch ( \Throwable $e ) {
-				// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- The exception is handled internally by maybe_upgrade() and is never rendered.
-				throw new \RuntimeException( 'Failed while adding the session-log column.', 0, $e );
-			}
-		}
-
-		if ( version_compare( $from_version, '1.1.7', '<' ) ) {
-			try {
-				// phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.NotPrepared -- Plugin-controlled table and static schema migration.
-				$result = $wpdb->query( 'ALTER TABLE `' . $wpdb->prefix . "sscribe_export_stats` MODIFY COLUMN status VARCHAR(20) NOT NULL DEFAULT 'processing'" );
-				self::assert_schema_query_succeeded( $result );
-			} catch ( \Throwable $e ) {
-				// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- The exception is handled internally by maybe_upgrade() and is never rendered.
-				throw new \RuntimeException( 'Failed while updating the export-status column.', 0, $e );
 			}
 		}
 
@@ -238,15 +150,4 @@ class SScribe_Upgrader {
 		}
 	}
 
-	/**
-	 * Convert a failed wpdb schema query into a retryable migration failure.
-	 *
-	 * @param int|bool $result wpdb query result.
-	 * @throws \RuntimeException When wpdb reports failure.
-	 */
-	private static function assert_schema_query_succeeded( $result ): void {
-		if ( false === $result ) {
-			throw new \RuntimeException( 'A required database schema query failed.' );
-		}
-	}
 }
