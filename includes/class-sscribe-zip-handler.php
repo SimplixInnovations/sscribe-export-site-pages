@@ -678,17 +678,47 @@ class SScribe_Zip_Handler {
 	 * @return array<string, array<string, mixed>> Map of basename => row data.
 	 */
 	public function list_export_entries(): array {
-		$index   = get_option( 'sscribe_export_index', array() );
-		$index   = array_slice( (array) $index, -50 );
-		$entries = array();
+		global $wpdb;
+
+		$index = array_values(
+			array_filter(
+				array_map(
+					fn( $basename ): string => $this->normalize_zip_filename( (string) $basename ),
+					array_slice( (array) get_option( 'sscribe_export_index', array() ), -50 )
+				)
+			)
+		);
+		if ( empty( $index ) ) {
+			return array();
+		}
+
+		$option_to_basename = array();
 		foreach ( $index as $basename ) {
-			$basename = $this->normalize_zip_filename( (string) $basename );
-			if ( '' === $basename ) {
+			$option_to_basename[ 'sscribe_export_row_' . md5( $basename ) ] = $basename;
+		}
+
+		$option_names = array_keys( $option_to_basename );
+		$placeholders = implode( ',', array_fill( 0, count( $option_names ), '%s' ) );
+		$sql          = "SELECT option_name, option_value FROM {$wpdb->options} WHERE option_name IN ({$placeholders})";
+		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Bounded internal metadata batch; exact option names are prepared.
+		$rows = $wpdb->get_results( $wpdb->prepare( $sql, ...$option_names ) );
+
+		$loaded = array();
+		foreach ( is_array( $rows ) ? $rows : array() as $row ) {
+			$option_name = isset( $row->option_name ) ? (string) $row->option_name : '';
+			if ( ! isset( $option_to_basename[ $option_name ] ) ) {
 				continue;
 			}
-			$row = $this->get_export_entry( $basename );
-			if ( null !== $row ) {
-				$entries[ (string) $basename ] = $row;
+			$value = isset( $row->option_value ) ? maybe_unserialize( $row->option_value ) : null;
+			if ( is_array( $value ) ) {
+				$loaded[ $option_to_basename[ $option_name ] ] = $value;
+			}
+		}
+
+		$entries = array();
+		foreach ( $index as $basename ) {
+			if ( isset( $loaded[ $basename ] ) ) {
+				$entries[ $basename ] = $loaded[ $basename ];
 			}
 		}
 		return $entries;
