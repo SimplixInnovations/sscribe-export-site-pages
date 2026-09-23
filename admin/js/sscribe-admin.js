@@ -2742,7 +2742,9 @@
 			$steps.each(function () {
 				const $step = $(this);
 				const stepPhase = $step.data('phase');
+				const $completedLabel = $step.find('.sscribe-phase-completed-label');
 				$step.removeAttr('aria-current');
+				$completedLabel.prop('hidden', true);
 				if (stepPhase === phase) {
 					$step
 						.removeClass('sscribe-phase-completed sscribe-phase-active')
@@ -2751,6 +2753,7 @@
 					found = true;
 				} else if (!found) {
 					$step.removeClass('sscribe-phase-active').addClass('sscribe-phase-completed');
+					$completedLabel.prop('hidden', false);
 				} else {
 					$step.removeClass('sscribe-phase-completed sscribe-phase-active');
 				}
