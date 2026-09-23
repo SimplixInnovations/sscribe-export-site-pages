@@ -109,8 +109,8 @@ final class SScribe_Final_Runtime_Hardening_Test extends TestCase {
 		self::assertStringContainsString( 'sscribe_upgrade_next_attempt', $src );
 		self::assertStringContainsString( 'sscribe_upgrade_failures', $src );
 		self::assertStringContainsString( 'is_sqlite_database', $src );
-		self::assertStringContainsString( 'PRAGMA table_info', $src );
-		self::assertStringContainsString( 'PRAGMA index_list', $src );
+		self::assertStringContainsString( 'run_sqlite_schema_convergence', $src );
+		self::assertStringContainsString( 'dbDelta( $sql_logs )', $src );
 		self::assertStringContainsString( 'session_id VARCHAR(60)', $src );
 		self::assertStringContainsString( 'KEY idx_session_id (session_id)', $src );
 	}
