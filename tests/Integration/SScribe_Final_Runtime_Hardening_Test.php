@@ -81,7 +81,8 @@ final class SScribe_Final_Runtime_Hardening_Test extends TestCase {
 		$start = strpos( $src, 'private function get_child_pages(' );
 		self::assertNotFalse( $start );
 		$section = substr( $src, (int) $start, 4500 );
-		self::assertStringContainsString( "'numberposts'             => 200", $section );
+		self::assertStringContainsString( '$batch_size = 200;', $section );
+		self::assertStringContainsString( "'numberposts'             => $batch_size", $section );
 		self::assertStringContainsString( "'update_post_meta_cache' => false", $section );
 		self::assertStringContainsString( "'update_post_term_cache' => false", $section );
 	}
