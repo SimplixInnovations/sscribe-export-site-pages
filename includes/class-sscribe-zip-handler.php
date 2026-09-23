@@ -678,19 +678,70 @@ class SScribe_Zip_Handler {
 	 * @return array<string, array<string, mixed>> Map of basename => row data.
 	 */
 	public function list_export_entries(): array {
-		$index   = get_option( 'sscribe_export_index', array() );
-		$index   = array_slice( (array) $index, -50 );
-		$entries = array();
+		global $wpdb;
+
+		$index = array_slice( (array) get_option( 'sscribe_export_index', array() ), -50 );
+		$basenames = array();
+		$option_map = array();
 		foreach ( $index as $basename ) {
 			$basename = $this->normalize_zip_filename( (string) $basename );
 			if ( '' === $basename ) {
 				continue;
 			}
-			$row = $this->get_export_entry( $basename );
-			if ( null !== $row ) {
-				$entries[ (string) $basename ] = $row;
+			$option_name = 'sscribe_export_row_' . md5( $basename );
+			$basenames[] = $basename;
+			$option_map[ $option_name ] = $basename;
+		}
+
+		if ( empty( $basenames ) ) {
+			return array();
+		}
+
+		$rows_by_option = array();
+		if (
+			isset( $wpdb->options )
+			&& is_string( $wpdb->options )
+			&& method_exists( $wpdb, 'prepare' )
+			&& method_exists( $wpdb, 'get_results' )
+		) {
+			$option_names = array_keys( $option_map );
+			$placeholders = implode( ',', array_fill( 0, count( $option_names ), '%s' ) );
+			// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare -- Table name is WordPress-owned; placeholder list is generated from a bounded option-name array.
+			$sql = $wpdb->prepare(
+				"SELECT option_name, option_value FROM {$wpdb->options} WHERE option_name IN ({$placeholders})",
+				$option_names
+			);
+			// phpcs:enable
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- One bounded batch replaces up to 50 autoload=no get_option() round-trips.
+			$rows = $wpdb->get_results( $sql, ARRAY_A );
+			if ( is_array( $rows ) ) {
+				foreach ( $rows as $row_record ) {
+					$option_name = isset( $row_record['option_name'] ) ? (string) $row_record['option_name'] : '';
+					if ( '' === $option_name || ! isset( $option_map[ $option_name ] ) ) {
+						continue;
+					}
+					$value = maybe_unserialize( $row_record['option_value'] ?? null );
+					if ( is_array( $value ) ) {
+						$rows_by_option[ $option_name ] = $value;
+					}
+				}
 			}
 		}
+
+		$entries = array();
+		foreach ( $basenames as $basename ) {
+			$option_name = 'sscribe_export_row_' . md5( $basename );
+			$row = $rows_by_option[ $option_name ] ?? null;
+			if ( null === $row ) {
+				// Test doubles and unusual database layers may not expose a normal
+				// wpdb options table; preserve the canonical get_option() fallback.
+				$row = get_option( $option_name, null );
+			}
+			if ( is_array( $row ) ) {
+				$entries[ $basename ] = $row;
+			}
+		}
+
 		return $entries;
 	}
 
@@ -702,10 +753,11 @@ class SScribe_Zip_Handler {
 	 * each other; the server rotates it only after a successful
 	 * redemption. A replay with the consumed token therefore fails.
 	 *
-	 * @param string $zip_filename ZIP filename.
+	 * @param string                   $zip_filename ZIP filename.
+	 * @param array<string,mixed>|null $row          Optional already-loaded row.
 	 * @return string
 	 */
-	public function get_ajax_download_url( string $zip_filename ): string {
+	public function get_ajax_download_url( string $zip_filename, ?array $row = null ): string {
 		$zip_filename = $this->normalize_zip_filename( $zip_filename );
 		if ( '' === $zip_filename || ! is_user_logged_in() ) {
 			return '';
@@ -713,7 +765,9 @@ class SScribe_Zip_Handler {
 		if ( null === $this->cached_nonce ) {
 			$this->cached_nonce = wp_create_nonce( 'sscribe_download' );
 		}
-		$row   = get_option( 'sscribe_export_row_' . md5( $zip_filename ), null );
+		if ( null === $row ) {
+			$row = get_option( 'sscribe_export_row_' . md5( $zip_filename ), null );
+		}
 		$token = is_array( $row ) && isset( $row['dl_token'] ) && is_string( $row['dl_token'] )
 			? $row['dl_token']
 			: '';
