@@ -228,9 +228,9 @@ if ( ! function_exists( 'sscribe_humanize_export_filename' ) ) {
 			<div class="sscribe-panel-body sscribe-flat-body">
 				<div class="sscribe-config-grid">
 					<div class="sscribe-config-section">
-						<div class="sscribe-section-title">
+						<h3 class="sscribe-section-title">
 							<span class="sscribe-step-badge">1</span>
-							<?php esc_html_e( 'Content Type', 'sscribe-export-site-pages' ); ?></div>
+							<?php esc_html_e( 'Content Type', 'sscribe-export-site-pages' ); ?></h3>
 						<div class="sscribe-post-type-cards sscribe-cards-compact" id="sscribe-post-type-cards">
 							<?php
 							$sscribe_types_with_default = 0;
@@ -277,13 +277,13 @@ if ( ! function_exists( 'sscribe_humanize_export_filename' ) ) {
 				<?php if ( $sscribe_wpml_active && ! empty( $sscribe_languages ) ) : ?>
 					<?php ++$sscribe_step; ?>
 					<div class="sscribe-config-section">
-						<div class="sscribe-config-section-header">
+						<h3 class="sscribe-config-section-header">
 							<span class="sscribe-step-badge"><?php echo esc_html( $sscribe_step ); ?></span>
 							<?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- SVG sanitized in get_icon().
 							?>
 							<?php echo wp_kses_post( SScribe_Helpers::get_icon( 'globe', 15 ) ); ?>
 							<span><?php esc_html_e( 'Language', 'sscribe-export-site-pages' ); ?></span>
-						</div>
+						</h3>
 						<div class="sscribe-language-cards-wrapper">
 						<div class="sscribe-language-cards sscribe-cards-row" id="sscribe-language-cards">
 							<label class="sscribe-lang-card-label sscribe-lang-card-all sscribe-lang-card-compact">
@@ -331,9 +331,9 @@ if ( ! function_exists( 'sscribe_humanize_export_filename' ) ) {
 
 					<?php ++$sscribe_step; ?>
 					<div class="sscribe-config-section">
-						<div class="sscribe-section-title">
+						<h3 class="sscribe-section-title">
 							<span class="sscribe-step-badge"><?php echo esc_html( $sscribe_step ); ?></span>
-							<?php esc_html_e( 'Content Status', 'sscribe-export-site-pages' ); ?></div>
+							<?php esc_html_e( 'Content Status', 'sscribe-export-site-pages' ); ?></h3>
 						<div class="sscribe-status-cards sscribe-cards-row" id="sscribe-status-cards">
 							<?php
 							$sscribe_status_labels = array(
@@ -366,9 +366,7 @@ if ( ! function_exists( 'sscribe_humanize_export_filename' ) ) {
 								?>
 							<label class="<?php echo esc_attr( $sscribe_label_class ); ?>">
 								<input type="radio" name="sscribe_post_status" value="<?php echo esc_attr( $sscribe_status_key ); ?>" <?php checked( $sscribe_is_first ); ?>
-								<?php
-								echo $sscribe_is_zero ? ' disabled' : ''; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Static attribute string.
-								?>
+								<?php disabled( $sscribe_is_zero ); ?>
 								aria-label="<?php echo esc_attr( sprintf( '%1$s, %2$d %3$s', $sscribe_status_label, $sscribe_count, _n( 'page', 'pages', $sscribe_count, 'sscribe-export-site-pages' ) ) ); ?>"
 								>
 								<div class="sscribe-status-card-inner">
@@ -393,9 +391,9 @@ if ( ! function_exists( 'sscribe_humanize_export_filename' ) ) {
 
 					<?php ++$sscribe_step; ?>
 					<div class="sscribe-config-section">
-						<div class="sscribe-section-title">
+						<h3 class="sscribe-section-title">
 							<span class="sscribe-step-badge"><?php echo esc_html( $sscribe_step ); ?></span>
-							<?php esc_html_e( 'Export Format', 'sscribe-export-site-pages' ); ?></div>
+							<?php esc_html_e( 'Export Format', 'sscribe-export-site-pages' ); ?></h3>
 						<div class="sscribe-format-cards sscribe-cards-row" id="sscribe-format-cards">
 							<label class="sscribe-format-card-label sscribe-format-all">
 								<input type="radio" name="sscribe_format" value="all" checked>
@@ -553,9 +551,9 @@ if ( ! function_exists( 'sscribe_humanize_export_filename' ) ) {
 
 				<?php ++$sscribe_step; ?>
 				<div class="sscribe-config-section sscribe-config-section-summary" id="sscribe-config-section-summary">
-<div class="sscribe-section-title">
+<h3 class="sscribe-section-title">
 						<?php esc_html_e( 'Export Summary', 'sscribe-export-site-pages' ); ?>
-					</div>
+					</h3>
 					<div class="sscribe-config-summary-row">
 						<div class="sscribe-config-summary" id="sscribe-config-summary" aria-live="polite" aria-label="<?php esc_attr_e( 'Selected export configuration', 'sscribe-export-site-pages' ); ?>">
 							<span class="sscribe-summary-chip sscribe-summary-post-type" id="sscribe-summary-post-type"><?php esc_html_e( 'Pages', 'sscribe-export-site-pages' ); ?></span>
