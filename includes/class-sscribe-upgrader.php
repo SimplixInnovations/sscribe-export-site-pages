@@ -98,6 +98,8 @@ class SScribe_Upgrader {
 	 * The delay starts at one minute and is capped at six hours. The failure
 	 * counter is capped so corrupt/stale installations cannot overflow math or
 	 * create unbounded option values.
+	 *
+	 * @param \Throwable $error Upgrade failure being recorded.
 	 */
 	private static function record_upgrade_failure( \Throwable $error ): void {
 		$failures = min( 10, max( 0, (int) get_option( self::FAILURE_COUNT_OPTION, 0 ) ) + 1 );
