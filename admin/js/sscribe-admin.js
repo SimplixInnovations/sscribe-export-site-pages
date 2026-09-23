@@ -3203,7 +3203,7 @@
 			}
 			if (data.title && data.content) {
 				html += '<div class="sscribe-preview-sample">';
-				html += '<h4>' + this.escapeHtml(strings.preview_sample_title || 'Sample:') + '</h3>';
+				html += '<h4>' + this.escapeHtml(strings.preview_sample_title || 'Sample:') + '</h4>';
 				html += '<p class="sscribe-preview-title">' + this.escapeHtml(data.title) + '</p>';
 				html += '<p class="sscribe-preview-excerpt">' + this.escapeHtml(data.content) + '</p>';
 				html += '</div>';
@@ -4039,7 +4039,7 @@
 			html += '</div>';
 			if (pages.length > 0) {
 				html += '<div class="sscribe-log-pages">';
-				html += '<h4>' + this.escapeHtml(strings.log_page_details || 'Page Details') + '</h3>';
+				html += '<h4>' + this.escapeHtml(strings.log_page_details || 'Page Details') + '</h4>';
 				html += '<div class="sscribe-log-table-wrap"><table class="sscribe-log-table">';
 				html += '<thead><tr>';
 				html += '<th scope="col">' + this.escapeHtml(strings.log_col_id || 'ID') + '</th>';
@@ -4127,7 +4127,7 @@
 			}
 			if (errors.length > 0) {
 				html += '<div class="sscribe-log-errors">';
-				html += '<h4>' + this.escapeHtml(strings.log_errors || 'Errors') + '</h3>';
+				html += '<h4>' + this.escapeHtml(strings.log_errors || 'Errors') + '</h4>';
 				html += '<ul>';
 				errors.forEach(
 					function (errorEntry) {
