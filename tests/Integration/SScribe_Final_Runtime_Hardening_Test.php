@@ -96,14 +96,15 @@ final class SScribe_Final_Runtime_Hardening_Test extends TestCase {
 		self::assertStringContainsString( '$this->prime_readability_post_cache( $page_ids );', $section );
 	}
 
-	public function test_content_cache_invalidation_covers_public_custom_post_types(): void {
+	public function test_content_cache_invalidation_is_not_limited_to_builtin_or_public_post_types(): void {
 		$src = self::source( 'includes/class-sscribe.php' );
 		$start = strpos( $src, 'public function invalidate_admin_page_cache' );
 		self::assertNotFalse( $start );
-		$section = substr( $src, (int) $start, 1800 );
-		self::assertStringContainsString( 'get_post_type_object', $section );
-		self::assertStringContainsString( 'empty( $post_type_object->public )', $section );
+		$section = substr( $src, (int) $start, 1600 );
+		self::assertStringContainsString( 'wp_is_post_autosave', $section );
+		self::assertStringContainsString( 'wp_is_post_revision', $section );
 		self::assertStringNotContainsString( "array( 'page', 'post' )", $section );
+		self::assertStringNotContainsString( 'get_post_type_object', $section );
 	}
 
 	public function test_rate_limiter_never_spins_for_seconds_under_contention(): void {
