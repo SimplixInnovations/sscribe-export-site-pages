@@ -199,12 +199,11 @@ class SScribe {
 	/**
 	 * Invalidate admin page cache when posts are saved.
 	 *
-	 * Bumps the global content cache generation option. All transient and
-	 * object-cache keys that participate in content-derived lookups include
-	 * the generation, so an increment is sufficient to invalidate the entire
-	 * population of cached page-ID lists, status counts, breadcrumbs, and
-	 * featured-image lookups without having to enumerate each key. Old keys
-	 * naturally TTL out (5 minutes for page IDs, 1 hour for status counts).
+	 * Bumps the global content cache generation option. Stable transient keys
+	 * store that generation inside their payload, while request/object caches
+	 * are refreshed by the normal WordPress cache lifecycle. A generation
+	 * mismatch invalidates content-derived values without creating a new
+	 * wp_options transient key after every content mutation.
 	 *
 	 * @param int $post_id Post ID that was saved.
 	 */
@@ -213,8 +212,11 @@ class SScribe {
 			return;
 		}
 
-		$post_type = get_post_type( $post_id );
-		if ( ! $post_type || ! in_array( $post_type, array( 'page', 'post' ), true ) ) {
+		// Do not hard-code page/post here. Selectable custom post types may be
+		// added through WordPress registration/filtering and are valid SScribe
+		// export sources; any real post mutation can therefore invalidate the
+		// shared content-derived caches.
+		if ( ! get_post_type( $post_id ) ) {
 			return;
 		}
 
