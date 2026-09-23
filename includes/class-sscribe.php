@@ -168,6 +168,15 @@ class SScribe {
 			return;
 		}
 
+		if ( ! function_exists( 'get_current_screen' ) ) {
+			return;
+		}
+		$screen    = get_current_screen();
+		$screen_id = is_object( $screen ) && isset( $screen->id ) ? (string) $screen->id : '';
+		if ( ! in_array( $screen_id, array( 'toplevel_page_sscribe-export', 'plugins', 'plugins-network' ), true ) ) {
+			return;
+		}
+
 		static $missing = null;
 		if ( null === $missing ) {
 			$diagnostics = new SScribe_Diagnostics();
