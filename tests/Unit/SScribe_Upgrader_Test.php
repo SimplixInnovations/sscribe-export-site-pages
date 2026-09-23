@@ -19,10 +19,19 @@ class SScribe_Upgrader_Test extends TestCase {
 		parent::setUp();
 		$GLOBALS['sscribe_test_options'] = array();
 		$GLOBALS['sscribe_test_transients'] = array();
+		$GLOBALS['sscribe_test_is_admin'] = true;
+		$GLOBALS['sscribe_test_doing_ajax'] = false;
+		$GLOBALS['sscribe_test_doing_cron'] = false;
 	}
 
 	protected function tearDown(): void {
-		unset( $GLOBALS['sscribe_test_options'], $GLOBALS['sscribe_test_transients'] );
+		unset(
+			$GLOBALS['sscribe_test_options'],
+			$GLOBALS['sscribe_test_transients'],
+			$GLOBALS['sscribe_test_is_admin'],
+			$GLOBALS['sscribe_test_doing_ajax'],
+			$GLOBALS['sscribe_test_doing_cron']
+		);
 		parent::tearDown();
 	}
 
@@ -61,6 +70,36 @@ class SScribe_Upgrader_Test extends TestCase {
 		delete_option( 'sscribe_schema_version' );
 		\SScribe_Upgrader::maybe_upgrade();
 		$this->assertEquals( SSCRIBE_VERSION, get_option( 'sscribe_version' ) );
+	}
+
+	public function test_maybe_upgrade_skips_ordinary_frontend_requests(): void {
+		delete_option( 'sscribe_schema_version' );
+		$GLOBALS['sscribe_test_is_admin'] = false;
+		SScribe_Upgrader::maybe_upgrade();
+		$this->assertFalse( get_option( 'sscribe_schema_version' ) );
+	}
+
+	public function test_failed_upgrade_records_bounded_retry_backoff(): void {
+		delete_option( 'sscribe_schema_version' );
+		$orig_wpdb = $GLOBALS['wpdb'];
+		$GLOBALS['wpdb'] = new class() {
+			public string $prefix = 'wp_';
+			public string $options = 'wp_options';
+			public function get_charset_collate(): string {
+				throw new \RuntimeException( 'forced schema failure' );
+			}
+			public function delete( $table, $where, $where_format = null ) {
+				unset( $table, $where, $where_format );
+				return 0;
+			}
+		};
+		try {
+			SScribe_Upgrader::maybe_upgrade();
+		} finally {
+			$GLOBALS['wpdb'] = $orig_wpdb;
+		}
+		$this->assertSame( 1, (int) get_option( 'sscribe_upgrade_failures', 0 ) );
+		$this->assertGreaterThan( time(), (int) get_option( 'sscribe_upgrade_next_attempt', 0 ) );
 	}
 
 	public function test_maybe_upgrade_handles_error_gracefully(): void {
