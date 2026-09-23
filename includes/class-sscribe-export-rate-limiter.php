@@ -23,6 +23,9 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class SScribe_Export_Rate_Limiter {
 
+	private const LOCK_MAX_ATTEMPTS = 5;
+	private const LOCK_RETRY_DELAY_US = 20000;
+
 	private const RATE_LIMIT_MAX = 200;
 
 	private const RATE_LIMIT_WINDOW = 60;
@@ -111,7 +114,7 @@ class SScribe_Export_Rate_Limiter {
 		// cannot safely release without risking deletion of a successor. add_option()
 		// gives us atomic acquisition and the exact-value delete below gives us CAS
 		// release on every supported cache backend.
-		while ( ! $locked && $attempts < 50 ) {
+		while ( ! $locked && $attempts < self::LOCK_MAX_ATTEMPTS ) {
 			$existing_lock = get_option( $option_lock_key, false );
 			if ( false !== $existing_lock ) {
 				if ( ! is_string( $existing_lock ) ) {
@@ -132,8 +135,8 @@ class SScribe_Export_Rate_Limiter {
 				$locked   = is_string( $verified ) && hash_equals( $now . '|' . $lock_token, $verified );
 			}
 			++$attempts;
-			if ( ! $locked && $attempts < 50 ) {
-				usleep( 100000 );
+			if ( ! $locked && $attempts < self::LOCK_MAX_ATTEMPTS ) {
+				usleep( self::LOCK_RETRY_DELAY_US );
 			}
 		}
 
