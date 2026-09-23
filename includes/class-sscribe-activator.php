@@ -206,7 +206,7 @@ class SScribe_Activator {
 	 */
 	private static function activate_single_site(): void {
 		self::create_export_directory();
-		self::create_database_tables();
+		self::ensure_database_schema();
 		// register_settings() is wired to the admin_init hook in
 		// sscribe-export-site-pages.php so the Settings API whitelist
 		// is live on every admin request, not just on activation. The
@@ -219,11 +219,16 @@ class SScribe_Activator {
 	}
 
 	/**
-	 * Create plugin database tables.
+	 * Reconcile the canonical plugin database schema.
 	 *
+	 * Activation records the current schema version immediately. Runtime
+	 * upgrades pass false so version advancement happens only after every
+	 * data/filesystem migration has also succeeded.
+	 *
+	 * @param bool $record_version Whether to persist the current schema version.
 	 * @throws \RuntimeException When the WordPress upgrade helper is unavailable.
 	 */
-	private static function create_database_tables(): void {
+	public static function ensure_database_schema( bool $record_version = true ): void {
 		global $wpdb;
 
 		$charset_collate = $wpdb->get_charset_collate();
@@ -285,7 +290,9 @@ class SScribe_Activator {
 		dbDelta( $sql_stats );
 
 		SScribe_Audit_Trail::create_table();
-		update_option( 'sscribe_schema_version', SSCRIBE_VERSION, false );
+		if ( $record_version ) {
+			update_option( 'sscribe_schema_version', SSCRIBE_VERSION, false );
+		}
 	}
 
 	/**
