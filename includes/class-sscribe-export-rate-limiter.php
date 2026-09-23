@@ -31,6 +31,10 @@ class SScribe_Export_Rate_Limiter {
 
 	private const OPTION_LOCK_PREFIX = 'sscribe_rate_lock_';
 
+	private const LOCK_MAX_ATTEMPTS = 8;
+
+	private const LOCK_RETRY_MICROSECONDS = 25000;
+
 	/**
 	 * Canonical rate-limit buckets.
 	 *
@@ -111,17 +115,17 @@ class SScribe_Export_Rate_Limiter {
 		// cannot safely release without risking deletion of a successor. add_option()
 		// gives us atomic acquisition and the exact-value delete below gives us CAS
 		// release on every supported cache backend.
-		while ( ! $locked && $attempts < 50 ) {
+		while ( ! $locked && $attempts < self::LOCK_MAX_ATTEMPTS ) {
 			$existing_lock = get_option( $option_lock_key, false );
 			if ( false !== $existing_lock ) {
 				if ( ! is_string( $existing_lock ) ) {
-					return SScribe_Rate_Limit_Decision::limiter_contention( $bucket, $rate_limit, 750 );
+					return SScribe_Rate_Limit_Decision::limiter_contention( $bucket, $rate_limit, 250 );
 				}
 				$parts     = explode( '|', $existing_lock, 2 );
 				$lock_time = isset( $parts[0] ) && ctype_digit( $parts[0] ) ? (int) $parts[0] : 0;
 				if ( 0 === $lock_time || $now - $lock_time > 5 || $now - $lock_time < -5 ) {
 					if ( ! $this->delete_owned_option_lock( $option_lock_key, $existing_lock ) ) {
-						return SScribe_Rate_Limit_Decision::limiter_contention( $bucket, $rate_limit, 750 );
+						return SScribe_Rate_Limit_Decision::limiter_contention( $bucket, $rate_limit, 250 );
 					}
 				}
 			}
@@ -132,13 +136,13 @@ class SScribe_Export_Rate_Limiter {
 				$locked   = is_string( $verified ) && hash_equals( $now . '|' . $lock_token, $verified );
 			}
 			++$attempts;
-			if ( ! $locked && $attempts < 50 ) {
-				usleep( 100000 );
+			if ( ! $locked && $attempts < self::LOCK_MAX_ATTEMPTS ) {
+				usleep( self::LOCK_RETRY_MICROSECONDS );
 			}
 		}
 
 		if ( ! $locked ) {
-			return SScribe_Rate_Limit_Decision::limiter_contention( $bucket, $rate_limit, 750 );
+			return SScribe_Rate_Limit_Decision::limiter_contention( $bucket, $rate_limit, 250 );
 		}
 
 		$cache_ttl = self::RATE_LIMIT_WINDOW + 5;
