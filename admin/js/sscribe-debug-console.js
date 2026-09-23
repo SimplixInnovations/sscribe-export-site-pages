@@ -420,7 +420,7 @@
 					closeBtn.addEventListener('click', closeDialog);
 					const header = document.createElement('div');
 					header.className = 'sscribe-modal-header';
-					const clonedTitle = helpClone.querySelector('#sscribe-debug-help-title');
+					const clonedTitle = helpClone.querySelector('#sscribe-debug-help-source-title');
 					const titleText = clonedTitle ? clonedTitle.textContent : 'Help';
 					const headerTitle = document.createElement('h3');
 					headerTitle.id = 'sscribe-debug-help-title';
@@ -1651,7 +1651,7 @@
 						const $row = $btn.closest('.sscribe-debug-rotated-file');
 						if ($row.length) {
 							$row.find('.sscribe-debug-rotated-file-actions').after(
-								'<div class="sscribe-rotated-error">' +
+								'<div class="sscribe-rotated-error" role="alert">' +
 									escHtml(self.getResponseMessage(response, 'Error')) +
 									'</div>'
 							);
@@ -1671,7 +1671,7 @@
 					const $row = $btn.closest('.sscribe-debug-rotated-file');
 					if ($row.length) {
 						$row.find('.sscribe-debug-rotated-file-actions').after(
-							'<div class="sscribe-rotated-error">Error</div>'
+							'<div class="sscribe-rotated-error" role="alert">Error</div>'
 						);
 						setTimeout(function () {
 							$row.find('.sscribe-rotated-error').remove();
