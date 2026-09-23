@@ -19,10 +19,19 @@ class SScribe_Upgrader_Test extends TestCase {
 		parent::setUp();
 		$GLOBALS['sscribe_test_options'] = array();
 		$GLOBALS['sscribe_test_transients'] = array();
+		$GLOBALS['sscribe_test_is_admin'] = true;
+		$GLOBALS['sscribe_test_doing_ajax'] = false;
+		$GLOBALS['sscribe_test_doing_cron'] = false;
 	}
 
 	protected function tearDown(): void {
-		unset( $GLOBALS['sscribe_test_options'], $GLOBALS['sscribe_test_transients'] );
+		unset(
+			$GLOBALS['sscribe_test_options'],
+			$GLOBALS['sscribe_test_transients'],
+			$GLOBALS['sscribe_test_is_admin'],
+			$GLOBALS['sscribe_test_doing_ajax'],
+			$GLOBALS['sscribe_test_doing_cron']
+		);
 		parent::tearDown();
 	}
 
@@ -48,6 +57,21 @@ class SScribe_Upgrader_Test extends TestCase {
 		delete_option( 'sscribe_schema_version' );
 		\SScribe_Upgrader::maybe_upgrade();
 		$this->assertFalse( get_option( 'sscribe_export_lock_upgrade', false ) );
+	}
+
+
+	public function test_maybe_upgrade_does_not_run_on_anonymous_frontend_request(): void {
+		delete_option( 'sscribe_schema_version' );
+		$GLOBALS['sscribe_test_is_admin'] = false;
+		\SScribe_Upgrader::maybe_upgrade();
+		$this->assertFalse( get_option( 'sscribe_schema_version' ) );
+	}
+
+	public function test_maybe_upgrade_honors_failure_backoff(): void {
+		delete_option( 'sscribe_schema_version' );
+		update_option( 'sscribe_upgrade_next_attempt', time() + 600, false );
+		\SScribe_Upgrader::maybe_upgrade();
+		$this->assertFalse( get_option( 'sscribe_schema_version' ) );
 	}
 
 	public function test_maybe_upgrade_skips_when_locked(): void {
