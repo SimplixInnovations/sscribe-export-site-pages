@@ -109,7 +109,7 @@ $sscribe_show_wp_debug_notice = ( defined( 'WP_DEBUG' ) && WP_DEBUG );
 		</div>
 		<div class="sscribe-debug-refresh-row">
 			<div class="sscribe-debug-refresh-mode">
-				<span class="sscribe-debug-refresh-paused sscribe-hidden" id="sscribe-debug-refresh-paused"><?php esc_html_e( 'Paused: tab inactive', 'sscribe-export-site-pages' ); ?></span>
+				<span class="sscribe-debug-refresh-paused sscribe-hidden" id="sscribe-debug-refresh-paused" role="status" aria-live="polite"><?php esc_html_e( 'Paused: tab inactive', 'sscribe-export-site-pages' ); ?></span>
 				<label class="sscribe-radio-label">
 					<input type="radio" name="sscribe_refresh_mode" value="auto" <?php checked( true, (bool) $sscribe_debug_settings['auto_refresh'] ); ?>>
 					<span class="sscribe-radio-text"><?php esc_html_e( 'Auto-refresh (10s)', 'sscribe-export-site-pages' ); ?></span>
@@ -143,7 +143,7 @@ $sscribe_show_wp_debug_notice = ( defined( 'WP_DEBUG' ) && WP_DEBUG );
 		</div>
 	</div>
 
-	<div class="sscribe-debug-console-card" role="log" aria-label="<?php esc_attr_e( 'Debug log entries', 'sscribe-export-site-pages' ); ?>">
+	<div class="sscribe-debug-console-card" role="region" aria-label="<?php esc_attr_e( 'Debug log entries', 'sscribe-export-site-pages' ); ?>">
 		<div class="sscribe-debug-console-header">
 			<span class="sscribe-debug-console-title"><?php esc_html_e( 'Console Output', 'sscribe-export-site-pages' ); ?></span>
 			<span class="sscribe-debug-console-count" id="sscribe-debug-entry-count" aria-live="polite" aria-atomic="true"><?php esc_html_e( 'Loading...', 'sscribe-export-site-pages' ); ?></span>
