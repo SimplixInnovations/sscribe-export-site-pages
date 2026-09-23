@@ -153,11 +153,21 @@ class SScribe {
 		$this->loader->add_action( 'admin_init', $admin, 'maybe_redirect_after_activation' );
 		$this->loader->add_action( 'admin_enqueue_scripts', $admin, 'enqueue_admin_assets' );
 		$this->loader->add_action( 'admin_notices', $this, 'render_vendor_dependency_notice' );
+		$this->loader->add_filter( 'plugin_action_links_' . SSCRIBE_PLUGIN_BASENAME, $admin, 'add_plugin_action_links' );
+	}
+
+	/**
+	 * Register lightweight content-cache invalidation hooks in every context.
+	 *
+	 * Post mutations may arrive through REST/front-end integrations where
+	 * is_admin() is false, so these hooks must stay global even though the
+	 * heavyweight admin/AJAX service graphs are context-gated.
+	 */
+	private function define_content_hooks(): void {
 		$this->loader->add_action( 'save_post', $this, 'invalidate_admin_page_cache' );
 		$this->loader->add_action( 'trashed_post', $this, 'invalidate_admin_page_cache' );
 		$this->loader->add_action( 'deleted_post', $this, 'invalidate_admin_page_cache' );
 		$this->loader->add_action( 'untrashed_post', $this, 'invalidate_admin_page_cache' );
-		$this->loader->add_filter( 'plugin_action_links_' . SSCRIBE_PLUGIN_BASENAME, $admin, 'add_plugin_action_links' );
 	}
 
 	/**
@@ -165,6 +175,11 @@ class SScribe {
 	 */
 	public function render_vendor_dependency_notice(): void {
 		if ( ! current_user_can( SScribe_Capabilities::get_required() ) ) {
+			return;
+		}
+
+		$screen = function_exists( 'get_current_screen' ) ? get_current_screen() : null;
+		if ( ! $screen || ! in_array( (string) $screen->id, array( 'toplevel_page_sscribe-export', 'plugins' ), true ) ) {
 			return;
 		}
 
@@ -373,11 +388,25 @@ class SScribe {
 		\SScribe_Request_Id::current();
 
 		$this->register_services();
-		$this->define_admin_hooks();
-		$this->define_ajax_hooks();
-		$this->define_cron_hooks();
+
+		$is_ajax = wp_doing_ajax();
+		$is_cron = wp_doing_cron();
+
+		$this->define_content_hooks();
 		$this->define_lifecycle_hooks();
-		$this->define_privacy_hooks();
+
+		if ( is_admin() && ! $is_ajax ) {
+			$this->define_admin_hooks();
+		}
+		if ( $is_ajax ) {
+			$this->define_ajax_hooks();
+		}
+		if ( $is_cron ) {
+			$this->define_cron_hooks();
+		}
+		if ( is_admin() ) {
+			$this->define_privacy_hooks();
+		}
 
 		$this->loader->run();
 	}
