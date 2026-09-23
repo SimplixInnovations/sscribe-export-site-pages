@@ -124,7 +124,8 @@ final class SScribe_Final_Runtime_Hardening_Test extends TestCase {
 
 	public function test_private_storage_protection_does_not_rewrite_identical_htaccess(): void {
 		$src = self::source( 'includes/class-sscribe-security.php' );
-		self::assertStringContainsString( 'hash_equals( $content, (string) file_get_contents( $htaccess_path ) )', $src );
+		self::assertStringContainsString( 'hash_equals( $content, $htaccess_current )', $src );
+		self::assertStringContainsString( 'file_get_contents( $htaccess_path )', $src );
 	}
 
 	public function test_zip_log_index_transient_ttl_matches_72_hour_retention(): void {
