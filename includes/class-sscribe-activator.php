@@ -219,11 +219,16 @@ class SScribe_Activator {
 	}
 
 	/**
-	 * Create plugin database tables.
+	 * Create or reconcile plugin database tables with the canonical schema.
 	 *
+	 * The same dbDelta-backed path is used for fresh activation and upgrades so
+	 * schema evolution remains portable across WordPress-supported database
+	 * adapters instead of relying on MySQL-only SHOW/ALTER statements.
+	 *
+	 * @param bool $record_schema_version Whether to persist the current schema version.
 	 * @throws \RuntimeException When the WordPress upgrade helper is unavailable.
 	 */
-	private static function create_database_tables(): void {
+	public static function create_database_tables( bool $record_schema_version = true ): void {
 		global $wpdb;
 
 		$charset_collate = $wpdb->get_charset_collate();
@@ -285,7 +290,9 @@ class SScribe_Activator {
 		dbDelta( $sql_stats );
 
 		SScribe_Audit_Trail::create_table();
-		update_option( 'sscribe_schema_version', SSCRIBE_VERSION, false );
+		if ( $record_schema_version ) {
+			update_option( 'sscribe_schema_version', SSCRIBE_VERSION, false );
+		}
 	}
 
 	/**
