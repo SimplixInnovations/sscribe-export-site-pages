@@ -149,5 +149,4 @@ class SScribe_Upgrader {
 			throw new \RuntimeException( 'Failed while migrating export artifacts to private storage.' );
 		}
 	}
-
 }
