@@ -695,9 +695,10 @@ if ( ! function_exists( 'sscribe_humanize_export_filename' ) ) {
 			</div>
 			<div class="sscribe-status-info">
 				<div class="sscribe-phase-steps" role="list" aria-label="<?php esc_attr_e( 'Export phases', 'sscribe-export-site-pages' ); ?>">
-					<div class="sscribe-phase-step sscribe-phase-active" data-phase="fetching" role="listitem">
+					<div class="sscribe-phase-step sscribe-phase-active" data-phase="fetching" role="listitem" aria-current="step">
 						<span class="sscribe-phase-dot" aria-hidden="true"></span>
 						<span class="sscribe-phase-label"><?php esc_html_e( 'Reading pages', 'sscribe-export-site-pages' ); ?></span>
+						<span class="screen-reader-text sscribe-phase-completed-label" hidden><?php esc_html_e( 'Completed', 'sscribe-export-site-pages' ); ?></span>
 						<?php
 						echo wp_kses( SScribe_Helpers::get_icon_inline( 'check', 12, 'sscribe-phase-check' ), SScribe_Helpers::get_svg_kses_allowed_html() );
 						?>
@@ -706,6 +707,7 @@ if ( ! function_exists( 'sscribe_humanize_export_filename' ) ) {
 					<div class="sscribe-phase-step" data-phase="processing" role="listitem">
 						<span class="sscribe-phase-dot" aria-hidden="true"></span>
 						<span class="sscribe-phase-label"><?php esc_html_e( 'Generating files', 'sscribe-export-site-pages' ); ?></span>
+						<span class="screen-reader-text sscribe-phase-completed-label" hidden><?php esc_html_e( 'Completed', 'sscribe-export-site-pages' ); ?></span>
 						<?php
 						echo wp_kses( SScribe_Helpers::get_icon_inline( 'check', 12, 'sscribe-phase-check' ), SScribe_Helpers::get_svg_kses_allowed_html() );
 						?>
@@ -714,6 +716,7 @@ if ( ! function_exists( 'sscribe_humanize_export_filename' ) ) {
 					<div class="sscribe-phase-step" data-phase="packaging" role="listitem">
 						<span class="sscribe-phase-dot" aria-hidden="true"></span>
 						<span class="sscribe-phase-label"><?php esc_html_e( 'Packaging ZIP', 'sscribe-export-site-pages' ); ?></span>
+						<span class="screen-reader-text sscribe-phase-completed-label" hidden><?php esc_html_e( 'Completed', 'sscribe-export-site-pages' ); ?></span>
 						<?php
 						echo wp_kses( SScribe_Helpers::get_icon_inline( 'check', 12, 'sscribe-phase-check' ), SScribe_Helpers::get_svg_kses_allowed_html() );
 						?>
