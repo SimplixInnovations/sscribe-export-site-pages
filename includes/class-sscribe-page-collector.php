@@ -269,17 +269,38 @@ class SScribe_Page_Collector {
 	 * @return array<int> Readable post IDs.
 	 */
 	private function filter_readable_page_ids( array $page_ids ): array {
-		$readable = array();
+		$page_ids = array_values(
+			array_unique(
+				array_filter(
+					array_map(
+						static fn( $page_id ): int => is_scalar( $page_id ) && ! is_bool( $page_id ) ? absint( $page_id ) : 0,
+						$page_ids
+					)
+				)
+			)
+		);
 
+		if ( empty( $page_ids ) ) {
+			return array();
+		}
+
+		// fields=ids deliberately avoids hydrating WP_Post rows in the
+		// discovery query. Prime them once here before WordPress's per-post
+		// capability mapping so get_post()/current_user_can( 'read_post', ... )
+		// do not turn a 10,000-ID permission pass into 10,000 SELECTs.
+		if ( function_exists( '_prime_post_caches' ) ) {
+			_prime_post_caches( $page_ids, false, false );
+		}
+
+		$readable = array();
 		foreach ( $page_ids as $page_id ) {
-			$page_id = absint( $page_id );
-			if ( $page_id <= 0 || ! $this->is_post_readable_for_export( $page_id ) ) {
+			if ( ! $this->is_post_readable_for_export( $page_id ) ) {
 				continue;
 			}
 			$readable[] = $page_id;
 		}
 
-		return array_values( array_unique( $readable ) );
+		return $readable;
 	}
 
 	/**
@@ -936,50 +957,65 @@ class SScribe_Page_Collector {
 			return array();
 		}
 
-		$page_ids = array_map(
-			static fn( $id ): int => is_scalar( $id ) && ! is_bool( $id ) ? absint( $id ) : 0,
-			$page_ids
+		$page_ids = array_values(
+			array_unique(
+				array_filter(
+					array_map(
+						static fn( $id ): int => is_scalar( $id ) && ! is_bool( $id ) ? absint( $id ) : 0,
+						$page_ids
+					)
+				)
+			)
 		);
-		$page_ids = array_filter( $page_ids );
 
 		if ( empty( $page_ids ) ) {
 			return array();
 		}
 
-		$args = array(
-			'post_type'              => $this->resolve_post_type_for_query( $post_type ),
-			'post_status'            => 'publish',
-			'posts_per_page'         => 500,
-			'post_parent__in'        => $page_ids,
-			'orderby'                => 'menu_order title',
-			'order'                  => 'ASC',
+		// Seed every requested parent, including leaves. Without an explicit
+		// empty cache row, get_page_data() falls through to get_children() once
+		// per leaf and reintroduces an N+1 query on the common no-children case.
+		$children_by_parent = array_fill_keys( $page_ids, array() );
+		$page               = 1;
+		$chunk_size         = 500;
 
-			'no_found_rows'          => true,
-
-			'update_post_meta_cache' => false,
-			'update_post_term_cache' => false,
-		);
-
-		$query              = new WP_Query( $args );
-		$children_by_parent = array();
-
-		foreach ( $query->posts as $child ) {
-			if ( ! $this->is_post_readable_for_export( (int) $child->ID ) ) {
-				continue;
-			}
-			$parent_id = $child->post_parent;
-			if ( ! isset( $children_by_parent[ $parent_id ] ) ) {
-				$children_by_parent[ $parent_id ] = array();
-			}
-			$children_by_parent[ $parent_id ][] = array(
-				'id'    => $child->ID,
-				'title' => html_entity_decode( $child->post_title, ENT_QUOTES | ENT_HTML5, 'UTF-8' ),
-				'url'   => $this->get_permalink_cached( (int) $child->ID ),
+		do {
+			$args = array(
+				'post_type'              => $this->resolve_post_type_for_query( $post_type ),
+				'post_status'            => 'publish',
+				'posts_per_page'         => $chunk_size,
+				'paged'                  => $page,
+				'post_parent__in'        => $page_ids,
+				'orderby'                => 'menu_order title ID',
+				'order'                  => 'ASC',
+				'no_found_rows'          => true,
+				'update_post_meta_cache' => false,
+				'update_post_term_cache' => false,
 			);
-		}
 
-		foreach ( $children_by_parent as $k => $v ) {
-			$this->cache_add( $this->child_pages_cache, $k, $v );
+			$query   = new WP_Query( $args );
+			$fetched = count( $query->posts );
+
+			foreach ( $query->posts as $child ) {
+				if ( ! $child instanceof WP_Post || ! $this->is_post_readable_for_export( (int) $child->ID ) ) {
+					continue;
+				}
+				$parent_id = (int) $child->post_parent;
+				if ( ! array_key_exists( $parent_id, $children_by_parent ) ) {
+					continue;
+				}
+				$children_by_parent[ $parent_id ][] = array(
+					'id'    => (int) $child->ID,
+					'title' => html_entity_decode( (string) $child->post_title, ENT_QUOTES | ENT_HTML5, 'UTF-8' ),
+					'url'   => $this->get_permalink_cached( (int) $child->ID ),
+				);
+			}
+
+			++$page;
+		} while ( $fetched >= $chunk_size );
+
+		foreach ( $children_by_parent as $parent_id => $children ) {
+			$this->cache_add( $this->child_pages_cache, (int) $parent_id, $children );
 		}
 
 		return $children_by_parent;
@@ -1013,11 +1049,15 @@ class SScribe_Page_Collector {
 		$children    = array();
 		$child_pages = get_children(
 			array(
-				'post_parent' => $page_id,
-				'post_type'   => $post_type,
-				'post_status' => 'publish',
-				'orderby'     => 'menu_order title',
-				'order'       => 'ASC',
+				'post_parent'            => $page_id,
+				'post_type'              => $post_type,
+				'post_status'            => 'publish',
+				'numberposts'            => 500,
+				'orderby'                => 'menu_order title ID',
+				'order'                  => 'ASC',
+				'no_found_rows'          => true,
+				'update_post_meta_cache' => false,
+				'update_post_term_cache' => false,
 			)
 		);
 
@@ -1105,12 +1145,16 @@ class SScribe_Page_Collector {
 
 			$ancestor_posts = get_posts(
 				array(
-					'post__in'    => $ancestors,
-					'post_type'   => get_post_type( $page_id ),
-					'post_status' => 'publish',
-					'fields'      => 'all',
-					'orderby'     => 'post__in',
-					'order'       => 'ASC',
+					'post__in'               => $ancestors,
+					'post_type'              => get_post_type( $page_id ),
+					'post_status'            => 'publish',
+					'numberposts'            => count( $ancestors ),
+					'fields'                 => 'all',
+					'orderby'                => 'post__in',
+					'order'                  => 'ASC',
+					'no_found_rows'          => true,
+					'update_post_meta_cache' => false,
+					'update_post_term_cache' => false,
 				)
 			);
 
