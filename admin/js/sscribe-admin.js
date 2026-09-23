@@ -3826,7 +3826,7 @@
 						this.escapeHtml(sectionKey) +
 						'">' +
 						this.escapeHtml(label) +
-						'</h3>';
+						'</h4>';
 					html += '<div class="sscribe-support-grid-inner">';
 					itemKeys.forEach(function (itemKey) {
 						const value = section.items[itemKey];
