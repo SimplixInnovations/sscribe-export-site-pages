@@ -30,7 +30,7 @@ if ( version_compare( PHP_VERSION, '8.2', '<' ) ) {
 		'admin_notices',
 		function () {
 			printf(
-				'<div class="error"><p><strong>%1$s</strong></p><p>%2$s <code>%3$s</code></p><p>%4$s <a href="%5$s" target="_blank" rel="noopener noreferrer">%6$s</a>.</p></div>',
+				'<div class="notice notice-error"><p><strong>%1$s</strong></p><p>%2$s <code>%3$s</code></p><p>%4$s <a href="%5$s" target="_blank" rel="noopener noreferrer">%6$s</a>.</p></div>',
 				esc_html__( 'SScribe Export Site Pages has been deactivated.', 'sscribe-export-site-pages' ),
 				esc_html__( 'This plugin requires PHP 8.2 or higher. Your server is running PHP', 'sscribe-export-site-pages' ),
 				esc_html( PHP_VERSION ),
@@ -63,7 +63,7 @@ if ( version_compare( $sscribe_wp_version, '6.1', '<' ) ) {
 		'admin_notices',
 		function () use ( $sscribe_wp_version ) {
 			printf(
-				'<div class="error"><p><strong>%1$s</strong></p><p>%2$s <code>%3$s</code></p><p>%4$s</p></div>',
+				'<div class="notice notice-error"><p><strong>%1$s</strong></p><p>%2$s <code>%3$s</code></p><p>%4$s</p></div>',
 				esc_html__( 'SScribe Export Site Pages has been deactivated.', 'sscribe-export-site-pages' ),
 				esc_html__( 'This plugin requires WordPress 6.1 or higher. Your installation is running', 'sscribe-export-site-pages' ),
 				esc_html( $sscribe_wp_version ),
@@ -112,7 +112,7 @@ if ( ! $sscribe_has_dependencies || ! empty( $sscribe_missing_extensions ) ) {
 		'admin_notices',
 		static function () use ( $sscribe_missing_extensions ) {
 			printf(
-				'<div class="error"><p><strong>%s</strong> %s</p></div>',
+				'<div class="notice notice-error"><p><strong>%s</strong> %s</p></div>',
 				esc_html__( 'SScribe Export Site Pages:', 'sscribe-export-site-pages' ),
 				esc_html(
 					empty( $sscribe_missing_extensions )
@@ -150,7 +150,7 @@ add_action(
 		}
 
 		printf(
-			'<div class="notice notice-error"><p><strong>%1$s</strong> %2$s</p>%3$s</div>',
+			'<div class="notice notice-error is-dismissible"><p><strong>%1$s</strong> %2$s</p>%3$s</div>',
 			esc_html__( 'SScribe Export Site Pages could not finish loading.', 'sscribe-export-site-pages' ),
 			esc_html( $message ),
 			$time ? '<p><small>' . esc_html( $time ) . '</small></p>' : ''
