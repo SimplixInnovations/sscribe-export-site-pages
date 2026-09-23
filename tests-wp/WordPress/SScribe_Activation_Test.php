@@ -186,6 +186,25 @@ final class SScribe_Activation_Test extends SScribe_WP_TestCase {
 		$this::assertNotEmpty( get_option( 'sscribe_version' ) );
 	}
 
+	public function test_upgrader_converges_legacy_schema_on_sqlite_without_mysql_ddl(): void {
+		$this::assertTrue(
+			defined( 'DB_ENGINE' ) && 'sqlite' === strtolower( (string) DB_ENGINE ),
+			'This integration regression must execute against the SQLite Database Integration driver.'
+		);
+
+		$reflection = new \ReflectionClass( SScribe_Upgrader::class );
+		$method     = $reflection->getMethod( 'run_migrations' );
+		$method->setAccessible( true );
+		$method->invoke( null, '1.0.0' );
+
+		global $wpdb;
+		$logs_columns  = $this->getTableColumns( $wpdb->prefix . 'sscribe_export_logs' );
+		$stats_columns = $this->getTableColumns( $wpdb->prefix . 'sscribe_export_stats' );
+		$this::assertContains( 'session_id', $logs_columns );
+		$this::assertContains( 'export_session_id', $stats_columns );
+		$this::assertContains( 'status', $stats_columns );
+	}
+
 	public function test_activation_records_version_option(): void {
 		$option = get_option( 'sscribe_version' );
 		$this::assertNotEmpty( $option, 'sscribe_version option must be set on activation.' );
