@@ -180,7 +180,7 @@ if ( ! function_exists( 'sscribe_humanize_export_filename' ) ) {
 		</div>
 	</div>
 
-	<div class="sscribe-workspace sscribe-flat-workspace" id="sscribe-main-content">
+	<div class="sscribe-workspace sscribe-flat-workspace" id="sscribe-main-content" tabindex="-1">
 		<div id="sscribe-tab-announce" class="screen-reader-text" aria-live="polite" aria-atomic="true"></div>
 		<nav class="sscribe-tabs-nav" role="tablist" aria-label="<?php esc_attr_e( 'Main Navigation', 'sscribe-export-site-pages' ); ?>" aria-orientation="horizontal">
 			<button type="button" class="sscribe-tab-btn sscribe-tab-active" id="sscribe-tab-btn-export" data-tab="export" role="tab" aria-selected="true" aria-controls="sscribe-tab-export">
@@ -778,7 +778,7 @@ if ( ! function_exists( 'sscribe_humanize_export_filename' ) ) {
 					</div>
 				</dl>
 				<div class="sscribe-success-actions">
-					<a id="sscribe-download-btn" href="#" class="sscribe-button sscribe-button-success" download aria-describedby="sscribe-download-hint">
+					<a id="sscribe-download-btn" class="sscribe-button sscribe-button-success" download aria-disabled="true" tabindex="-1" aria-describedby="sscribe-download-hint">
 						<span><?php esc_html_e( 'Download ZIP', 'sscribe-export-site-pages' ); ?></span>
 					</a>
 					<span id="sscribe-download-hint" class="screen-reader-text"><?php esc_html_e( 'Download the exported ZIP file to your computer', 'sscribe-export-site-pages' ); ?></span>
@@ -831,7 +831,7 @@ if ( ! function_exists( 'sscribe_humanize_export_filename' ) ) {
 
 		</div>
 
-		<div class="sscribe-tab-content" id="sscribe-tab-history" role="tabpanel" aria-labelledby="sscribe-tab-btn-history" aria-hidden="true" tabindex="-1">
+		<div class="sscribe-tab-content" id="sscribe-tab-history" role="tabpanel" aria-labelledby="sscribe-tab-btn-history" aria-hidden="true" tabindex="-1" hidden>
 				<section class="sscribe-panel">
 					<div class="sscribe-panel-header">
 						<div class="sscribe-panel-title">
@@ -997,7 +997,7 @@ if ( ! function_exists( 'sscribe_humanize_export_filename' ) ) {
 			</div>
 
 			<?php if ( $sscribe_can_view_health ) : ?>
-			<div class="sscribe-tab-content" id="sscribe-tab-support" role="tabpanel" aria-labelledby="sscribe-tab-btn-support" aria-hidden="true" tabindex="-1">
+			<div class="sscribe-tab-content" id="sscribe-tab-support" role="tabpanel" aria-labelledby="sscribe-tab-btn-support" aria-hidden="true" tabindex="-1" hidden>
 				<div class="sscribe-support-master">
 					<div class="sscribe-support-sidebar">
 
@@ -1057,7 +1057,7 @@ if ( ! function_exists( 'sscribe_humanize_export_filename' ) ) {
 			<?php endif; ?>
 
 			<?php if ( $sscribe_is_debug ) : ?>
-			<div class="sscribe-tab-content" id="sscribe-tab-debug" role="tabpanel" aria-labelledby="sscribe-tab-btn-debug" aria-hidden="true" tabindex="-1">
+			<div class="sscribe-tab-content" id="sscribe-tab-debug" role="tabpanel" aria-labelledby="sscribe-tab-btn-debug" aria-hidden="true" tabindex="-1" hidden>
 				<?php require_once SSCRIBE_PLUGIN_DIR . 'admin/partials/sscribe-admin-debug-tab.php'; ?>
 			</div>
 			<?php endif; ?>
