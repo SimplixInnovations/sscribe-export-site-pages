@@ -430,8 +430,8 @@ class SScribe_Export_Log {
 			// available. Without this, hosts without an object cache
 			// fall through to glob() on every log lookup until the
 			// read site lazily populates the transient.
-			wp_cache_set( $index_key, $this->session_id, 'sscribe_zip_index', 30 * DAY_IN_SECONDS );
-			set_transient( $index_key, $this->session_id, 30 * DAY_IN_SECONDS );
+			wp_cache_set( $index_key, $this->session_id, 'sscribe_zip_index', 72 * HOUR_IN_SECONDS );
+			set_transient( $index_key, $this->session_id, 72 * HOUR_IN_SECONDS );
 
 			update_option( 'sscribe_log_zip_' . md5( $data['zip_file'] ), $this->session_id, false );
 		}
@@ -666,8 +666,8 @@ class SScribe_Export_Log {
 
 		if ( is_string( $session_id ) && 1 === preg_match( '/^[a-f0-9]{16}$/D', $session_id ) ) {
 
-			wp_cache_set( $index_key, $session_id, 'sscribe_zip_index', 30 * DAY_IN_SECONDS );
-			set_transient( $index_key, $session_id, 30 * DAY_IN_SECONDS );
+			wp_cache_set( $index_key, $session_id, 'sscribe_zip_index', 72 * HOUR_IN_SECONDS );
+			set_transient( $index_key, $session_id, 72 * HOUR_IN_SECONDS );
 
 			$data = self::read_log_file( $log_dir . '/export_' . $session_id . '.json' );
 			if ( is_array( $data ) && isset( $data['zip_file'] ) && $data['zip_file'] === $filename ) {
@@ -698,7 +698,7 @@ class SScribe_Export_Log {
 
 				if ( isset( $data['session_id'] ) && is_string( $data['session_id'] ) && 1 === preg_match( '/^[a-f0-9]{16}$/D', $data['session_id'] ) ) {
 
-					set_transient( $index_key, $data['session_id'], 30 * DAY_IN_SECONDS );
+					set_transient( $index_key, $data['session_id'], 72 * HOUR_IN_SECONDS );
 					update_option( 'sscribe_log_zip_' . md5( $filename ), $data['session_id'], false );
 				}
 				return $data;
