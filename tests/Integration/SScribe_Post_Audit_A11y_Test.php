@@ -80,4 +80,30 @@ final class SScribe_Post_Audit_A11y_Test extends TestCase {
 		$this->assertStringContainsString( "'<h2>'", $js );
 		$this->assertStringContainsString( '\'<h3 class="sscribe-preflight-section-title">\'', $js );
 	}
+
+	public function test_debug_help_clone_cannot_duplicate_the_labelledby_id(): void {
+		$js = (string) file_get_contents( self::root() . '/admin/js/sscribe-debug-console.js' );
+		$this->assertStringContainsString( 'sscribe-debug-help-dialog-title', $js );
+		$this->assertStringContainsString( "querySelectorAll('[id]')", $js );
+		$this->assertStringNotContainsString( "headerTitle.id = 'sscribe-debug-help-title'", $js );
+	}
+
+	public function test_dismissed_onboarding_and_advisories_are_restored_on_init(): void {
+		$js = (string) file_get_contents( self::root() . '/admin/js/sscribe-admin.js' );
+		$this->assertStringContainsString( 'restoreDismissedAdvisories', $js );
+		$this->assertStringContainsString( "getItem('sscribe_onboarding_dismissed')", $js );
+		$this->assertStringContainsString( "getItem('sscribe_preflight_dismissed')", $js );
+	}
+
+	public function test_unavailable_download_link_is_not_keyboard_focusable(): void {
+		$php = (string) file_get_contents( self::root() . '/admin/partials/sscribe-admin-display.php' );
+		$js  = (string) file_get_contents( self::root() . '/admin/js/sscribe-admin.js' );
+		$this->assertMatchesRegularExpression(
+			'/id="sscribe-download-btn"[^>]*aria-disabled="true"[^>]*tabindex="-1"/',
+			$php
+		);
+		$this->assertStringContainsString( "removeAttr('aria-disabled tabindex')", $js );
+		$this->assertStringContainsString( "'aria-disabled': 'true'", $js );
+	}
+
 }
