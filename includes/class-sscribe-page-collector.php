@@ -74,6 +74,18 @@ class SScribe_Page_Collector {
 	private array $title_cache = array();
 
 	/**
+	 * Readable page-ID results memoized for this PHP request only.
+	 *
+	 * Cross-request transients intentionally store raw IDs and every new request
+	 * re-applies WordPress's per-post read capability mapping. This cache merely
+	 * prevents the same request (for example the status-count payload) from
+	 * repeating an identical capability pass several times.
+	 *
+	 * @var array<string,array<int>>
+	 */
+	private array $page_ids_request_cache = array();
+
+	/**
 	 * Clear all page caches.
 	 *
 	 * @return void
@@ -84,6 +96,7 @@ class SScribe_Page_Collector {
 		$this->breadcrumb_cache      = array();
 		$this->permalink_cache       = array();
 		$this->title_cache           = array();
+		$this->page_ids_request_cache = array();
 	}
 
 	/**
@@ -149,11 +162,28 @@ class SScribe_Page_Collector {
 	 * @return array<int>
 	 */
 	public function get_page_ids( string $language = '', string $post_status = 'publish', string $post_type = 'page', int $limit = -1 ): array {
-
 		$filter_value = apply_filters( 'sscribe_use_chunked_page_ids', null );
-		if ( null !== $filter_value && false === $filter_value ) {
+		$cache_key    = implode(
+			'|',
+			array(
+				(string) $this->get_content_cache_generation(),
+				(string) get_current_user_id(),
+				$language,
+				$post_status,
+				$post_type,
+				(string) $limit,
+				null === $filter_value ? 'auto' : ( $filter_value ? 'chunked' : 'direct' ),
+			)
+		);
 
-			return $this->get_page_ids_direct( $language, $post_status, $post_type, $limit );
+		if ( isset( $this->page_ids_request_cache[ $cache_key ] ) ) {
+			return $this->page_ids_request_cache[ $cache_key ];
+		}
+
+		if ( null !== $filter_value && false === $filter_value ) {
+			$result = $this->get_page_ids_direct( $language, $post_status, $post_type, $limit );
+			$this->cache_add( $this->page_ids_request_cache, $cache_key, $result );
+			return $result;
 		}
 
 		$estimated_count = $this->estimate_page_count( $language, $post_status, $post_type );
@@ -170,10 +200,13 @@ class SScribe_Page_Collector {
 			if ( $limit > 0 ) {
 				$all_ids = array_slice( $all_ids, 0, $limit );
 			}
+			$this->cache_add( $this->page_ids_request_cache, $cache_key, $all_ids );
 			return $all_ids;
 		}
 
-		return $this->get_page_ids_direct( $language, $post_status, $post_type, $limit );
+		$result = $this->get_page_ids_direct( $language, $post_status, $post_type, $limit );
+		$this->cache_add( $this->page_ids_request_cache, $cache_key, $result );
+		return $result;
 	}
 
 	/**
