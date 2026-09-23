@@ -415,6 +415,23 @@ final class SScribe_Page_Collector_Coverage_Test extends SScribe_WP_TestCase {
 		}
 	}
 
+	public function test_nonpublic_id_filter_does_not_issue_one_post_query_per_id(): void {
+		$this->make_pages( 80, 'page', 'draft' );
+		wp_cache_flush();
+		$this->collector->clear_page_caches();
+
+		$before = get_num_queries();
+		$ids    = $this->collector->get_page_ids( '', 'draft', 'page', 100 );
+		$delta  = get_num_queries() - $before;
+
+		$this::assertGreaterThanOrEqual( 80, count( $ids ) );
+		$this::assertLessThan(
+			20,
+			$delta,
+			'ID-only readability filtering must batch-prime post objects instead of issuing one get_post query per ID.'
+		);
+	}
+
 	public function test_get_page_ids_skips_chunked_branch_when_filter_returns_false(): void {
 		// Install a filter that returns false → must drive the direct
 		// `get_page_ids_direct()` branch (line 154-156) instead of the
