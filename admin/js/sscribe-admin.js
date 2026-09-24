@@ -839,9 +839,8 @@
 								return;
 							}
 							const displayTotal = self.parseLocalizedInt(entry.total) || 0;
-							const displayLimit = self.parseLocalizedInt(entry.limit) || 10000;
 							const displayText = entry.capped
-								? displayLimit.toLocaleString() + '+'
+								? sscribe_data.strings.log_unknown || 'Unknown'
 								: displayTotal.toLocaleString();
 							const $langLabel = $('input[name="sscribe_language"][value="' + langCode + '"]').closest(
 								'.sscribe-lang-card-label'

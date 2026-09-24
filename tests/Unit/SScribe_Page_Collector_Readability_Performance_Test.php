@@ -103,6 +103,35 @@ final class SScribe_Page_Collector_Readability_Performance_Test extends TestCase
 		);
 	}
 
+	public function test_short_final_candidate_page_does_not_report_a_truncated_count_as_exact(): void {
+		$chunks = array_chunk( range( 1, 10002 ), 500 );
+		$GLOBALS['sscribe_test_wp_query_chunks'] = $chunks;
+		$GLOBALS['sscribe_test_get_posts_post_status'] = 'draft';
+		$GLOBALS['sscribe_test_current_user_can_callback'] = static function ( string $capability, int $post_id = 0 ): bool {
+			return 'read_post' === $capability && 10002 === $post_id;
+		};
+
+		$collector = new SScribe_Page_Collector();
+		$method = new ReflectionMethod( $collector, 'count_readable_nonpublic_posts' );
+		$method->setAccessible( true );
+
+		$this->assertSame( 10001, $method->invoke( $collector, '', 'page' ), 'An unread candidate in a short final page still makes the count indeterminate.' );
+	}
+
+	public function test_fully_examined_short_final_page_keeps_its_exact_readable_count(): void {
+		$GLOBALS['sscribe_test_wp_query_chunks'] = array_chunk( range( 1, 10001 ), 500 );
+		$GLOBALS['sscribe_test_get_posts_post_status'] = 'draft';
+		$GLOBALS['sscribe_test_current_user_can_callback'] = static function ( string $capability, int $post_id = 0 ): bool {
+			return 'read_post' === $capability && 10001 === $post_id;
+		};
+
+		$collector = new SScribe_Page_Collector();
+		$method = new ReflectionMethod( $collector, 'count_readable_nonpublic_posts' );
+		$method->setAccessible( true );
+
+		$this->assertSame( 1, $method->invoke( $collector, '', 'page' ), 'A fully examined short page proves the exact count even at the candidate limit.' );
+	}
+
 	public function test_capped_count_contract_is_explicit_and_export_start_uses_readable_sentinel(): void {
 		$collector_source = (string) file_get_contents( dirname( __DIR__, 2 ) . '/includes/class-sscribe-page-collector.php' );
 		$batch_source     = (string) file_get_contents( dirname( __DIR__, 2 ) . '/includes/class-sscribe-batch-processor.php' );
@@ -116,7 +145,8 @@ final class SScribe_Page_Collector_Readability_Performance_Test extends TestCase
 		$this->assertStringContainsString( "'available_total_capped'", $batch_source );
 		$this->assertStringContainsString( 'get_page_count_summary(', $controller_source );
 		$this->assertStringContainsString( "entry.capped", $js_source );
-		$this->assertStringContainsString( "displayLimit.toLocaleString() + '+'", $js_source );
+		$this->assertStringContainsString( "sscribe_data.strings.log_unknown || 'Unknown'", $js_source );
+		$this->assertStringNotContainsString( "displayLimit.toLocaleString() + '+'", $js_source, 'A capped permission scan does not prove that 10,000 readable posts exist.' );
 	}
 
 	public function test_filter_readable_page_ids_bulk_hydrates_instead_of_get_post_per_id(): void {

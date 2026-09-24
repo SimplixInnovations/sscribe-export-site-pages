@@ -51,9 +51,10 @@ composer i18n:check
 composer test:a11y
 composer test:format-matrix
 composer test:perf
-composer test:coverage
-composer test:coverage:check
+composer test:wp:install
+composer test:coverage:full
 npm run lint
+npm run format:check
 ```
 
 All commands must exit 0. Do not remove tests, lower thresholds, add broad
@@ -230,6 +231,7 @@ composer test 2>&1 | tee dist/evidence/test.log
   npm run test:audit-helper
   npm run audit:js
   npm run lint
+  npm run format:check
 } 2>&1 | tee dist/evidence/frontend-quality.log
 
 {
@@ -239,8 +241,8 @@ composer test 2>&1 | tee dist/evidence/test.log
 } 2>&1 | tee dist/evidence/real-wp-tests.log
 
 {
-  composer test:coverage
-  composer test:coverage:check
+  composer test:wp:install
+  composer test:coverage:full
 } 2>&1 | tee dist/evidence/coverage.log
 
 "${SSCRIBE_WP_BIN:-wp}" --path="$SSCRIBE_WP_ROOT" plugin install \
@@ -479,7 +481,7 @@ Verify local and remote source identity and branch topology:
 ```bash
 git fetch origin --prune --tags
 git switch main
-git reset --hard origin/main
+git merge --ff-only origin/main
 git rev-parse HEAD
 git rev-parse origin/main
 git status --short --branch
@@ -505,11 +507,12 @@ composer release:tag
 For this release that helper must resolve the version from
 `SSCRIBE_VERSION` (currently 2.0.4), re-run the strict certification gates as a
 fail-closed admission guard, create `v{VERSION}` on the exact certified
-`origin/main` HEAD, and push it without force. The tag-triggered
-`.github/workflows/release.yml` must then complete verify → audit → test →
-certify → publish successfully. Submit to WordPress.org only the exact
-certified ZIP from that release, with the same SHA-256 as the certification
-evidence.
+`origin/main` HEAD, and push it without force. When GitHub Actions is available, the tag-triggered
+`.github/workflows/release.yml` must complete verify → audit → test →
+certify → publish successfully. When Actions is unavailable, retain the
+strict local certification bundle and submit only the exact locally certified
+ZIP, with the same SHA-256 as its evidence. Do not describe an unavailable
+workflow as passed or rebuild the ZIP after certification.
 
 ## Release rule
 

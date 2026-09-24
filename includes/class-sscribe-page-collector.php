@@ -778,11 +778,12 @@ class SScribe_Page_Collector {
 			++$page;
 		} while ( $fetched >= $chunk_size && $candidates_seen < $candidate_cap );
 
-		// A full final candidate page means the bounded scan stopped because of
-		// policy, not because the inventory ended. Readability may be sparse, so
+		// A full final page, or candidates discarded from a short final page,
+		// means the scan stopped before proving that the inventory ended.
+		// Readability may be sparse, so
 		// returning the number observed so far would be an incorrect exact count.
 		// COUNT_SENTINEL explicitly means "10,000+ / capped or indeterminate".
-		if ( $candidates_seen >= $candidate_cap && $fetched >= $chunk_size ) {
+		if ( $candidates_seen >= $candidate_cap && ( $fetched >= $chunk_size || $fetched > count( $candidate_ids ) ) ) {
 			return self::COUNT_SENTINEL;
 		}
 
