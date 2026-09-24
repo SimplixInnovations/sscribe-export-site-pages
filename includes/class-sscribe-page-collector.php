@@ -26,6 +26,12 @@ class SScribe_Page_Collector {
 	 */
 	private const CACHE_MAX_SIZE = 500;
 
+	/** Maximum exact export/readable-count size before reporting a capped total. */
+	public const COUNT_LIMIT = 10000;
+
+	/** Sentinel proving the readable/export limit has been exceeded or the bounded count became indeterminate. */
+	public const COUNT_SENTINEL = 10001;
+
 	/**
 	 * Cached featured images by page ID.
 	 *
@@ -159,7 +165,7 @@ class SScribe_Page_Collector {
 	public function get_page_ids( string $language = '', string $post_status = 'publish', string $post_type = 'page', int $limit = -1 ): array {
 
 		$filter_value = apply_filters( 'sscribe_use_chunked_page_ids', null );
-		if ( null !== $filter_value && false === $filter_value ) {
+		if ( null !== $filter_value && false === $filter_value && $limit <= 0 ) {
 
 			return $this->get_page_ids_direct( $language, $post_status, $post_type, $limit );
 		}
@@ -208,7 +214,7 @@ class SScribe_Page_Collector {
 			return $this->filter_readable_page_ids( $cached['ids'] );
 		}
 
-		$effective_limit = $limit > 0 ? min( $limit, 10000 ) : 10000;
+		$effective_limit = $limit > 0 ? min( $limit, self::COUNT_SENTINEL ) : self::COUNT_LIMIT;
 
 		$args = array(
 			'post_type'      => $this->resolve_post_type_for_query( $post_type ),
@@ -724,7 +730,7 @@ class SScribe_Page_Collector {
 		$candidates_seen = 0;
 		$page            = 1;
 		$chunk_size      = self::CACHE_MAX_SIZE;
-		$candidate_cap   = 10001;
+		$candidate_cap   = self::COUNT_SENTINEL;
 
 		do {
 			$args = array(
@@ -772,7 +778,15 @@ class SScribe_Page_Collector {
 			++$page;
 		} while ( $fetched >= $chunk_size && $candidates_seen < $candidate_cap );
 
-		return $total;
+		// A full final candidate page means the bounded scan stopped because of
+		// policy, not because the inventory ended. Readability may be sparse, so
+		// returning the number observed so far would be an incorrect exact count.
+		// COUNT_SENTINEL explicitly means "10,000+ / capped or indeterminate".
+		if ( $candidates_seen >= $candidate_cap && $fetched >= $chunk_size ) {
+			return self::COUNT_SENTINEL;
+		}
+
+		return min( self::COUNT_SENTINEL, $total );
 	}
 
 	/**
@@ -787,8 +801,16 @@ class SScribe_Page_Collector {
 	 * @return int Readable post count across all supported statuses.
 	 */
 	private function count_readable_posts_across_statuses( string $language, string $post_type ): int {
-		$published  = $this->get_page_count_only( $language, 'publish', $post_type );
-		$nonpublic  = $this->count_readable_nonpublic_posts( $language, $post_type );
+		$published = $this->get_page_count_only( $language, 'publish', $post_type );
+		if ( $published > self::COUNT_LIMIT ) {
+			return self::COUNT_SENTINEL;
+		}
+
+		$nonpublic = $this->count_readable_nonpublic_posts( $language, $post_type );
+		if ( $nonpublic >= self::COUNT_SENTINEL || ( $published + $nonpublic ) > self::COUNT_LIMIT ) {
+			return self::COUNT_SENTINEL;
+		}
+
 		return $published + $nonpublic;
 	}
 
@@ -821,7 +843,7 @@ class SScribe_Page_Collector {
 				}
 			}
 			if ( ! $all_public ) {
-				return count( $this->get_page_ids( $language, $post_status, $post_type, 10001 ) );
+				return count( $this->get_page_ids( $language, $post_status, $post_type, self::COUNT_SENTINEL ) );
 			}
 
 			$args = array(
@@ -860,7 +882,31 @@ class SScribe_Page_Collector {
 		// unreadable private/draft content from aggregate counts. 10,001 is a
 		// deliberate sentinel: it is enough to prove that the 10,000-item export
 		// cap has been exceeded without turning a UI count into an unbounded scan.
-		return count( $this->get_page_ids( $language, $post_status, $post_type, 10001 ) );
+		return count( $this->get_page_ids( $language, $post_status, $post_type, self::COUNT_SENTINEL ) );
+	}
+
+	/**
+	 * Return a presentation-safe count with explicit capping metadata.
+	 *
+	 * COUNT_SENTINEL is intentionally never presented as an exact total. A
+	 * capped result means the bounded permission scan proved only that the
+	 * 10,000-item release/display limit was reached or that more candidate
+	 * work exists beyond the bounded dashboard scan.
+	 *
+	 * @param string $language    Language code.
+	 * @param string $post_status Post status.
+	 * @param string $post_type   Post type.
+	 * @return array{count:int,capped:bool,limit:int}
+	 */
+	public function get_page_count_summary( string $language = '', string $post_status = 'publish', string $post_type = 'page' ): array {
+		$count  = $this->get_page_count_only( $language, $post_status, $post_type );
+		$capped = $count >= self::COUNT_SENTINEL;
+
+		return array(
+			'count'  => $capped ? self::COUNT_LIMIT : $count,
+			'capped' => $capped,
+			'limit'  => self::COUNT_LIMIT,
+		);
 	}
 
 	/**
@@ -1486,7 +1532,7 @@ class SScribe_Page_Collector {
 			$counts[ $status ] = $this->get_page_count_only( $language, $status, $post_type );
 		}
 
-		$counts['all'] = array_sum( $counts );
+		$counts['all'] = min( self::COUNT_SENTINEL, array_sum( $counts ) );
 
 		return $counts;
 	}

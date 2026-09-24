@@ -103,6 +103,22 @@ final class SScribe_Page_Collector_Readability_Performance_Test extends TestCase
 		);
 	}
 
+	public function test_capped_count_contract_is_explicit_and_export_start_uses_readable_sentinel(): void {
+		$collector_source = (string) file_get_contents( dirname( __DIR__, 2 ) . '/includes/class-sscribe-page-collector.php' );
+		$batch_source     = (string) file_get_contents( dirname( __DIR__, 2 ) . '/includes/class-sscribe-batch-processor.php' );
+		$controller_source = (string) file_get_contents( dirname( __DIR__, 2 ) . '/includes/class-sscribe-export-query-controller.php' );
+		$js_source        = (string) file_get_contents( dirname( __DIR__, 2 ) . '/admin/js/sscribe-admin.js' );
+
+		$this->assertStringContainsString( 'public const COUNT_LIMIT = 10000;', $collector_source );
+		$this->assertStringContainsString( 'public const COUNT_SENTINEL = 10001;', $collector_source );
+		$this->assertStringContainsString( 'public function get_page_count_summary(', $collector_source );
+		$this->assertStringContainsString( 'SScribe_Page_Collector::COUNT_SENTINEL', $batch_source );
+		$this->assertStringContainsString( "'available_total_capped'", $batch_source );
+		$this->assertStringContainsString( 'get_page_count_summary(', $controller_source );
+		$this->assertStringContainsString( "entry.capped", $js_source );
+		$this->assertStringContainsString( "displayLimit.toLocaleString() + '+'", $js_source );
+	}
+
 	public function test_filter_readable_page_ids_bulk_hydrates_instead_of_get_post_per_id(): void {
 		$collector = new SScribe_Page_Collector();
 		$method = new ReflectionMethod( $collector, 'filter_readable_page_ids' );
