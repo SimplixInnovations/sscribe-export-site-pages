@@ -366,9 +366,7 @@ if ( ! function_exists( 'sscribe_humanize_export_filename' ) ) {
 								?>
 							<label class="<?php echo esc_attr( $sscribe_label_class ); ?>">
 								<input type="radio" name="sscribe_post_status" value="<?php echo esc_attr( $sscribe_status_key ); ?>" <?php checked( $sscribe_is_first ); ?>
-								<?php
-								echo $sscribe_is_zero ? ' disabled' : ''; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Static attribute string.
-								?>
+								<?php disabled( $sscribe_is_zero ); ?>
 								aria-label="<?php echo esc_attr( sprintf( '%1$s, %2$d %3$s', $sscribe_status_label, $sscribe_count, _n( 'page', 'pages', $sscribe_count, 'sscribe-export-site-pages' ) ) ); ?>"
 								>
 								<div class="sscribe-status-card-inner">
