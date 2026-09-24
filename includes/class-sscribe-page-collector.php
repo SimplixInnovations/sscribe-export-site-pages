@@ -300,15 +300,23 @@ class SScribe_Page_Collector {
 			return array();
 		}
 
-		$this->prime_readability_posts( $page_ids );
-
 		$readable = array();
-		foreach ( $page_ids as $page_id ) {
-			$post = $this->readability_post_cache[ $page_id ] ?? null;
-			if ( ! $post instanceof WP_Post || ! $this->is_post_readable_for_export( $page_id, $post ) ) {
-				continue;
+		foreach ( array_chunk( $page_ids, self::CACHE_MAX_SIZE ) as $chunk ) {
+			$this->prime_readability_posts( $chunk );
+
+			foreach ( $chunk as $page_id ) {
+				$post = $this->readability_post_cache[ $page_id ] ?? null;
+				if ( $post instanceof WP_Post && $this->is_post_readable_for_export( $page_id, $post ) ) {
+					$readable[] = $page_id;
+				}
 			}
-			$readable[] = $page_id;
+
+			// Readability hydration is a permission-check working set, not a
+			// long-lived page-data cache. Release each processed chunk so large
+			// inventories never retain thousands of WP_Post objects in memory.
+			foreach ( $chunk as $page_id ) {
+				unset( $this->readability_post_cache[ $page_id ] );
+			}
 		}
 
 		return $readable;
@@ -700,8 +708,11 @@ class SScribe_Page_Collector {
 		$post_status = $this->validate_post_status( $post_status );
 
 		if ( 'any' === $post_status ) {
-			$counts = $this->get_post_status_counts( $language, $post_type );
-			return (int) ( $counts['all'] ?? 0 );
+			$total = 0;
+			foreach ( $this->get_page_ids_chunked( $language, 'any', $post_type, self::CACHE_MAX_SIZE ) as $chunk ) {
+				$total += count( $chunk );
+			}
+			return $total;
 		}
 
 		// The found_posts fast path is safe only when every resolved post type
