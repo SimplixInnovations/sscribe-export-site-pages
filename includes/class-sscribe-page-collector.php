@@ -453,7 +453,7 @@ class SScribe_Page_Collector {
 			);
 		}
 
-		if ( 'all' !== $post_status ) {
+		if ( 'any' !== $post_status ) {
 			$sql .= $wpdb->prepare( ' AND post_status = %s', $post_status );
 		}
 
@@ -699,7 +699,7 @@ class SScribe_Page_Collector {
 	public function get_page_count_only( string $language = '', string $post_status = 'publish', string $post_type = 'page' ): int {
 		$post_status = $this->validate_post_status( $post_status );
 
-		if ( 'all' === $post_status ) {
+		if ( 'any' === $post_status ) {
 			$counts = $this->get_post_status_counts( $language, $post_type );
 			return (int) ( $counts['all'] ?? 0 );
 		}
@@ -1410,7 +1410,7 @@ class SScribe_Page_Collector {
 		$status = sanitize_text_field( $status );
 		$valid  = array_keys( $this->get_valid_post_statuses() );
 
-		if ( 'all' === $status ) {
+		if ( in_array( $status, array( 'all', 'any' ), true ) ) {
 			return 'any';
 		}
 
