@@ -334,6 +334,8 @@ class SScribe {
 
 	/**
 	 * Clean up expired export artifacts when the scheduled hook fires.
+	 *
+	 * @throws LogicException When the ZIP handler service cannot be resolved.
 	 */
 	public function cleanup_exports(): void {
 		$zip = SScribe_Container::instance()->get( SScribe_Zip_Handler::class );
@@ -345,6 +347,8 @@ class SScribe {
 
 	/**
 	 * Rotate the session signing key only when the scheduled hook fires.
+	 *
+	 * @throws LogicException When the session service cannot be resolved.
 	 */
 	public function rotate_session_signing_key(): void {
 		$session = SScribe_Container::instance()->get( SScribe_Session::class );
