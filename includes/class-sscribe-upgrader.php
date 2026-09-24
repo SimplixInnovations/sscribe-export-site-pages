@@ -178,17 +178,5 @@ class SScribe_Upgrader {
 		}
 	}
 
-	/**
-	 * Run one dbDelta schema reconciliation and fail closed on SQL errors.
-	 *
-	 * WordPress dbDelta() reports some database failures through $wpdb->last_error
-	 * rather than throwing. A release migration must never advance the stored schema
-	 * version after such a partial/failed reconciliation.
-	 *
-	 * @param string $sql   Canonical CREATE TABLE statement.
-	 * @param string $label Human-readable schema label.
-	 * @return void
-	 * @throws \RuntimeException When WordPress reports a database error.
-	 */
 
 }
