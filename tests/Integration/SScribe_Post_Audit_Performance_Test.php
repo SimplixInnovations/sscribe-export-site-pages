@@ -109,6 +109,31 @@ final class SScribe_Post_Audit_Performance_Test extends TestCase {
 		$this->assertStringContainsString( 'option_name IN', $method );
 		$this->assertStringContainsString( '$wpdb->prepare', $method );
 		$this->assertStringNotContainsString( '$this->get_export_entry( $basename )', $method );
+
+		$admin = (string) file_get_contents( self::root() . '/admin/class-sscribe-admin.php' );
+		$this->assertStringContainsString( 'get_ajax_download_url( $filename, $data )', $admin );
+
+		$url_start = strpos( $src, 'public function get_ajax_download_url(' );
+		$url_end   = strpos( $src, 'public function stream_download(', $url_start );
+		$this->assertNotFalse( $url_start );
+		$this->assertNotFalse( $url_end );
+		$url_method = substr( $src, $url_start, $url_end - $url_start );
+		$this->assertStringContainsString( '?array $row = null', $url_method );
+		$this->assertStringContainsString( 'null === $row ? get_option(', $url_method );
+	}
+
+	public function test_frontend_bootstrap_keeps_heavy_request_specific_graph_lazy(): void {
+		$src = (string) file_get_contents( self::root() . '/includes/class-sscribe.php' );
+		$start = strpos( $src, 'public function run(): void' );
+		$this->assertNotFalse( $start );
+		$method = substr( $src, $start );
+		$this->assertStringContainsString( '$is_admin_request', $method );
+		$this->assertStringContainsString( '$is_ajax_request', $method );
+		$this->assertStringContainsString( '$is_cron_request', $method );
+		$this->assertStringContainsString( '$this->define_content_hooks();', $method );
+		$this->assertStringContainsString( 'if ( $is_admin_request && ! $is_ajax_request )', $method );
+		$this->assertStringContainsString( 'if ( $is_ajax_request )', $method );
+		$this->assertStringContainsString( 'if ( $is_cron_request )', $method );
 	}
 
 	public function test_uninstall_clears_upgrade_retry_backoff_state(): void {
