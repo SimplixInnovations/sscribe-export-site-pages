@@ -125,20 +125,17 @@ class SScribe_Export_Query_Controller_Test extends TestCase {
 		$this->assertSame( 7, $json['data']['counts_any']['publish'] );
 	}
 
-	public function test_ajax_get_all_status_counts_combines_page_post(): void {
-		$_POST['nonce']        = wp_create_nonce( 'sscribe_export_nonce' );
-		$_POST['post_type']    = 'page';
-		$_POST['languages']    = array( 'en' );
+	public function test_ajax_get_all_status_counts_returns_selected_type_total_only(): void {
+		$_POST['nonce']     = wp_create_nonce( 'sscribe_export_nonce' );
+		$_POST['post_type'] = 'page';
+		$_POST['languages'] = array( 'en' );
 
 		$collector = $this->createMock( \SScribe_Page_Collector::class );
 		$collector->method( 'normalize_language_code' )->willReturn( 'en' );
-		$collector->method( 'get_post_status_counts' )->willReturnCallback(
-			static function ( string $language, string $post_type ): array {
-				return array(
-					'publish' => 'page' === $post_type ? 7 : 5,
-				);
-			}
-		);
+		$collector->expects( $this->once() )
+			->method( 'get_page_count_only' )
+			->with( 'en', 'all', 'page' )
+			->willReturn( 7 );
 
 		$controller = $this->build_controller( collector: $collector );
 
@@ -147,11 +144,9 @@ class SScribe_Export_Query_Controller_Test extends TestCase {
 		$this->assertTrue( $json['success'] );
 		$this->assertSame( 'page', $json['data']['post_type'] );
 		$this->assertSame( 1, $json['data']['queried_count'] );
-		$this->assertArrayHasKey( 'en', $json['data']['languages'] );
-		$this->assertSame( 7, $json['data']['languages']['en']['counts']['publish'] );
-		$this->assertSame( 7, $json['data']['languages']['en']['counts_page']['publish'] );
-		$this->assertSame( 5, $json['data']['languages']['en']['counts_post']['publish'] );
+		$this->assertSame( array( 'total' => 7 ), $json['data']['languages']['en'] );
 	}
+
 
 	public function test_ajax_get_export_log_rejects_invalid_filename(): void {
 		$_POST['nonce'] = wp_create_nonce( 'sscribe_download' );
