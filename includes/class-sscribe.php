@@ -400,9 +400,12 @@ class SScribe {
 		// but do not instantiate heavy admin/export/cron service graphs on normal
 		// public requests where their hooks cannot fire.
 		$this->define_content_hooks();
+		// Privacy exporter/eraser filters are consumed by WordPress during
+		// admin/AJAX privacy processing, so keep their lightweight registration
+		// global even while the heavy admin/export graph remains request-gated.
+		$this->define_privacy_hooks();
 		if ( $is_admin_request && ! $is_ajax_request ) {
 			$this->define_admin_hooks();
-			$this->define_privacy_hooks();
 		}
 		if ( $is_ajax_request ) {
 			$this->define_ajax_hooks();
