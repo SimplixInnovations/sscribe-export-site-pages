@@ -127,7 +127,7 @@ class SScribe_Upgrader_Test extends TestCase {
 		$this->assertFalse( get_option( 'sscribe_schema_version' ) );
 		$error = get_option( 'sscribe_upgrade_last_error' );
 		$this->assertIsArray( $error );
-		$this->assertSame( 'The database upgrade did not complete and will be retried.', $error['message'] );
+		$this->assertSame( 'The database upgrade did not complete and will be retried with backoff.', $error['message'] );
 		$this->assertMatchesRegularExpression( '/^[a-f0-9]{12}$/', $error['reference'] );
 		$this->assertSame( 1, (int) get_option( 'sscribe_upgrade_failures' ) );
 		$this->assertGreaterThan( time(), (int) get_option( 'sscribe_upgrade_next_attempt' ) );
