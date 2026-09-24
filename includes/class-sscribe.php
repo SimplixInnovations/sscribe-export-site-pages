@@ -321,18 +321,38 @@ class SScribe {
 	 * Register scheduled task hooks.
 	 */
 	private function define_cron_hooks(): void {
-		$container = SScribe_Container::instance();
-		$zip       = $container->get( SScribe_Zip_Handler::class );
-		$this->loader->add_action( 'sscribe_cleanup_exports', $zip, 'cleanup_expired' );
-
+		$this->loader->add_action( 'sscribe_cleanup_exports', $this, 'cleanup_exports' );
 		$this->loader->add_action( 'sscribe_cleanup_sessions', $this, 'cleanup_sessions' );
-		$this->loader->add_action(
-			'sscribe_cleanup_sessions',
-			$container->get( SScribe_Session::class ),
-			'maybe_rotate_signing_key',
-			99
-		);
+		$this->loader->add_action( 'sscribe_cleanup_sessions', $this, 'rotate_session_signing_key', 99 );
 		$this->loader->add_action( 'sscribe_cleanup_audit_trail', $this, 'cleanup_audit_trail' );
+	}
+
+	/**
+	 * Clean up expired export artifacts when the scheduled hook fires.
+	 *
+	 * @return void
+	 * @throws \LogicException When the ZIP handler service is unavailable.
+	 */
+	public function cleanup_exports(): void {
+		$zip = SScribe_Container::instance()->get( SScribe_Zip_Handler::class );
+		if ( ! $zip instanceof SScribe_Zip_Handler ) {
+			throw new \LogicException( 'SScribe ZIP handler service is unavailable.' );
+		}
+		$zip->cleanup_expired();
+	}
+
+	/**
+	 * Rotate the session signing key when the scheduled cleanup hook fires.
+	 *
+	 * @return void
+	 * @throws \LogicException When the session service is unavailable.
+	 */
+	public function rotate_session_signing_key(): void {
+		$session = SScribe_Container::instance()->get( SScribe_Session::class );
+		if ( ! $session instanceof SScribe_Session ) {
+			throw new \LogicException( 'SScribe session service is unavailable.' );
+		}
+		$session->maybe_rotate_signing_key();
 	}
 
 	/**
@@ -428,9 +448,9 @@ class SScribe {
 		if ( is_admin() && ! wp_doing_ajax() ) {
 			$this->define_admin_hooks();
 		}
-		if ( wp_doing_cron() ) {
-			$this->define_cron_hooks();
-		}
+		// Hook registration is cheap and must remain globally dispatchable.
+		// Heavy cron services are resolved lazily inside the callbacks above.
+		$this->define_cron_hooks();
 		$this->define_lifecycle_hooks();
 		$this->define_privacy_hooks();
 
