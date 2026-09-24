@@ -124,29 +124,28 @@ final class SScribe_Export_Log_Test extends TestCase {
 		$log->delete();
 	}
 
-	public function test_mark_complete_populates_zip_index_transient(): void {
-		// Performance F2: persisting the zip→session index transient at
-		// write-time guarantees the read path can short-circuit the
-		// glob() scan on hosts that lack an object cache.
+	public function test_mark_complete_populates_durable_zip_index_without_transient_duplication(): void {
 		$GLOBALS['sscribe_test_transients'] = array();
+		$GLOBALS['sscribe_test_options']    = $GLOBALS['sscribe_test_options'] ?? array();
 		$session                            = $this->new_session_id();
 		$zip_basename                       = 'export-' . $session . '.zip';
-		$expected_index_key                 = 'sscribe_zip_index_' . md5( $zip_basename );
+		$transient_key                      = 'sscribe_zip_index_' . md5( $zip_basename );
+		$option_key                         = 'sscribe_log_zip_' . md5( $zip_basename );
 
 		$log = new SScribe_Export_Log( $session );
 		$log->set_total_pages( 1 );
 		$log->mark_complete( '/path/to/' . $zip_basename, 1 );
 		$log->flush();
 
-		$this->assertArrayHasKey(
-			$expected_index_key,
+		$this->assertArrayNotHasKey(
+			$transient_key,
 			$GLOBALS['sscribe_test_transients'],
-			'mark_complete must persist sscribe_zip_index_<md5> transient on the no-object-cache path.'
+			'The removed transient layer must not recreate per-export wp_options rows.'
 		);
 		$this->assertSame(
 			$session,
-			$GLOBALS['sscribe_test_transients'][ $expected_index_key ],
-			'Transient value must be the session id so get_log_by_filename() can locate the JSON file.'
+			$GLOBALS['sscribe_test_options'][ $option_key ] ?? null,
+			'The bounded durable ZIP-to-session option must remain the no-object-cache lookup.'
 		);
 
 		$log->delete();
