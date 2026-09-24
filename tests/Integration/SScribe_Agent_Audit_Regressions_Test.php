@@ -94,6 +94,24 @@ final class SScribe_Agent_Audit_Regressions_Test extends TestCase {
 		self::assertStringContainsString('$this->define_content_invalidation_hooks();', $src);
 	}
 
+	public function test_background_language_counts_use_one_bounded_aggregate_scan_per_language(): void {
+		$controller = self::source('includes/class-sscribe-export-query-controller.php');
+		$start = strpos($controller, 'public function ajax_get_all_status_counts(');
+		$end = strpos($controller, 'private function compute_counts_payload(', $start);
+		self::assertNotFalse($start);
+		self::assertNotFalse($end);
+		$method = substr($controller, $start, $end - $start);
+		self::assertStringContainsString("get_page_count_only( \$query_language, 'all', \$post_type )", $method);
+		self::assertStringNotContainsString('compute_counts_payload( $query_language', $method);
+
+		$collector = self::source('includes/class-sscribe-page-collector.php');
+		self::assertStringContainsString('private function count_readable_nonpublic_posts(', $collector);
+		self::assertStringContainsString('private function count_readable_posts_across_statuses(', $collector);
+
+		$js = self::source('admin/js/sscribe-admin.js');
+		self::assertStringContainsString('const displayTotal = self.parseLocalizedInt(entry.total) || 0;', $js);
+	}
+
 	public function test_boot_notices_use_current_wordpress_notice_classes(): void {
 		$src = self::source('sscribe-export-site-pages.php');
 		self::assertStringNotContainsString('<div class="error">', $src);
