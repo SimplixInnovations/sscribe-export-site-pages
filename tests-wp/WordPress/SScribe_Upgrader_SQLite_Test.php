@@ -44,26 +44,59 @@ final class SScribe_Upgrader_SQLite_Test extends SScribe_WP_TestCase {
 		try {
 			dbDelta( $old_sql );
 
-			$before = $wpdb->get_results( "PRAGMA table_info('$table_logs')", ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Isolated SQLite test table name generated internally.
-			$before_names = array_column( (array) $before, 'name' );
-			$this->assertNotContains( 'session_id', $before_names, 'Fixture must start from the historical schema.' );
+			$this->assertFalse(
+				$this->column_exists( $table_logs, 'session_id' ),
+				'Fixture must start from the historical schema.'
+			);
 
 			$method = new ReflectionMethod( SScribe_Upgrader::class, 'run_migrations' );
 			$method->setAccessible( true );
 			$method->invoke( null, '2.0.3' );
 
-			$columns = $wpdb->get_results( "PRAGMA table_info('$table_logs')", ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Isolated SQLite test table name generated internally.
-			$names   = array_column( (array) $columns, 'name' );
-			$this->assertContains( 'session_id', $names, 'dbDelta migration must add the current session_id column on SQLite.' );
-
-			$indexes = $wpdb->get_results( "PRAGMA index_list('$table_logs')", ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Isolated SQLite test table name generated internally.
-			$index_names = array_column( (array) $indexes, 'name' );
-			$this->assertContains( 'idx_session_id', $index_names, 'dbDelta migration must add idx_session_id on SQLite.' );
+			$this->assertTrue(
+				$this->column_exists( $table_logs, 'session_id' ),
+				'dbDelta migration must add the current session_id column on SQLite.'
+			);
+			$this->assertTrue(
+				$this->index_exists( $table_logs, 'idx_session_id' ),
+				'dbDelta migration must add idx_session_id on SQLite.'
+			);
 		} finally {
 			foreach ( array( $table_logs, $table_stats, $table_audit ) as $table ) {
 				$wpdb->query( "DROP TABLE IF EXISTS $table" ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.SchemaChange -- Internal isolated test tables only.
 			}
 			$wpdb->prefix = $original_prefix;
 		}
+	}
+
+	private function column_exists( string $table, string $column ): bool {
+		global $wpdb;
+
+		// WordPress SQLite Database Integration translates SHOW COLUMNS, while
+		// MySQL/MariaDB support it natively. Test the same wpdb compatibility
+		// surface that production WordPress code is expected to use.
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Isolated plugin-owned test table.
+		$rows = $wpdb->get_results( "SHOW COLUMNS FROM {$table}" );
+		foreach ( is_array( $rows ) ? $rows : array() as $row ) {
+			$name = (string) ( $row->Field ?? $row->field ?? $row->name ?? '' );
+			if ( $column === $name ) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	private function index_exists( string $table, string $index ): bool {
+		global $wpdb;
+
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Isolated plugin-owned test table.
+		$rows = $wpdb->get_results( "SHOW INDEX FROM {$table}" );
+		foreach ( is_array( $rows ) ? $rows : array() as $row ) {
+			$name = (string) ( $row->Key_name ?? $row->key_name ?? $row->name ?? '' );
+			if ( $index === $name ) {
+				return true;
+			}
+		}
+		return false;
 	}
 }
