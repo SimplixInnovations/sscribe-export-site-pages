@@ -73,22 +73,21 @@ final class SScribe_Main_Test extends TestCase {
 		$this->assertArrayNotHasKey( $cache_key, $GLOBALS['sscribe_test_transients'] );
 	}
 
-	public function test_invalidate_admin_page_cache_ignores_post_type_other_than_page_or_post(): void {
+	public function test_invalidate_admin_page_cache_covers_custom_post_types(): void {
 		$plugin    = new SScribe();
 		$cache_key = 'sscribe_admin_page_data_v2_' . SSCRIBE_VERSION . '_' . get_current_blog_id();
 		$GLOBALS['sscribe_test_transients'][ $cache_key ] = 'cached-payload';
 
-		// Force the bootstrap get_post_type() stub to return 'attachment' for
-		// this test — the default stub returns 'page' which would also delete
-		// the cache and mask the post-type gate.
-		$GLOBALS['sscribe_test_post_type_override'] = 'attachment';
+		// SScribe supports filter-added custom post types, so a mutation outside
+		// page/post must invalidate the shared content-derived cache as well.
+		$GLOBALS['sscribe_test_post_type_override'] = 'portfolio';
 		try {
 			$plugin->invalidate_admin_page_cache( 99 );
 		} finally {
 			unset( $GLOBALS['sscribe_test_post_type_override'] );
 		}
 
-		$this->assertArrayHasKey( $cache_key, $GLOBALS['sscribe_test_transients'] );
+		$this->assertArrayNotHasKey( $cache_key, $GLOBALS['sscribe_test_transients'] );
 	}
 
 	public function test_invalidate_admin_page_cache_returns_silently_on_unknown_post_type(): void {
