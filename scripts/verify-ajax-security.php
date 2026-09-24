@@ -56,7 +56,7 @@ sort( $files );
 // literals inside the patterns.
 $pattern_raw_add_action   = '#add_action\s*\(\s*[\'"](wp_ajax_(sscribe_[a-z0-9_]+))[\'"]#';
 $pattern_nopriv           = '#add_action\s*\(\s*[\'"](wp_ajax_nopriv_(sscribe_[a-z0-9_]+))[\'"]#';
-$pattern_guarded_arg      = '#add_guarded_ajax_action\s*\(\s*[\'"](wp_ajax_(sscribe_[a-z0-9_]+))[\'"]#';
+$pattern_guarded_arg      = '#add_guarded_(?:lazy_)?ajax_action\s*\(\s*[\'"](wp_ajax_(sscribe_[a-z0-9_]+))[\'"]#';
 $pattern_verify_authz     = '#verify_request_authorization\s*\(#';
 $pattern_canonical_nonce  = '#check_ajax_referer\s*\(\s*[\'"]sscribe_export_nonce[\'"]#';
 
