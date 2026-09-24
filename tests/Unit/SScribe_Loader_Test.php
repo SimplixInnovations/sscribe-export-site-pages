@@ -97,6 +97,28 @@ final class SScribe_Loader_Test extends TestCase {
 	// add_guarded_ajax_action()
 	// ==================================================================
 
+	public function test_add_guarded_lazy_ajax_action_registers_without_resolving_component(): void {
+		$resolved = 0;
+		$this->loader->add_guarded_lazy_ajax_action(
+			'wp_ajax_sscribe_lazy_test',
+			static function () use ( &$resolved ): Loader_Stub_Component {
+				++$resolved;
+				return new Loader_Stub_Component();
+			},
+			'do_thing',
+			'manage_options',
+			'sscribe_test_nonce',
+			'_ajax_nonce',
+			10,
+			1
+		);
+
+		$this::assertSame( 0, $resolved, 'Registering an AJAX hook must not resolve the heavyweight component.' );
+		$this::assertNotEmpty( $GLOBALS['sscribe_test_actions'] );
+		$this::assertSame( 'wp_ajax_sscribe_lazy_test', $GLOBALS['sscribe_test_actions'][0]['hook'] );
+		$this::assertIsCallable( $GLOBALS['sscribe_test_actions'][0]['callback'] );
+	}
+
 	public function test_add_guarded_ajax_action_registers_wrapped_handler(): void {
 		if ( ! class_exists( '\\SScribe_AJAX_Guard' ) ) {
 			$this::markTestSkipped( 'SScribe_AJAX_Guard unavailable.' );
