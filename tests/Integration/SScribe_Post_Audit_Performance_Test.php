@@ -221,7 +221,7 @@ final class SScribe_Post_Audit_Performance_Test extends TestCase {
 		$this->assertStringContainsString( '! is_link( $cached_path )', $method );
 		$this->assertStringContainsString( 'self::is_outside_public_roots( $cached_real )', $method );
 		$this->assertStringContainsString( 'unset( $resolved_paths[ $cache_key ] )', $method );
-		$this->assertStringNotContainsString( "$resolved_paths[ $cache_key ] = '';", $method );
+		$this->assertStringNotContainsString( '$resolved_paths[ $cache_key ] = \'\';', $method );
 	}
 
 	public function test_vendor_dependency_notice_is_confined_to_relevant_admin_screens(): void {
