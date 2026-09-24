@@ -85,7 +85,21 @@ test.describe('e2e / export / preflight-contract', () => {
 		await expect(proceed).toBeVisible();
 		expect(await adminPage.evaluate(() => (window as any).__sscribeProceedCalls)).toBe(0);
 
-		await proceed.click();
+		const returnTarget = adminPage.locator('#sscribe-tab-btn-export');
+		await returnTarget.focus();
+		await expect(returnTarget).toBeFocused();
+
+		// Re-open after establishing a deterministic focus origin so the
+		// production focus-restoration contract is exercised, not inferred.
+		await adminPage.evaluate(() => {
+			const w = window as any;
+			w.SScribe.runPreflightCheck('', 'publish', 'page', ['docx']);
+		});
+		const focusedBanner = adminPage.locator('.sscribe-preflight-banner').last();
+		const focusedProceed = focusedBanner.locator('.sscribe-preflight-proceed');
+		await expect(focusedProceed).toBeVisible();
+		await focusedProceed.click();
+		await expect(returnTarget).toBeFocused();
 		expect(await adminPage.evaluate(() => (window as any).__sscribeProceedCalls)).toBe(1);
 	});
 
