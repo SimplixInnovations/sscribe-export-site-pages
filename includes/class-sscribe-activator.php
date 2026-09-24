@@ -317,13 +317,11 @@ class SScribe_Activator {
 		global $wpdb;
 		/** @var \wpdb $wpdb */
 
-		if ( property_exists( $wpdb, 'last_error' ) ) {
-			$wpdb->last_error = '';
-		}
+		$wpdb->last_error = '';
 
 		dbDelta( $sql );
 
-		$last_error = property_exists( $wpdb, 'last_error' ) ? trim( (string) $wpdb->last_error ) : '';
+		$last_error = trim( (string) $wpdb->last_error );
 		if ( '' !== $last_error ) {
 			// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Internal exception is caught/logged; values are sanitized and never rendered directly.
 			throw new \RuntimeException(
@@ -361,16 +359,15 @@ class SScribe_Activator {
 			$quoted_columns[] = '`' . $column . '`';
 		}
 
-		if ( property_exists( $wpdb, 'last_error' ) ) {
-			$wpdb->last_error = '';
-		}
+		$wpdb->last_error = '';
 
 		$sql = 'SELECT ' . implode( ', ', $quoted_columns ) . ' FROM `' . $table . '` WHERE 1 = 0';
-		$previous_suppression = $wpdb->suppress_errors( true );
+		$previous_suppression   = (bool) $wpdb->suppress_errors;
+		$wpdb->suppress_errors = true;
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.PreparedSQL.NotPrepared -- Internal identifiers are regex-validated; zero-row structural probe only.
 		$result = $wpdb->query( $sql );
-		$last_error = property_exists( $wpdb, 'last_error' ) ? trim( (string) $wpdb->last_error ) : '';
-		$wpdb->suppress_errors( (bool) $previous_suppression );
+		$last_error = trim( (string) $wpdb->last_error );
+		$wpdb->suppress_errors = $previous_suppression;
 
 		if ( false === $result || '' !== $last_error ) {
 			$detail = '' !== $last_error ? $last_error : 'required table or column is not queryable';
