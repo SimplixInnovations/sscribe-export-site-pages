@@ -333,8 +333,8 @@ class SScribe_Activator {
 			throw new \RuntimeException(
 				sprintf(
 					'Database reconciliation failed for %1$s: %2$s',
-					sanitize_text_field( $label ),
-					sanitize_text_field( $last_error )
+					esc_html( sanitize_text_field( $label ) ),
+					esc_html( sanitize_text_field( $last_error ) )
 				)
 			);
 		}
@@ -379,8 +379,8 @@ class SScribe_Activator {
 			throw new \RuntimeException(
 				sprintf(
 					'Schema verification failed for %1$s: %2$s',
-					sanitize_text_field( $label ),
-					sanitize_text_field( $detail )
+					esc_html( sanitize_text_field( $label ) ),
+					esc_html( sanitize_text_field( $detail ) )
 				)
 			);
 		}
