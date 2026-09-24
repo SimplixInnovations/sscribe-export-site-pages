@@ -362,7 +362,7 @@
 					overlay.className = 'sscribe-modal';
 					overlay.setAttribute('role', 'dialog');
 					overlay.setAttribute('aria-modal', 'true');
-					overlay.setAttribute('aria-labelledby', 'sscribe-debug-help-title');
+					overlay.setAttribute('aria-labelledby', 'sscribe-debug-help-dialog-title');
 					overlay.setAttribute('aria-hidden', 'false');
 					const dialog = document.createElement('div');
 					dialog.className = 'sscribe-modal-content';
@@ -423,13 +423,13 @@
 					const clonedTitle = helpClone.querySelector('#sscribe-debug-help-title');
 					const titleText = clonedTitle ? clonedTitle.textContent : 'Help';
 					const headerTitle = document.createElement('h3');
-					headerTitle.id = 'sscribe-debug-help-title';
+					headerTitle.id = 'sscribe-debug-help-dialog-title';
 					headerTitle.textContent = titleText;
 					header.appendChild(headerTitle);
 					header.appendChild(closeBtn);
 					const body = document.createElement('div');
 					body.className = 'sscribe-modal-body';
-					const clonedHelpBody = helpClone.querySelectorAll(':scope > h3, :scope > h4, :scope > p');
+					const clonedHelpBody = helpClone.querySelectorAll(':scope > h4, :scope > p');
 					clonedHelpBody.forEach(function (node) {
 						body.appendChild(node.cloneNode(true));
 					});
@@ -1168,7 +1168,7 @@
 					}
 					const originalText = self.$clearBtn.data('original-text') || self.clearBtnOriginalText;
 					self.$clearBtn.text(originalText);
-					self.$clearBtn.after('<span class="sscribe-feedback sscribe-feedback-success">Cleared!</span>');
+					self.$clearBtn.after($('<span>', { class: 'sscribe-feedback sscribe-feedback-success', role: 'status', 'aria-live': 'polite', 'aria-atomic': 'true' }).text('Cleared!'));
 					setTimeout(function () {
 						self.$clearBtn.siblings('.sscribe-feedback').remove();
 					}, 2000);
@@ -1179,9 +1179,12 @@
 					self.$clearBtn.text(originalText);
 					self.$clearBtn.data('confirming', false).removeClass('sscribe-btn-confirming');
 					self.$clearBtn.after(
-						'<span class="sscribe-feedback sscribe-feedback-error">' +
-							escHtml(self.getResponseMessage(response, 'Error')) +
-							'</span>'
+						$('<span>', {
+							class: 'sscribe-feedback sscribe-feedback-error',
+							role: 'status',
+							'aria-live': 'polite',
+							'aria-atomic': 'true',
+						}).text(self.getResponseMessage(response, 'Error'))
 					);
 					setTimeout(function () {
 						self.$clearBtn.siblings('.sscribe-feedback').remove();
@@ -1200,7 +1203,12 @@
 					errorMsg = 'HTTP ' + xhr.status;
 				}
 				self.$clearBtn.after(
-					'<span class="sscribe-feedback sscribe-feedback-error">' + escHtml(errorMsg) + '</span>'
+					$('<span>', {
+						class: 'sscribe-feedback sscribe-feedback-error',
+						role: 'status',
+						'aria-live': 'polite',
+						'aria-atomic': 'true',
+					}).text(errorMsg)
 				);
 				setTimeout(function () {
 					self.$clearBtn.siblings('.sscribe-feedback').remove();
@@ -1651,9 +1659,11 @@
 						const $row = $btn.closest('.sscribe-debug-rotated-file');
 						if ($row.length) {
 							$row.find('.sscribe-debug-rotated-file-actions').after(
-								'<div class="sscribe-rotated-error">' +
-									escHtml(self.getResponseMessage(response, 'Error')) +
-									'</div>'
+								$('<div>', {
+									class: 'sscribe-rotated-error',
+									role: 'status',
+									'aria-live': 'polite',
+								}).text(self.getResponseMessage(response, 'Error'))
 							);
 							setTimeout(function () {
 								$row.find('.sscribe-rotated-error').remove();
@@ -1671,7 +1681,11 @@
 					const $row = $btn.closest('.sscribe-debug-rotated-file');
 					if ($row.length) {
 						$row.find('.sscribe-debug-rotated-file-actions').after(
-							'<div class="sscribe-rotated-error">Error</div>'
+							$('<div>', {
+								class: 'sscribe-rotated-error',
+								role: 'status',
+								'aria-live': 'polite',
+							}).text('Error')
 						);
 						setTimeout(function () {
 							$row.find('.sscribe-rotated-error').remove();
