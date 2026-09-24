@@ -29,7 +29,11 @@ final class SScribe_Upgrader_Hardening_Test extends TestCase {
 		$this->assertStringNotContainsString( 'SHOW COLUMNS FROM', $upgrader );
 		$this->assertStringNotContainsString( 'MODIFY COLUMN', $upgrader );
 		$this->assertStringContainsString( 'SScribe_Activator::create_database_tables( false )', $upgrader );
-		$this->assertStringNotContainsString( 'CREATE TABLE', $upgrader, 'The upgrader must not own a second schema declaration.' );
+		$this->assertDoesNotMatchRegularExpression(
+			'/["\']CREATE\\s+TABLE\\s+/i',
+			$upgrader,
+			'The upgrader must not own a second executable schema declaration.'
+		);
 
 		$this->assertStringContainsString( 'session_id VARCHAR(60)', $activator );
 		$this->assertStringContainsString( 'KEY idx_session_id (session_id)', $activator );
