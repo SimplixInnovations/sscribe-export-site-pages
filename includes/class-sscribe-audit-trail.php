@@ -374,8 +374,8 @@ class SScribe_Audit_Trail {
 
 		$filters_json = wp_json_encode( $filters );
 		$cache_key    = 'sscribe_audit_counts_' . md5( false !== $filters_json ? $filters_json : '' );
-		$cached       = get_transient( $cache_key );
-		if ( false !== $cached ) {
+		$cached       = wp_cache_get( $cache_key, 'sscribe_audit_counts' );
+		if ( false !== $cached && is_array( $cached ) ) {
 			return $cached;
 		}
 
@@ -404,7 +404,7 @@ class SScribe_Audit_Trail {
 			)
 		);
 
-		set_transient( $cache_key, $result, 30 );
+		wp_cache_set( $cache_key, $result, 'sscribe_audit_counts', 30 );
 		return $result;
 	}
 
