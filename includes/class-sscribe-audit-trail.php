@@ -79,7 +79,7 @@ class SScribe_Audit_Trail {
 				return false;
 			}
 			$wpdb->last_error = '';
-			$sql = 'SELECT 1 FROM `' . $this->table_name . '` WHERE 1 = 0';
+			$sql = 'SELECT 1 FROM `' . esc_sql( $this->table_name ) . '` WHERE 1 = 0';
 			$previous_suppression = $wpdb->suppress_errors( true );
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.PreparedSQL.NotPrepared -- Internal table identifier is regex-validated; zero-row structural probe only.
 			$result = $wpdb->query( $sql );
