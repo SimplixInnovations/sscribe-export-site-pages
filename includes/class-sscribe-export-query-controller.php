@@ -131,13 +131,12 @@ class SScribe_Export_Query_Controller {
 	}
 
 	/**
-	 * Batch AJAX handler: returns status counts for many languages in one call.
+	 * Batch AJAX handler: returns one aggregate total per language.
 	 *
-	 * Replaces the per-language firehose where the JS previously fired one
-	 * round-trip per language option. With 10+ WPML languages, that was 10+
-	 * concurrent POSTs per card-toggle; collapsing them into a single batched
-	 * query cuts round-trips by Nx and the SQL by the same factor because
-	 * the per-language counts share a single cache key per (lang, post_type).
+	 * Language cards only display the total for the currently selected post
+	 * type. Detailed per-status/page/post/any counts belong to the separate
+	 * selected-language endpoint. Keeping this background batch aggregate-only
+	 * prevents a 50-language refresh from multiplying the detailed count matrix.
 	 *
 	 * Accepts either a JSON-encoded array under `languages[]` or a CSV under
 	 * `languages` (the JS sends JSON; CSV is a defensive fallback for older
@@ -176,7 +175,9 @@ class SScribe_Export_Query_Controller {
 			// never before. The response key remains __all__ so the JS
 			// exact-key lookup finds it.
 			$query_language = ( self::SENTINEL_ALL === $raw_language ) ? '' : $raw_language;
-			$per_language[ $raw_language ] = $this->compute_counts_payload( $query_language, $post_type );
+			$per_language[ $raw_language ] = array(
+				'total' => $this->collector->get_page_count_only( $query_language, 'all', $post_type ),
+			);
 		}
 
 		SScribe_AJAX_Guard::success(
