@@ -741,7 +741,7 @@ class SScribe_Zip_Handler {
 	 * each other; the server rotates it only after a successful
 	 * redemption. A replay with the consumed token therefore fails.
 	 *
-	 * @param string                    $zip_filename ZIP filename.
+	 * @param string                   $zip_filename ZIP filename.
 	 * @param array<string,mixed>|null $row          Already-loaded export row, when available.
 	 * @return string
 	 */
