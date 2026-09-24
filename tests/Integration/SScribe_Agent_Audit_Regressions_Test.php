@@ -39,7 +39,7 @@ final class SScribe_Agent_Audit_Regressions_Test extends TestCase {
 	public function test_content_cache_generation_does_not_create_unbounded_transient_names(): void {
 		$src = self::source('includes/class-sscribe-page-collector.php');
 		self::assertStringNotContainsString('"sscribe_page_ids_v2_{$post_status}_{$generation}_"', $src);
-		self::assertStringNotContainsString("'sscribe_estimate_count_' . $generation . '_'", $src);
+		self::assertStringNotContainsString("'sscribe_estimate_count_' . \$generation . '_'", $src);
 		self::assertStringContainsString('cache_generation', $src);
 	}
 
