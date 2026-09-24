@@ -76,7 +76,7 @@ class SScribe_Audit_Trail {
 		if ( null === $this->table_exists_cache ) {
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Schema introspection, cached via instance property
 			$table                    = $wpdb->get_var(
-				$wpdb->prepare( 'SHOW TABLES LIKE %s', $this->table_name )
+				$wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->esc_like( $this->table_name ) )
 			);
 			$this->table_exists_cache = ( $table === $this->table_name );
 		}
