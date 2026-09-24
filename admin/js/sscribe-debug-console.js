@@ -1168,7 +1168,14 @@
 					}
 					const originalText = self.$clearBtn.data('original-text') || self.clearBtnOriginalText;
 					self.$clearBtn.text(originalText);
-					self.$clearBtn.after($('<span>', { class: 'sscribe-feedback sscribe-feedback-success', role: 'status', 'aria-live': 'polite', 'aria-atomic': 'true' }).text('Cleared!'));
+					self.$clearBtn.after(
+						$('<span>', {
+							class: 'sscribe-feedback sscribe-feedback-success',
+							role: 'status',
+							'aria-live': 'polite',
+							'aria-atomic': 'true',
+						}).text('Cleared!')
+					);
 					setTimeout(function () {
 						self.$clearBtn.siblings('.sscribe-feedback').remove();
 					}, 2000);
