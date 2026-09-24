@@ -1555,6 +1555,7 @@ if ( ! class_exists( 'wpdb' ) ) {
 		public int $insert_id         = 0;
 		public int $num_queries       = 0;
 		public string $last_error     = '';
+		public bool $suppress_errors   = false;
 		public string $last_query     = '';
 		public string $last_result    = '';
 		public string $db_version     = '';
@@ -1587,6 +1588,11 @@ if ( ! class_exists( 'wpdb' ) ) {
 		public function esc_like( $text ): string { return addcslashes( (string) $text, '_%\\' ); }
 		public function hide_errors() { return false; }
 		public function show_errors( $show = true ) { return false; }
+		public function suppress_errors( $suppress = true ): bool {
+			$previous = $this->suppress_errors;
+			$this->suppress_errors = (bool) $suppress;
+			return $previous;
+		}
 		public function print_error( $str = '' ) {}
 		public function check_safe_collation( $query ): bool { return true; }
 		public function set_charset( $dbh, $charset = null, $collate = null ) { return true; }
