@@ -5,7 +5,7 @@
  * The plugin exposes many `wp_ajax_sscribe_*` actions through
  * `admin-ajax.php`. Each one must:
  *
- *   1. Be registered through `SScribe_Loader::add_guarded_ajax_action`
+ *   1. Be registered through `SScribe_Loader::add_guarded_ajax_action` or `add_guarded_lazy_ajax_action`
  *      (which wraps the callback with nonce + capability checks via
  *      SScribe_AJAX_Guard::with_guard) OR be wrapped in a centralized
  *      `verify_request_authorization` that runs `check_ajax_referer`
