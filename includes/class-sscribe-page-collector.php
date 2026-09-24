@@ -675,6 +675,107 @@ class SScribe_Page_Collector {
 	}
 
 	/**
+	 * Count readable non-public posts in one bounded multi-status scan.
+	 *
+	 * Published posts have their own lightweight count path. Draft, private,
+	 * pending, and scheduled content is queried together, hydrated in bounded
+	 * chunks, then passed through WordPress's canonical read_post capability
+	 * check. The 10,000-candidate ceiling matches export admission and prevents
+	 * a background language-card refresh from becoming an unbounded inventory
+	 * walk on very large sites.
+	 *
+	 * @param string $language  Language code.
+	 * @param string $post_type Requested post type.
+	 * @return int Readable non-public count, bounded by the export candidate cap.
+	 */
+	private function count_readable_nonpublic_posts( string $language, string $post_type ): int {
+		$statuses = array_values(
+			array_diff(
+				array_keys( $this->get_valid_post_statuses() ),
+				array( 'publish' )
+			)
+		);
+		if ( empty( $statuses ) ) {
+			return 0;
+		}
+
+		$total           = 0;
+		$candidates_seen = 0;
+		$page            = 1;
+		$chunk_size      = self::CACHE_MAX_SIZE;
+		$candidate_cap   = 10000;
+
+		do {
+			$args = array(
+				'post_type'              => $this->resolve_post_type_for_query( $post_type ),
+				'post_status'            => $statuses,
+				'posts_per_page'         => $chunk_size,
+				'paged'                  => $page,
+				'fields'                 => 'ids',
+				'no_found_rows'          => true,
+				'orderby'                => array(
+					'menu_order' => 'ASC',
+					'title'      => 'ASC',
+					'ID'         => 'ASC',
+				),
+				'update_post_meta_cache' => false,
+				'update_post_term_cache' => false,
+			);
+
+			$switched = false;
+			try {
+				if ( $this->is_wpml_active() ) {
+					$target_lang = ! empty( $language ) ? $language : 'all';
+					// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WPML hook.
+					do_action( 'wpml_switch_language', $target_lang );
+					$args['suppress_filters'] = false;
+					$switched                 = true;
+				}
+
+				$query = new WP_Query( $args );
+			} finally {
+				if ( $switched ) {
+					// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WPML hook.
+					do_action( 'wpml_switch_language', null );
+				}
+			}
+
+			$candidate_ids = array_values( array_map( 'absint', $query->posts ) );
+			$fetched       = count( $candidate_ids );
+			if ( $fetched > 0 ) {
+				$remaining     = max( 0, $candidate_cap - $candidates_seen );
+				$candidate_ids = array_slice( $candidate_ids, 0, $remaining );
+				$candidates_seen += count( $candidate_ids );
+				if ( ! empty( $candidate_ids ) ) {
+					$total += count( $this->filter_readable_page_ids( $candidate_ids, 'any', $post_type ) );
+				}
+			}
+
+			++$page;
+		} while ( $fetched >= $chunk_size && $candidates_seen < $candidate_cap );
+
+		return $total;
+	}
+
+	/**
+	 * Count readable posts across all selectable export statuses.
+	 *
+	 * Public published content uses the constant-time found_posts path where
+	 * possible. Permission-sensitive statuses share one bounded scan instead of
+	 * repeating the same inventory walk once per status.
+	 *
+	 * @param string $language  Language code.
+	 * @param string $post_type Requested post type.
+	 * @return int Readable count across all supported statuses.
+	 */
+	private function count_readable_posts_across_statuses( string $language, string $post_type ): int {
+		$published = $this->get_page_count_only( $language, 'publish', $post_type );
+		$nonpublic = $this->count_readable_nonpublic_posts( $language, $post_type );
+
+		return $published + $nonpublic;
+	}
+
+	/**
 	 * Get page count only (lightweight).
 	 *
 	 * @param string $language    Language code.
@@ -687,8 +788,7 @@ class SScribe_Page_Collector {
 		// deliberately translates it to WP_Query's "any". Handle the aggregate
 		// before query normalization or the all-status path becomes unreachable.
 		if ( 'all' === sanitize_key( $post_status ) ) {
-			$counts = $this->get_post_status_counts( $language, $post_type );
-			return (int) ( $counts['all'] ?? 0 );
+			return $this->count_readable_posts_across_statuses( $language, $post_type );
 		}
 
 		$post_status = $this->validate_post_status( $post_status );
