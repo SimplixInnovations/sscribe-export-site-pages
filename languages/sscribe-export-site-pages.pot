@@ -3301,6 +3301,12 @@ msgstr ""
 msgid "Session cleared."
 msgstr ""
 
+#: admin/partials/sscribe-admin-display.php:686
+#: admin/partials/sscribe-admin-display.php:695
+#: admin/partials/sscribe-admin-display.php:704
+msgid "Completed"
+msgstr ""
+
 #: sscribe-export-site-pages.php:34
 #: sscribe-export-site-pages.php:67
 msgid "SScribe Export Site Pages has been deactivated."
