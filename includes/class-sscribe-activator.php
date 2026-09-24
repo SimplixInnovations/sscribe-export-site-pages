@@ -298,12 +298,27 @@ class SScribe_Activator {
 		);
 		self::assert_required_schema(
 			$table_stats,
-			array( 'id', 'export_session_id', 'user_id', 'export_date', 'status', 'created_at' ),
+			array(
+				'id',
+				'export_session_id',
+				'user_id',
+				'export_date',
+				'total_pages',
+				'successful_pages',
+				'failed_pages',
+				'formats',
+				'memory_peak',
+				'duration_seconds',
+				'file_size_mb',
+				'status',
+				'error_message',
+				'created_at',
+			),
 			'export stats schema'
 		);
 		self::assert_required_schema(
 			$wpdb->prefix . 'sscribe_audit_log',
-			array( 'id', 'timestamp', 'event', 'user_id', 'context', 'session_id' ),
+			array( 'id', 'timestamp', 'event', 'user_id', 'ip_address', 'user_agent', 'request_uri', 'context', 'session_id' ),
 			'audit trail schema'
 		);
 
