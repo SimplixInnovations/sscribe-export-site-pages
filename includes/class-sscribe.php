@@ -264,15 +264,21 @@ class SScribe {
 	private function define_ajax_hooks(): void {
 		$container = SScribe_Container::instance();
 
-		// Debug endpoints are registered by SScribe_Admin_Debug rather than the
-		// batch processor. Non-AJAX admin bootstrap intentionally stays lazy, so
-		// register these callbacks explicitly on admin-ajax.php requests.
+		// Debug endpoints are lightweight to register. Their filesystem/rate
+		// limiter work happens only inside the callbacks when the AJAX hook fires.
 		$debug = new SScribe_Admin_Debug();
 		$debug->register_hooks();
 
-		$batch = $container->get( SScribe_Batch_Processor::class );
-		$cap       = SScribe_Capabilities::get_required();
-		$health_cap      = SScribe_Capabilities::get_health_required();
+		$batch_resolver = static function () use ( $container ): SScribe_Batch_Processor {
+			$service = $container->get( SScribe_Batch_Processor::class );
+			if ( ! $service instanceof SScribe_Batch_Processor ) {
+				throw new LogicException( 'SScribe batch processor service is unavailable.' );
+			}
+			return $service;
+		};
+
+		$cap              = SScribe_Capabilities::get_required();
+		$health_cap       = SScribe_Capabilities::get_health_required();
 		$language_request = new SScribe_Language_Request();
 
 		// Translate the UI-only __all__ sentinel before the guarded Preview/Start
@@ -280,39 +286,53 @@ class SScribe {
 		$this->loader->add_action( 'wp_ajax_sscribe_start_export', $language_request, 'normalize_for_export_endpoint', 1, 0 );
 		$this->loader->add_action( 'wp_ajax_sscribe_get_export_preview', $language_request, 'normalize_for_export_endpoint', 1, 0 );
 
-		$this->loader->add_guarded_ajax_action( 'wp_ajax_sscribe_start_export', $batch, 'ajax_start_export', $cap );
-		$this->loader->add_guarded_ajax_action( 'wp_ajax_sscribe_process_batch', $batch, 'ajax_process_batch', $cap );
-		$this->loader->add_guarded_ajax_action( 'wp_ajax_sscribe_finalize_export', $batch, 'ajax_finalize_export', $cap );
-		$this->loader->add_guarded_ajax_action( 'wp_ajax_sscribe_download', $batch, 'ajax_download', $cap, 'sscribe_download' );
-		$this->loader->add_guarded_ajax_action( 'wp_ajax_sscribe_get_status_counts', $batch, 'ajax_get_status_counts', $cap );
-		$this->loader->add_guarded_ajax_action( 'wp_ajax_sscribe_get_all_status_counts', $batch, 'ajax_get_all_status_counts', $cap );
-		$this->loader->add_guarded_ajax_action( 'wp_ajax_sscribe_cancel_export', $batch, 'ajax_cancel_export', $cap );
-		$this->loader->add_guarded_ajax_action( 'wp_ajax_sscribe_delete_export', $batch, 'ajax_delete_export', $cap, 'sscribe_download' );
-		$this->loader->add_guarded_ajax_action( 'wp_ajax_sscribe_get_export_log', $batch, 'ajax_get_export_log', $cap, 'sscribe_download' );
-		$this->loader->add_guarded_ajax_action( 'wp_ajax_sscribe_clear_session', $batch, 'ajax_clear_session', $cap );
-		$this->loader->add_guarded_ajax_action( 'wp_ajax_sscribe_preflight_check', $batch, 'ajax_preflight_check', $cap );
-		$this->loader->add_guarded_ajax_action( 'wp_ajax_sscribe_get_export_preview', $batch, 'ajax_get_export_preview', $cap );
-		$this->loader->add_guarded_ajax_action( 'wp_ajax_sscribe_get_recent_exports', $batch, 'ajax_get_recent_exports', $cap );
-		$this->loader->add_guarded_ajax_action( 'wp_ajax_sscribe_get_support_info', $batch, 'ajax_get_support_info', $health_cap, 'sscribe_health_nonce' );
-		$this->loader->add_guarded_ajax_action( 'wp_ajax_sscribe_check_active_session', $batch, 'ajax_check_active_session', $cap );
+		$this->loader->add_guarded_lazy_ajax_action( 'wp_ajax_sscribe_start_export', $batch_resolver, 'ajax_start_export', $cap );
+		$this->loader->add_guarded_lazy_ajax_action( 'wp_ajax_sscribe_process_batch', $batch_resolver, 'ajax_process_batch', $cap );
+		$this->loader->add_guarded_lazy_ajax_action( 'wp_ajax_sscribe_finalize_export', $batch_resolver, 'ajax_finalize_export', $cap );
+		$this->loader->add_guarded_lazy_ajax_action( 'wp_ajax_sscribe_download', $batch_resolver, 'ajax_download', $cap, 'sscribe_download' );
+		$this->loader->add_guarded_lazy_ajax_action( 'wp_ajax_sscribe_get_status_counts', $batch_resolver, 'ajax_get_status_counts', $cap );
+		$this->loader->add_guarded_lazy_ajax_action( 'wp_ajax_sscribe_get_all_status_counts', $batch_resolver, 'ajax_get_all_status_counts', $cap );
+		$this->loader->add_guarded_lazy_ajax_action( 'wp_ajax_sscribe_cancel_export', $batch_resolver, 'ajax_cancel_export', $cap );
+		$this->loader->add_guarded_lazy_ajax_action( 'wp_ajax_sscribe_delete_export', $batch_resolver, 'ajax_delete_export', $cap, 'sscribe_download' );
+		$this->loader->add_guarded_lazy_ajax_action( 'wp_ajax_sscribe_get_export_log', $batch_resolver, 'ajax_get_export_log', $cap, 'sscribe_download' );
+		$this->loader->add_guarded_lazy_ajax_action( 'wp_ajax_sscribe_clear_session', $batch_resolver, 'ajax_clear_session', $cap );
+		$this->loader->add_guarded_lazy_ajax_action( 'wp_ajax_sscribe_preflight_check', $batch_resolver, 'ajax_preflight_check', $cap );
+		$this->loader->add_guarded_lazy_ajax_action( 'wp_ajax_sscribe_get_export_preview', $batch_resolver, 'ajax_get_export_preview', $cap );
+		$this->loader->add_guarded_lazy_ajax_action( 'wp_ajax_sscribe_get_recent_exports', $batch_resolver, 'ajax_get_recent_exports', $cap );
+		$this->loader->add_guarded_lazy_ajax_action( 'wp_ajax_sscribe_get_support_info', $batch_resolver, 'ajax_get_support_info', $health_cap, 'sscribe_health_nonce' );
+		$this->loader->add_guarded_lazy_ajax_action( 'wp_ajax_sscribe_check_active_session', $batch_resolver, 'ajax_check_active_session', $cap );
 	}
 
 	/**
 	 * Register scheduled task hooks.
 	 */
 	private function define_cron_hooks(): void {
-		$container = SScribe_Container::instance();
-		$zip       = $container->get( SScribe_Zip_Handler::class );
-		$this->loader->add_action( 'sscribe_cleanup_exports', $zip, 'cleanup_expired' );
-
+		$this->loader->add_action( 'sscribe_cleanup_exports', $this, 'cleanup_exports' );
 		$this->loader->add_action( 'sscribe_cleanup_sessions', $this, 'cleanup_sessions' );
-		$this->loader->add_action(
-			'sscribe_cleanup_sessions',
-			$container->get( SScribe_Session::class ),
-			'maybe_rotate_signing_key',
-			99
-		);
+		$this->loader->add_action( 'sscribe_cleanup_sessions', $this, 'rotate_session_signing_key', 99 );
 		$this->loader->add_action( 'sscribe_cleanup_audit_trail', $this, 'cleanup_audit_trail' );
+	}
+
+	/**
+	 * Clean up expired export artifacts when the scheduled hook fires.
+	 */
+	public function cleanup_exports(): void {
+		$zip = SScribe_Container::instance()->get( SScribe_Zip_Handler::class );
+		if ( ! $zip instanceof SScribe_Zip_Handler ) {
+			throw new LogicException( 'SScribe ZIP handler service is unavailable.' );
+		}
+		$zip->cleanup_expired();
+	}
+
+	/**
+	 * Rotate the session signing key only when the scheduled hook fires.
+	 */
+	public function rotate_session_signing_key(): void {
+		$session = SScribe_Container::instance()->get( SScribe_Session::class );
+		if ( ! $session instanceof SScribe_Session ) {
+			throw new LogicException( 'SScribe session service is unavailable.' );
+		}
+		$session->maybe_rotate_signing_key();
 	}
 
 	/**
@@ -400,27 +420,20 @@ class SScribe {
 		$this->register_services();
 
 		$is_ajax_request  = function_exists( 'wp_doing_ajax' ) && wp_doing_ajax();
-		$is_cron_request  = function_exists( 'wp_doing_cron' ) && wp_doing_cron();
 		$is_admin_request = function_exists( 'is_admin' ) && is_admin();
 
-		// Keep content invalidation global so REST/front-end mutations stay fresh,
-		// but do not instantiate heavy admin/export/cron service graphs on normal
-		// public requests where their hooks cannot fire.
+		// Register hook names globally, but keep heavyweight service resolution
+		// lazy. WordPress, WP-CLI, tests, and direct do_action() callers are then
+		// free to dispatch the hooks without requiring request-mode globals.
 		$this->define_content_hooks();
-		// Privacy exporter/eraser filters are consumed by WordPress during
-		// admin/AJAX privacy processing, so keep their lightweight registration
-		// global even while the heavy admin/export graph remains request-gated.
 		$this->define_privacy_hooks();
+		$this->define_ajax_hooks();
+		$this->define_cron_hooks();
+		$this->define_lifecycle_hooks();
+
 		if ( $is_admin_request && ! $is_ajax_request ) {
 			$this->define_admin_hooks();
 		}
-		if ( $is_ajax_request ) {
-			$this->define_ajax_hooks();
-		}
-		if ( $is_cron_request ) {
-			$this->define_cron_hooks();
-		}
-		$this->define_lifecycle_hooks();
 
 		$this->loader->run();
 	}
