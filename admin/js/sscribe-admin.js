@@ -2074,7 +2074,9 @@
 					.fadeIn(400, function () {
 						const safeDownloadUrl = data.download_url ? self.getSafeSameOriginUrl(data.download_url) : '';
 						if (safeDownloadUrl) {
-							$('#sscribe-download-btn').attr('href', safeDownloadUrl).attr('aria-disabled', 'false');
+							$('#sscribe-download-btn')
+								.attr('href', safeDownloadUrl)
+								.attr('aria-disabled', 'false');
 							if (isAutoDownload !== false && self.shouldAutoDownload()) {
 								const a = document.createElement('a');
 								a.href = safeDownloadUrl;
