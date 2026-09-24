@@ -268,7 +268,6 @@ class SScribe_Logger_Enhanced extends SScribe_Logger {
 	 */
 	private function table_exists(): bool {
 		global $wpdb;
-		/** @var \wpdb $wpdb */
 
 		if ( null === $this->table_exists_cache ) {
 			if ( 1 !== preg_match( '/^[A-Za-z0-9_]+$/D', $this->table_name ) ) {
