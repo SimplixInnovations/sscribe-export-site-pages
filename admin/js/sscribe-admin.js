@@ -832,36 +832,17 @@
 							return;
 						}
 						const langMap = response.data.languages;
-						const currentPostType = $('input[name="sscribe_post_type"]:checked').val() || 'page';
 						$('input[name="sscribe_language"]').each(function () {
 							const langCode = $(this).val();
 							const entry = langMap[langCode];
 							if (!entry) {
 								return;
 							}
-							const pageCounts = entry.counts_page || entry.counts || {};
-							const postCounts = entry.counts_post || {};
-							const anyCounts = entry.counts_any || {};
-							const pageTotal = self.parseLocalizedInt(pageCounts.all) || 0;
-							const postTotal = self.parseLocalizedInt(postCounts.all) || 0;
-							const anyTotal = self.parseLocalizedInt(anyCounts.all) || 0;
-							const selectedCounts = entry.counts || {};
-							const selectedTotal = self.parseLocalizedInt(selectedCounts.all) || 0;
-							let displayTotal = selectedTotal;
-							if ('page' === currentPostType) {
-								displayTotal = pageTotal;
-							} else if ('post' === currentPostType) {
-								displayTotal = postTotal;
-							} else if ('any' === currentPostType) {
-								displayTotal = anyTotal;
-							}
+							const displayTotal = self.parseLocalizedInt(entry.total) || 0;
 							const $langLabel = $('input[name="sscribe_language"][value="' + langCode + '"]').closest(
 								'.sscribe-lang-card-label'
 							);
 							$langLabel.find('.sscribe-lang-count').text(displayTotal.toLocaleString());
-							$langLabel.attr('data-count-page', pageTotal);
-							$langLabel.attr('data-count-post', postTotal);
-							$langLabel.attr('data-count-any', anyTotal);
 						});
 					},
 					error: function () {},
