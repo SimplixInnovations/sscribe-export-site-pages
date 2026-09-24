@@ -38,8 +38,8 @@ final class SScribe_Page_Collector_Readability_Performance_Test extends TestCase
 		$this->assertSame( 'any', $collector->validate_post_status( 'any' ) );
 
 		$source = (string) file_get_contents( dirname( __DIR__, 2 ) . '/includes/class-sscribe-page-collector.php' );
-		$this->assertStringContainsString( "if ( 'any' === $post_status )", $source );
-		$this->assertStringContainsString( "if ( 'any' !== $post_status )", $source );
+		$this->assertStringContainsString( "if ( 'any' === \$post_status )", $source );
+		$this->assertStringContainsString( "if ( 'any' !== \$post_status )", $source );
 	}
 
 
