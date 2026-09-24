@@ -120,6 +120,14 @@ final class SScribe_Ajax_Security_Test extends TestCase {
 		}
 	}
 
+	public function test_loader_exposes_lazy_guarded_ajax_action(): void {
+		$source = (string) file_get_contents( self::plugin_root() . '/' . self::LOADER_PATH );
+		$this::assertMatchesRegularExpression(
+			'/public\s+function\s+add_guarded_lazy_ajax_action\s*\(/',
+			$source
+		);
+	}
+
 	public function test_loader_exposes_add_guarded_ajax_action(): void {
 		// Source-level guard: the loader method that wraps every AJAX
 		// callback with nonce + capability checks must remain public.
