@@ -1117,6 +1117,7 @@ $sscribe_test_ajax_nonce_valid = true;
 		public string $prefix = 'wp_';
 		public string $options = 'wp_options';
 		public string $posts = 'wp_posts';
+		public bool $suppress_errors = false;
 
 		public function __construct( $dbuser = '', $dbpassword = '', $dbname = '', $dbhost = '' ) {
 		}
@@ -1150,6 +1151,12 @@ $sscribe_test_ajax_nonce_valid = true;
 
 		public function esc_sql( $data ) {
 			return (string) $data;
+		}
+
+		public function suppress_errors( $suppress = true ) {
+			$previous = $this->suppress_errors;
+			$this->suppress_errors = (bool) $suppress;
+			return $previous;
 		}
 
 		public function get_charset_collate() {
