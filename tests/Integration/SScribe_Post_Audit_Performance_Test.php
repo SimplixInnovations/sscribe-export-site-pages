@@ -173,7 +173,8 @@ final class SScribe_Post_Audit_Performance_Test extends TestCase {
 		$this->assertNotFalse( $ajax_end );
 		$ajax_method = substr( $src, $ajax_start, $ajax_end - $ajax_start );
 		$this->assertStringContainsString( 'add_guarded_lazy_ajax_action', $ajax_method );
-		$this->assertStringNotContainsString( '$container->get( SScribe_Batch_Processor::class );', $ajax_method );
+		$this->assertStringContainsString( '$batch_resolver = static function', $ajax_method );
+		$this->assertStringNotContainsString( '$batch = $container->get( SScribe_Batch_Processor::class );', $ajax_method );
 
 		$cron_start = strpos( $src, 'private function define_cron_hooks(): void' );
 		$cron_end = strpos( $src, 'private function define_lifecycle_hooks(): void', $cron_start );
@@ -218,6 +219,7 @@ final class SScribe_Post_Audit_Performance_Test extends TestCase {
 		$this->assertStringContainsString( '! is_link( $cached_path )', $method );
 		$this->assertStringContainsString( 'self::is_outside_public_roots( $cached_real )', $method );
 		$this->assertStringContainsString( 'unset( $resolved_paths[ $cache_key ] )', $method );
+		$this->assertStringNotContainsString( "$resolved_paths[ $cache_key ] = '';", $method );
 	}
 
 	public function test_vendor_dependency_notice_is_confined_to_relevant_admin_screens(): void {
