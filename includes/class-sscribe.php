@@ -168,6 +168,11 @@ class SScribe {
 			return;
 		}
 
+		$screen = function_exists( 'get_current_screen' ) ? get_current_screen() : null;
+		if ( ! $screen || ! in_array( (string) $screen->id, array( 'toplevel_page_sscribe-export', 'plugins' ), true ) ) {
+			return;
+		}
+
 		static $missing = null;
 		if ( null === $missing ) {
 			$diagnostics = new SScribe_Diagnostics();
@@ -373,9 +378,20 @@ class SScribe {
 		\SScribe_Request_Id::current();
 
 		$this->register_services();
-		$this->define_admin_hooks();
-		$this->define_ajax_hooks();
-		$this->define_cron_hooks();
+
+		// Hook registration should not instantiate heavyweight request-specific
+		// services on unrelated frontend traffic. WordPress defines AJAX/cron
+		// context before plugins_loaded, so these handlers can be registered only
+		// in the requests where WordPress can actually dispatch them.
+		if ( is_admin() && ! wp_doing_ajax() ) {
+			$this->define_admin_hooks();
+		}
+		if ( wp_doing_ajax() ) {
+			$this->define_ajax_hooks();
+		}
+		if ( wp_doing_cron() ) {
+			$this->define_cron_hooks();
+		}
 		$this->define_lifecycle_hooks();
 		$this->define_privacy_hooks();
 
