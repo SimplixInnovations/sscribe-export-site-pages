@@ -263,32 +263,58 @@ class SScribe {
 	 * Register AJAX hooks for background processing.
 	 */
 	private function define_ajax_hooks(): void {
-		$container = SScribe_Container::instance();
-		$batch     = $container->get( SScribe_Batch_Processor::class );
-		$cap       = SScribe_Capabilities::get_required();
-		$health_cap      = SScribe_Capabilities::get_health_required();
+		$cap              = SScribe_Capabilities::get_required();
+		$health_cap       = SScribe_Capabilities::get_health_required();
 		$language_request = new SScribe_Language_Request();
+		$resolver         = static function (): SScribe_Batch_Processor {
+			return SScribe_Container::instance()->get( SScribe_Batch_Processor::class );
+		};
 
-		// Translate the UI-only __all__ sentinel before the guarded Preview/Start
-		// callbacks read request data. Count endpoints intentionally retain it.
-		$this->loader->add_action( 'wp_ajax_sscribe_start_export', $language_request, 'normalize_for_export_endpoint', 1, 0 );
-		$this->loader->add_action( 'wp_ajax_sscribe_get_export_preview', $language_request, 'normalize_for_export_endpoint', 1, 0 );
+		// Normalize the UI-only __all__ sentinel before Preview/Start. This
+		// lightweight callback is guarded independently so no request-derived
+		// mutation occurs before nonce/capability admission.
+		$this->loader->add_guarded_ajax_action(
+			'wp_ajax_sscribe_start_export',
+			$language_request,
+			'normalize_for_export_endpoint',
+			$cap,
+			'sscribe_export_nonce',
+			'nonce',
+			1,
+			0
+		);
+		$this->loader->add_guarded_ajax_action(
+			'wp_ajax_sscribe_get_export_preview',
+			$language_request,
+			'normalize_for_export_endpoint',
+			$cap,
+			'sscribe_export_nonce',
+			'nonce',
+			1,
+			0
+		);
 
-		$this->loader->add_guarded_ajax_action( 'wp_ajax_sscribe_start_export', $batch, 'ajax_start_export', $cap );
-		$this->loader->add_guarded_ajax_action( 'wp_ajax_sscribe_process_batch', $batch, 'ajax_process_batch', $cap );
-		$this->loader->add_guarded_ajax_action( 'wp_ajax_sscribe_finalize_export', $batch, 'ajax_finalize_export', $cap );
-		$this->loader->add_guarded_ajax_action( 'wp_ajax_sscribe_download', $batch, 'ajax_download', $cap, 'sscribe_download' );
-		$this->loader->add_guarded_ajax_action( 'wp_ajax_sscribe_get_status_counts', $batch, 'ajax_get_status_counts', $cap );
-		$this->loader->add_guarded_ajax_action( 'wp_ajax_sscribe_get_all_status_counts', $batch, 'ajax_get_all_status_counts', $cap );
-		$this->loader->add_guarded_ajax_action( 'wp_ajax_sscribe_cancel_export', $batch, 'ajax_cancel_export', $cap );
-		$this->loader->add_guarded_ajax_action( 'wp_ajax_sscribe_delete_export', $batch, 'ajax_delete_export', $cap, 'sscribe_download' );
-		$this->loader->add_guarded_ajax_action( 'wp_ajax_sscribe_get_export_log', $batch, 'ajax_get_export_log', $cap, 'sscribe_download' );
-		$this->loader->add_guarded_ajax_action( 'wp_ajax_sscribe_clear_session', $batch, 'ajax_clear_session', $cap );
-		$this->loader->add_guarded_ajax_action( 'wp_ajax_sscribe_preflight_check', $batch, 'ajax_preflight_check', $cap );
-		$this->loader->add_guarded_ajax_action( 'wp_ajax_sscribe_get_export_preview', $batch, 'ajax_get_export_preview', $cap );
-		$this->loader->add_guarded_ajax_action( 'wp_ajax_sscribe_get_recent_exports', $batch, 'ajax_get_recent_exports', $cap );
-		$this->loader->add_guarded_ajax_action( 'wp_ajax_sscribe_get_support_info', $batch, 'ajax_get_support_info', $health_cap, 'sscribe_health_nonce' );
-		$this->loader->add_guarded_ajax_action( 'wp_ajax_sscribe_check_active_session', $batch, 'ajax_check_active_session', $cap );
+		$this->loader->add_guarded_lazy_ajax_action( 'wp_ajax_sscribe_start_export', $resolver, 'ajax_start_export', $cap );
+		$this->loader->add_guarded_lazy_ajax_action( 'wp_ajax_sscribe_process_batch', $resolver, 'ajax_process_batch', $cap );
+		$this->loader->add_guarded_lazy_ajax_action( 'wp_ajax_sscribe_finalize_export', $resolver, 'ajax_finalize_export', $cap );
+		$this->loader->add_guarded_lazy_ajax_action( 'wp_ajax_sscribe_download', $resolver, 'ajax_download', $cap, 'sscribe_download' );
+		$this->loader->add_guarded_lazy_ajax_action( 'wp_ajax_sscribe_get_status_counts', $resolver, 'ajax_get_status_counts', $cap );
+		$this->loader->add_guarded_lazy_ajax_action( 'wp_ajax_sscribe_get_all_status_counts', $resolver, 'ajax_get_all_status_counts', $cap );
+		$this->loader->add_guarded_lazy_ajax_action( 'wp_ajax_sscribe_cancel_export', $resolver, 'ajax_cancel_export', $cap );
+		$this->loader->add_guarded_lazy_ajax_action( 'wp_ajax_sscribe_delete_export', $resolver, 'ajax_delete_export', $cap, 'sscribe_download' );
+		$this->loader->add_guarded_lazy_ajax_action( 'wp_ajax_sscribe_get_export_log', $resolver, 'ajax_get_export_log', $cap, 'sscribe_download' );
+		$this->loader->add_guarded_lazy_ajax_action( 'wp_ajax_sscribe_clear_session', $resolver, 'ajax_clear_session', $cap );
+		$this->loader->add_guarded_lazy_ajax_action( 'wp_ajax_sscribe_preflight_check', $resolver, 'ajax_preflight_check', $cap );
+		$this->loader->add_guarded_lazy_ajax_action( 'wp_ajax_sscribe_get_export_preview', $resolver, 'ajax_get_export_preview', $cap );
+		$this->loader->add_guarded_lazy_ajax_action( 'wp_ajax_sscribe_get_recent_exports', $resolver, 'ajax_get_recent_exports', $cap );
+		$this->loader->add_guarded_lazy_ajax_action( 'wp_ajax_sscribe_get_support_info', $resolver, 'ajax_get_support_info', $health_cap, 'sscribe_health_nonce' );
+		$this->loader->add_guarded_lazy_ajax_action( 'wp_ajax_sscribe_check_active_session', $resolver, 'ajax_check_active_session', $cap );
+
+		// Debug actions perform their own centralized nonce/capability/rate-limit
+		// authorization. The handler object is lightweight and must exist on
+		// admin-ajax requests even when the full admin UI service is not built.
+		$debug = new SScribe_Admin_Debug();
+		$debug->register_hooks();
 	}
 
 	/**
@@ -394,15 +420,13 @@ class SScribe {
 		$this->register_services();
 		$this->define_content_invalidation_hooks();
 
-		// Hook registration should not instantiate heavyweight request-specific
-		// services on unrelated frontend traffic. WordPress defines AJAX/cron
-		// context before plugins_loaded, so these handlers can be registered only
-		// in the requests where WordPress can actually dispatch them.
+		// Register endpoint names globally, but resolve the heavyweight export
+		// pipeline lazily only after a guarded AJAX action is actually dispatched.
+		// This preserves deterministic WordPress hook availability without
+		// rebuilding the service graph on unrelated frontend traffic.
+		$this->define_ajax_hooks();
 		if ( is_admin() && ! wp_doing_ajax() ) {
 			$this->define_admin_hooks();
-		}
-		if ( wp_doing_ajax() ) {
-			$this->define_ajax_hooks();
 		}
 		if ( wp_doing_cron() ) {
 			$this->define_cron_hooks();
