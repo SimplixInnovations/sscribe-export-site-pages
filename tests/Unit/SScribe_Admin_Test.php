@@ -140,7 +140,7 @@ class SScribe_Admin_Test extends TestCase {
 		$zip_handler = new class() extends \SScribe_Zip_Handler {
 			public function __construct() {}
 
-			public function get_ajax_download_url( string $zip_filename ): string {
+			public function get_ajax_download_url( string $zip_filename, ?array $row = null ): string {
 				return 'https://example.org/download?file=' . rawurlencode( $zip_filename );
 			}
 		};
