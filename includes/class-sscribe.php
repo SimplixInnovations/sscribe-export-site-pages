@@ -282,9 +282,28 @@ class SScribe {
 		$language_request = new SScribe_Language_Request();
 
 		// Translate the UI-only __all__ sentinel before the guarded Preview/Start
-		// callbacks read request data. Count endpoints intentionally retain it.
-		$this->loader->add_action( 'wp_ajax_sscribe_start_export', $language_request, 'normalize_for_export_endpoint', 1, 0 );
-		$this->loader->add_action( 'wp_ajax_sscribe_get_export_preview', $language_request, 'normalize_for_export_endpoint', 1, 0 );
+		// callbacks read request data. The normalizer is guarded too: no SScribe
+		// wp_ajax_* callback is permitted to run before nonce/capability checks.
+		$this->loader->add_guarded_ajax_action(
+			'wp_ajax_sscribe_start_export',
+			$language_request,
+			'normalize_for_export_endpoint',
+			$cap,
+			'sscribe_export_nonce',
+			'nonce',
+			1,
+			0
+		);
+		$this->loader->add_guarded_ajax_action(
+			'wp_ajax_sscribe_get_export_preview',
+			$language_request,
+			'normalize_for_export_endpoint',
+			$cap,
+			'sscribe_export_nonce',
+			'nonce',
+			1,
+			0
+		);
 
 		$this->loader->add_guarded_lazy_ajax_action( 'wp_ajax_sscribe_start_export', $batch_resolver, 'ajax_start_export', $cap );
 		$this->loader->add_guarded_lazy_ajax_action( 'wp_ajax_sscribe_process_batch', $batch_resolver, 'ajax_process_batch', $cap );
