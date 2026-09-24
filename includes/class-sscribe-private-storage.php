@@ -79,9 +79,6 @@ final class SScribe_Private_Storage {
 
 		if ( array_key_exists( $cache_key, $resolved_paths ) ) {
 			$cached_path = (string) $resolved_paths[ $cache_key ];
-			if ( '' === $cached_path ) {
-				return '';
-			}
 
 			// A cached lexical path is only a shortcut, never a trust decision.
 			// Revalidate the leaf on every hit so deletion, replacement, symlink
@@ -146,7 +143,9 @@ final class SScribe_Private_Storage {
 			return $path;
 		}
 
-		$resolved_paths[ $cache_key ] = '';
+		// Do not memoize failures. Filesystem permissions, filters, or an
+		// operator-provided base may become valid later in the same long-running
+		// PHP process; only successful resolutions are safe performance hints.
 		return '';
 	}
 
