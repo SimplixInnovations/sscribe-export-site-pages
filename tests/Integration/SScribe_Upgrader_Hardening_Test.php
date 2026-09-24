@@ -40,6 +40,37 @@ final class SScribe_Upgrader_Hardening_Test extends TestCase {
 		$this->assertStringContainsString( 'failed_pages INT UNSIGNED', $activator );
 	}
 
+	public function test_canonical_schema_verifies_required_indexes_before_recording_success(): void {
+		$source = self::activator_source();
+
+		$this->assertStringContainsString( 'assert_required_indexes(', $source );
+		foreach (
+			array(
+				'idx_timestamp',
+				'idx_level',
+				'idx_user_id',
+				'idx_request_id',
+				'idx_session_id',
+				'idx_export_session_id',
+				'idx_export_date',
+				'idx_status',
+				'idx_event',
+				'idx_ip_address',
+			) as $required_index
+		) {
+			$this->assertStringContainsString(
+				"'{$required_index}'",
+				$source,
+				"Canonical schema admission must verify {$required_index}."
+			);
+		}
+		$this->assertStringContainsString(
+			'SHOW INDEX FROM',
+			$source,
+			'Required indexes must be verified through a database query before the schema version advances.'
+		);
+	}
+
 	public function test_canonical_schema_fails_closed_when_dbdelta_is_unavailable(): void {
 		$source = self::activator_source();
 		$this->assertMatchesRegularExpression(
