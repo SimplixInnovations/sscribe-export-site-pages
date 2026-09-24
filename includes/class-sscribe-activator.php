@@ -315,6 +315,7 @@ class SScribe_Activator {
 	 */
 	private static function run_dbdelta_or_throw( string $sql, string $label ): void {
 		global $wpdb;
+		/** @var \wpdb $wpdb */
 
 		if ( property_exists( $wpdb, 'last_error' ) ) {
 			$wpdb->last_error = '';
@@ -324,6 +325,7 @@ class SScribe_Activator {
 
 		$last_error = property_exists( $wpdb, 'last_error' ) ? trim( (string) $wpdb->last_error ) : '';
 		if ( '' !== $last_error ) {
+			// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Internal exception is caught/logged; values are sanitized and never rendered directly.
 			throw new \RuntimeException(
 				sprintf(
 					'Database reconciliation failed for %1$s: %2$s',
@@ -345,6 +347,7 @@ class SScribe_Activator {
 	 */
 	private static function assert_required_schema( string $table, array $columns, string $label ): void {
 		global $wpdb;
+		/** @var \wpdb $wpdb */
 
 		if ( 1 !== preg_match( '/^[A-Za-z0-9_]+$/D', $table ) || empty( $columns ) ) {
 			throw new \RuntimeException( 'Invalid schema verification target.' );
@@ -363,16 +366,15 @@ class SScribe_Activator {
 		}
 
 		$sql = 'SELECT ' . implode( ', ', $quoted_columns ) . ' FROM `' . $table . '` WHERE 1 = 0';
-		$previous_suppression = method_exists( $wpdb, 'suppress_errors' ) ? $wpdb->suppress_errors( true ) : null;
+		$previous_suppression = $wpdb->suppress_errors( true );
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.PreparedSQL.NotPrepared -- Internal identifiers are regex-validated; zero-row structural probe only.
 		$result = $wpdb->query( $sql );
 		$last_error = property_exists( $wpdb, 'last_error' ) ? trim( (string) $wpdb->last_error ) : '';
-		if ( null !== $previous_suppression ) {
-			$wpdb->suppress_errors( (bool) $previous_suppression );
-		}
+		$wpdb->suppress_errors( (bool) $previous_suppression );
 
 		if ( false === $result || '' !== $last_error ) {
 			$detail = '' !== $last_error ? $last_error : 'required table or column is not queryable';
+			// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Internal exception is caught/logged; values are sanitized and never rendered directly.
 			throw new \RuntimeException(
 				sprintf(
 					'Schema verification failed for %1$s: %2$s',
