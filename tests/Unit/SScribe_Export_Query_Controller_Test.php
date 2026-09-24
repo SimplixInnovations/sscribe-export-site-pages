@@ -125,20 +125,18 @@ class SScribe_Export_Query_Controller_Test extends TestCase {
 		$this->assertSame( 7, $json['data']['counts_any']['publish'] );
 	}
 
-	public function test_ajax_get_all_status_counts_combines_page_post(): void {
+	public function test_ajax_get_all_status_counts_returns_only_selected_language_total(): void {
 		$_POST['nonce']        = wp_create_nonce( 'sscribe_export_nonce' );
 		$_POST['post_type']    = 'page';
 		$_POST['languages']    = array( 'en' );
 
 		$collector = $this->createMock( \SScribe_Page_Collector::class );
 		$collector->method( 'normalize_language_code' )->willReturn( 'en' );
-		$collector->method( 'get_post_status_counts' )->willReturnCallback(
-			static function ( string $language, string $post_type ): array {
-				return array(
-					'publish' => 'page' === $post_type ? 7 : 5,
-				);
-			}
-		);
+		$collector->expects( $this->never() )->method( 'get_post_status_counts' );
+		$collector->expects( $this->once() )
+			->method( 'get_page_count_only' )
+			->with( 'en', 'all', 'page' )
+			->willReturn( 7 );
 
 		$controller = $this->build_controller( collector: $collector );
 
@@ -148,9 +146,9 @@ class SScribe_Export_Query_Controller_Test extends TestCase {
 		$this->assertSame( 'page', $json['data']['post_type'] );
 		$this->assertSame( 1, $json['data']['queried_count'] );
 		$this->assertArrayHasKey( 'en', $json['data']['languages'] );
-		$this->assertSame( 7, $json['data']['languages']['en']['counts']['publish'] );
-		$this->assertSame( 7, $json['data']['languages']['en']['counts_page']['publish'] );
-		$this->assertSame( 5, $json['data']['languages']['en']['counts_post']['publish'] );
+		$this->assertSame( 7, $json['data']['languages']['en']['total'] );
+		$this->assertArrayNotHasKey( 'counts_page', $json['data']['languages']['en'] );
+		$this->assertArrayNotHasKey( 'counts_any', $json['data']['languages']['en'] );
 	}
 
 	public function test_ajax_get_export_log_rejects_invalid_filename(): void {
@@ -392,9 +390,7 @@ class SScribe_Export_Query_Controller_Test extends TestCase {
 			}
 		);
 		$collector->method( 'get_selectable_post_types' )->willReturn( array( 'page', 'post' ) );
-		$collector->method( 'get_post_status_counts' )->willReturn(
-			array( 'publish' => 1 )
-		);
+		$collector->method( 'get_page_count_only' )->willReturn( 1 );
 
 		$controller = $this->build_controller( collector: $collector );
 
@@ -472,9 +468,7 @@ class SScribe_Export_Query_Controller_Test extends TestCase {
 				return 'en' === $code ? 'en' : '';
 			}
 		);
-		$collector->method( 'get_post_status_counts' )->willReturn(
-			array( 'publish' => 11 )
-		);
+		$collector->method( 'get_page_count_only' )->willReturn( 11 );
 
 		$controller = $this->build_controller( collector: $collector );
 
@@ -488,12 +482,7 @@ class SScribe_Export_Query_Controller_Test extends TestCase {
 		);
 		$this->assertArrayHasKey( 'en', $json['data']['languages'] );
 		$this->assertSame( 2, $json['data']['queried_count'] );
-		$this->assertSame( 11, $json['data']['languages']['__all__']['counts']['publish'] );
-		$this->assertSame( 11, $json['data']['languages']['__all__']['counts_page']['publish'] );
-		$this->assertSame( 11, $json['data']['languages']['__all__']['counts_post']['publish'] );
-		// counts_any is the collector's canonical aggregate across all selectable
-		// post types. This mock returns 11 for every requested post type.
-		$this->assertSame( 11, $json['data']['languages']['__all__']['counts_any']['publish'] );
+		$this->assertSame( 11, $json['data']['languages']['__all__']['total'] );
 	}
 
 	public function test_phase2_batch_endpoint_dedupes_sentinel_all(): void {
@@ -503,9 +492,7 @@ class SScribe_Export_Query_Controller_Test extends TestCase {
 
 		$collector = $this->createMock( \SScribe_Page_Collector::class );
 		$collector->method( 'normalize_language_code' )->willReturn( '' );
-		$collector->method( 'get_post_status_counts' )->willReturn(
-			array( 'publish' => 1 )
-		);
+		$collector->method( 'get_page_count_only' )->willReturn( 1 );
 
 		$controller = $this->build_controller( collector: $collector );
 
@@ -523,9 +510,7 @@ class SScribe_Export_Query_Controller_Test extends TestCase {
 
 		$collector = $this->createMock( \SScribe_Page_Collector::class );
 		$collector->method( 'normalize_language_code' )->willReturn( '' );
-		$collector->method( 'get_post_status_counts' )->willReturn(
-			array( 'publish' => 1 )
-		);
+		$collector->method( 'get_page_count_only' )->willReturn( 1 );
 
 		$controller = $this->build_controller( collector: $collector );
 
