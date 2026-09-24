@@ -164,6 +164,20 @@ final class SScribe_Post_Audit_Performance_Test extends TestCase {
 		$this->assertStringContainsString( 'if ( $is_cron_request )', $method );
 	}
 
+
+	public function test_audit_count_cache_ignores_filters_that_do_not_affect_sql(): void {
+		$src = (string) file_get_contents( self::root() . '/includes/class-sscribe-audit-trail.php' );
+		$start = strpos( $src, 'public function get_event_counts(' );
+		$end   = strpos( $src, 'public function cleanup(', $start );
+		$this->assertNotFalse( $start );
+		$this->assertNotFalse( $end );
+		$method = substr( $src, $start, $end - $start );
+		$this->assertStringContainsString( "'date_from' =>", $method );
+		$this->assertStringContainsString( "'date_to'   =>", $method );
+		$this->assertStringContainsString( 'wp_json_encode( $cache_filters )', $method );
+		$this->assertStringNotContainsString( 'wp_json_encode( $filters )', $method );
+	}
+
 	public function test_uninstall_clears_upgrade_retry_backoff_state(): void {
 		$src = (string) file_get_contents( self::root() . '/uninstall.php' );
 		$this->assertStringContainsString( "delete_option( 'sscribe_upgrade_failures' )", $src );
