@@ -134,9 +134,9 @@ class SScribe_Export_Query_Controller_Test extends TestCase {
 		$collector->method( 'normalize_language_code' )->willReturn( 'en' );
 		$collector->expects( $this->never() )->method( 'get_post_status_counts' );
 		$collector->expects( $this->once() )
-			->method( 'get_page_count_only' )
+			->method( 'get_page_count_summary' )
 			->with( 'en', 'all', 'page' )
-			->willReturn( 7 );
+			->willReturn( array( 'count' => 7, 'capped' => false, 'limit' => 10000 ) );
 
 		$controller = $this->build_controller( collector: $collector );
 
@@ -390,7 +390,7 @@ class SScribe_Export_Query_Controller_Test extends TestCase {
 			}
 		);
 		$collector->method( 'get_selectable_post_types' )->willReturn( array( 'page', 'post' ) );
-		$collector->method( 'get_page_count_only' )->willReturn( 1 );
+		$collector->method( 'get_page_count_summary' )->willReturn( array( 'count' => 1, 'capped' => false, 'limit' => 10000 ) );
 
 		$controller = $this->build_controller( collector: $collector );
 
@@ -468,7 +468,7 @@ class SScribe_Export_Query_Controller_Test extends TestCase {
 				return 'en' === $code ? 'en' : '';
 			}
 		);
-		$collector->method( 'get_page_count_only' )->willReturn( 11 );
+		$collector->method( 'get_page_count_summary' )->willReturn( array( 'count' => 11, 'capped' => false, 'limit' => 10000 ) );
 
 		$controller = $this->build_controller( collector: $collector );
 
@@ -492,7 +492,7 @@ class SScribe_Export_Query_Controller_Test extends TestCase {
 
 		$collector = $this->createMock( \SScribe_Page_Collector::class );
 		$collector->method( 'normalize_language_code' )->willReturn( '' );
-		$collector->method( 'get_page_count_only' )->willReturn( 1 );
+		$collector->method( 'get_page_count_summary' )->willReturn( array( 'count' => 1, 'capped' => false, 'limit' => 10000 ) );
 
 		$controller = $this->build_controller( collector: $collector );
 
@@ -510,7 +510,7 @@ class SScribe_Export_Query_Controller_Test extends TestCase {
 
 		$collector = $this->createMock( \SScribe_Page_Collector::class );
 		$collector->method( 'normalize_language_code' )->willReturn( '' );
-		$collector->method( 'get_page_count_only' )->willReturn( 1 );
+		$collector->method( 'get_page_count_summary' )->willReturn( array( 'count' => 1, 'capped' => false, 'limit' => 10000 ) );
 
 		$controller = $this->build_controller( collector: $collector );
 

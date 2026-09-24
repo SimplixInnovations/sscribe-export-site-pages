@@ -119,7 +119,8 @@ final class SScribe_Post_Audit_Performance_Test extends TestCase {
 		$this->assertNotFalse( $start );
 		$this->assertNotFalse( $end );
 		$method = substr( $src, $start, $end - $start );
-		$this->assertStringContainsString( "get_page_count_only( \$query_language, 'all', \$post_type )", $method );
+		$this->assertStringContainsString( "get_page_count_summary( \$query_language, 'all', \$post_type )", $method );
+		$this->assertStringContainsString( "'capped' => \$summary['capped']", $method );
 		$this->assertStringNotContainsString( 'compute_counts_payload( $query_language', $method );
 	}
 
