@@ -189,10 +189,15 @@ class SScribe_Page_Collector {
 		$post_status = $this->validate_post_status( $post_status );
 
 		$generation = $this->get_content_cache_generation();
-		$cache_key  = "sscribe_page_ids_v2_{$post_status}_{$generation}_" . md5( "{$language}_{$post_type}_{$limit}" );
+		$cache_key  = "sscribe_page_ids_v3_{$post_status}_" . md5( "{$language}_{$post_type}_{$limit}" );
 		$cached     = get_transient( $cache_key );
-		if ( false !== $cached && is_array( $cached ) ) {
-			return $this->filter_readable_page_ids( $cached );
+		if (
+			is_array( $cached )
+			&& isset( $cached['cache_generation'], $cached['ids'] )
+			&& (int) $cached['cache_generation'] === $generation
+			&& is_array( $cached['ids'] )
+		) {
+			return $this->filter_readable_page_ids( $cached['ids'], $post_status, $post_type );
 		}
 
 		$effective_limit = $limit > 0 ? min( $limit, 10000 ) : 10000;
@@ -251,9 +256,16 @@ class SScribe_Page_Collector {
 			}
 		}
 
-		set_transient( $cache_key, $page_ids, 5 * MINUTE_IN_SECONDS );
+		set_transient(
+			$cache_key,
+			array(
+				'cache_generation' => $generation,
+				'ids'              => array_values( array_map( 'absint', $page_ids ) ),
+			),
+			5 * MINUTE_IN_SECONDS
+		);
 
-		return $this->filter_readable_page_ids( $page_ids );
+		return $this->filter_readable_page_ids( $page_ids, $post_status, $post_type );
 	}
 
 	/**
@@ -268,18 +280,77 @@ class SScribe_Page_Collector {
 	 * @param array<int|string> $page_ids Candidate post IDs.
 	 * @return array<int> Readable post IDs.
 	 */
-	private function filter_readable_page_ids( array $page_ids ): array {
-		$readable = array();
-
-		foreach ( $page_ids as $page_id ) {
-			$page_id = absint( $page_id );
-			if ( $page_id <= 0 || ! $this->is_post_readable_for_export( $page_id ) ) {
-				continue;
-			}
-			$readable[] = $page_id;
+	private function filter_readable_page_ids( array $page_ids, string $post_status, string $post_type ): array {
+		$page_ids = array_values(
+			array_unique(
+				array_filter(
+					array_map(
+						static fn( $page_id ): int => is_scalar( $page_id ) && ! is_bool( $page_id ) ? absint( $page_id ) : 0,
+						$page_ids
+					)
+				)
+			)
+		);
+		if ( empty( $page_ids ) ) {
+			return array();
 		}
 
-		return array_values( array_unique( $readable ) );
+		// Published content from public selectable types needs no per-post
+		// capability lookup. The originating WP_Query already constrained both
+		// status and type, so this path is safe and avoids thousands of object
+		// lookups on large public sites.
+		$resolved_types = $this->resolve_post_type_for_query( $post_type );
+		$types          = is_array( $resolved_types ) ? $resolved_types : array( $resolved_types );
+		$all_public     = ! empty( $types );
+		foreach ( $types as $resolved_type ) {
+			if ( ! $this->is_post_type_public( (string) $resolved_type ) ) {
+				$all_public = false;
+				break;
+			}
+		}
+		if ( 'publish' === $post_status && $all_public ) {
+			return $page_ids;
+		}
+
+		// Draft/private/pending/future and explicitly non-public CPTs remain
+		// permission-sensitive. Prime the exact post objects in bounded batches
+		// so WordPress's read_post meta-capability checks hit the object cache
+		// instead of issuing one SELECT per ID.
+		$this->prime_readability_post_cache( $page_ids, $post_status, $types );
+
+		$readable = array();
+		foreach ( $page_ids as $page_id ) {
+			if ( $this->is_post_readable_for_export( $page_id ) ) {
+				$readable[] = $page_id;
+			}
+		}
+		return $readable;
+	}
+
+	/**
+	 * Prime post objects used by permission checks without priming meta/terms.
+	 *
+	 * @param int[]          $page_ids    Candidate IDs.
+	 * @param string         $post_status Validated status.
+	 * @param array<int,string> $post_types Resolved post types.
+	 * @return void
+	 */
+	private function prime_readability_post_cache( array $page_ids, string $post_status, array $post_types ): void {
+		foreach ( array_chunk( $page_ids, 500 ) as $chunk ) {
+			get_posts(
+				array(
+					'post__in'               => $chunk,
+					'post_type'              => $post_types,
+					'post_status'            => $post_status,
+					'posts_per_page'         => count( $chunk ),
+					'orderby'                => 'post__in',
+					'no_found_rows'          => true,
+					'update_post_meta_cache' => false,
+					'update_post_term_cache' => false,
+					'suppress_filters'       => true,
+				)
+			);
+		}
 	}
 
 	/**
@@ -340,11 +411,16 @@ class SScribe_Page_Collector {
 		$post_status = $this->validate_post_status( $post_status );
 		$post_types  = $this->resolve_post_type_for_query( $post_type );
 
-		$generation  = $this->get_content_cache_generation();
-		$cache_key   = 'sscribe_estimate_count_' . $generation . '_' . md5( $language . '|' . $post_status . '|' . ( is_array( $post_types ) ? implode( ',', $post_types ) : (string) $post_types ) );
-		$cached      = function_exists( 'get_transient' ) ? get_transient( $cache_key ) : false;
-		if ( is_int( $cached ) && $cached >= 0 ) {
-			return $cached;
+		$generation = $this->get_content_cache_generation();
+		$cache_key  = 'sscribe_estimate_count_' . md5( $language . '|' . $post_status . '|' . ( is_array( $post_types ) ? implode( ',', $post_types ) : (string) $post_types ) );
+		$cached     = function_exists( 'get_transient' ) ? get_transient( $cache_key ) : false;
+		if (
+			is_array( $cached )
+			&& isset( $cached['cache_generation'], $cached['count'] )
+			&& (int) $cached['cache_generation'] === $generation
+			&& (int) $cached['count'] >= 0
+		) {
+			return (int) $cached['count'];
 		}
 
 		if ( is_array( $post_types ) ) {
@@ -374,7 +450,14 @@ class SScribe_Page_Collector {
 		// phpcs:enable
 
 		if ( function_exists( 'set_transient' ) ) {
-			set_transient( $cache_key, $count, MINUTE_IN_SECONDS );
+			set_transient(
+				$cache_key,
+				array(
+					'cache_generation' => $generation,
+					'count'            => $count,
+				),
+				MINUTE_IN_SECONDS
+			);
 		}
 
 		return $count;
@@ -439,7 +522,7 @@ class SScribe_Page_Collector {
 			$fetched = count( $query->posts );
 
 			if ( $fetched > 0 ) {
-				$readable_ids = $this->filter_readable_page_ids( $query->posts );
+				$readable_ids = $this->filter_readable_page_ids( $query->posts, $post_status, $post_type );
 				if ( ! empty( $readable_ids ) ) {
 					yield $readable_ids;
 				}
@@ -1013,11 +1096,15 @@ class SScribe_Page_Collector {
 		$children    = array();
 		$child_pages = get_children(
 			array(
-				'post_parent' => $page_id,
-				'post_type'   => $post_type,
-				'post_status' => 'publish',
-				'orderby'     => 'menu_order title',
-				'order'       => 'ASC',
+				'post_parent'            => $page_id,
+				'post_type'              => $post_type,
+				'post_status'            => 'publish',
+				'numberposts'            => 200,
+				'orderby'                => 'menu_order title',
+				'order'                  => 'ASC',
+				'no_found_rows'          => true,
+				'update_post_meta_cache' => false,
+				'update_post_term_cache' => false,
 			)
 		);
 
@@ -1105,12 +1192,16 @@ class SScribe_Page_Collector {
 
 			$ancestor_posts = get_posts(
 				array(
-					'post__in'    => $ancestors,
-					'post_type'   => get_post_type( $page_id ),
-					'post_status' => 'publish',
-					'fields'      => 'all',
-					'orderby'     => 'post__in',
-					'order'       => 'ASC',
+					'post__in'               => $ancestors,
+					'post_type'              => get_post_type( $page_id ),
+					'post_status'            => 'publish',
+					'posts_per_page'         => count( $ancestors ),
+					'fields'                 => 'all',
+					'orderby'                => 'post__in',
+					'order'                  => 'ASC',
+					'no_found_rows'          => true,
+					'update_post_meta_cache' => false,
+					'update_post_term_cache' => false,
 				)
 			);
 
