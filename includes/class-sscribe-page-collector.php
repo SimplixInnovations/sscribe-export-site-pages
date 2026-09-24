@@ -697,6 +697,29 @@ class SScribe_Page_Collector {
 	}
 
 	/**
+	 * Count readable posts across every selectable export status in one
+	 * paginated scan.
+	 *
+	 * The admin "all" total is permission-sensitive. Fanning out through
+	 * get_post_status_counts() repeats the same query/hydration work once per
+	 * status and becomes expensive on the 10-second polling path. WordPress's
+	 * "any" status covers the canonical export statuses in one ordered scan;
+	 * get_page_ids_chunked() retains the existing WPML switching and per-post
+	 * readability checks while bounding the working set to CACHE_MAX_SIZE.
+	 *
+	 * @param string $language  Language code.
+	 * @param string $post_type Post type.
+	 * @return int Readable post count across all supported statuses.
+	 */
+	private function count_readable_posts_across_statuses( string $language, string $post_type ): int {
+		$total = 0;
+		foreach ( $this->get_page_ids_chunked( $language, 'any', $post_type, self::CACHE_MAX_SIZE ) as $chunk ) {
+			$total += count( $chunk );
+		}
+		return $total;
+	}
+
+	/**
 	 * Get page count only (lightweight).
 	 *
 	 * @param string $language    Language code.
@@ -708,8 +731,7 @@ class SScribe_Page_Collector {
 		$post_status = $this->validate_post_status( $post_status );
 
 		if ( 'any' === $post_status ) {
-			$counts = $this->get_post_status_counts( $language, $post_type );
-			return (int) ( $counts['all'] ?? 0 );
+			return $this->count_readable_posts_across_statuses( $language, $post_type );
 		}
 
 		// The found_posts fast path is safe only when every resolved post type
