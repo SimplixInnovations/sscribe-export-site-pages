@@ -40,6 +40,49 @@ final class SScribe_Upgrader_Hardening_Test extends TestCase {
 		$this->assertStringContainsString( 'failed_pages INT UNSIGNED', $activator );
 	}
 
+	public function test_canonical_schema_verifies_every_runtime_column_before_recording_success(): void {
+		$source = self::activator_source();
+
+		$stats_start = strpos( $source, 'self::assert_required_schema(\n\t\t\t$table_stats' );
+		$this->assertNotFalse( $stats_start );
+		$stats_end = strpos( $source, ');', (int) $stats_start );
+		$this->assertNotFalse( $stats_end );
+		$stats_guard = substr( $source, (int) $stats_start, (int) $stats_end - (int) $stats_start );
+
+		foreach (
+			array(
+				'id',
+				'export_session_id',
+				'user_id',
+				'export_date',
+				'total_pages',
+				'successful_pages',
+				'failed_pages',
+				'formats',
+				'memory_peak',
+				'duration_seconds',
+				'file_size_mb',
+				'status',
+				'error_message',
+				'created_at',
+			) as $column
+		) {
+			$this->assertStringContainsString( "'{$column}'", $stats_guard, "Stats schema admission must verify {$column}." );
+		}
+
+		$audit_start = strpos( $source, "self::assert_required_schema(\n\t\t\t\$wpdb->prefix . 'sscribe_audit_log'" );
+		$this->assertNotFalse( $audit_start );
+		$audit_end = strpos( $source, ');', (int) $audit_start );
+		$this->assertNotFalse( $audit_end );
+		$audit_guard = substr( $source, (int) $audit_start, (int) $audit_end - (int) $audit_start );
+
+		foreach (
+			array( 'id', 'timestamp', 'event', 'user_id', 'ip_address', 'user_agent', 'request_uri', 'context', 'session_id' ) as $column
+		) {
+			$this->assertStringContainsString( "'{$column}'", $audit_guard, "Audit schema admission must verify {$column}." );
+		}
+	}
+
 	public function test_canonical_schema_verifies_required_indexes_before_recording_success(): void {
 		$source = self::activator_source();
 
