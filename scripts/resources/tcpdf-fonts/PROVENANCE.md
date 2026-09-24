@@ -1,11 +1,16 @@
 # TCPDF 7 runtime font subset
 
-This directory is a tracked, deterministic build input for TCPDF 7.0.10.
+This directory is a tracked, deterministic build input for the current locked
+TCPDF 7.0.11 runtime and `tecnickcom/tc-lib-pdf-font` 4.4.0 package.
 
-The DejaVu Sans runtime data was produced from the locked
-`tecnickcom/tc-lib-pdf-font` 4.3.3 toolchain using its upstream
-`util/bulk_convert.php` converter. The exact dependency graph is recorded in
-this repository's `composer.lock`.
+The DejaVu Sans runtime data was originally produced with
+`tecnickcom/tc-lib-pdf-font` 4.3.3 using its upstream `util/bulk_convert.php`
+converter. Those generated font bytes remain intentionally unchanged across
+the current dependency maintenance update; their original generator version is
+recorded here instead of being rewritten to match a later runtime package.
+The current runtime dependency graph is recorded in this repository's
+`composer.lock`, and release/runtime tests stage and exercise this exact tracked
+font subset against that locked graph.
 
 The Core14 descriptors originate from Tecnick's Core14 AFM source set. The
 Adobe redistribution terms required for those metrics are retained at
