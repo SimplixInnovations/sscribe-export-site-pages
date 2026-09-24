@@ -307,6 +307,22 @@ class SScribe_Activator {
 			'audit trail schema'
 		);
 
+		self::assert_required_indexes(
+			$table_logs,
+			array( 'idx_timestamp', 'idx_level', 'idx_user_id', 'idx_request_id', 'idx_session_id' ),
+			'export logs schema'
+		);
+		self::assert_required_indexes(
+			$table_stats,
+			array( 'idx_export_session_id', 'idx_export_date', 'idx_user_id', 'idx_status' ),
+			'export stats schema'
+		);
+		self::assert_required_indexes(
+			$wpdb->prefix . 'sscribe_audit_log',
+			array( 'idx_timestamp', 'idx_event', 'idx_user_id', 'idx_ip_address', 'idx_session_id' ),
+			'audit trail schema'
+		);
+
 		if ( $record_schema_version ) {
 			update_option( 'sscribe_schema_version', SSCRIBE_VERSION, false );
 		}
@@ -381,6 +397,78 @@ class SScribe_Activator {
 					'Schema verification failed for %1$s: %2$s',
 					esc_html( sanitize_text_field( $label ) ),
 					esc_html( sanitize_text_field( $detail ) )
+				)
+			);
+		}
+	}
+
+	/**
+	 * Prove required named indexes exist before recording schema success.
+	 *
+	 * WordPress's SQLite Database Integration translates SHOW INDEX, while
+	 * MySQL/MariaDB support it natively. This closes the gap where dbDelta()
+	 * may leave a table queryable but omit an index required by runtime paths.
+	 *
+	 * @param string        $table   Plugin-owned table name.
+	 * @param array<string> $indexes Required index names.
+	 * @param string        $label   Human-readable schema label.
+	 * @return void
+	 * @throws \RuntimeException When index introspection fails or an index is absent.
+	 */
+	private static function assert_required_indexes( string $table, array $indexes, string $label ): void {
+		global $wpdb;
+
+		if ( 1 !== preg_match( '/^[A-Za-z0-9_]+$/D', $table ) || empty( $indexes ) ) {
+			throw new \RuntimeException( 'Invalid schema index verification target.' );
+		}
+
+		foreach ( $indexes as $index ) {
+			if ( 1 !== preg_match( '/^[A-Za-z0-9_]+$/D', $index ) ) {
+				throw new \RuntimeException( 'Invalid schema verification index.' );
+			}
+		}
+
+		$wpdb->last_error    = '';
+		$previous_suppression = $wpdb->suppress_errors( true );
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Plugin-owned table identifier is strictly validated above; SHOW INDEX is structural introspection.
+		$rows       = $wpdb->get_results( "SHOW INDEX FROM `{$table}`" );
+		$last_error = trim( (string) $wpdb->last_error );
+		$wpdb->suppress_errors( (bool) $previous_suppression );
+
+		if ( ! is_array( $rows ) || '' !== $last_error ) {
+			$detail = '' !== $last_error ? $last_error : 'required indexes are not queryable';
+			// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Internal exception is caught/logged; dynamic values are sanitized/escaped.
+			throw new \RuntimeException(
+				sprintf(
+					'Schema index verification failed for %1$s: %2$s',
+					esc_html( sanitize_text_field( $label ) ),
+					esc_html( sanitize_text_field( $detail ) )
+				)
+			);
+		}
+
+		$found = array();
+		foreach ( $rows as $row ) {
+			if ( ! is_object( $row ) && ! is_array( $row ) ) {
+				continue;
+			}
+			$values = is_object( $row ) ? get_object_vars( $row ) : $row;
+			$name   = (string) ( $values['Key_name'] ?? $values['key_name'] ?? $values['name'] ?? '' );
+			if ( '' !== $name ) {
+				$found[ $name ] = true;
+			}
+		}
+
+		foreach ( $indexes as $index ) {
+			if ( isset( $found[ $index ] ) ) {
+				continue;
+			}
+			// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Internal exception is caught/logged; dynamic values are sanitized/escaped.
+			throw new \RuntimeException(
+				sprintf(
+					'Required index %1$s is missing from %2$s.',
+					esc_html( sanitize_key( $index ) ),
+					esc_html( sanitize_text_field( $label ) )
 				)
 			);
 		}
