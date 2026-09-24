@@ -77,7 +77,23 @@ final class SScribe_Private_Storage {
 			. '|' . self::get_directory_name()
 			. '|' . md5( (string) wp_json_encode( $candidates ) );
 		if ( array_key_exists( $cache_key, $resolved_paths ) ) {
-			return $resolved_paths[ $cache_key ];
+			$cached_path = (string) $resolved_paths[ $cache_key ];
+			if ( '' === $cached_path ) {
+				return '';
+			}
+			clearstatcache( true, $cached_path );
+			$cached_real = realpath( $cached_path );
+			if (
+				false !== $cached_real
+				&& is_dir( $cached_path )
+				&& ! is_link( $cached_path )
+				&& self::normalize_path( $cached_real ) === self::normalize_path( $cached_path )
+				&& self::is_outside_public_roots( $cached_real )
+				&& ( ! $create || wp_is_writable( $cached_real ) )
+			) {
+				return $cached_path;
+			}
+			unset( $resolved_paths[ $cache_key ] );
 		}
 
 		foreach ( $candidates as $base ) {
