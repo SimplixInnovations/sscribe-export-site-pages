@@ -56,26 +56,26 @@ final class SScribe_Page_Collector_StatusCounts_Test extends TestCase {
 		$this->assertIsArray( $counts );
 	}
 
-	public function test_page_count_all_uses_aggregate_status_counts_before_query_normalization(): void {
-		$collector = new class() extends SScribe_Page_Collector {
-			public function get_post_status_counts( string $language = '', string $post_type = 'page' ): array {
-				return array(
-					'publish' => 5,
-					'draft'   => 4,
-					'private' => 3,
-					'future'  => 2,
-					'pending' => 1,
-					'all'     => 15,
-				);
-			}
+	public function test_page_count_all_uses_bounded_aggregate_path_before_query_normalization(): void {
+		$source = (string) file_get_contents( dirname( __DIR__, 2 ) . '/includes/class-sscribe-page-collector.php' );
+		$method_start = strpos( $source, 'public function get_page_count_only(' );
+		$method_end   = strpos( $source, 'private function get_permalink_cached(', $method_start );
+		$this->assertNotFalse( $method_start );
+		$this->assertNotFalse( $method_end );
+		$method = substr( $source, (int) $method_start, (int) $method_end - (int) $method_start );
 
-			public function get_page_ids( string $language = '', string $post_status = 'publish', string $post_type = 'page', int $limit = -1 ): array {
-				return array( 999 );
-			}
-		};
-
-		$this->assertSame( 15, $collector->get_page_count_only( '', 'all', 'page' ) );
+		$this->assertStringContainsString(
+			"return \$this->count_readable_posts_across_statuses( \$language, \$post_type );",
+			$method
+		);
+		$this->assertStringNotContainsString( 'get_post_status_counts( $language, $post_type )', $method );
+		$this->assertLessThan(
+			strpos( $method, '$post_status = $this->validate_post_status( $post_status );' ),
+			strpos( $method, "if ( 'all' === sanitize_key( \$post_status ) )" ),
+			'The all-status sentinel must be handled before normal query-status normalization.'
+		);
 	}
+
 
 	public function test_language_parameter_accepted(): void {
 
