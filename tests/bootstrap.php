@@ -1976,6 +1976,19 @@ if ( ! function_exists( 'selected' ) ) {
 	}
 }
 
+if ( ! function_exists( 'disabled' ) ) {
+	/**
+	 * Test stub for WordPress's disabled().
+	 */
+	function disabled( $disabled, $current = true, $display = true ) {
+		$result = ( $disabled == $current ) ? 'disabled="disabled"' : '';
+		if ( $display ) {
+			echo $result;
+		}
+		return $result;
+	}
+}
+
 if ( ! function_exists( 'wp_delete_file' ) ) {
 	function wp_delete_file( $sscribe_file ) {
 		if ( file_exists( $sscribe_file ) ) {
