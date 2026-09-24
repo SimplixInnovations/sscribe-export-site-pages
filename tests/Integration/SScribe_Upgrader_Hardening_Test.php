@@ -43,7 +43,7 @@ final class SScribe_Upgrader_Hardening_Test extends TestCase {
 	public function test_canonical_schema_verifies_every_runtime_column_before_recording_success(): void {
 		$source = self::activator_source();
 
-		$stats_start = strpos( $source, 'self::assert_required_schema(\n\t\t\t$table_stats' );
+		$stats_start = strpos( $source, "self::assert_required_schema(\n\t\t\t\$table_stats" );
 		$this->assertNotFalse( $stats_start );
 		$stats_end = strpos( $source, ');', (int) $stats_start );
 		$this->assertNotFalse( $stats_end );
