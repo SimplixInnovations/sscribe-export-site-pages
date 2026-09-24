@@ -81,10 +81,10 @@ final class SScribe_Post_Audit_Performance_Test extends TestCase {
 	public function test_content_cache_generation_does_not_create_new_transient_keys(): void {
 		$src = (string) file_get_contents( self::root() . '/includes/class-sscribe-page-collector.php' );
 		$this->assertStringContainsString( "'sscribe_page_ids_v3_'", $src );
-		$this->assertStringContainsString( "'generation' => $generation", $src );
+		$this->assertStringContainsString( "'generation' => \$generation", $src );
 		$this->assertStringContainsString( "'sscribe_estimate_count_v2_'", $src );
 		$this->assertStringNotContainsString( '"sscribe_page_ids_v2_{$post_status}_{$generation}_"', $src );
-		$this->assertStringNotContainsString( "'sscribe_estimate_count_' . $generation", $src );
+		$this->assertStringNotContainsString( "'sscribe_estimate_count_' . \$generation", $src );
 	}
 
 	public function test_child_queries_paginate_instead_of_silently_truncating_large_hierarchies(): void {
