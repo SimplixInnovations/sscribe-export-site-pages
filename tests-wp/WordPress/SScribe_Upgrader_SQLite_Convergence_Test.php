@@ -7,10 +7,15 @@
 
 declare(strict_types=1);
 
+use PHPUnit\Framework\Attributes\PreserveGlobalState;
+use PHPUnit\Framework\Attributes\RunInSeparateProcess;
+
 require_once __DIR__ . '/SScribe_WP_TestCase.php';
 
 final class SScribe_Upgrader_SQLite_Convergence_Test extends SScribe_WP_TestCase {
 
+	#[RunInSeparateProcess]
+	#[PreserveGlobalState( false )]
 	public function test_dbdelta_upgrade_converges_legacy_log_schema_on_sqlite(): void {
 		global $wpdb;
 
