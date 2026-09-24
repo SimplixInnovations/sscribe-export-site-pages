@@ -278,9 +278,13 @@ class SScribe_Logger_Enhanced extends SScribe_Logger {
 				$wpdb->last_error = '';
 			}
 			$sql = 'SELECT 1 FROM `' . $this->table_name . '` WHERE 1 = 0';
+			$previous_suppression = method_exists( $wpdb, 'suppress_errors' ) ? $wpdb->suppress_errors( true ) : null;
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.PreparedSQL.NotPrepared -- Internal table identifier is regex-validated; zero-row structural probe only.
 			$result = $wpdb->query( $sql );
 			$last_error = property_exists( $wpdb, 'last_error' ) ? trim( (string) $wpdb->last_error ) : '';
+			if ( null !== $previous_suppression ) {
+				$wpdb->suppress_errors( (bool) $previous_suppression );
+			}
 			$this->table_exists_cache = false !== $result && '' === $last_error;
 		}
 
