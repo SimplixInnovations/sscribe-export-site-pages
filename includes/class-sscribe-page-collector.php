@@ -277,7 +277,9 @@ class SScribe_Page_Collector {
 	 * results may be shared through the short-lived ID cache, so filtering is
 	 * deliberately applied after cache retrieval on every request.
 	 *
-	 * @param array<int|string> $page_ids Candidate post IDs.
+	 * @param array<int|string> $page_ids    Candidate post IDs.
+	 * @param string            $post_status Validated post status.
+	 * @param string            $post_type   Requested post type.
 	 * @return array<int> Readable post IDs.
 	 */
 	private function filter_readable_page_ids( array $page_ids, string $post_status, string $post_type ): array {
@@ -327,9 +329,9 @@ class SScribe_Page_Collector {
 	/**
 	 * Prime post objects used by permission checks without priming meta/terms.
 	 *
-	 * @param int[]          $page_ids    Candidate IDs.
-	 * @param string         $post_status Validated status.
-	 * @param array<int,string> $post_types Resolved post types.
+	 * @param int[]             $page_ids    Candidate IDs.
+	 * @param string            $post_status Validated status.
+	 * @param array<int,string> $post_types  Resolved post types.
 	 * @return void
 	 */
 	private function prime_readability_post_cache( array $page_ids, string $post_status, array $post_types ): void {
