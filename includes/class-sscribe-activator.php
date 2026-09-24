@@ -219,11 +219,16 @@ class SScribe_Activator {
 	}
 
 	/**
-	 * Create plugin database tables.
+	 * Create or reconcile the canonical plugin database schema.
 	 *
+	 * Fresh activation records the schema version immediately. Runtime upgrades
+	 * pass false so the version advances only after schema, data, and filesystem
+	 * migrations have all completed successfully.
+	 *
+	 * @param bool $record_schema_version Whether to persist the current schema version.
 	 * @throws \RuntimeException When the WordPress upgrade helper is unavailable.
 	 */
-	private static function create_database_tables(): void {
+	public static function create_database_tables( bool $record_schema_version = true ): void {
 		global $wpdb;
 
 		$charset_collate = $wpdb->get_charset_collate();
@@ -302,7 +307,9 @@ class SScribe_Activator {
 			'audit trail schema'
 		);
 
-		update_option( 'sscribe_schema_version', SSCRIBE_VERSION, false );
+		if ( $record_schema_version ) {
+			update_option( 'sscribe_schema_version', SSCRIBE_VERSION, false );
+		}
 	}
 
 	/**
