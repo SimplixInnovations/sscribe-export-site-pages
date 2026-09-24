@@ -697,26 +697,100 @@ class SScribe_Page_Collector {
 	}
 
 	/**
-	 * Count readable posts across every selectable export status in one
-	 * paginated scan.
+	 * Count readable non-public posts in one bounded multi-status scan.
 	 *
-	 * The admin "all" total is permission-sensitive. Fanning out through
-	 * get_post_status_counts() repeats the same query/hydration work once per
-	 * status and becomes expensive on the 10-second polling path. WordPress's
-	 * "any" status covers the canonical export statuses in one ordered scan;
-	 * get_page_ids_chunked() retains the existing WPML switching and per-post
-	 * readability checks while bounding the working set to CACHE_MAX_SIZE.
+	 * Published posts on public post types have a safe constant-time count path,
+	 * so they must never be paginated merely to compute an admin total. Only the
+	 * permission-sensitive statuses are hydrated and checked with read_post.
+	 * Candidate work is capped at the same 10,001 sentinel used by export
+	 * admission, which is sufficient to prove the 10,000-item release limit was
+	 * exceeded without turning a dashboard count into an unbounded inventory scan.
+	 *
+	 * @param string $language  Language code.
+	 * @param string $post_type Post type.
+	 * @return int Readable non-public post count, bounded by candidate sentinel.
+	 */
+	private function count_readable_nonpublic_posts( string $language, string $post_type ): int {
+		$statuses = array_values(
+			array_diff(
+				array_keys( $this->get_valid_post_statuses() ),
+				array( 'publish' )
+			)
+		);
+		if ( empty( $statuses ) ) {
+			return 0;
+		}
+
+		$total           = 0;
+		$candidates_seen = 0;
+		$page            = 1;
+		$chunk_size      = self::CACHE_MAX_SIZE;
+		$candidate_cap   = 10001;
+
+		do {
+			$args = array(
+				'post_type'      => $this->resolve_post_type_for_query( $post_type ),
+				'post_status'    => $statuses,
+				'posts_per_page' => $chunk_size,
+				'paged'          => $page,
+				'fields'         => 'ids',
+				'no_found_rows'  => true,
+				'orderby'        => array(
+					'menu_order' => 'ASC',
+					'title'      => 'ASC',
+					'ID'         => 'ASC',
+				),
+			);
+
+			$switched = false;
+			try {
+				if ( $this->is_wpml_active() ) {
+					$target_lang = ! empty( $language ) ? $language : 'all';
+					// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WPML hook.
+					do_action( 'wpml_switch_language', $target_lang );
+					$args['suppress_filters'] = false;
+					$switched                 = true;
+				}
+
+				$query = new WP_Query( $args );
+			} finally {
+				if ( $switched ) {
+					// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WPML hook.
+					do_action( 'wpml_switch_language', null );
+				}
+			}
+
+			$fetched = count( $query->posts );
+			if ( $fetched > 0 ) {
+				$remaining     = max( 0, $candidate_cap - $candidates_seen );
+				$candidate_ids = array_slice( $query->posts, 0, $remaining );
+				$candidates_seen += count( $candidate_ids );
+				if ( ! empty( $candidate_ids ) ) {
+					$total += count( $this->filter_readable_page_ids( $candidate_ids ) );
+				}
+			}
+
+			++$page;
+		} while ( $fetched >= $chunk_size && $candidates_seen < $candidate_cap );
+
+		return $total;
+	}
+
+	/**
+	 * Count readable posts across every selectable export status.
+	 *
+	 * The published portion uses get_page_count_only() so public post types take
+	 * the lightweight found_posts path. Non-public statuses share one bounded
+	 * readability scan, preventing work from scaling with the published inventory.
 	 *
 	 * @param string $language  Language code.
 	 * @param string $post_type Post type.
 	 * @return int Readable post count across all supported statuses.
 	 */
 	private function count_readable_posts_across_statuses( string $language, string $post_type ): int {
-		$total = 0;
-		foreach ( $this->get_page_ids_chunked( $language, 'any', $post_type, self::CACHE_MAX_SIZE ) as $chunk ) {
-			$total += count( $chunk );
-		}
-		return $total;
+		$published  = $this->get_page_count_only( $language, 'publish', $post_type );
+		$nonpublic  = $this->count_readable_nonpublic_posts( $language, $post_type );
+		return $published + $nonpublic;
 	}
 
 	/**
