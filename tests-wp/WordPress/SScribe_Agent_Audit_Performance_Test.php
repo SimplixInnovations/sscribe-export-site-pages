@@ -100,9 +100,9 @@ final class SScribe_Agent_Audit_Performance_Test extends SScribe_WP_TestCase {
 
 		$this->assertGreaterThanOrEqual( 80, $total );
 		$this->assertLessThan(
-			30,
+			10,
 			$delta,
-			'All-status count must remain bounded across the canonical status set. Queries: ' . $delta
+			'All-status totals must use one published-count query plus one bounded non-public readability scan. Queries: ' . $delta
 		);
 	}
 
