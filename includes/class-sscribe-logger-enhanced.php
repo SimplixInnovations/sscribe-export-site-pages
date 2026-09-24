@@ -270,9 +270,18 @@ class SScribe_Logger_Enhanced extends SScribe_Logger {
 		global $wpdb;
 
 		if ( null === $this->table_exists_cache ) {
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Schema introspection, cached via instance property
-			$result                   = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->esc_like( $this->table_name ) ) );
-			$this->table_exists_cache = ( $result === $this->table_name );
+			if ( 1 !== preg_match( '/^[A-Za-z0-9_]+$/D', $this->table_name ) ) {
+				$this->table_exists_cache = false;
+				return false;
+			}
+			if ( property_exists( $wpdb, 'last_error' ) ) {
+				$wpdb->last_error = '';
+			}
+			$sql = 'SELECT 1 FROM `' . $this->table_name . '` WHERE 1 = 0';
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.PreparedSQL.NotPrepared -- Internal table identifier is regex-validated; zero-row structural probe only.
+			$result = $wpdb->query( $sql );
+			$last_error = property_exists( $wpdb, 'last_error' ) ? trim( (string) $wpdb->last_error ) : '';
+			$this->table_exists_cache = false !== $result && '' === $last_error;
 		}
 
 		return $this->table_exists_cache;
