@@ -681,12 +681,15 @@ class SScribe_Page_Collector {
 	 * @return int
 	 */
 	public function get_page_count_only( string $language = '', string $post_status = 'publish', string $post_type = 'page' ): int {
-		$post_status = $this->validate_post_status( $post_status );
-
-		if ( 'all' === $post_status ) {
+		// "all" is an aggregate UI sentinel, while validate_post_status()
+		// deliberately translates it to WP_Query's "any". Handle the aggregate
+		// before query normalization or the all-status path becomes unreachable.
+		if ( 'all' === sanitize_key( $post_status ) ) {
 			$counts = $this->get_post_status_counts( $language, $post_type );
 			return (int) ( $counts['all'] ?? 0 );
 		}
+
+		$post_status = $this->validate_post_status( $post_status );
 
 		// The found_posts fast path is safe only when every resolved post type
 		// is actually registered public=true. The filter may add non-public CPTs;
