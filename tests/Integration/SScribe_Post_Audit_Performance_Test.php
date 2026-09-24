@@ -54,13 +54,15 @@ final class SScribe_Post_Audit_Performance_Test extends TestCase {
 		$this->assertStringNotContainsString( '30 * DAY_IN_SECONDS', $src );
 	}
 
-	public function test_table_exists_like_patterns_escape_literal_underscores(): void {
+	public function test_table_exists_probes_avoid_dialect_sensitive_like_patterns(): void {
 		foreach ( array(
 			'includes/class-sscribe-audit-trail.php',
 			'includes/class-sscribe-logger-enhanced.php',
 		) as $file ) {
 			$src = (string) file_get_contents( self::root() . '/' . $file );
-			$this->assertStringContainsString( 'esc_like', $src, $file . ' must escape table names passed through SQL LIKE.' );
+			$this->assertStringNotContainsString( 'SHOW TABLES LIKE', $src, $file . ' must not depend on wildcard table-name semantics.' );
+			$this->assertStringContainsString( 'WHERE 1 = 0', $src, $file . ' must use a zero-row structural probe.' );
+			$this->assertStringContainsString( "preg_match( '/^[A-Za-z0-9_]+\\$/D'", $src, $file . ' must validate the internal table identifier before interpolation.' );
 		}
 	}
 
