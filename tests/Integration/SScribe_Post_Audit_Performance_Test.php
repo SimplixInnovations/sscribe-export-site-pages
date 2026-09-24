@@ -204,6 +204,22 @@ final class SScribe_Post_Audit_Performance_Test extends TestCase {
 		$this->assertStringContainsString( "delete_option( 'sscribe_upgrade_next_attempt' )", $src );
 	}
 
+	public function test_private_storage_resolver_memoizes_only_revalidated_paths(): void {
+		$src = (string) file_get_contents( self::root() . '/includes/class-sscribe-private-storage.php' );
+		$start = strpos( $src, 'public static function get_export_dir(' );
+		$end   = strpos( $src, 'private static function prepare_managed_path(', $start );
+		$this->assertNotFalse( $start );
+		$this->assertNotFalse( $end );
+		$method = substr( $src, $start, $end - $start );
+		$this->assertStringContainsString( 'static $resolved_paths', $method );
+		$this->assertStringContainsString( 'array_key_exists( $cache_key, $resolved_paths )', $method );
+		$this->assertStringContainsString( 'clearstatcache( true, $cached_path )', $method );
+		$this->assertStringContainsString( 'realpath( $cached_path )', $method );
+		$this->assertStringContainsString( '! is_link( $cached_path )', $method );
+		$this->assertStringContainsString( 'self::is_outside_public_roots( $cached_real )', $method );
+		$this->assertStringContainsString( 'unset( $resolved_paths[ $cache_key ] )', $method );
+	}
+
 	public function test_vendor_dependency_notice_is_confined_to_relevant_admin_screens(): void {
 		$src = (string) file_get_contents( self::root() . '/includes/class-sscribe.php' );
 		$start = strpos( $src, 'public function render_vendor_dependency_notice' );
