@@ -53,7 +53,7 @@ final class SScribe_Page_Collector_Readability_Performance_Test extends TestCase
 		$method = substr( $source, $start, $end - $start );
 
 		$this->assertStringContainsString(
-			"$this->get_page_count_only( $language, 'publish', $post_type )",
+			'$this->get_page_count_only( $language, \'publish\', $post_type )',
 			$method,
 			'Published content must use the constant-time found_posts path instead of readability pagination.'
 		);
@@ -63,7 +63,7 @@ final class SScribe_Page_Collector_Readability_Performance_Test extends TestCase
 			'Permission-sensitive statuses must be handled by one bounded non-public scan.'
 		);
 		$this->assertStringNotContainsString(
-			"$this->get_page_ids_chunked( $language, 'any', $post_type",
+			'$this->get_page_ids_chunked( $language, \'any\', $post_type',
 			$method,
 			'All-status totals must never paginate the full published inventory.'
 		);
