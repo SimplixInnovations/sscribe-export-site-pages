@@ -58,7 +58,7 @@ final class SScribe_Page_Collector_Readability_Performance_Test extends TestCase
 			'All-status totals must sum the bounded status-count paths instead of enumerating every readable ID.'
 		);
 		$this->assertStringNotContainsString(
-			"get_page_ids_chunked( $language, 'any'",
+			"get_page_ids_chunked( \$language, 'any'",
 			$method,
 			'All-status totals must not perform an unbounded full-inventory ID scan.'
 		);
