@@ -743,12 +743,12 @@ class SScribe_Page_Collector {
 			$candidate_ids = array_values( array_map( 'absint', $query->posts ) );
 			$fetched       = count( $candidate_ids );
 			if ( $fetched > 0 ) {
-				$remaining     = max( 0, $candidate_cap - $candidates_seen );
+				// Every pass starts with candidates_seen below candidate_cap
+				// (see the loop condition), so at least one slot remains here.
+				$remaining     = $candidate_cap - $candidates_seen;
 				$candidate_ids = array_slice( $candidate_ids, 0, $remaining );
 				$candidates_seen += count( $candidate_ids );
-				if ( ! empty( $candidate_ids ) ) {
-					$total += count( $this->filter_readable_page_ids( $candidate_ids, 'any', $post_type ) );
-				}
+				$total += count( $this->filter_readable_page_ids( $candidate_ids, 'any', $post_type ) );
 			}
 
 			++$page;
