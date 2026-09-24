@@ -372,7 +372,14 @@ class SScribe_Audit_Trail {
 			return array();
 		}
 
-		$filters_json = wp_json_encode( $filters );
+		// Only fields that affect the SQL may affect the cache identity. Hashing
+		// arbitrary/ignored caller keys creates an unbounded transient namespace
+		// without changing the query result.
+		$cache_filters = array(
+			'date_from' => isset( $filters['date_from'] ) && is_scalar( $filters['date_from'] ) ? (string) $filters['date_from'] : '',
+			'date_to'   => isset( $filters['date_to'] ) && is_scalar( $filters['date_to'] ) ? (string) $filters['date_to'] : '',
+		);
+		$filters_json = wp_json_encode( $cache_filters );
 		$cache_key    = 'sscribe_audit_counts_' . md5( false !== $filters_json ? $filters_json : '' );
 		$cached       = get_transient( $cache_key );
 		if ( false !== $cached ) {
