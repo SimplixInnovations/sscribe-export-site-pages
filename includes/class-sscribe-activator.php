@@ -322,7 +322,6 @@ class SScribe_Activator {
 	 */
 	private static function run_dbdelta_or_throw( string $sql, string $label ): void {
 		global $wpdb;
-		/** @var \wpdb $wpdb */
 
 		$wpdb->last_error = '';
 
@@ -352,7 +351,6 @@ class SScribe_Activator {
 	 */
 	private static function assert_required_schema( string $table, array $columns, string $label ): void {
 		global $wpdb;
-		/** @var \wpdb $wpdb */
 
 		if ( 1 !== preg_match( '/^[A-Za-z0-9_]+$/D', $table ) || empty( $columns ) ) {
 			throw new \RuntimeException( 'Invalid schema verification target.' );
