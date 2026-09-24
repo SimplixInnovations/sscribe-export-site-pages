@@ -57,6 +57,20 @@ final class SScribe_Upgrader_SQLite_Convergence_Test extends SScribe_WP_TestCase
 			$this::assertFalse( $this->column_exists( $table, 'session_id' ), 'Fixture must start without session_id.' );
 			$this::assertFalse( $this->index_exists( $table, 'idx_session_id' ), 'Fixture must start without idx_session_id.' );
 
+			$index_guard = new ReflectionMethod( SScribe_Activator::class, 'assert_required_indexes' );
+			$index_guard->setAccessible( true );
+			$guard_failed = false;
+			try {
+				$index_guard->invoke( null, $table, array( 'idx_session_id' ), 'legacy export logs schema' );
+			} catch ( RuntimeException $error ) {
+				$guard_failed = true;
+				$this::assertStringContainsString( 'idx_session_id', $error->getMessage() );
+			}
+			$this::assertTrue(
+				$guard_failed,
+				'Schema admission must fail closed while the required session index is absent.'
+			);
+
 			$method = new ReflectionMethod( SScribe_Upgrader::class, 'run_migrations' );
 			$method->setAccessible( true );
 			$method->invoke( null, '2.0.3' );
