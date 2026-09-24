@@ -1505,8 +1505,12 @@ if ( ! function_exists( 'get_posts' ) ) {
 		foreach ( $ids as $id ) {
 			$post = new WP_Post();
 			$post->ID = (int) $id;
-			$post->post_status = 'publish';
-			$post->post_type = 'page';
+			$post->post_status = isset( $GLOBALS['sscribe_test_get_posts_post_status'] )
+				? (string) $GLOBALS['sscribe_test_get_posts_post_status']
+				: 'publish';
+			$post->post_type = isset( $GLOBALS['sscribe_test_get_posts_post_type'] )
+				? (string) $GLOBALS['sscribe_test_get_posts_post_type']
+				: 'page';
 			$posts[] = $post;
 		}
 		return $posts;
@@ -1862,9 +1866,11 @@ if ( ! function_exists( 'apply_filters' ) ) {
 }
 
 if ( ! function_exists( 'current_user_can' ) ) {
-	function current_user_can( $capability ) {
+	function current_user_can( $capability, ...$args ) {
 		global $sscribe_test_current_user_can;
-		unset( $capability );
+		if ( isset( $GLOBALS['sscribe_test_current_user_can_callback'] ) && is_callable( $GLOBALS['sscribe_test_current_user_can_callback'] ) ) {
+			return (bool) call_user_func( $GLOBALS['sscribe_test_current_user_can_callback'], $capability, ...$args );
+		}
 		return (bool) $sscribe_test_current_user_can;
 	}
 }

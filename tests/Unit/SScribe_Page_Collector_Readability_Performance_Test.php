@@ -17,16 +17,22 @@ final class SScribe_Page_Collector_Readability_Performance_Test extends TestCase
 
 	protected function setUp(): void {
 		parent::setUp();
-		$GLOBALS['sscribe_test_get_post_calls']  = 0;
-		$GLOBALS['sscribe_test_get_posts_calls'] = 0;
+		$GLOBALS['sscribe_test_get_post_calls']   = 0;
+		$GLOBALS['sscribe_test_get_posts_calls']  = 0;
 		$GLOBALS['sscribe_test_current_user_can'] = true;
+		$GLOBALS['sscribe_test_wp_query_calls']   = 0;
 	}
 
 	protected function tearDown(): void {
 		unset(
 			$GLOBALS['sscribe_test_get_post_calls'],
 			$GLOBALS['sscribe_test_get_posts_calls'],
-			$GLOBALS['sscribe_test_current_user_can']
+			$GLOBALS['sscribe_test_current_user_can'],
+			$GLOBALS['sscribe_test_current_user_can_callback'],
+			$GLOBALS['sscribe_test_get_posts_post_status'],
+			$GLOBALS['sscribe_test_get_posts_post_type'],
+			$GLOBALS['sscribe_test_wp_query_chunks'],
+			$GLOBALS['sscribe_test_wp_query_calls']
 		);
 		parent::tearDown();
 	}
@@ -66,6 +72,34 @@ final class SScribe_Page_Collector_Readability_Performance_Test extends TestCase
 			'$this->get_page_ids_chunked( $language, \'any\', $post_type',
 			$method,
 			'All-status totals must never paginate the full published inventory.'
+		);
+	}
+
+	public function test_sparse_permissions_do_not_underreport_when_candidate_scan_saturates(): void {
+		$chunks  = array();
+		$next_id = 1;
+		for ( $chunk_index = 0; $chunk_index < 21; ++$chunk_index ) {
+			$chunk = array();
+			for ( $offset = 0; $offset < 500; ++$offset ) {
+				$chunk[] = $next_id++;
+			}
+			$chunks[] = $chunk;
+		}
+
+		$GLOBALS['sscribe_test_wp_query_chunks'] = $chunks;
+		$GLOBALS['sscribe_test_get_posts_post_status'] = 'draft';
+		$GLOBALS['sscribe_test_current_user_can_callback'] = static function ( string $capability, int $post_id = 0 ): bool {
+			return 'read_post' === $capability && $post_id > 10001;
+		};
+
+		$collector = new SScribe_Page_Collector();
+		$method    = new ReflectionMethod( $collector, 'count_readable_nonpublic_posts' );
+		$method->setAccessible( true );
+
+		$this->assertSame(
+			10001,
+			$method->invoke( $collector, '', 'page' ),
+			'Candidate-scan saturation must return the conservative 10,001 capped/unknown sentinel instead of underreporting later readable posts.'
 		);
 	}
 
