@@ -153,6 +153,12 @@ final class SScribe_Post_Audit_Performance_Test extends TestCase {
 		$this->assertStringContainsString( '$is_ajax_request', $method );
 		$this->assertStringContainsString( '$is_cron_request', $method );
 		$this->assertStringContainsString( '$this->define_content_hooks();', $method );
+		$this->assertStringContainsString( '$this->define_privacy_hooks();', $method );
+		$privacy_pos = strpos( $method, '$this->define_privacy_hooks();' );
+		$admin_gate_pos = strpos( $method, 'if ( $is_admin_request && ! $is_ajax_request )' );
+		$this->assertIsInt( $privacy_pos );
+		$this->assertIsInt( $admin_gate_pos );
+		$this->assertLessThan( $admin_gate_pos, $privacy_pos, 'Privacy filters must register before the non-AJAX admin gate.' );
 		$this->assertStringContainsString( 'if ( $is_admin_request && ! $is_ajax_request )', $method );
 		$this->assertStringContainsString( 'if ( $is_ajax_request )', $method );
 		$this->assertStringContainsString( 'if ( $is_cron_request )', $method );
