@@ -153,11 +153,22 @@ class SScribe {
 		$this->loader->add_action( 'admin_init', $admin, 'maybe_redirect_after_activation' );
 		$this->loader->add_action( 'admin_enqueue_scripts', $admin, 'enqueue_admin_assets' );
 		$this->loader->add_action( 'admin_notices', $this, 'render_vendor_dependency_notice' );
+		$this->loader->add_filter( 'plugin_action_links_' . SSCRIBE_PLUGIN_BASENAME, $admin, 'add_plugin_action_links' );
+	}
+
+	/**
+	 * Register lightweight content-mutation invalidation hooks.
+	 *
+	 * These are deliberately global rather than admin-only because posts can
+	 * change through REST requests, cron jobs, WP-CLI, imports, XML-RPC, or
+	 * front-end workflows. Restricting them to wp-admin would allow stale page
+	 * IDs/counts to survive legitimate non-admin mutations.
+	 */
+	private function define_content_invalidation_hooks(): void {
 		$this->loader->add_action( 'save_post', $this, 'invalidate_admin_page_cache' );
 		$this->loader->add_action( 'trashed_post', $this, 'invalidate_admin_page_cache' );
 		$this->loader->add_action( 'deleted_post', $this, 'invalidate_admin_page_cache' );
 		$this->loader->add_action( 'untrashed_post', $this, 'invalidate_admin_page_cache' );
-		$this->loader->add_filter( 'plugin_action_links_' . SSCRIBE_PLUGIN_BASENAME, $admin, 'add_plugin_action_links' );
 	}
 
 	/**
@@ -378,6 +389,7 @@ class SScribe {
 		\SScribe_Request_Id::current();
 
 		$this->register_services();
+		$this->define_content_invalidation_hooks();
 
 		// Hook registration should not instantiate heavyweight request-specific
 		// services on unrelated frontend traffic. WordPress defines AJAX/cron
