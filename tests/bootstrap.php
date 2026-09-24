@@ -1098,6 +1098,8 @@ $sscribe_test_db_tables = array(
 	'wp_sscribe_audit_log'    => array(),
 	'wp_sscribe_export_stats' => array(),
 );
+$sscribe_test_db_schema  = array();
+$sscribe_test_db_indexes = array();
 $sscribe_test_http_response = array();
 $sscribe_test_filters       = array();
 $sscribe_test_actions       = array();
@@ -1118,6 +1120,7 @@ $sscribe_test_ajax_nonce_valid = true;
 		public string $options = 'wp_options';
 		public string $posts = 'wp_posts';
 		public bool $suppress_errors = false;
+		public string $last_error = '';
 
 		public function __construct( $dbuser = '', $dbpassword = '', $dbname = '', $dbhost = '' ) {
 		}
@@ -1177,9 +1180,29 @@ $sscribe_test_ajax_nonce_valid = true;
 		}
 
 		public function query( $query ) {
-			global $sscribe_test_db_tables;
+			global $sscribe_test_db_tables, $sscribe_test_db_schema;
 
-			if ( preg_match( '/DELETE\s+FROM\s+(\w+)/i', $query, $matches ) ) {
+			$this->last_error = '';
+
+			if ( preg_match( '/SELECT\s+(.+?)\s+FROM\s+[`]?([A-Za-z0-9_]+)[`]?\s+WHERE\s+1\s*=\s*0/i', (string) $query, $matches ) ) {
+				$table = $matches[2];
+				if ( ! isset( $sscribe_test_db_schema[ $table ] ) || ! is_array( $sscribe_test_db_schema[ $table ] ) ) {
+					$this->last_error = "Table {$table} does not exist";
+					return false;
+				}
+
+				preg_match_all( '/`([A-Za-z0-9_]+)`/', $matches[1], $column_matches );
+				foreach ( $column_matches[1] as $column ) {
+					if ( ! in_array( $column, $sscribe_test_db_schema[ $table ], true ) ) {
+						$this->last_error = "Unknown column {$column}";
+						return false;
+					}
+				}
+
+				return 0;
+			}
+
+			if ( preg_match( '/DELETE\s+FROM\s+(\w+)/i', (string) $query, $matches ) ) {
 				$table = $matches[1];
 				if ( isset( $sscribe_test_db_tables[ $table ] ) && is_array( $sscribe_test_db_tables[ $table ] ) ) {
 					$count = count( $sscribe_test_db_tables[ $table ] );
@@ -1199,7 +1222,22 @@ $sscribe_test_ajax_nonce_valid = true;
 		}
 
 		public function get_results( $query, $output = null ) {
-			global $sscribe_test_options, $sscribe_test_db_tables;
+			global $sscribe_test_options, $sscribe_test_db_tables, $sscribe_test_db_indexes, $sscribe_test_db_schema;
+
+			$this->last_error = '';
+
+			if ( preg_match( '/SHOW\s+INDEX\s+FROM\s+[`]?([A-Za-z0-9_]+)[`]?/i', (string) $query, $matches ) ) {
+				$table = $matches[1];
+				if ( ! isset( $sscribe_test_db_schema[ $table ] ) ) {
+					$this->last_error = "Table {$table} does not exist";
+					return array();
+				}
+
+				return array_map(
+					static fn( string $name ): object => (object) array( 'Key_name' => $name ),
+					array_values( $sscribe_test_db_indexes[ $table ] ?? array() )
+				);
+			}
 
 			if ( false !== strpos( $query, $this->options ) && preg_match_all( "/LIKE '([^']+)'/i", $query, $like_matches ) ) {
 				$patterns = array();
@@ -2030,8 +2068,49 @@ if ( ! defined( 'HOUR_IN_SECONDS' ) ) {
 // assertions on sscribe_schema_version / sscribe_version can succeed.
 if ( ! function_exists( 'dbDelta' ) ) {
 	function dbDelta( $queries = '', $execute = true ) {
-		unset( $queries, $execute );
-		return array();
+		global $sscribe_test_db_tables, $sscribe_test_db_schema, $sscribe_test_db_indexes;
+
+		unset( $execute );
+		$statements = is_array( $queries ) ? $queries : array( $queries );
+		$changes    = array();
+
+		foreach ( $statements as $sql ) {
+			if ( ! is_string( $sql ) || ! preg_match( '/CREATE\s+TABLE\s+[`]?([A-Za-z0-9_]+)[`]?\s*\((.*)\)\s*[^;]*;/is', $sql, $matches ) ) {
+				continue;
+			}
+
+			$table   = $matches[1];
+			$body    = $matches[2];
+			$columns = array();
+			$indexes = array();
+
+			foreach ( preg_split( '/\r?\n/', $body ) as $line ) {
+				$line = trim( (string) $line, " \t\n\r\0\x0B," );
+				if ( '' === $line ) {
+					continue;
+				}
+
+				if ( preg_match( '/^(?:UNIQUE\s+)?KEY\s+[`]?([A-Za-z0-9_]+)[`]?\s*\(/i', $line, $index_match ) ) {
+					$indexes[] = $index_match[1];
+					continue;
+				}
+				if ( preg_match( '/^(?:PRIMARY|FULLTEXT|SPATIAL|CONSTRAINT)\b/i', $line ) ) {
+					continue;
+				}
+				if ( preg_match( '/^[`]?([A-Za-z0-9_]+)[`]?\s+/i', $line, $column_match ) ) {
+					$columns[] = $column_match[1];
+				}
+			}
+
+			$sscribe_test_db_schema[ $table ]  = array_values( array_unique( $columns ) );
+			$sscribe_test_db_indexes[ $table ] = array_values( array_unique( $indexes ) );
+			if ( ! isset( $sscribe_test_db_tables[ $table ] ) || ! is_array( $sscribe_test_db_tables[ $table ] ) ) {
+				$sscribe_test_db_tables[ $table ] = array();
+			}
+			$changes[] = "Created table {$table}";
+		}
+
+		return $changes;
 	}
 }
 
