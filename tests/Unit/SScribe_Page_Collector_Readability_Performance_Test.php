@@ -44,23 +44,28 @@ final class SScribe_Page_Collector_Readability_Performance_Test extends TestCase
 
 
 
-	public function test_all_status_count_uses_one_bounded_multi_status_scan(): void {
+	public function test_all_status_count_uses_fast_publish_plus_bounded_nonpublic_scan(): void {
 		$source = (string) file_get_contents( dirname( __DIR__, 2 ) . '/includes/class-sscribe-page-collector.php' );
-		$start  = strpos( $source, 'public function get_page_count_only(' );
-		$end    = strpos( $source, 'public function get_post_status_counts(', $start );
+		$start  = strpos( $source, 'private function count_readable_posts_across_statuses(' );
+		$end    = strpos( $source, 'public function get_page_count_only(', $start );
 		$this->assertNotFalse( $start );
 		$this->assertNotFalse( $end );
 		$method = substr( $source, $start, $end - $start );
 
 		$this->assertStringContainsString(
-			'$this->count_readable_posts_across_statuses( $language, $post_type )',
+			"$this->get_page_count_only( $language, 'publish', $post_type )",
 			$method,
-			'All-status totals must use one bounded scan across the canonical status set.'
+			'Published content must use the constant-time found_posts path instead of readability pagination.'
+		);
+		$this->assertStringContainsString(
+			'$this->count_readable_nonpublic_posts( $language, $post_type )',
+			$method,
+			'Permission-sensitive statuses must be handled by one bounded non-public scan.'
 		);
 		$this->assertStringNotContainsString(
-			'$this->get_post_status_counts( $language, $post_type )',
+			"$this->get_page_ids_chunked( $language, 'any', $post_type",
 			$method,
-			'All-status totals must not fan out into one full readable-ID pass per status.'
+			'All-status totals must never paginate the full published inventory.'
 		);
 	}
 
