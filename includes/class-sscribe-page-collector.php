@@ -354,7 +354,6 @@ class SScribe_Page_Collector {
 					'posts_per_page'         => count( $chunk ),
 					'orderby'                => 'post__in',
 					'no_found_rows'          => true,
-					'suppress_filters'       => true,
 					'update_post_meta_cache' => false,
 					'update_post_term_cache' => false,
 				)
