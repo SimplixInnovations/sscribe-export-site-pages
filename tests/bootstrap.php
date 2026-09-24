@@ -1121,6 +1121,8 @@ $sscribe_test_ajax_nonce_valid = true;
 		public string $posts = 'wp_posts';
 		public bool $suppress_errors = false;
 		public string $last_error = '';
+		/** @var array<int, object> Column metadata from the latest SELECT, mirroring wpdb::$col_info. */
+		public array $col_info = array();
 
 		public function __construct( $dbuser = '', $dbpassword = '', $dbname = '', $dbhost = '' ) {
 		}
@@ -1191,18 +1193,30 @@ $sscribe_test_ajax_nonce_valid = true;
 					|| ! isset( $sscribe_test_db_schema[ $table ] )
 					|| ! is_array( $sscribe_test_db_schema[ $table ] )
 				) {
+					$this->col_info   = array();
 					$this->last_error = "Table {$table} does not exist";
 					return false;
 				}
 
-				preg_match_all( '/`([A-Za-z0-9_]+)`/', $matches[1], $column_matches );
-				foreach ( $column_matches[1] as $column ) {
-					if ( ! in_array( $column, $sscribe_test_db_schema[ $table ], true ) ) {
-						$this->last_error = "Unknown column {$column}";
-						return false;
+				$selected_columns = array();
+				if ( '*' === trim( $matches[1] ) ) {
+					$selected_columns = array_values( $sscribe_test_db_schema[ $table ] );
+				} else {
+					preg_match_all( '/`([A-Za-z0-9_]+)`/', $matches[1], $column_matches );
+					$selected_columns = array_values( $column_matches[1] );
+					foreach ( $selected_columns as $column ) {
+						if ( ! in_array( $column, $sscribe_test_db_schema[ $table ], true ) ) {
+							$this->col_info   = array();
+							$this->last_error = "Unknown column {$column}";
+							return false;
+						}
 					}
 				}
 
+				$this->col_info = array_map(
+					static fn( string $column ): object => (object) array( 'name' => $column ),
+					$selected_columns
+				);
 				return 0;
 			}
 
@@ -1219,6 +1233,17 @@ $sscribe_test_ajax_nonce_valid = true;
 			return 0;
 		}
 
+
+		public function get_col_info( $info_type = 'name', $col_offset = -1 ) {
+			$values = array_map(
+				static fn( object $column ) => $column->{$info_type} ?? null,
+				$this->col_info
+			);
+			if ( -1 === $col_offset ) {
+				return $values;
+			}
+			return $values[ $col_offset ] ?? null;
+		}
 
 		public function get_col( $query ) {
 			unset( $query );
