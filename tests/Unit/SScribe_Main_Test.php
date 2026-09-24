@@ -119,6 +119,18 @@ final class SScribe_Main_Test extends TestCase {
 		$this->assertArrayNotHasKey( $cache_key, $GLOBALS['sscribe_test_transients'] );
 	}
 
+	public function test_ajax_bootstrap_registers_debug_endpoints_without_admin_page_boot(): void {
+		$src   = (string) file_get_contents( dirname( __DIR__, 2 ) . '/includes/class-sscribe.php' );
+		$start = strpos( $src, 'private function define_ajax_hooks(): void' );
+		$end   = strpos( $src, 'private function define_cron_hooks(): void', $start );
+
+		$this->assertNotFalse( $start );
+		$this->assertNotFalse( $end );
+		$method = substr( $src, $start, $end - $start );
+		$this->assertStringContainsString( 'new SScribe_Admin_Debug()', $method );
+		$this->assertStringContainsString( '$debug->register_hooks();', $method );
+	}
+
 	public function test_frontend_run_leaves_heavy_request_specific_singletons_unresolved(): void {
 		\SScribe_Container::reset();
 		$GLOBALS['sscribe_test_is_admin']   = false;
