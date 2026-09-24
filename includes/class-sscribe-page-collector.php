@@ -284,10 +284,7 @@ class SScribe_Page_Collector {
 		$page_ids = array_values(
 			array_unique(
 				array_filter(
-					array_map(
-						static fn( $page_id ): int => is_scalar( $page_id ) && ! is_bool( $page_id ) ? absint( $page_id ) : 0,
-						$page_ids
-					)
+					array_map( 'absint', $page_ids )
 				)
 			)
 		);
