@@ -220,8 +220,11 @@ class SScribe {
 			return;
 		}
 
-		$post_type = get_post_type( $post_id );
-		if ( ! $post_type || ! in_array( $post_type, array( 'page', 'post' ), true ) ) {
+		// Selectable custom post types may be introduced through the public
+		// sscribe_allowed_post_types filter. Invalidating on every real post
+		// mutation is cheaper and safer than trying to recreate that dynamic
+		// allow-list in this lightweight hook.
+		if ( ! get_post_type( $post_id ) ) {
 			return;
 		}
 
