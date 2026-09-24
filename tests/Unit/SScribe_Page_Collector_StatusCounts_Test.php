@@ -56,6 +56,27 @@ final class SScribe_Page_Collector_StatusCounts_Test extends TestCase {
 		$this->assertIsArray( $counts );
 	}
 
+	public function test_page_count_all_uses_aggregate_status_counts_before_query_normalization(): void {
+		$collector = new class() extends SScribe_Page_Collector {
+			public function get_post_status_counts( string $language = '', string $post_type = 'page' ): array {
+				return array(
+					'publish' => 5,
+					'draft'   => 4,
+					'private' => 3,
+					'future'  => 2,
+					'pending' => 1,
+					'all'     => 15,
+				);
+			}
+
+			public function get_page_ids( string $language = '', string $post_status = 'publish', string $post_type = 'page', int $limit = -1 ): array {
+				return array( 999 );
+			}
+		};
+
+		$this->assertSame( 15, $collector->get_page_count_only( '', 'all', 'page' ) );
+	}
+
 	public function test_language_parameter_accepted(): void {
 
 		$counts = $this->collector->get_post_status_counts( 'en' );
