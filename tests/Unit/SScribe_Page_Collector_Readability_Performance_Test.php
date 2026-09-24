@@ -43,6 +43,27 @@ final class SScribe_Page_Collector_Readability_Performance_Test extends TestCase
 	}
 
 
+
+	public function test_all_status_count_aggregates_bounded_status_counts_instead_of_scanning_every_id(): void {
+		$source = (string) file_get_contents( dirname( __DIR__, 2 ) . '/includes/class-sscribe-page-collector.php' );
+		$start  = strpos( $source, 'public function get_page_count_only(' );
+		$end    = strpos( $source, 'public function get_post_status_counts(', $start );
+		$this->assertNotFalse( $start );
+		$this->assertNotFalse( $end );
+		$method = substr( $source, $start, $end - $start );
+
+		$this->assertStringContainsString(
+			'$this->get_post_status_counts( $language, $post_type )',
+			$method,
+			'All-status totals must sum the bounded status-count paths instead of enumerating every readable ID.'
+		);
+		$this->assertStringNotContainsString(
+			"get_page_ids_chunked( $language, 'any'",
+			$method,
+			'All-status totals must not perform an unbounded full-inventory ID scan.'
+		);
+	}
+
 	public function test_filter_readable_page_ids_bulk_hydrates_instead_of_get_post_per_id(): void {
 		$collector = new SScribe_Page_Collector();
 		$method = new ReflectionMethod( $collector, 'filter_readable_page_ids' );
