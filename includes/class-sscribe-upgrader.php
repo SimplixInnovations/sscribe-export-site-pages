@@ -147,78 +147,10 @@ class SScribe_Upgrader {
 	 * @throws \RuntimeException When a required schema helper/change fails.
 	 */
 	private static function run_migrations( string $from_version ): void {
-		global $wpdb;
-
-		$upgrade_functions = ABSPATH . 'wp-admin/includes/upgrade.php';
-		if ( file_exists( $upgrade_functions ) ) {
-			require_once $upgrade_functions;
-		}
-		if ( ! function_exists( 'dbDelta' ) ) {
-			throw new \RuntimeException( 'WordPress database upgrade functions are unavailable.' );
-		}
-
-		$charset_collate = $wpdb->get_charset_collate();
-		$table_logs      = $wpdb->prefix . 'sscribe_export_logs';
-		$sql_logs        = "CREATE TABLE $table_logs (
-			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
-			timestamp DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-			level VARCHAR(20) NOT NULL,
-			message TEXT NOT NULL,
-			context LONGTEXT,
-			session_id VARCHAR(60) DEFAULT NULL,
-			user_id BIGINT UNSIGNED,
-			request_id VARCHAR(12),
-			memory_usage VARCHAR(20),
-			PRIMARY KEY  (id),
-			KEY idx_timestamp (timestamp),
-			KEY idx_level (level),
-			KEY idx_user_id (user_id),
-			KEY idx_request_id (request_id),
-			KEY idx_session_id (session_id)
-		) $charset_collate;";
-
-		$table_stats = $wpdb->prefix . 'sscribe_export_stats';
-		$sql_stats   = "CREATE TABLE $table_stats (
-			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
-			export_session_id VARCHAR(64) NOT NULL,
-			user_id BIGINT UNSIGNED NOT NULL,
-			export_date DATETIME NOT NULL,
-			total_pages INT UNSIGNED,
-			successful_pages INT UNSIGNED,
-			failed_pages INT UNSIGNED,
-			formats LONGTEXT,
-			memory_peak VARCHAR(20),
-			duration_seconds FLOAT,
-			file_size_mb DECIMAL(10, 2),
-			status VARCHAR(20) NOT NULL DEFAULT 'processing',
-			error_message TEXT,
-			created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-			PRIMARY KEY  (id),
-			KEY idx_export_session_id (export_session_id),
-			KEY idx_export_date (export_date),
-			KEY idx_user_id (user_id),
-			KEY idx_status (status)
-		) $charset_collate;";
-
-		self::run_dbdelta_or_throw( $sql_logs, 'export logs schema' );
-		self::run_dbdelta_or_throw( $sql_stats, 'export stats schema' );
-		SScribe_Audit_Trail::create_table();
-
-		self::assert_required_schema(
-			$table_logs,
-			array( 'id', 'timestamp', 'level', 'message', 'context', 'session_id', 'user_id', 'request_id', 'memory_usage' ),
-			'export logs schema'
-		);
-		self::assert_required_schema(
-			$table_stats,
-			array( 'id', 'export_session_id', 'user_id', 'export_date', 'status', 'created_at' ),
-			'export stats schema'
-		);
-		self::assert_required_schema(
-			$wpdb->prefix . 'sscribe_audit_log',
-			array( 'id', 'timestamp', 'event', 'user_id', 'context', 'session_id' ),
-			'audit trail schema'
-		);
+		// Fresh installs and upgrades must share one dbDelta declaration. Keeping
+		// a second CREATE TABLE copy here previously allowed schema drift and
+		// reintroduced database-engine-specific migration bugs.
+		SScribe_Activator::create_database_tables( false );
 
 		if ( version_compare( $from_version, '1.1.1', '<' ) ) {
 			$metrics = get_option( 'sscribe_export_metrics', array() );
@@ -258,69 +190,5 @@ class SScribe_Upgrader {
 	 * @return void
 	 * @throws \RuntimeException When WordPress reports a database error.
 	 */
-	private static function run_dbdelta_or_throw( string $sql, string $label ): void {
-		global $wpdb;
 
-		if ( property_exists( $wpdb, 'last_error' ) ) {
-			$wpdb->last_error = '';
-		}
-
-		dbDelta( $sql );
-
-		$last_error = property_exists( $wpdb, 'last_error' ) ? trim( (string) $wpdb->last_error ) : '';
-		if ( '' !== $last_error ) {
-			$safe_label = sanitize_text_field( $label );
-			$safe_error = sanitize_text_field( $last_error );
-			throw new \RuntimeException(
-				sprintf( 'Database reconciliation failed for %1$s: %2$s', esc_html( $safe_label ), esc_html( $safe_error ) )
-			);
-		}
-	}
-
-	/**
-	 * Prove required table columns are queryable after dbDelta reconciliation.
-	 *
-	 * A zero-row SELECT is portable across the supported MySQL and WordPress
-	 * SQLite paths and catches missing tables/columns without database-specific
-	 * SHOW/PRAGMA branching.
-	 *
-	 * @param string        $table   Plugin-owned table name.
-	 * @param array<string> $columns Required column names.
-	 * @param string        $label   Human-readable schema label.
-	 * @return void
-	 * @throws \RuntimeException When identifiers are invalid or schema is incomplete.
-	 */
-	private static function assert_required_schema( string $table, array $columns, string $label ): void {
-		global $wpdb;
-
-		$safe_label = sanitize_text_field( $label );
-		if ( 1 !== preg_match( '/^[A-Za-z0-9_]+$/D', $table ) || empty( $columns ) ) {
-			throw new \RuntimeException( 'Invalid schema verification target for ' . esc_html( $safe_label ) . '.' );
-		}
-
-		$quoted_columns = array();
-		foreach ( $columns as $column ) {
-			if ( 1 !== preg_match( '/^[A-Za-z0-9_]+$/D', $column ) ) {
-				throw new \RuntimeException( 'Invalid schema verification column for ' . esc_html( $safe_label ) . '.' );
-			}
-			$quoted_columns[] = '`' . $column . '`';
-		}
-
-		if ( property_exists( $wpdb, 'last_error' ) ) {
-			$wpdb->last_error = '';
-		}
-
-		$sql = 'SELECT ' . implode( ', ', $quoted_columns ) . ' FROM `' . $table . '` WHERE 1 = 0';
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.PreparedSQL.NotPrepared -- Identifiers are internal and regex-validated above; zero-row schema probe only.
-		$result = $wpdb->query( $sql );
-		$last_error = property_exists( $wpdb, 'last_error' ) ? trim( (string) $wpdb->last_error ) : '';
-
-		if ( false === $result || '' !== $last_error ) {
-			$detail      = '' !== $last_error ? $last_error : 'required table or column is not queryable';
-			$safe_detail = sanitize_text_field( $detail );
-			throw new \RuntimeException(
-				sprintf( 'Schema verification failed for %1$s: %2$s', esc_html( $safe_label ), esc_html( $safe_detail ) )
-			);
-		}
-	}
 }
