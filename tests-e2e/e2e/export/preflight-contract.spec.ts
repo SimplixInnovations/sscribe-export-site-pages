@@ -70,6 +70,10 @@ test.describe('e2e / export / preflight-contract', () => {
 			);
 		});
 
+		const returnTarget = adminPage.locator('#sscribe-tab-btn-export');
+		await returnTarget.focus();
+		await expect(returnTarget).toBeFocused();
+
 		await adminPage.evaluate(() => {
 			const w = window as any;
 			w.__sscribeProceedCalls = 0;
@@ -86,7 +90,58 @@ test.describe('e2e / export / preflight-contract', () => {
 		expect(await adminPage.evaluate(() => (window as any).__sscribeProceedCalls)).toBe(0);
 
 		await proceed.click();
+		await expect(returnTarget).toBeFocused();
 		expect(await adminPage.evaluate(() => (window as any).__sscribeProceedCalls)).toBe(1);
+	});
+
+
+	test('preflight cancel returns keyboard focus to the invoking element', async ({ adminPage }) => {
+		await adminPage.goto('/wp-admin/admin.php?page=sscribe-export');
+		await adminPage.route('**/admin-ajax.php*', async (route) => {
+			if (!isPreflight(route.request().postData())) return route.continue();
+			return route.fulfill(
+				syntheticJson({
+					success: true,
+					data: {
+						status: 'warning',
+						can_proceed: true,
+						checks: {
+							memory: { status: 'warning', name: 'Memory', message: 'Warning.' },
+						},
+					},
+				})
+			);
+		});
+
+		await adminPage.evaluate(() => {
+			const origin = document.createElement('button');
+			origin.id = 'sscribe-focus-origin';
+			origin.textContent = 'Origin';
+			document.body.appendChild(origin);
+			origin.focus();
+			(window as any).SScribe.runPreflightCheck('', 'publish', 'page', ['docx']);
+		});
+
+		const banner = adminPage.locator('.sscribe-preflight-banner');
+		await expect(banner).toBeVisible();
+		await expect(banner.locator('.sscribe-preflight-close')).toBeFocused();
+		await banner.locator('.sscribe-preflight-cancel').click();
+		await expect(banner).toHaveCount(0);
+		expect(await adminPage.evaluate(() => document.activeElement?.id)).toBe('sscribe-focus-origin');
+	});
+
+	test('toast exposes a keyboard-operable dismiss button', async ({ adminPage }) => {
+		await adminPage.goto('/wp-admin/admin.php?page=sscribe-export');
+		await adminPage.evaluate(() => {
+			(window as any).SScribe.showToast('Keyboard toast', 'info', 0);
+		});
+		const toast = adminPage.locator('.sscribe-toast').filter({ hasText: 'Keyboard toast' });
+		await expect(toast).toBeVisible();
+		const dismiss = toast.locator('button.sscribe-toast-dismiss');
+		await expect(dismiss).toHaveAttribute('aria-label', /Dismiss/i);
+		await dismiss.focus();
+		await dismiss.press('Enter');
+		await expect(toast).toHaveCount(0, { timeout: 2000 });
 	});
 
 	test('all-languages sentinel has a user-facing localized label', async ({ adminPage }) => {

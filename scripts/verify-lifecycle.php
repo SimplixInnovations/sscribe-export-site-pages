@@ -224,7 +224,7 @@ if ( ! $uninst_removes_caps ) {
 }
 
 // 11. Activator has create_database_tables method.
-$has_db_setup = (bool) preg_match( '/private\s+static\s+function\s+create_database_tables\s*\(/', $activ_source );
+$has_db_setup = (bool) preg_match( '/(?:public|private)\s+static\s+function\s+create_database_tables\s*\(/', $activ_source );
 $matrix[] = array(
 	'rule'   => 'activator_creates_database_tables',
 	'passes' => $has_db_setup,

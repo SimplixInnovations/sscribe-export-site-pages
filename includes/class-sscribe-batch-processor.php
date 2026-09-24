@@ -1097,11 +1097,12 @@ final class SScribe_Batch_Processor {
 			}
 		}
 
-		$page_id_cap    = 10000;
-		$page_ids      = $this->collector->get_page_ids( $language, $post_status, $post_type, $page_id_cap );
-		$total         = count( $page_ids );
-		$available_total = $this->collector->get_page_count_only( $language, $post_status, $post_type );
-		$partial_export = $available_total > $total;
+		$page_id_cap       = SScribe_Page_Collector::COUNT_LIMIT;
+		$page_ids_probe   = $this->collector->get_page_ids( $language, $post_status, $post_type, SScribe_Page_Collector::COUNT_SENTINEL );
+		$partial_export   = count( $page_ids_probe ) > $page_id_cap;
+		$page_ids         = $partial_export ? array_slice( $page_ids_probe, 0, $page_id_cap ) : $page_ids_probe;
+		$total            = count( $page_ids );
+		$available_total  = $partial_export ? SScribe_Page_Collector::COUNT_SENTINEL : $total;
 
 		$current_lang = 'default';
 		if ( $this->collector->is_wpml_active() ) {
@@ -1266,14 +1267,13 @@ final class SScribe_Batch_Processor {
 			),
 		);
 		if ( $partial_export ) {
-			$response['partial_export']      = true;
-			$response['available_total']     = $available_total;
-			$response['page_id_cap']         = $page_id_cap;
-			$response['partial_export_message'] = sprintf(
-				/* translators: 1: Number of pages exported, 2: Total available pages, 3: Cap limit. */
-				__( 'Export capped at %1$d pages. %2$d pages were available. Run additional exports in batches of %3$d to cover the rest.', 'sscribe-export-site-pages' ),
-				$total,
-				$available_total,
+			$response['partial_export']          = true;
+			$response['available_total']         = $available_total;
+			$response['available_total_capped']  = true;
+			$response['page_id_cap']             = $page_id_cap;
+			$response['partial_export_message']  = sprintf(
+				/* translators: %d: Maximum number of pages included in one export. */
+				__( 'More than %d readable pages are available. This export includes the first batch only; run additional exports to cover the remainder.', 'sscribe-export-site-pages' ),
 				$page_id_cap
 			);
 		}

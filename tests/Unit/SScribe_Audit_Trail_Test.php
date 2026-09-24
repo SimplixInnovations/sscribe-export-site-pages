@@ -16,10 +16,31 @@ class SScribe_Audit_Trail_Test extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		$GLOBALS['sscribe_test_db_tables']['wp_sscribe_audit_log'] = array();
+		$GLOBALS['sscribe_test_db_schema']['wp_sscribe_audit_log'] = array(
+			'id',
+			'event',
+			'user_id',
+			'ip_address',
+			'user_agent',
+			'request_uri',
+			'context',
+			'session_id',
+			'timestamp',
+		);
+		$GLOBALS['sscribe_test_db_indexes']['wp_sscribe_audit_log'] = array(
+			'event',
+			'user_id',
+			'session_id',
+			'timestamp',
+		);
 	}
 
 	protected function tearDown(): void {
-		unset( $GLOBALS['sscribe_test_db_tables']['wp_sscribe_audit_log'] );
+		unset(
+			$GLOBALS['sscribe_test_db_tables']['wp_sscribe_audit_log'],
+			$GLOBALS['sscribe_test_db_schema']['wp_sscribe_audit_log'],
+			$GLOBALS['sscribe_test_db_indexes']['wp_sscribe_audit_log']
+		);
 		parent::tearDown();
 	}
 

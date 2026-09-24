@@ -263,6 +263,13 @@ SScribe_Vendor_Bootstrap::require();
 // SSCRIBE_PLUGIN_URL / SSCRIBE_PLUGIN_BASENAME — we don't redefine them.
 require_once $plugin_dir . '/sscribe-export-site-pages.php';
 
+// The wp-phpunit bootstrap loads plugin source directly; it does not execute
+// register_activation_hook(). Model the production lifecycle explicitly so
+// every integration test starts from an installed+activated SScribe instance.
+// This became mandatory once the production upgrader correctly stopped doing
+// schema/filesystem mutation during anonymous/front-end bootstrap.
+SScribe_Activator::activate( false );
+
 // The main plugin file attaches its bootstrap to `plugins_loaded`, but
 // WP has already fired that action by the time we get here (during
 // wp-settings.php inside the bootstrap we required above). Re-fire it

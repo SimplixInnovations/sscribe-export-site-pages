@@ -219,11 +219,16 @@ class SScribe_Activator {
 	}
 
 	/**
-	 * Create plugin database tables.
+	 * Create or reconcile the canonical plugin database schema.
 	 *
+	 * Fresh activation records the schema version immediately. Runtime upgrades
+	 * pass false so the version advances only after schema, data, and filesystem
+	 * migrations have all completed successfully.
+	 *
+	 * @param bool $record_schema_version Whether to persist the current schema version.
 	 * @throws \RuntimeException When the WordPress upgrade helper is unavailable.
 	 */
-	private static function create_database_tables(): void {
+	public static function create_database_tables( bool $record_schema_version = true ): void {
 		global $wpdb;
 
 		$charset_collate = $wpdb->get_charset_collate();
@@ -281,11 +286,210 @@ class SScribe_Activator {
 			throw new \RuntimeException( 'WordPress database upgrade functions are unavailable.' );
 		}
 
-		dbDelta( $sql_logs );
-		dbDelta( $sql_stats );
+		self::run_dbdelta_or_throw( $sql_logs, 'export logs schema' );
+		self::run_dbdelta_or_throw( $sql_stats, 'export stats schema' );
 
 		SScribe_Audit_Trail::create_table();
-		update_option( 'sscribe_schema_version', SSCRIBE_VERSION, false );
+
+		self::assert_required_schema(
+			$table_logs,
+			array( 'id', 'timestamp', 'level', 'message', 'context', 'session_id', 'user_id', 'request_id', 'memory_usage' ),
+			'export logs schema'
+		);
+		self::assert_required_schema(
+			$table_stats,
+			array(
+				'id',
+				'export_session_id',
+				'user_id',
+				'export_date',
+				'total_pages',
+				'successful_pages',
+				'failed_pages',
+				'formats',
+				'memory_peak',
+				'duration_seconds',
+				'file_size_mb',
+				'status',
+				'error_message',
+				'created_at',
+			),
+			'export stats schema'
+		);
+		self::assert_required_schema(
+			$wpdb->prefix . 'sscribe_audit_log',
+			array( 'id', 'timestamp', 'event', 'user_id', 'ip_address', 'user_agent', 'request_uri', 'context', 'session_id' ),
+			'audit trail schema'
+		);
+
+		self::assert_required_indexes(
+			$table_logs,
+			array( 'idx_timestamp', 'idx_level', 'idx_user_id', 'idx_request_id', 'idx_session_id' ),
+			'export logs schema'
+		);
+		self::assert_required_indexes(
+			$table_stats,
+			array( 'idx_export_session_id', 'idx_export_date', 'idx_user_id', 'idx_status' ),
+			'export stats schema'
+		);
+		self::assert_required_indexes(
+			$wpdb->prefix . 'sscribe_audit_log',
+			array( 'idx_timestamp', 'idx_event', 'idx_user_id', 'idx_ip_address', 'idx_session_id' ),
+			'audit trail schema'
+		);
+
+		if ( $record_schema_version ) {
+			update_option( 'sscribe_schema_version', SSCRIBE_VERSION, false );
+		}
+	}
+
+	/**
+	 * Run one activation dbDelta reconciliation and fail closed on SQL errors.
+	 *
+	 * @param string $sql   Canonical CREATE TABLE statement.
+	 * @param string $label Human-readable schema label.
+	 * @return void
+	 * @throws \RuntimeException When WordPress reports a database error.
+	 */
+	private static function run_dbdelta_or_throw( string $sql, string $label ): void {
+		global $wpdb;
+
+		$wpdb->last_error = '';
+
+		dbDelta( $sql );
+
+		$last_error = trim( (string) $wpdb->last_error );
+		if ( '' !== $last_error ) {
+			// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Internal exception is caught/logged; values are sanitized and never rendered directly.
+			throw new \RuntimeException(
+				sprintf(
+					'Database reconciliation failed for %1$s: %2$s',
+					esc_html( sanitize_text_field( $label ) ),
+					esc_html( sanitize_text_field( $last_error ) )
+				)
+			);
+		}
+	}
+
+	/**
+	 * Prove required activation schema is queryable before recording success.
+	 *
+	 * @param string        $table   Plugin-owned table name.
+	 * @param array<string> $columns Required columns.
+	 * @param string        $label   Human-readable schema label.
+	 * @return void
+	 * @throws \RuntimeException When the table/columns are unavailable.
+	 */
+	private static function assert_required_schema( string $table, array $columns, string $label ): void {
+		global $wpdb;
+
+		if ( 1 !== preg_match( '/^[A-Za-z0-9_]+$/D', $table ) || empty( $columns ) ) {
+			throw new \RuntimeException( 'Invalid schema verification target.' );
+		}
+
+		foreach ( $columns as $column ) {
+			if ( 1 !== preg_match( '/^[A-Za-z0-9_]+$/D', $column ) ) {
+				throw new \RuntimeException( 'Invalid schema verification column.' );
+			}
+		}
+
+		$wpdb->last_error = '';
+
+		$previous_suppression = $wpdb->suppress_errors( true );
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.PreparedSQL.NotPrepared -- Internal table identifier is regex-validated and escaped; zero-row structural probe only.
+		$result = $wpdb->query( 'SELECT * FROM `' . esc_sql( $table ) . '` WHERE 1 = 0' );
+		$last_error = trim( (string) $wpdb->last_error );
+		$available_columns = false !== $result ? array_map( 'strval', (array) $wpdb->get_col_info( 'name' ) ) : array();
+		$wpdb->suppress_errors( (bool) $previous_suppression );
+
+		$missing_columns = array_values( array_diff( $columns, $available_columns ) );
+		if ( false === $result || '' !== $last_error || ! empty( $missing_columns ) ) {
+			$detail = '' !== $last_error
+				? $last_error
+				: ( ! empty( $missing_columns )
+					? 'missing required columns: ' . implode( ', ', $missing_columns )
+					: 'required table or column is not queryable' );
+			// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Internal exception is caught/logged; values are sanitized and never rendered directly.
+			throw new \RuntimeException(
+				sprintf(
+					'Schema verification failed for %1$s: %2$s',
+					esc_html( sanitize_text_field( $label ) ),
+					esc_html( sanitize_text_field( $detail ) )
+				)
+			);
+		}
+	}
+
+	/**
+	 * Prove required named indexes exist before recording schema success.
+	 *
+	 * WordPress's SQLite Database Integration translates SHOW INDEX, while
+	 * MySQL/MariaDB support it natively. This closes the gap where dbDelta()
+	 * may leave a table queryable but omit an index required by runtime paths.
+	 *
+	 * @param string        $table   Plugin-owned table name.
+	 * @param array<string> $indexes Required index names.
+	 * @param string        $label   Human-readable schema label.
+	 * @return void
+	 * @throws \RuntimeException When index introspection fails or an index is absent.
+	 */
+	private static function assert_required_indexes( string $table, array $indexes, string $label ): void {
+		global $wpdb;
+
+		if ( 1 !== preg_match( '/^[A-Za-z0-9_]+$/D', $table ) || empty( $indexes ) ) {
+			throw new \RuntimeException( 'Invalid schema index verification target.' );
+		}
+
+		foreach ( $indexes as $index ) {
+			if ( 1 !== preg_match( '/^[A-Za-z0-9_]+$/D', $index ) ) {
+				throw new \RuntimeException( 'Invalid schema verification index.' );
+			}
+		}
+
+		$wpdb->last_error    = '';
+		$previous_suppression = $wpdb->suppress_errors( true );
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.PreparedSQL.NotPrepared -- Plugin-owned table identifier is strictly validated and escaped; SHOW INDEX is structural introspection.
+		$rows       = $wpdb->get_results( 'SHOW INDEX FROM `' . esc_sql( $table ) . '`' );
+		$last_error = trim( (string) $wpdb->last_error );
+		$wpdb->suppress_errors( (bool) $previous_suppression );
+
+		if ( ! is_array( $rows ) || '' !== $last_error ) {
+			$detail = '' !== $last_error ? $last_error : 'required indexes are not queryable';
+			// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Internal exception is caught/logged; dynamic values are sanitized/escaped.
+			throw new \RuntimeException(
+				sprintf(
+					'Schema index verification failed for %1$s: %2$s',
+					esc_html( sanitize_text_field( $label ) ),
+					esc_html( sanitize_text_field( $detail ) )
+				)
+			);
+		}
+
+		$found = array();
+		foreach ( $rows as $row ) {
+			if ( ! is_object( $row ) && ! is_array( $row ) ) {
+				continue;
+			}
+			$values = is_object( $row ) ? get_object_vars( $row ) : $row;
+			$name   = (string) ( $values['Key_name'] ?? $values['key_name'] ?? $values['name'] ?? '' );
+			if ( '' !== $name ) {
+				$found[ $name ] = true;
+			}
+		}
+
+		foreach ( $indexes as $index ) {
+			if ( isset( $found[ $index ] ) ) {
+				continue;
+			}
+			// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Internal exception is caught/logged; dynamic values are sanitized/escaped.
+			throw new \RuntimeException(
+				sprintf(
+					'Required index %1$s is missing from %2$s.',
+					esc_html( sanitize_key( $index ) ),
+					esc_html( sanitize_text_field( $label ) )
+				)
+			);
+		}
 	}
 
 	/**

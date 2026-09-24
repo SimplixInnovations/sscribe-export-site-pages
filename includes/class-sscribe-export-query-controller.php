@@ -176,7 +176,12 @@ class SScribe_Export_Query_Controller {
 			// never before. The response key remains __all__ so the JS
 			// exact-key lookup finds it.
 			$query_language = ( self::SENTINEL_ALL === $raw_language ) ? '' : $raw_language;
-			$per_language[ $raw_language ] = $this->compute_counts_payload( $query_language, $post_type );
+			$summary        = $this->collector->get_page_count_summary( $query_language, 'all', $post_type );
+			$per_language[ $raw_language ] = array(
+				'total'  => $summary['count'],
+				'capped' => $summary['capped'],
+				'limit'  => $summary['limit'],
+			);
 		}
 
 		SScribe_AJAX_Guard::success(

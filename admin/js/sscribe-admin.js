@@ -186,6 +186,7 @@
 			this._originalTitle = document.title;
 			this._lastAnnouncedBucket = -1;
 			this.bindEvents();
+			this.restoreDismissedAdvisories();
 			this.initializeTabs();
 			this.initializeRadiogroups();
 			this.initAutoDownloadPreference();
@@ -831,36 +832,20 @@
 							return;
 						}
 						const langMap = response.data.languages;
-						const currentPostType = $('input[name="sscribe_post_type"]:checked').val() || 'page';
 						$('input[name="sscribe_language"]').each(function () {
 							const langCode = $(this).val();
 							const entry = langMap[langCode];
 							if (!entry) {
 								return;
 							}
-							const pageCounts = entry.counts_page || entry.counts || {};
-							const postCounts = entry.counts_post || {};
-							const anyCounts = entry.counts_any || {};
-							const pageTotal = self.parseLocalizedInt(pageCounts.all) || 0;
-							const postTotal = self.parseLocalizedInt(postCounts.all) || 0;
-							const anyTotal = self.parseLocalizedInt(anyCounts.all) || 0;
-							const selectedCounts = entry.counts || {};
-							const selectedTotal = self.parseLocalizedInt(selectedCounts.all) || 0;
-							let displayTotal = selectedTotal;
-							if ('page' === currentPostType) {
-								displayTotal = pageTotal;
-							} else if ('post' === currentPostType) {
-								displayTotal = postTotal;
-							} else if ('any' === currentPostType) {
-								displayTotal = anyTotal;
-							}
+							const displayTotal = self.parseLocalizedInt(entry.total) || 0;
+							const displayText = entry.capped
+								? sscribe_data.strings.log_unknown || 'Unknown'
+								: displayTotal.toLocaleString();
 							const $langLabel = $('input[name="sscribe_language"][value="' + langCode + '"]').closest(
 								'.sscribe-lang-card-label'
 							);
-							$langLabel.find('.sscribe-lang-count').text(displayTotal.toLocaleString());
-							$langLabel.attr('data-count-page', pageTotal);
-							$langLabel.attr('data-count-post', postTotal);
-							$langLabel.attr('data-count-any', anyTotal);
+							$langLabel.find('.sscribe-lang-count').text(displayText);
 						});
 					},
 					error: function () {},
@@ -1400,11 +1385,29 @@
 					}
 				}
 			}
+			const preflightReturnFocus = document.activeElement;
+			const restorePreflightFocus = function () {
+				setTimeout(function () {
+					if (
+						preflightReturnFocus &&
+						typeof preflightReturnFocus.focus === 'function' &&
+						document.contains(preflightReturnFocus) &&
+						!preflightReturnFocus.disabled
+					) {
+						preflightReturnFocus.focus();
+						return;
+					}
+					const fallback = document.getElementById('sscribe-main-content');
+					if (fallback && typeof fallback.focus === 'function') {
+						fallback.focus();
+					}
+				}, 0);
+			};
 			let bannerHtml = '<div class="sscribe-preflight-banner">';
 			bannerHtml += '<div class="sscribe-preflight-header">';
 			bannerHtml += '<span class="sscribe-preflight-icon" aria-hidden="true">⚠</span>';
 			bannerHtml +=
-				'<h3>' + this.escapeHtml(sscribe_data.strings.preflight_title || 'Export Readiness Check') + '</h3>';
+				'<h2>' + this.escapeHtml(sscribe_data.strings.preflight_title || 'Export Readiness Check') + '</h2>';
 			bannerHtml +=
 				'<button type="button" class="sscribe-preflight-close" aria-label="' +
 				this.escapeHtml(sscribe_data.strings.close || 'Close') +
@@ -1414,9 +1417,9 @@
 			if (errors.length > 0) {
 				bannerHtml += '<div class="sscribe-preflight-section sscribe-preflight-errors">';
 				bannerHtml +=
-					'<h4 class="sscribe-preflight-section-title">' +
+					'<h3 class="sscribe-preflight-section-title">' +
 					this.escapeHtml(sscribe_data.strings.preflight_errors || 'Critical Issues') +
-					'</h4>';
+					'</h3>';
 				bannerHtml += '<ul class="sscribe-preflight-list">';
 				const errorCount = errors.length;
 				for (let i = 0; i < errorCount; i++) {
@@ -1436,9 +1439,9 @@
 			if (warnings.length > 0) {
 				bannerHtml += '<div class="sscribe-preflight-section sscribe-preflight-warnings">';
 				bannerHtml +=
-					'<h4 class="sscribe-preflight-section-title">' +
+					'<h3 class="sscribe-preflight-section-title">' +
 					this.escapeHtml(sscribe_data.strings.preflight_warnings || 'Recommendations') +
-					'</h4>';
+					'</h3>';
 				bannerHtml += '<ul class="sscribe-preflight-list">';
 				const warnCount = warnings.length;
 				for (let j = 0; j < warnCount; j++) {
@@ -1482,13 +1485,15 @@
 				$banner.on('click.sscribe-preflight', '.sscribe-preflight-proceed', function () {
 					$banner.fadeOut(200, function () {
 						$banner.remove();
+						restorePreflightFocus();
+						onProceed();
 					});
-					onProceed();
 				});
 			}
 			$banner.on('click.sscribe-preflight', '.sscribe-preflight-cancel', function () {
 				$banner.fadeOut(200, function () {
 					$banner.remove();
+					restorePreflightFocus();
 				});
 				SScribe.isPreparing = false;
 				SScribe.isProcessing = false;
@@ -1506,6 +1511,7 @@
 			$banner.on('click.sscribe-preflight', '.sscribe-preflight-close', function () {
 				$banner.fadeOut(200, function () {
 					$banner.remove();
+					restorePreflightFocus();
 				});
 				SScribe.isPreparing = false;
 				SScribe.isProcessing = false;
@@ -2066,7 +2072,9 @@
 					.fadeIn(400, function () {
 						const safeDownloadUrl = data.download_url ? self.getSafeSameOriginUrl(data.download_url) : '';
 						if (safeDownloadUrl) {
-							$('#sscribe-download-btn').attr('href', safeDownloadUrl);
+							$('#sscribe-download-btn')
+								.attr('href', safeDownloadUrl)
+								.removeAttr('aria-disabled tabindex');
 							if (isAutoDownload !== false && self.shouldAutoDownload()) {
 								const a = document.createElement('a');
 								a.href = safeDownloadUrl;
@@ -2078,7 +2086,9 @@
 								}, 1000);
 							}
 						} else {
-							$('#sscribe-download-btn').removeAttr('href');
+							$('#sscribe-download-btn')
+								.removeAttr('href')
+								.attr({ 'aria-disabled': 'true', tabindex: '-1' });
 							self.showToast(
 								sscribe_data.strings.download_unavailable || 'Download unavailable.',
 								'warning'
@@ -2450,7 +2460,7 @@
 				}
 				html += '</div>';
 				html += '<div class="sscribe-file-details">';
-				html += '<strong>' + this.escapeHtml(filename) + '</strong>';
+				html += '<strong class="sscribe-history-filename">' + this.escapeHtml(filename) + '</strong>';
 				html +=
 					'<span>' +
 					this.escapeHtml(exp.date || '') +
@@ -2720,11 +2730,18 @@
 			$steps.each(function () {
 				const $step = $(this);
 				const stepPhase = $step.data('phase');
+				const $completedLabel = $step.find('.sscribe-phase-completed-label');
+				$step.removeAttr('aria-current');
+				$completedLabel.prop('hidden', true);
 				if (stepPhase === phase) {
-					$step.removeClass('sscribe-phase-completed sscribe-phase-active').addClass('sscribe-phase-active');
+					$step
+						.removeClass('sscribe-phase-completed sscribe-phase-active')
+						.addClass('sscribe-phase-active')
+						.attr('aria-current', 'step');
 					found = true;
 				} else if (!found) {
 					$step.removeClass('sscribe-phase-active').addClass('sscribe-phase-completed');
+					$completedLabel.prop('hidden', false);
 				} else {
 					$step.removeClass('sscribe-phase-completed sscribe-phase-active');
 				}
@@ -2856,24 +2873,34 @@
 			const $toast = $('<div>').addClass('sscribe-toast ' + typeClass);
 			const $icon = $('<span>').addClass('sscribe-toast-icon').attr('aria-hidden', 'true');
 			const $body = $('<span>').addClass('sscribe-toast-body').text(message);
-			$toast.append($icon).append($body);
+			const $dismiss = $('<button>', { type: 'button' })
+				.addClass('sscribe-toast-dismiss')
+				.attr(
+					'aria-label',
+					(sscribe_data.strings && sscribe_data.strings.dismiss_notification) || 'Dismiss notification'
+				)
+				.append($('<span>').attr('aria-hidden', 'true').text('×'));
+			$toast.append($icon).append($body).append($dismiss);
 			$container.append($toast);
-			// Animate in
 			requestAnimationFrame(function () {
 				$toast.addClass('sscribe-toast-visible');
 			});
-			// Auto-dismiss
+			let dismissTimer = null;
 			const dismiss = function () {
+				if (dismissTimer) {
+					clearTimeout(dismissTimer);
+					dismissTimer = null;
+				}
 				$toast.removeClass('sscribe-toast-visible').addClass('sscribe-toast-removing');
 				setTimeout(function () {
 					$toast.remove();
 				}, 220);
 			};
 			if (duration > 0) {
-				setTimeout(dismiss, duration);
+				dismissTimer = setTimeout(dismiss, duration);
 			}
-			// Click-to-dismiss
-			$toast.on('click.sscribe', function () {
+			$dismiss.on('click.sscribe', function (event) {
+				event.preventDefault();
 				dismiss();
 			});
 			return $toast;
@@ -3277,6 +3304,33 @@
 					$proceed.trigger('focus');
 				}
 			}, 0);
+		},
+		restoreDismissedAdvisories: function () {
+			try {
+				if (localStorage.getItem('sscribe_onboarding_dismissed') === '1') {
+					$('#sscribe-onboarding-banner').remove();
+				}
+			} catch (_err) {
+				try {
+					if (sessionStorage.getItem('sscribe_onboarding_dismissed') === '1') {
+						$('#sscribe-onboarding-banner').remove();
+					}
+				} catch (__err) {
+					/* storage unavailable */
+				}
+			}
+			try {
+				const dismissed = JSON.parse(sessionStorage.getItem('sscribe_preflight_dismissed') || '{}');
+				$('.sscribe-preflight-warning[data-warning-code]').each(function () {
+					const $warning = $(this);
+					const code = $warning.attr('data-warning-code') || '';
+					if (code && dismissed[code] === '1') {
+						$warning.attr('data-dismissed', 'true');
+					}
+				});
+			} catch (_err) {
+				/* sessionStorage unavailable or malformed */
+			}
 		},
 		dismissOnboarding: function (e) {
 			if (e) {

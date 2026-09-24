@@ -4,8 +4,8 @@
  *
  * Every AJAX action the plugin exposes via admin-ajax.php must be
  * registration-secured: either routed through SScribe_Loader's
- * `add_guarded_ajax_action()` (which wraps the callback with nonce +
- * capability checks via SScribe_AJAX_Guard::with_guard) OR wrapped in
+ * `add_guarded_ajax_action()` / `add_guarded_lazy_ajax_action()` (which wrap
+ * callbacks with nonce + capability checks via SScribe_AJAX_Guard::with_guard) OR wrapped in
  * a centralized `verify_request_authorization()` that runs
  * check_ajax_referer + current_user_can.
  *
@@ -115,7 +115,7 @@ final class SScribe_Ajax_Security_Test extends TestCase {
 		foreach ( $payload['rows'] as $row ) {
 			$this::assertTrue(
 				$row['guarded_loader'] || $row['local_authz'],
-				$row['action'] . ' must be guarded via add_guarded_ajax_action() or verify_request_authorization().'
+				$row['action'] . ' must be guarded via a guarded loader registration or verify_request_authorization().'
 			);
 		}
 	}
@@ -129,6 +129,17 @@ final class SScribe_Ajax_Security_Test extends TestCase {
 			$source
 		);
 	}
+
+	public function test_loader_exposes_lazy_guarded_ajax_action(): void {
+		$source = (string) file_get_contents( self::plugin_root() . '/' . self::LOADER_PATH );
+		$this::assertMatchesRegularExpression(
+			'/public\s+function\s+add_guarded_lazy_ajax_action\s*\(/',
+			$source
+		);
+		$this::assertStringContainsString( 'SScribe_AJAX_Guard::with_guard', $source );
+		$this::assertStringContainsString( '$component = $resolver();', $source );
+	}
+
 
 	public function test_ajax_guard_enforces_nonce_and_capability_in_with_guard(): void {
 		// with_guard() is the centralised wrapper that the loader's

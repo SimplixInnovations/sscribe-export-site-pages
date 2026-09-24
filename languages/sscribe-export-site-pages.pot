@@ -1721,10 +1721,10 @@ msgstr ""
 msgid "Found %d pages. Starting export..."
 msgstr ""
 
-#. translators: 1: Number of pages exported, 2: Total available pages, 3: Cap limit.
-#: includes/class-sscribe-batch-processor.php:1274
+#. translators: %d: Maximum number of pages included in one export.
+#: includes/class-sscribe-batch-processor.php:963
 #, php-format
-msgid "Export capped at %1$d pages. %2$d pages were available. Run additional exports in batches of %3$d to cover the rest."
+msgid "More than %d readable pages are available. This export includes the first batch only; run additional exports to cover the remainder."
 msgstr ""
 
 #. translators: %s: image alt text.
@@ -3299,6 +3299,12 @@ msgstr ""
 
 #: includes/traits/trait-sscribe-session-ajax.php:231
 msgid "Session cleared."
+msgstr ""
+
+#: admin/partials/sscribe-admin-display.php:686
+#: admin/partials/sscribe-admin-display.php:695
+#: admin/partials/sscribe-admin-display.php:704
+msgid "Completed"
 msgstr ""
 
 #: sscribe-export-site-pages.php:34

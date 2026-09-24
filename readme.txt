@@ -97,7 +97,9 @@ SScribe is free software licensed under GPL-2.0-or-later.
 
 The bundled PhpOffice/PhpWord library uses LGPL-3.0-only. Its notice is included at `vendor-prefixed/phpoffice/phpword/COPYING.LESSER.txt`.
 
-The bundled TCPDF 7.0.10 and its Tecnick tc-lib runtime dependencies use LGPL-3.0-or-later. Its license notice and the required notices for all bundled dependencies remain alongside their source in the plugin package.
+The bundled TCPDF 7.0.11 and its Tecnick tc-lib runtime dependencies use LGPL-3.0-or-later. Its license notice and the required notices for all bundled dependencies remain alongside their source in the plugin package.
+
+Bundled LGPL-3.0 code is GPL-compatible under the GPLv3 option of SScribe's GPL-2.0-or-later license.
 
 == Development ==
 
@@ -118,9 +120,9 @@ Build transformations are documented in docs/BUILD_TRANSFORMATIONS.md.
 == Changelog ==
 
 = 2.0.4 =
-* Removed development-only test/config/tool files from the WordPress.org package and added regressions against future leaks.
-* Made release tagging fail closed unless all strict exact-SHA, exact-ZIP, runtime, and audit gates pass.
-* Reconciled repository governance documentation. Runtime export behavior is unchanged from 2.0.3.
+* Fixed SQLite upgrades and bounded failed-upgrade retries.
+* Improved large-site query/cache behavior and admin accessibility/UX.
+* Hardened deterministic WordPress.org packaging and exact-release/tag admission.
 
 = 2.0.3 =
 * Fixed activation on managed hosting and container environments by accepting validated writable private bases without weakening public-path or symlink protections.
@@ -159,7 +161,7 @@ Build transformations are documented in docs/BUILD_TRANSFORMATIONS.md.
 == Upgrade Notice ==
 
 = 2.0.4 =
-Release-package and tag-admission hardening only; no runtime or migration change.
+Upgrade, large-site, accessibility, and release-package hardening; no manual migration action required.
 
 = 2.0.3 =
 Fixes private-storage activation compatibility, Plugin Check compliance, export finalization reliability, custom post type exports, session concurrency safety, and admin-output hardening. No manual data migration is required.

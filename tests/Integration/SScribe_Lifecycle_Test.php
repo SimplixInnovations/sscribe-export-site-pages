@@ -143,7 +143,7 @@ final class SScribe_Lifecycle_Test extends TestCase {
 
 	public function test_activator_creates_database_tables_and_register_settings(): void {
 		$source = (string) file_get_contents( self::plugin_root() . '/' . self::ACTIVATOR );
-		$this::assertMatchesRegularExpression( '/private\s+static\s+function\s+create_database_tables\s*\(/', $source );
+		$this::assertMatchesRegularExpression( '/public\s+static\s+function\s+create_database_tables\s*\(/', $source );
 		$this::assertMatchesRegularExpression( '/public\s+static\s+function\s+register_settings\s*\(/', $source );
 		$this::assertStringContainsString( 'create_export_directory', $source );
 	}

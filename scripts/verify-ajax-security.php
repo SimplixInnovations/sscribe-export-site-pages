@@ -5,7 +5,7 @@
  * The plugin exposes many `wp_ajax_sscribe_*` actions through
  * `admin-ajax.php`. Each one must:
  *
- *   1. Be registered through `SScribe_Loader::add_guarded_ajax_action`
+ *   1. Be registered through `SScribe_Loader::add_guarded_ajax_action` or `add_guarded_lazy_ajax_action`
  *      (which wraps the callback with nonce + capability checks via
  *      SScribe_AJAX_Guard::with_guard) OR be wrapped in a centralized
  *      `verify_request_authorization` that runs `check_ajax_referer`
@@ -56,7 +56,7 @@ sort( $files );
 // literals inside the patterns.
 $pattern_raw_add_action   = '#add_action\s*\(\s*[\'"](wp_ajax_(sscribe_[a-z0-9_]+))[\'"]#';
 $pattern_nopriv           = '#add_action\s*\(\s*[\'"](wp_ajax_nopriv_(sscribe_[a-z0-9_]+))[\'"]#';
-$pattern_guarded_arg      = '#add_guarded_ajax_action\s*\(\s*[\'"](wp_ajax_(sscribe_[a-z0-9_]+))[\'"]#';
+$pattern_guarded_arg      = '#add_guarded_(?:lazy_)?ajax_action\s*\(\s*[\'"](wp_ajax_(sscribe_[a-z0-9_]+))[\'"]#';
 $pattern_verify_authz     = '#verify_request_authorization\s*\(#';
 $pattern_canonical_nonce  = '#check_ajax_referer\s*\(\s*[\'"]sscribe_export_nonce[\'"]#';
 

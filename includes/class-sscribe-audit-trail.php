@@ -74,11 +74,18 @@ class SScribe_Audit_Trail {
 		global $wpdb;
 
 		if ( null === $this->table_exists_cache ) {
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Schema introspection, cached via instance property
-			$table                    = $wpdb->get_var(
-				$wpdb->prepare( 'SHOW TABLES LIKE %s', $this->table_name )
-			);
-			$this->table_exists_cache = ( $table === $this->table_name );
+			if ( 1 !== preg_match( '/^[A-Za-z0-9_]+$/D', $this->table_name ) ) {
+				$this->table_exists_cache = false;
+				return false;
+			}
+			$wpdb->last_error = '';
+			$sql = 'SELECT 1 FROM `' . esc_sql( $this->table_name ) . '` WHERE 1 = 0';
+			$previous_suppression = $wpdb->suppress_errors( true );
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.PreparedSQL.NotPrepared -- Internal table identifier is regex-validated; zero-row structural probe only.
+			$result = $wpdb->query( $sql );
+			$last_error = trim( (string) $wpdb->last_error );
+			$wpdb->suppress_errors( (bool) $previous_suppression );
+			$this->table_exists_cache = false !== $result && '' === $last_error;
 		}
 
 		return $this->table_exists_cache;
@@ -372,11 +379,18 @@ class SScribe_Audit_Trail {
 			return array();
 		}
 
-		$filters_json = wp_json_encode( $filters );
+		// Only fields that affect the SQL may affect the cache identity. Hashing
+		// arbitrary/ignored caller keys creates an unbounded transient namespace
+		// without changing the query result.
+		$cache_filters = array(
+			'date_from' => isset( $filters['date_from'] ) && is_scalar( $filters['date_from'] ) ? (string) $filters['date_from'] : '',
+			'date_to'   => isset( $filters['date_to'] ) && is_scalar( $filters['date_to'] ) ? (string) $filters['date_to'] : '',
+		);
+		$filters_json = wp_json_encode( $cache_filters );
 		$cache_key    = 'sscribe_audit_counts_' . md5( false !== $filters_json ? $filters_json : '' );
-		$cached       = get_transient( $cache_key );
+		$cached       = wp_cache_get( $cache_key, 'sscribe_audit' );
 		if ( false !== $cached ) {
-			return $cached;
+			return is_array( $cached ) ? $cached : array();
 		}
 
 		global $wpdb;
@@ -404,7 +418,7 @@ class SScribe_Audit_Trail {
 			)
 		);
 
-		set_transient( $cache_key, $result, 30 );
+		wp_cache_set( $cache_key, $result, 'sscribe_audit', 30 );
 		return $result;
 	}
 

@@ -45,7 +45,12 @@ class SScribe_Security {
 		$content      .= "  </IfModule>\n";
 		$content      .= "</Files>\n";
 
-		self::write_file( $htaccess_path, $content );
+		$existing_htaccess = is_file( $htaccess_path ) && ! is_link( $htaccess_path )
+			? file_get_contents( $htaccess_path ) // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Local plugin-owned guard file.
+			: false;
+		if ( $existing_htaccess !== $content ) {
+			self::write_file( $htaccess_path, $content );
+		}
 
 		$index_path = $dir . '/index.php';
 		if ( ! file_exists( $index_path ) ) {

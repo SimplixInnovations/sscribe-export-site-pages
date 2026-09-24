@@ -26,6 +26,12 @@ class SScribe_Page_Collector {
 	 */
 	private const CACHE_MAX_SIZE = 500;
 
+	/** Maximum exact export/readable-count size before reporting a capped total. */
+	public const COUNT_LIMIT = 10000;
+
+	/** Sentinel proving the readable/export limit has been exceeded or the bounded count became indeterminate. */
+	public const COUNT_SENTINEL = 10001;
+
 	/**
 	 * Cached featured images by page ID.
 	 *
@@ -74,6 +80,13 @@ class SScribe_Page_Collector {
 	private array $title_cache = array();
 
 	/**
+	 * Posts hydrated in bounded batches for permission checks.
+	 *
+	 * @var array<int, WP_Post|null>
+	 */
+	private array $readability_post_cache = array();
+
+	/**
 	 * Clear all page caches.
 	 *
 	 * @return void
@@ -84,6 +97,7 @@ class SScribe_Page_Collector {
 		$this->breadcrumb_cache      = array();
 		$this->permalink_cache       = array();
 		$this->title_cache           = array();
+		$this->readability_post_cache = array();
 	}
 
 	/**
@@ -151,7 +165,7 @@ class SScribe_Page_Collector {
 	public function get_page_ids( string $language = '', string $post_status = 'publish', string $post_type = 'page', int $limit = -1 ): array {
 
 		$filter_value = apply_filters( 'sscribe_use_chunked_page_ids', null );
-		if ( null !== $filter_value && false === $filter_value ) {
+		if ( null !== $filter_value && false === $filter_value && $limit <= 0 ) {
 
 			return $this->get_page_ids_direct( $language, $post_status, $post_type, $limit );
 		}
@@ -189,13 +203,18 @@ class SScribe_Page_Collector {
 		$post_status = $this->validate_post_status( $post_status );
 
 		$generation = $this->get_content_cache_generation();
-		$cache_key  = "sscribe_page_ids_v2_{$post_status}_{$generation}_" . md5( "{$language}_{$post_type}_{$limit}" );
+		$cache_key  = 'sscribe_page_ids_v3_' . $post_status . '_' . md5( "{$language}_{$post_type}_{$limit}" );
 		$cached     = get_transient( $cache_key );
-		if ( false !== $cached && is_array( $cached ) ) {
-			return $this->filter_readable_page_ids( $cached );
+		if (
+			is_array( $cached )
+			&& isset( $cached['generation'], $cached['ids'] )
+			&& (int) $cached['generation'] === $generation
+			&& is_array( $cached['ids'] )
+		) {
+			return $this->filter_readable_page_ids( $cached['ids'] );
 		}
 
-		$effective_limit = $limit > 0 ? min( $limit, 10000 ) : 10000;
+		$effective_limit = $limit > 0 ? min( $limit, self::COUNT_SENTINEL ) : self::COUNT_LIMIT;
 
 		$args = array(
 			'post_type'      => $this->resolve_post_type_for_query( $post_type ),
@@ -251,7 +270,14 @@ class SScribe_Page_Collector {
 			}
 		}
 
-		set_transient( $cache_key, $page_ids, 5 * MINUTE_IN_SECONDS );
+		set_transient(
+			$cache_key,
+			array(
+				'generation' => $generation,
+				'ids'        => $page_ids,
+			),
+			5 * MINUTE_IN_SECONDS
+		);
 
 		return $this->filter_readable_page_ids( $page_ids );
 	}
@@ -269,17 +295,85 @@ class SScribe_Page_Collector {
 	 * @return array<int> Readable post IDs.
 	 */
 	private function filter_readable_page_ids( array $page_ids ): array {
-		$readable = array();
-
-		foreach ( $page_ids as $page_id ) {
-			$page_id = absint( $page_id );
-			if ( $page_id <= 0 || ! $this->is_post_readable_for_export( $page_id ) ) {
-				continue;
-			}
-			$readable[] = $page_id;
+		$page_ids = array_values(
+			array_unique(
+				array_filter(
+					array_map( 'absint', $page_ids )
+				)
+			)
+		);
+		if ( empty( $page_ids ) ) {
+			return array();
 		}
 
-		return array_values( array_unique( $readable ) );
+		$readable = array();
+		foreach ( array_chunk( $page_ids, self::CACHE_MAX_SIZE ) as $chunk ) {
+			$this->prime_readability_posts( $chunk );
+
+			foreach ( $chunk as $page_id ) {
+				$post = $this->readability_post_cache[ $page_id ] ?? null;
+				if ( $post instanceof WP_Post && $this->is_post_readable_for_export( $page_id, $post ) ) {
+					$readable[] = $page_id;
+				}
+			}
+
+			// Readability hydration is a permission-check working set, not a
+			// long-lived page-data cache. Release each processed chunk so large
+			// inventories never retain thousands of WP_Post objects in memory.
+			foreach ( $chunk as $page_id ) {
+				unset( $this->readability_post_cache[ $page_id ] );
+			}
+		}
+
+		return $readable;
+	}
+
+	/**
+	 * Hydrate candidate posts in bounded bulk queries before permission checks.
+	 *
+	 * WP_Query requests that return only IDs do not prime the post-object cache.
+	 * Calling get_post() for every returned ID therefore becomes an N+1 query
+	 * pattern on large private/draft inventories. This helper loads the same
+	 * candidate set in chunks while keeping the final per-post read_post check.
+	 *
+	 * @param array<int> $page_ids Candidate IDs.
+	 * @return void
+	 */
+	private function prime_readability_posts( array $page_ids ): void {
+		$missing = array();
+		foreach ( $page_ids as $page_id ) {
+			$page_id = absint( $page_id );
+			if ( $page_id > 0 && ! array_key_exists( $page_id, $this->readability_post_cache ) ) {
+				$missing[] = $page_id;
+			}
+		}
+		if ( empty( $missing ) ) {
+			return;
+		}
+
+		foreach ( array_chunk( array_values( array_unique( $missing ) ), 500 ) as $chunk ) {
+			$posts = get_posts(
+				array(
+					'post__in'               => $chunk,
+					'post_type'              => $this->resolve_post_type_for_query( 'any' ),
+					'post_status'            => array_keys( $this->get_valid_post_statuses() ),
+					'posts_per_page'         => count( $chunk ),
+					'orderby'                => 'post__in',
+					'no_found_rows'          => true,
+					'update_post_meta_cache' => false,
+					'update_post_term_cache' => false,
+				)
+			);
+			$found = array();
+			foreach ( is_array( $posts ) ? $posts : array() as $post ) {
+				if ( $post->ID > 0 ) {
+					$found[ (int) $post->ID ] = $post;
+				}
+			}
+			foreach ( $chunk as $page_id ) {
+				$this->readability_post_cache[ $page_id ] = $found[ $page_id ] ?? null;
+			}
+		}
 	}
 
 	/**
@@ -291,11 +385,14 @@ class SScribe_Page_Collector {
 	 * meta-capability so private, draft, pending, and scheduled content keeps
 	 * the post type's native ownership/read-private policy.
 	 *
-	 * @param int $page_id Post ID.
+	 * @param int          $page_id Post ID.
+	 * @param WP_Post|null $post    Optional already-hydrated post.
 	 * @return bool Whether the current request may read the post.
 	 */
-	private function is_post_readable_for_export( int $page_id ): bool {
-		$post = get_post( $page_id );
+	private function is_post_readable_for_export( int $page_id, ?WP_Post $post = null ): bool {
+		if ( null === $post ) {
+			$post = get_post( $page_id );
+		}
 		if ( ! $post instanceof WP_Post ) {
 			return false;
 		}
@@ -340,11 +437,16 @@ class SScribe_Page_Collector {
 		$post_status = $this->validate_post_status( $post_status );
 		$post_types  = $this->resolve_post_type_for_query( $post_type );
 
-		$generation  = $this->get_content_cache_generation();
-		$cache_key   = 'sscribe_estimate_count_' . $generation . '_' . md5( $language . '|' . $post_status . '|' . ( is_array( $post_types ) ? implode( ',', $post_types ) : (string) $post_types ) );
-		$cached      = function_exists( 'get_transient' ) ? get_transient( $cache_key ) : false;
-		if ( is_int( $cached ) && $cached >= 0 ) {
-			return $cached;
+		$generation = $this->get_content_cache_generation();
+		$cache_key  = 'sscribe_estimate_count_v2_' . md5( $language . '|' . $post_status . '|' . ( is_array( $post_types ) ? implode( ',', $post_types ) : (string) $post_types ) );
+		$cached     = function_exists( 'get_transient' ) ? get_transient( $cache_key ) : false;
+		if (
+			is_array( $cached )
+			&& isset( $cached['generation'], $cached['count'] )
+			&& (int) $cached['generation'] === $generation
+			&& is_numeric( $cached['count'] )
+		) {
+			return max( 0, (int) $cached['count'] );
 		}
 
 		if ( is_array( $post_types ) ) {
@@ -364,7 +466,7 @@ class SScribe_Page_Collector {
 			);
 		}
 
-		if ( 'all' !== $post_status ) {
+		if ( 'any' !== $post_status ) {
 			$sql .= $wpdb->prepare( ' AND post_status = %s', $post_status );
 		}
 
@@ -374,7 +476,14 @@ class SScribe_Page_Collector {
 		// phpcs:enable
 
 		if ( function_exists( 'set_transient' ) ) {
-			set_transient( $cache_key, $count, MINUTE_IN_SECONDS );
+			set_transient(
+				$cache_key,
+				array(
+					'generation' => $generation,
+					'count'      => $count,
+				),
+				MINUTE_IN_SECONDS
+			);
 		}
 
 		return $count;
@@ -593,6 +702,120 @@ class SScribe_Page_Collector {
 	}
 
 	/**
+	 * Count readable non-public posts in one bounded multi-status scan.
+	 *
+	 * Published posts on public post types have a safe constant-time count path,
+	 * so they must never be paginated merely to compute an admin total. Only the
+	 * permission-sensitive statuses are hydrated and checked with read_post.
+	 * Candidate work is capped at the same 10,001 sentinel used by export
+	 * admission, which is sufficient to prove the 10,000-item release limit was
+	 * exceeded without turning a dashboard count into an unbounded inventory scan.
+	 *
+	 * @param string $language  Language code.
+	 * @param string $post_type Post type.
+	 * @return int Readable non-public post count, bounded by candidate sentinel.
+	 */
+	private function count_readable_nonpublic_posts( string $language, string $post_type ): int {
+		$statuses = array_values(
+			array_diff(
+				array_keys( $this->get_valid_post_statuses() ),
+				array( 'publish' )
+			)
+		);
+		if ( empty( $statuses ) ) {
+			return 0;
+		}
+
+		$total           = 0;
+		$candidates_seen = 0;
+		$page            = 1;
+		$chunk_size      = self::CACHE_MAX_SIZE;
+		$candidate_cap   = self::COUNT_SENTINEL;
+
+		do {
+			$args = array(
+				'post_type'      => $this->resolve_post_type_for_query( $post_type ),
+				'post_status'    => $statuses,
+				'posts_per_page' => $chunk_size,
+				'paged'          => $page,
+				'fields'         => 'ids',
+				'no_found_rows'  => true,
+				'orderby'        => array(
+					'menu_order' => 'ASC',
+					'title'      => 'ASC',
+					'ID'         => 'ASC',
+				),
+			);
+
+			$switched = false;
+			try {
+				if ( $this->is_wpml_active() ) {
+					$target_lang = ! empty( $language ) ? $language : 'all';
+					// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WPML hook.
+					do_action( 'wpml_switch_language', $target_lang );
+					$args['suppress_filters'] = false;
+					$switched                 = true;
+				}
+
+				$query = new WP_Query( $args );
+			} finally {
+				if ( $switched ) {
+					// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WPML hook.
+					do_action( 'wpml_switch_language', null );
+				}
+			}
+
+			$fetched = count( $query->posts );
+			if ( $fetched > 0 ) {
+				$remaining     = max( 0, $candidate_cap - $candidates_seen );
+				$candidate_ids = array_slice( $query->posts, 0, $remaining );
+				$candidates_seen += count( $candidate_ids );
+				if ( ! empty( $candidate_ids ) ) {
+					$total += count( $this->filter_readable_page_ids( $candidate_ids ) );
+				}
+			}
+
+			++$page;
+		} while ( $fetched >= $chunk_size && $candidates_seen < $candidate_cap );
+
+		// A full final page, or candidates discarded from a short final page,
+		// means the scan stopped before proving that the inventory ended.
+		// Readability may be sparse, so
+		// returning the number observed so far would be an incorrect exact count.
+		// COUNT_SENTINEL explicitly means "10,000+ / capped or indeterminate".
+		if ( $candidates_seen >= $candidate_cap && ( $fetched >= $chunk_size || $fetched > count( $candidate_ids ) ) ) {
+			return self::COUNT_SENTINEL;
+		}
+
+		return min( self::COUNT_SENTINEL, $total );
+	}
+
+	/**
+	 * Count readable posts across every selectable export status.
+	 *
+	 * The published portion uses get_page_count_only() so public post types take
+	 * the lightweight found_posts path. Non-public statuses share one bounded
+	 * readability scan, preventing work from scaling with the published inventory.
+	 *
+	 * @param string $language  Language code.
+	 * @param string $post_type Post type.
+	 * @return int Readable post count across all supported statuses.
+	 */
+	private function count_readable_posts_across_statuses( string $language, string $post_type ): int {
+		$published = $this->get_page_count_only( $language, 'publish', $post_type );
+		if ( $published > self::COUNT_LIMIT ) {
+			return self::COUNT_SENTINEL;
+		}
+
+		$nonpublic = $this->count_readable_nonpublic_posts( $language, $post_type );
+		if ( $nonpublic >= self::COUNT_SENTINEL || ( $published + $nonpublic ) > self::COUNT_LIMIT ) {
+			return self::COUNT_SENTINEL;
+		}
+
+		return $published + $nonpublic;
+	}
+
+	/**
 	 * Get page count only (lightweight).
 	 *
 	 * @param string $language    Language code.
@@ -603,9 +826,8 @@ class SScribe_Page_Collector {
 	public function get_page_count_only( string $language = '', string $post_status = 'publish', string $post_type = 'page' ): int {
 		$post_status = $this->validate_post_status( $post_status );
 
-		if ( 'all' === $post_status ) {
-			$counts = $this->get_post_status_counts( $language, $post_type );
-			return (int) ( $counts['all'] ?? 0 );
+		if ( 'any' === $post_status ) {
+			return $this->count_readable_posts_across_statuses( $language, $post_type );
 		}
 
 		// The found_posts fast path is safe only when every resolved post type
@@ -622,7 +844,7 @@ class SScribe_Page_Collector {
 				}
 			}
 			if ( ! $all_public ) {
-				return count( $this->get_page_ids( $language, $post_status, $post_type, 10001 ) );
+				return count( $this->get_page_ids( $language, $post_status, $post_type, self::COUNT_SENTINEL ) );
 			}
 
 			$args = array(
@@ -661,7 +883,31 @@ class SScribe_Page_Collector {
 		// unreadable private/draft content from aggregate counts. 10,001 is a
 		// deliberate sentinel: it is enough to prove that the 10,000-item export
 		// cap has been exceeded without turning a UI count into an unbounded scan.
-		return count( $this->get_page_ids( $language, $post_status, $post_type, 10001 ) );
+		return count( $this->get_page_ids( $language, $post_status, $post_type, self::COUNT_SENTINEL ) );
+	}
+
+	/**
+	 * Return a presentation-safe count with explicit capping metadata.
+	 *
+	 * COUNT_SENTINEL is intentionally never presented as an exact total. A
+	 * capped result means the bounded permission scan proved only that the
+	 * 10,000-item release/display limit was reached or that more candidate
+	 * work exists beyond the bounded dashboard scan.
+	 *
+	 * @param string $language    Language code.
+	 * @param string $post_status Post status.
+	 * @param string $post_type   Post type.
+	 * @return array{count:int,capped:bool,limit:int}
+	 */
+	public function get_page_count_summary( string $language = '', string $post_status = 'publish', string $post_type = 'page' ): array {
+		$count  = $this->get_page_count_only( $language, $post_status, $post_type );
+		$capped = $count >= self::COUNT_SENTINEL;
+
+		return array(
+			'count'  => $capped ? self::COUNT_LIMIT : $count,
+			'capped' => $capped,
+			'limit'  => self::COUNT_LIMIT,
+		);
 	}
 
 	/**
@@ -735,7 +981,7 @@ class SScribe_Page_Collector {
 			return false;
 		}
 
-		if ( ! $this->is_post_readable_for_export( $page_id ) ) {
+		if ( ! $this->is_post_readable_for_export( $page_id, $post_object ) ) {
 			return false;
 		}
 
@@ -946,37 +1192,46 @@ class SScribe_Page_Collector {
 			return array();
 		}
 
-		$args = array(
-			'post_type'              => $this->resolve_post_type_for_query( $post_type ),
-			'post_status'            => 'publish',
-			'posts_per_page'         => 500,
-			'post_parent__in'        => $page_ids,
-			'orderby'                => 'menu_order title',
-			'order'                  => 'ASC',
-
-			'no_found_rows'          => true,
-
-			'update_post_meta_cache' => false,
-			'update_post_term_cache' => false,
-		);
-
-		$query              = new WP_Query( $args );
+		$batch_size         = 500;
+		$paged              = 1;
 		$children_by_parent = array();
 
-		foreach ( $query->posts as $child ) {
-			if ( ! $this->is_post_readable_for_export( (int) $child->ID ) ) {
-				continue;
-			}
-			$parent_id = $child->post_parent;
-			if ( ! isset( $children_by_parent[ $parent_id ] ) ) {
-				$children_by_parent[ $parent_id ] = array();
-			}
-			$children_by_parent[ $parent_id ][] = array(
-				'id'    => $child->ID,
-				'title' => html_entity_decode( $child->post_title, ENT_QUOTES | ENT_HTML5, 'UTF-8' ),
-				'url'   => $this->get_permalink_cached( (int) $child->ID ),
+		do {
+			$args = array(
+				'post_type'              => $this->resolve_post_type_for_query( $post_type ),
+				'post_status'            => 'publish',
+				'posts_per_page'         => $batch_size,
+				'paged'                  => $paged,
+				'post_parent__in'        => $page_ids,
+				'orderby'                => array(
+					'menu_order' => 'ASC',
+					'title'      => 'ASC',
+					'ID'         => 'ASC',
+				),
+				'no_found_rows'          => true,
+				'update_post_meta_cache' => false,
+				'update_post_term_cache' => false,
 			);
-		}
+
+			$query = new WP_Query( $args );
+			foreach ( $query->posts as $child ) {
+				if ( ! $child instanceof WP_Post || ! $this->is_post_readable_for_export( (int) $child->ID, $child ) ) {
+					continue;
+				}
+				$parent_id = (int) $child->post_parent;
+				if ( ! isset( $children_by_parent[ $parent_id ] ) ) {
+					$children_by_parent[ $parent_id ] = array();
+				}
+				$children_by_parent[ $parent_id ][] = array(
+					'id'    => $child->ID,
+					'title' => html_entity_decode( $child->post_title, ENT_QUOTES | ENT_HTML5, 'UTF-8' ),
+					'url'   => $this->get_permalink_cached( (int) $child->ID ),
+				);
+			}
+
+			$loaded = count( $query->posts );
+			++$paged;
+		} while ( $loaded === $batch_size );
 
 		foreach ( $children_by_parent as $k => $v ) {
 			$this->cache_add( $this->child_pages_cache, $k, $v );
@@ -1010,26 +1265,10 @@ class SScribe_Page_Collector {
 			return $this->filter_readable_child_rows( $cached );
 		}
 
-		$children    = array();
-		$child_pages = get_children(
-			array(
-				'post_parent' => $page_id,
-				'post_type'   => $post_type,
-				'post_status' => 'publish',
-				'orderby'     => 'menu_order title',
-				'order'       => 'ASC',
-			)
-		);
-
-		if ( $child_pages ) {
-			foreach ( $child_pages as $child ) {
-				$children[] = array(
-					'id'    => $child->ID,
-					'title' => html_entity_decode( $child->post_title, ENT_QUOTES | ENT_HTML5, 'UTF-8' ),
-					'url'   => $this->get_permalink_cached( (int) $child->ID ),
-				);
-			}
-		}
+		$batch    = $this->get_child_pages_batch( array( $page_id ), $post_type );
+		$children = isset( $batch[ $page_id ] ) && is_array( $batch[ $page_id ] )
+			? $batch[ $page_id ]
+			: array();
 
 		wp_cache_set( $cache_key, $children, $cache_group, MINUTE_IN_SECONDS * 5 );
 		$this->child_pages_cache[ $page_id ] = $children;
@@ -1043,12 +1282,30 @@ class SScribe_Page_Collector {
 	 * @return array<int, array<string, mixed>> Readable child rows.
 	 */
 	private function filter_readable_child_rows( array $children ): array {
+		$ids = array();
+		foreach ( $children as $child ) {
+			if ( is_array( $child ) && isset( $child['id'] ) ) {
+				$id = absint( $child['id'] );
+				if ( $id > 0 ) {
+					$ids[] = $id;
+				}
+			}
+		}
+		$this->prime_readability_posts( $ids );
+
 		return array_values(
 			array_filter(
 				$children,
-				fn( $child ): bool => is_array( $child )
-					&& isset( $child['id'] )
-					&& $this->is_post_readable_for_export( absint( $child['id'] ) )
+				function ( $child ): bool {
+					if ( ! is_array( $child ) || ! isset( $child['id'] ) ) {
+						return false;
+					}
+					$id   = absint( $child['id'] );
+					$post = $this->readability_post_cache[ $id ] ?? null;
+					return $id > 0
+						&& $post instanceof WP_Post
+						&& $this->is_post_readable_for_export( $id, $post );
+				}
 			)
 		);
 	}
@@ -1110,7 +1367,11 @@ class SScribe_Page_Collector {
 					'post_status' => 'publish',
 					'fields'      => 'all',
 					'orderby'     => 'post__in',
-					'order'       => 'ASC',
+					'order'                  => 'ASC',
+					'posts_per_page'         => count( $ancestors ),
+					'no_found_rows'          => true,
+					'update_post_meta_cache' => false,
+					'update_post_term_cache' => false,
 				)
 			);
 
@@ -1123,7 +1384,7 @@ class SScribe_Page_Collector {
 			foreach ( $ancestors as $ancestor_id ) {
 				if (
 					! isset( $ancestor_map[ $ancestor_id ] )
-					|| ! $this->is_post_readable_for_export( (int) $ancestor_id )
+					|| ! $this->is_post_readable_for_export( (int) $ancestor_id, $ancestor_map[ $ancestor_id ] )
 				) {
 					continue;
 				}
@@ -1272,7 +1533,7 @@ class SScribe_Page_Collector {
 			$counts[ $status ] = $this->get_page_count_only( $language, $status, $post_type );
 		}
 
-		$counts['all'] = array_sum( $counts );
+		$counts['all'] = min( self::COUNT_SENTINEL, array_sum( $counts ) );
 
 		return $counts;
 	}
@@ -1299,7 +1560,7 @@ class SScribe_Page_Collector {
 		$status = sanitize_text_field( $status );
 		$valid  = array_keys( $this->get_valid_post_statuses() );
 
-		if ( 'all' === $status ) {
+		if ( in_array( $status, array( 'all', 'any' ), true ) ) {
 			return 'any';
 		}
 

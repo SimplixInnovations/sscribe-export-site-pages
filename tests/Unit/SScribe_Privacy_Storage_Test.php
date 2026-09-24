@@ -20,6 +20,36 @@ class SScribe_Privacy_Storage_Test extends TestCase {
 		SScribe_Session::test_reset();
 
 		$GLOBALS['sscribe_test_options'] = array();
+		$GLOBALS['sscribe_test_db_schema'] = array(
+			'wp_sscribe_audit_log' => array(
+				'id',
+				'event',
+				'user_id',
+				'ip_address',
+				'user_agent',
+				'request_uri',
+				'context',
+				'session_id',
+				'timestamp',
+			),
+			'wp_sscribe_export_stats' => array(
+				'id',
+				'export_session_id',
+				'user_id',
+				'export_date',
+				'status',
+				'total_pages',
+				'successful_pages',
+				'failed_pages',
+				'formats',
+				'error_message',
+			),
+		);
+		$GLOBALS['sscribe_test_db_indexes'] = array(
+			'wp_sscribe_audit_log'    => array( 'event', 'user_id', 'session_id', 'timestamp' ),
+			'wp_sscribe_export_stats' => array( 'export_session_id', 'user_id', 'export_date', 'status' ),
+		);
+
 		$GLOBALS['sscribe_test_db_tables'] = array(
 			'wp_sscribe_audit_log'    => array(
 				array(
@@ -85,8 +115,9 @@ class SScribe_Privacy_Storage_Test extends TestCase {
 	}
 
 	protected function tearDown(): void {
-		parent::tearDown();
+		unset( $GLOBALS['sscribe_test_db_schema'], $GLOBALS['sscribe_test_db_indexes'] );
 		SScribe_Session::test_reset();
+		parent::tearDown();
 	}
 
 	public function test_get_exports_by_user_returns_matching_rows_in_descending_date_order(): void {

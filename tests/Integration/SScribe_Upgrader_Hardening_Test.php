@@ -1,0 +1,161 @@
+<?php
+/**
+ * Upgrade-path hardening regressions.
+ *
+ * @package SScribe_Export_Site_Pages
+ */
+
+declare(strict_types=1);
+
+namespace SScribe\Tests\Integration;
+
+use PHPUnit\Framework\TestCase;
+
+final class SScribe_Upgrader_Hardening_Test extends TestCase {
+
+	private static function source(): string {
+		return (string) file_get_contents( dirname( __DIR__, 2 ) . '/includes/class-sscribe-upgrader.php' );
+	}
+
+	private static function activator_source(): string {
+		return (string) file_get_contents( dirname( __DIR__, 2 ) . '/includes/class-sscribe-activator.php' );
+	}
+
+	public function test_migrations_reuse_the_canonical_activation_schema(): void {
+		$upgrader  = self::source();
+		$activator = self::activator_source();
+
+		$this->assertStringNotContainsString( 'SHOW INDEX FROM', $upgrader );
+		$this->assertStringNotContainsString( 'SHOW COLUMNS FROM', $upgrader );
+		$this->assertStringNotContainsString( 'MODIFY COLUMN', $upgrader );
+		$this->assertStringContainsString( 'SScribe_Activator::create_database_tables( false )', $upgrader );
+		$this->assertDoesNotMatchRegularExpression(
+			'/["\']CREATE\\s+TABLE\\s+/i',
+			$upgrader,
+			'The upgrader must not own a second executable schema declaration.'
+		);
+
+		$this->assertStringContainsString( 'session_id VARCHAR(60)', $activator );
+		$this->assertStringContainsString( 'KEY idx_session_id (session_id)', $activator );
+		$this->assertStringContainsString( 'failed_pages INT UNSIGNED', $activator );
+	}
+
+	public function test_canonical_schema_verifies_every_runtime_column_before_recording_success(): void {
+		$source = self::activator_source();
+
+		$stats_start = strpos( $source, "self::assert_required_schema(\n\t\t\t\$table_stats" );
+		$this->assertNotFalse( $stats_start );
+		$stats_end = strpos( $source, ');', (int) $stats_start );
+		$this->assertNotFalse( $stats_end );
+		$stats_guard = substr( $source, (int) $stats_start, (int) $stats_end - (int) $stats_start );
+
+		foreach (
+			array(
+				'id',
+				'export_session_id',
+				'user_id',
+				'export_date',
+				'total_pages',
+				'successful_pages',
+				'failed_pages',
+				'formats',
+				'memory_peak',
+				'duration_seconds',
+				'file_size_mb',
+				'status',
+				'error_message',
+				'created_at',
+			) as $column
+		) {
+			$this->assertStringContainsString( "'{$column}'", $stats_guard, "Stats schema admission must verify {$column}." );
+		}
+
+		$audit_start = strpos( $source, "self::assert_required_schema(\n\t\t\t\$wpdb->prefix . 'sscribe_audit_log'" );
+		$this->assertNotFalse( $audit_start );
+		$audit_end = strpos( $source, ');', (int) $audit_start );
+		$this->assertNotFalse( $audit_end );
+		$audit_guard = substr( $source, (int) $audit_start, (int) $audit_end - (int) $audit_start );
+
+		foreach (
+			array( 'id', 'timestamp', 'event', 'user_id', 'ip_address', 'user_agent', 'request_uri', 'context', 'session_id' ) as $column
+		) {
+			$this->assertStringContainsString( "'{$column}'", $audit_guard, "Audit schema admission must verify {$column}." );
+		}
+	}
+
+	public function test_canonical_schema_verifies_required_indexes_before_recording_success(): void {
+		$source = self::activator_source();
+
+		$this->assertStringContainsString( 'assert_required_indexes(', $source );
+		foreach (
+			array(
+				'idx_timestamp',
+				'idx_level',
+				'idx_user_id',
+				'idx_request_id',
+				'idx_session_id',
+				'idx_export_session_id',
+				'idx_export_date',
+				'idx_status',
+				'idx_event',
+				'idx_ip_address',
+			) as $required_index
+		) {
+			$this->assertStringContainsString(
+				"'{$required_index}'",
+				$source,
+				"Canonical schema admission must verify {$required_index}."
+			);
+		}
+		$this->assertStringContainsString(
+			'SHOW INDEX FROM',
+			$source,
+			'Required indexes must be verified through a database query before the schema version advances.'
+		);
+	}
+
+	public function test_canonical_schema_fails_closed_when_dbdelta_is_unavailable(): void {
+		$source = self::activator_source();
+		$this->assertMatchesRegularExpression(
+			"/function_exists\(\s*'dbDelta'\s*\)/",
+			$source,
+			'Canonical schema reconciliation must verify dbDelta exists after loading upgrade.php.'
+		);
+	}
+
+
+	public function test_dbdelta_errors_are_checked_before_schema_version_can_advance(): void {
+		$activator = self::activator_source();
+		$upgrader  = self::source();
+
+		$this->assertStringContainsString(
+			'run_dbdelta_or_throw',
+			$activator,
+			'Canonical schema reconciliation must pass through one fail-closed dbDelta wrapper.'
+		);
+		$this->assertStringContainsString(
+			'$wpdb->last_error',
+			$activator,
+			'dbDelta failures must be inspected explicitly because dbDelta can report SQL errors without throwing.'
+		);
+		$this->assertStringContainsString(
+			'assert_required_schema',
+			$activator,
+			'Canonical reconciliation must verify required columns before recording the schema version.'
+		);
+		$this->assertStringContainsString(
+			'SScribe_Activator::create_database_tables( false )',
+			$upgrader,
+			'Runtime upgrades must reconcile without advancing schema_version prematurely.'
+		);
+	}
+
+	public function test_failed_upgrade_has_context_gate_and_exponential_retry_backoff(): void {
+		$source = self::source();
+		$this->assertStringContainsString( 'should_attempt_upgrade', $source );
+		$this->assertStringContainsString( 'sscribe_upgrade_next_attempt', $source );
+		$this->assertStringContainsString( 'sscribe_upgrade_failures', $source );
+		$this->assertStringContainsString( 'record_upgrade_failure', $source );
+		$this->assertStringContainsString( 'clear_upgrade_failure_state', $source );
+	}
+}

@@ -153,10 +153,6 @@ class SScribe {
 		$this->loader->add_action( 'admin_init', $admin, 'maybe_redirect_after_activation' );
 		$this->loader->add_action( 'admin_enqueue_scripts', $admin, 'enqueue_admin_assets' );
 		$this->loader->add_action( 'admin_notices', $this, 'render_vendor_dependency_notice' );
-		$this->loader->add_action( 'save_post', $this, 'invalidate_admin_page_cache' );
-		$this->loader->add_action( 'trashed_post', $this, 'invalidate_admin_page_cache' );
-		$this->loader->add_action( 'deleted_post', $this, 'invalidate_admin_page_cache' );
-		$this->loader->add_action( 'untrashed_post', $this, 'invalidate_admin_page_cache' );
 		$this->loader->add_filter( 'plugin_action_links_' . SSCRIBE_PLUGIN_BASENAME, $admin, 'add_plugin_action_links' );
 	}
 
@@ -165,6 +161,15 @@ class SScribe {
 	 */
 	public function render_vendor_dependency_notice(): void {
 		if ( ! current_user_can( SScribe_Capabilities::get_required() ) ) {
+			return;
+		}
+
+		if ( ! function_exists( 'get_current_screen' ) ) {
+			return;
+		}
+		$screen    = get_current_screen();
+		$screen_id = $screen ? (string) $screen->id : '';
+		if ( ! in_array( $screen_id, array( 'toplevel_page_sscribe-export', 'plugins', 'plugins-network' ), true ) ) {
 			return;
 		}
 
@@ -190,12 +195,11 @@ class SScribe {
 	/**
 	 * Invalidate admin page cache when posts are saved.
 	 *
-	 * Bumps the global content cache generation option. All transient and
-	 * object-cache keys that participate in content-derived lookups include
-	 * the generation, so an increment is sufficient to invalidate the entire
-	 * population of cached page-ID lists, status counts, breadcrumbs, and
-	 * featured-image lookups without having to enumerate each key. Old keys
-	 * naturally TTL out (5 minutes for page IDs, 1 hour for status counts).
+	 * Bumps the global content cache generation option. Stable transient keys
+	 * store that generation inside their payload, while request/object caches
+	 * are refreshed by the normal WordPress cache lifecycle. A generation
+	 * mismatch invalidates content-derived values without creating a new
+	 * wp_options transient key after every content mutation.
 	 *
 	 * @param int $post_id Post ID that was saved.
 	 */
@@ -204,8 +208,11 @@ class SScribe {
 			return;
 		}
 
-		$post_type = get_post_type( $post_id );
-		if ( ! $post_type || ! in_array( $post_type, array( 'page', 'post' ), true ) ) {
+		// Do not hard-code page/post here. Selectable custom post types may be
+		// added through WordPress registration/filtering and are valid SScribe
+		// export sources; any real post mutation can therefore invalidate the
+		// shared content-derived caches.
+		if ( ! get_post_type( $post_id ) ) {
 			return;
 		}
 
@@ -241,53 +248,114 @@ class SScribe {
 	}
 
 	/**
+	 * Register content-mutation hooks that must remain active for every request
+	 * type, including REST/front-end writes.
+	 */
+	private function define_content_hooks(): void {
+		$this->loader->add_action( 'save_post', $this, 'invalidate_admin_page_cache' );
+		$this->loader->add_action( 'trashed_post', $this, 'invalidate_admin_page_cache' );
+		$this->loader->add_action( 'deleted_post', $this, 'invalidate_admin_page_cache' );
+		$this->loader->add_action( 'untrashed_post', $this, 'invalidate_admin_page_cache' );
+	}
+
+	/**
 	 * Register AJAX hooks for background processing.
 	 */
 	private function define_ajax_hooks(): void {
 		$container = SScribe_Container::instance();
-		$batch     = $container->get( SScribe_Batch_Processor::class );
-		$cap       = SScribe_Capabilities::get_required();
-		$health_cap      = SScribe_Capabilities::get_health_required();
+
+		// Debug endpoints are lightweight to register. Their filesystem/rate
+		// limiter work happens only inside the callbacks when the AJAX hook fires.
+		$debug = new SScribe_Admin_Debug();
+		$debug->register_hooks();
+
+		$batch_resolver = static function () use ( $container ): SScribe_Batch_Processor {
+			$service = $container->get( SScribe_Batch_Processor::class );
+			if ( ! $service instanceof SScribe_Batch_Processor ) {
+				throw new LogicException( 'SScribe batch processor service is unavailable.' );
+			}
+			return $service;
+		};
+
+		$cap              = SScribe_Capabilities::get_required();
+		$health_cap       = SScribe_Capabilities::get_health_required();
 		$language_request = new SScribe_Language_Request();
 
 		// Translate the UI-only __all__ sentinel before the guarded Preview/Start
-		// callbacks read request data. Count endpoints intentionally retain it.
-		$this->loader->add_action( 'wp_ajax_sscribe_start_export', $language_request, 'normalize_for_export_endpoint', 1, 0 );
-		$this->loader->add_action( 'wp_ajax_sscribe_get_export_preview', $language_request, 'normalize_for_export_endpoint', 1, 0 );
+		// callbacks read request data. The normalizer is guarded too: no SScribe
+		// wp_ajax_* callback is permitted to run before nonce/capability checks.
+		$this->loader->add_guarded_ajax_action(
+			'wp_ajax_sscribe_start_export',
+			$language_request,
+			'normalize_for_export_endpoint',
+			$cap,
+			'sscribe_export_nonce',
+			'nonce',
+			1,
+			0
+		);
+		$this->loader->add_guarded_ajax_action(
+			'wp_ajax_sscribe_get_export_preview',
+			$language_request,
+			'normalize_for_export_endpoint',
+			$cap,
+			'sscribe_export_nonce',
+			'nonce',
+			1,
+			0
+		);
 
-		$this->loader->add_guarded_ajax_action( 'wp_ajax_sscribe_start_export', $batch, 'ajax_start_export', $cap );
-		$this->loader->add_guarded_ajax_action( 'wp_ajax_sscribe_process_batch', $batch, 'ajax_process_batch', $cap );
-		$this->loader->add_guarded_ajax_action( 'wp_ajax_sscribe_finalize_export', $batch, 'ajax_finalize_export', $cap );
-		$this->loader->add_guarded_ajax_action( 'wp_ajax_sscribe_download', $batch, 'ajax_download', $cap, 'sscribe_download' );
-		$this->loader->add_guarded_ajax_action( 'wp_ajax_sscribe_get_status_counts', $batch, 'ajax_get_status_counts', $cap );
-		$this->loader->add_guarded_ajax_action( 'wp_ajax_sscribe_get_all_status_counts', $batch, 'ajax_get_all_status_counts', $cap );
-		$this->loader->add_guarded_ajax_action( 'wp_ajax_sscribe_cancel_export', $batch, 'ajax_cancel_export', $cap );
-		$this->loader->add_guarded_ajax_action( 'wp_ajax_sscribe_delete_export', $batch, 'ajax_delete_export', $cap, 'sscribe_download' );
-		$this->loader->add_guarded_ajax_action( 'wp_ajax_sscribe_get_export_log', $batch, 'ajax_get_export_log', $cap, 'sscribe_download' );
-		$this->loader->add_guarded_ajax_action( 'wp_ajax_sscribe_clear_session', $batch, 'ajax_clear_session', $cap );
-		$this->loader->add_guarded_ajax_action( 'wp_ajax_sscribe_preflight_check', $batch, 'ajax_preflight_check', $cap );
-		$this->loader->add_guarded_ajax_action( 'wp_ajax_sscribe_get_export_preview', $batch, 'ajax_get_export_preview', $cap );
-		$this->loader->add_guarded_ajax_action( 'wp_ajax_sscribe_get_recent_exports', $batch, 'ajax_get_recent_exports', $cap );
-		$this->loader->add_guarded_ajax_action( 'wp_ajax_sscribe_get_support_info', $batch, 'ajax_get_support_info', $health_cap, 'sscribe_health_nonce' );
-		$this->loader->add_guarded_ajax_action( 'wp_ajax_sscribe_check_active_session', $batch, 'ajax_check_active_session', $cap );
+		$this->loader->add_guarded_lazy_ajax_action( 'wp_ajax_sscribe_start_export', $batch_resolver, 'ajax_start_export', $cap );
+		$this->loader->add_guarded_lazy_ajax_action( 'wp_ajax_sscribe_process_batch', $batch_resolver, 'ajax_process_batch', $cap );
+		$this->loader->add_guarded_lazy_ajax_action( 'wp_ajax_sscribe_finalize_export', $batch_resolver, 'ajax_finalize_export', $cap );
+		$this->loader->add_guarded_lazy_ajax_action( 'wp_ajax_sscribe_download', $batch_resolver, 'ajax_download', $cap, 'sscribe_download' );
+		$this->loader->add_guarded_lazy_ajax_action( 'wp_ajax_sscribe_get_status_counts', $batch_resolver, 'ajax_get_status_counts', $cap );
+		$this->loader->add_guarded_lazy_ajax_action( 'wp_ajax_sscribe_get_all_status_counts', $batch_resolver, 'ajax_get_all_status_counts', $cap );
+		$this->loader->add_guarded_lazy_ajax_action( 'wp_ajax_sscribe_cancel_export', $batch_resolver, 'ajax_cancel_export', $cap );
+		$this->loader->add_guarded_lazy_ajax_action( 'wp_ajax_sscribe_delete_export', $batch_resolver, 'ajax_delete_export', $cap, 'sscribe_download' );
+		$this->loader->add_guarded_lazy_ajax_action( 'wp_ajax_sscribe_get_export_log', $batch_resolver, 'ajax_get_export_log', $cap, 'sscribe_download' );
+		$this->loader->add_guarded_lazy_ajax_action( 'wp_ajax_sscribe_clear_session', $batch_resolver, 'ajax_clear_session', $cap );
+		$this->loader->add_guarded_lazy_ajax_action( 'wp_ajax_sscribe_preflight_check', $batch_resolver, 'ajax_preflight_check', $cap );
+		$this->loader->add_guarded_lazy_ajax_action( 'wp_ajax_sscribe_get_export_preview', $batch_resolver, 'ajax_get_export_preview', $cap );
+		$this->loader->add_guarded_lazy_ajax_action( 'wp_ajax_sscribe_get_recent_exports', $batch_resolver, 'ajax_get_recent_exports', $cap );
+		$this->loader->add_guarded_lazy_ajax_action( 'wp_ajax_sscribe_get_support_info', $batch_resolver, 'ajax_get_support_info', $health_cap, 'sscribe_health_nonce' );
+		$this->loader->add_guarded_lazy_ajax_action( 'wp_ajax_sscribe_check_active_session', $batch_resolver, 'ajax_check_active_session', $cap );
 	}
 
 	/**
 	 * Register scheduled task hooks.
 	 */
 	private function define_cron_hooks(): void {
-		$container = SScribe_Container::instance();
-		$zip       = $container->get( SScribe_Zip_Handler::class );
-		$this->loader->add_action( 'sscribe_cleanup_exports', $zip, 'cleanup_expired' );
-
+		$this->loader->add_action( 'sscribe_cleanup_exports', $this, 'cleanup_exports' );
 		$this->loader->add_action( 'sscribe_cleanup_sessions', $this, 'cleanup_sessions' );
-		$this->loader->add_action(
-			'sscribe_cleanup_sessions',
-			$container->get( SScribe_Session::class ),
-			'maybe_rotate_signing_key',
-			99
-		);
+		$this->loader->add_action( 'sscribe_cleanup_sessions', $this, 'rotate_session_signing_key', 99 );
 		$this->loader->add_action( 'sscribe_cleanup_audit_trail', $this, 'cleanup_audit_trail' );
+	}
+
+	/**
+	 * Clean up expired export artifacts when the scheduled hook fires.
+	 *
+	 * @throws LogicException When the ZIP handler service cannot be resolved.
+	 */
+	public function cleanup_exports(): void {
+		$zip = SScribe_Container::instance()->get( SScribe_Zip_Handler::class );
+		if ( ! $zip instanceof SScribe_Zip_Handler ) {
+			throw new LogicException( 'SScribe ZIP handler service is unavailable.' );
+		}
+		$zip->cleanup_expired();
+	}
+
+	/**
+	 * Rotate the session signing key only when the scheduled hook fires.
+	 *
+	 * @throws LogicException When the session service cannot be resolved.
+	 */
+	public function rotate_session_signing_key(): void {
+		$session = SScribe_Container::instance()->get( SScribe_Session::class );
+		if ( ! $session instanceof SScribe_Session ) {
+			throw new LogicException( 'SScribe session service is unavailable.' );
+		}
+		$session->maybe_rotate_signing_key();
 	}
 
 	/**
@@ -373,11 +441,22 @@ class SScribe {
 		\SScribe_Request_Id::current();
 
 		$this->register_services();
-		$this->define_admin_hooks();
+
+		$is_ajax_request  = function_exists( 'wp_doing_ajax' ) && wp_doing_ajax();
+		$is_admin_request = function_exists( 'is_admin' ) && is_admin();
+
+		// Register hook names globally, but keep heavyweight service resolution
+		// lazy. WordPress, WP-CLI, tests, and direct do_action() callers are then
+		// free to dispatch the hooks without requiring request-mode globals.
+		$this->define_content_hooks();
+		$this->define_privacy_hooks();
 		$this->define_ajax_hooks();
 		$this->define_cron_hooks();
 		$this->define_lifecycle_hooks();
-		$this->define_privacy_hooks();
+
+		if ( $is_admin_request && ! $is_ajax_request ) {
+			$this->define_admin_hooks();
+		}
 
 		$this->loader->run();
 	}

@@ -185,11 +185,38 @@ test.describe('a11y / admin-tabs', () => {
     expect(activeId).not.toBeNull();
     const activePanel = adminPage.locator(`#${activeId}`);
     expect(await activePanel.getAttribute('aria-hidden')).toBe('false');
+    await expect(activePanel).not.toHaveAttribute('hidden', /.+/);
+
+    // Every inactive panel must be removed from sequential focus/navigation,
+    // not merely labelled aria-hidden.
+    const inactivePanels = adminPage.locator('.sscribe-tab-content[aria-hidden="true"]');
+    const inactiveCount = await inactivePanels.count();
+    expect(inactiveCount).toBeGreaterThan(0);
+    for (let i = 0; i < inactiveCount; i += 1) {
+      await expect(inactivePanels.nth(i)).toHaveAttribute('hidden', '');
+    }
 
     // aria-selected toggles when a different tab is clicked.
     const historyTab = adminPage.locator('#sscribe-tab-btn-history');
     await historyTab.click();
     await expect(historyTab).toHaveAttribute('aria-selected', 'true');
     await expect(adminPage.locator('#sscribe-tab-btn-export')).toHaveAttribute('aria-selected', 'false');
+  });
+
+  test('toast dismissal is a real keyboard-operable button', async ({ adminPage }) => {
+    await adminPage.goto('/wp-admin/admin.php?page=sscribe-export');
+
+    await adminPage.evaluate(() => {
+      (window as any).SScribe.showToast('Keyboard dismiss probe', 'info', 0);
+    });
+
+    const toast = adminPage.locator('.sscribe-toast').filter({ hasText: 'Keyboard dismiss probe' });
+    await expect(toast).toBeVisible();
+    const dismiss = toast.locator('button.sscribe-toast-dismiss');
+    await expect(dismiss).toBeVisible();
+    await dismiss.focus();
+    await expect(dismiss).toBeFocused();
+    await adminPage.keyboard.press('Enter');
+    await expect(toast).toHaveCount(0, { timeout: 1500 });
   });
 });

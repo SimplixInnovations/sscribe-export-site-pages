@@ -268,17 +268,18 @@ final class SScribe_Release_Blockers_Test extends TestCase {
 		$path = $this->repo_root . '/includes/class-sscribe-batch-processor.php';
 		$src  = (string) file_get_contents( $path );
 
-		$cap_marker   = '$page_id_cap    = 10000;';
-		$query_marker = '$page_ids      = $this->collector->get_page_ids( $language, $post_status, $post_type, $page_id_cap );';
-		$cap_pos      = strpos( $src, $cap_marker );
-		$query_pos    = strpos( $src, $query_marker );
+		$cap_pos      = strpos( $src, 'SScribe_Page_Collector::COUNT_LIMIT' );
+		$sentinel_pos = strpos( $src, 'SScribe_Page_Collector::COUNT_SENTINEL', false === $cap_pos ? 0 : $cap_pos );
+		$slice_pos    = strpos( $src, 'array_slice( $page_ids_probe, 0, $page_id_cap )', false === $sentinel_pos ? 0 : $sentinel_pos );
 
-		$this::assertNotFalse( $cap_pos, 'Start-export must declare its hard page-ID cap.' );
+		$this::assertNotFalse( $cap_pos, 'Start-export must bind to the canonical hard page-ID cap.' );
 		$this::assertNotFalse(
-			$query_pos,
-			'Start-export must pass the declared cap into page-ID collection so the chunked path cannot become unbounded.'
+			$sentinel_pos,
+			'Start-export must collect one extra readable ID so truncation is proven from the actual export candidate set.'
 		);
-		$this::assertLessThan( $query_pos, $cap_pos, 'The cap must be defined before the bounded collection call.' );
+		$this::assertNotFalse( $slice_pos, 'Only after the readable sentinel is observed may the export list be sliced to the hard cap.' );
+		$this::assertLessThan( $sentinel_pos, $cap_pos, 'The hard cap must be resolved before the sentinel collection call.' );
+		$this::assertLessThan( $slice_pos, $sentinel_pos, 'The sentinel collection must happen before the capped export slice.' );
 	}
 
 	public function test_runtime_evidence_is_bound_to_exact_release_identity(): void {

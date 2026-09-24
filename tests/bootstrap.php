@@ -1098,6 +1098,8 @@ $sscribe_test_db_tables = array(
 	'wp_sscribe_audit_log'    => array(),
 	'wp_sscribe_export_stats' => array(),
 );
+$sscribe_test_db_schema  = array();
+$sscribe_test_db_indexes = array();
 $sscribe_test_http_response = array();
 $sscribe_test_filters       = array();
 $sscribe_test_actions       = array();
@@ -1117,6 +1119,10 @@ $sscribe_test_ajax_nonce_valid = true;
 		public string $prefix = 'wp_';
 		public string $options = 'wp_options';
 		public string $posts = 'wp_posts';
+		public bool $suppress_errors = false;
+		public string $last_error = '';
+		/** @var array<int, object> Column metadata from the latest SELECT, mirroring wpdb::$col_info. */
+		public array $col_info = array();
 
 		public function __construct( $dbuser = '', $dbpassword = '', $dbname = '', $dbhost = '' ) {
 		}
@@ -1152,6 +1158,12 @@ $sscribe_test_ajax_nonce_valid = true;
 			return (string) $data;
 		}
 
+		public function suppress_errors( $suppress = true ) {
+			$previous = $this->suppress_errors;
+			$this->suppress_errors = (bool) $suppress;
+			return $previous;
+		}
+
 		public function get_charset_collate() {
 			return 'CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci';
 		}
@@ -1162,16 +1174,53 @@ $sscribe_test_ajax_nonce_valid = true;
 
 
 			if ( preg_match( "/SHOW TABLES LIKE\s+['`]([^'`]+)['`]/i", $query, $matches ) ) {
-				return array_key_exists( $matches[1], (array) $sscribe_test_db_tables ) ? $matches[1] : null;
+				$table_name = str_replace( array( '\\_', '\\%', '\\\\' ), array( '_', '%', '\\' ), $matches[1] );
+				return array_key_exists( $table_name, (array) $sscribe_test_db_tables ) ? $table_name : null;
 			}
 
 			return null;
 		}
 
 		public function query( $query ) {
-			global $sscribe_test_db_tables;
+			global $sscribe_test_db_tables, $sscribe_test_db_schema;
 
-			if ( preg_match( '/DELETE\s+FROM\s+(\w+)/i', $query, $matches ) ) {
+			$this->last_error = '';
+
+			if ( preg_match( '/SELECT\s+(.+?)\s+FROM\s+[`]?([A-Za-z0-9_]+)[`]?\s+WHERE\s+1\s*=\s*0/i', (string) $query, $matches ) ) {
+				$table = $matches[2];
+				if (
+					! array_key_exists( $table, (array) $sscribe_test_db_tables )
+					|| ! isset( $sscribe_test_db_schema[ $table ] )
+					|| ! is_array( $sscribe_test_db_schema[ $table ] )
+				) {
+					$this->col_info   = array();
+					$this->last_error = "Table {$table} does not exist";
+					return false;
+				}
+
+				$selected_columns = array();
+				if ( '*' === trim( $matches[1] ) ) {
+					$selected_columns = array_values( $sscribe_test_db_schema[ $table ] );
+				} else {
+					preg_match_all( '/`([A-Za-z0-9_]+)`/', $matches[1], $column_matches );
+					$selected_columns = array_values( $column_matches[1] );
+					foreach ( $selected_columns as $column ) {
+						if ( ! in_array( $column, $sscribe_test_db_schema[ $table ], true ) ) {
+							$this->col_info   = array();
+							$this->last_error = "Unknown column {$column}";
+							return false;
+						}
+					}
+				}
+
+				$this->col_info = array_map(
+					static fn( string $column ): object => (object) array( 'name' => $column ),
+					$selected_columns
+				);
+				return 0;
+			}
+
+			if ( preg_match( '/DELETE\s+FROM\s+(\w+)/i', (string) $query, $matches ) ) {
 				$table = $matches[1];
 				if ( isset( $sscribe_test_db_tables[ $table ] ) && is_array( $sscribe_test_db_tables[ $table ] ) ) {
 					$count = count( $sscribe_test_db_tables[ $table ] );
@@ -1185,13 +1234,42 @@ $sscribe_test_ajax_nonce_valid = true;
 		}
 
 
+		public function get_col_info( $info_type = 'name', $col_offset = -1 ) {
+			$values = array_map(
+				static fn( object $column ) => $column->{$info_type} ?? null,
+				$this->col_info
+			);
+			if ( -1 === $col_offset ) {
+				return $values;
+			}
+			return $values[ $col_offset ] ?? null;
+		}
+
 		public function get_col( $query ) {
 			unset( $query );
 			return array();
 		}
 
 		public function get_results( $query, $output = null ) {
-			global $sscribe_test_options, $sscribe_test_db_tables;
+			global $sscribe_test_options, $sscribe_test_db_tables, $sscribe_test_db_indexes, $sscribe_test_db_schema;
+
+			$this->last_error = '';
+
+			if ( preg_match( '/SHOW\s+INDEX\s+FROM\s+[`]?([A-Za-z0-9_]+)[`]?/i', (string) $query, $matches ) ) {
+				$table = $matches[1];
+				if (
+					! array_key_exists( $table, (array) $sscribe_test_db_tables )
+					|| ! isset( $sscribe_test_db_schema[ $table ] )
+				) {
+					$this->last_error = "Table {$table} does not exist";
+					return array();
+				}
+
+				return array_map(
+					static fn( string $name ): object => (object) array( 'Key_name' => $name ),
+					array_values( $sscribe_test_db_indexes[ $table ] ?? array() )
+				);
+			}
 
 			if ( false !== strpos( $query, $this->options ) && preg_match_all( "/LIKE '([^']+)'/i", $query, $like_matches ) ) {
 				$patterns = array();
@@ -1406,6 +1484,7 @@ if ( ! function_exists( 'wp_reset_postdata' ) ) {
 
 if ( ! function_exists( 'get_post' ) ) {
 	function get_post( $post = null ) {
+		$GLOBALS['sscribe_test_get_post_calls'] = (int) ( $GLOBALS['sscribe_test_get_post_calls'] ?? 0 ) + 1;
 		if ( $post instanceof WP_Post ) {
 			return $post;
 		}
@@ -1415,6 +1494,26 @@ if ( ! function_exists( 'get_post' ) ) {
 			return $p;
 		}
 		return null;
+	}
+}
+
+if ( ! function_exists( 'get_posts' ) ) {
+	function get_posts( $args = array() ) {
+		$GLOBALS['sscribe_test_get_posts_calls'] = (int) ( $GLOBALS['sscribe_test_get_posts_calls'] ?? 0 ) + 1;
+		$ids = isset( $args['post__in'] ) && is_array( $args['post__in'] ) ? $args['post__in'] : array();
+		$posts = array();
+		foreach ( $ids as $id ) {
+			$post = new WP_Post();
+			$post->ID = (int) $id;
+			$post->post_status = isset( $GLOBALS['sscribe_test_get_posts_post_status'] )
+				? (string) $GLOBALS['sscribe_test_get_posts_post_status']
+				: 'publish';
+			$post->post_type = isset( $GLOBALS['sscribe_test_get_posts_post_type'] )
+				? (string) $GLOBALS['sscribe_test_get_posts_post_type']
+				: 'page';
+			$posts[] = $post;
+		}
+		return $posts;
 	}
 }
 
@@ -1767,9 +1866,11 @@ if ( ! function_exists( 'apply_filters' ) ) {
 }
 
 if ( ! function_exists( 'current_user_can' ) ) {
-	function current_user_can( $capability ) {
+	function current_user_can( $capability, ...$args ) {
 		global $sscribe_test_current_user_can;
-		unset( $capability );
+		if ( isset( $GLOBALS['sscribe_test_current_user_can_callback'] ) && is_callable( $GLOBALS['sscribe_test_current_user_can_callback'] ) ) {
+			return (bool) call_user_func( $GLOBALS['sscribe_test_current_user_can_callback'], $capability, ...$args );
+		}
 		return (bool) $sscribe_test_current_user_can;
 	}
 }
@@ -1958,6 +2059,19 @@ if ( ! function_exists( 'selected' ) ) {
 	}
 }
 
+if ( ! function_exists( 'disabled' ) ) {
+	/**
+	 * Test stub for WordPress's disabled().
+	 */
+	function disabled( $disabled, $current = true, $display = true ) {
+		$result = ( $disabled == $current ) ? 'disabled="disabled"' : '';
+		if ( $display ) {
+			echo $result;
+		}
+		return $result;
+	}
+}
+
 if ( ! function_exists( 'wp_delete_file' ) ) {
 	function wp_delete_file( $sscribe_file ) {
 		if ( file_exists( $sscribe_file ) ) {
@@ -1992,8 +2106,49 @@ if ( ! defined( 'HOUR_IN_SECONDS' ) ) {
 // assertions on sscribe_schema_version / sscribe_version can succeed.
 if ( ! function_exists( 'dbDelta' ) ) {
 	function dbDelta( $queries = '', $execute = true ) {
-		unset( $queries, $execute );
-		return array();
+		global $sscribe_test_db_tables, $sscribe_test_db_schema, $sscribe_test_db_indexes;
+
+		unset( $execute );
+		$statements = is_array( $queries ) ? $queries : array( $queries );
+		$changes    = array();
+
+		foreach ( $statements as $sql ) {
+			if ( ! is_string( $sql ) || ! preg_match( '/CREATE\s+TABLE\s+[`]?([A-Za-z0-9_]+)[`]?\s*\((.*)\)\s*[^;]*;/is', $sql, $matches ) ) {
+				continue;
+			}
+
+			$table   = $matches[1];
+			$body    = $matches[2];
+			$columns = array();
+			$indexes = array();
+
+			foreach ( preg_split( '/\r?\n/', $body ) as $line ) {
+				$line = trim( (string) $line, " \t\n\r\0\x0B," );
+				if ( '' === $line ) {
+					continue;
+				}
+
+				if ( preg_match( '/^(?:UNIQUE\s+)?KEY\s+[`]?([A-Za-z0-9_]+)[`]?\s*\(/i', $line, $index_match ) ) {
+					$indexes[] = $index_match[1];
+					continue;
+				}
+				if ( preg_match( '/^(?:PRIMARY|FULLTEXT|SPATIAL|CONSTRAINT)\b/i', $line ) ) {
+					continue;
+				}
+				if ( preg_match( '/^[`]?([A-Za-z0-9_]+)[`]?\s+/i', $line, $column_match ) ) {
+					$columns[] = $column_match[1];
+				}
+			}
+
+			$sscribe_test_db_schema[ $table ]  = array_values( array_unique( $columns ) );
+			$sscribe_test_db_indexes[ $table ] = array_values( array_unique( $indexes ) );
+			if ( ! isset( $sscribe_test_db_tables[ $table ] ) || ! is_array( $sscribe_test_db_tables[ $table ] ) ) {
+				$sscribe_test_db_tables[ $table ] = array();
+			}
+			$changes[] = "Created table {$table}";
+		}
+
+		return $changes;
 	}
 }
 
