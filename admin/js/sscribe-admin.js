@@ -2069,7 +2069,9 @@
 					.fadeIn(400, function () {
 						const safeDownloadUrl = data.download_url ? self.getSafeSameOriginUrl(data.download_url) : '';
 						if (safeDownloadUrl) {
-							$('#sscribe-download-btn').attr('href', safeDownloadUrl).removeAttr('aria-disabled tabindex');
+							$('#sscribe-download-btn')
+								.attr('href', safeDownloadUrl)
+								.removeAttr('aria-disabled tabindex');
 							if (isAutoDownload !== false && self.shouldAutoDownload()) {
 								const a = document.createElement('a');
 								a.href = safeDownloadUrl;
@@ -2081,7 +2083,9 @@
 								}, 1000);
 							}
 						} else {
-							$('#sscribe-download-btn').removeAttr('href').attr({ 'aria-disabled': 'true', tabindex: '-1' });
+							$('#sscribe-download-btn')
+								.removeAttr('href')
+								.attr({ 'aria-disabled': 'true', tabindex: '-1' });
 							self.showToast(
 								sscribe_data.strings.download_unavailable || 'Download unavailable.',
 								'warning'
