@@ -93,6 +93,49 @@ class SScribe_Loader {
 	}
 
 	/**
+	 * Register a guarded AJAX action whose component is resolved lazily.
+	 *
+	 * The resolver is invoked only after nonce/capability checks pass and the
+	 * WordPress action actually fires. This keeps heavyweight export services
+	 * out of normal front-end requests while preserving globally registered
+	 * WordPress hook names for admin-ajax, WP-CLI, tests, and direct do_action()
+	 * dispatch.
+	 *
+	 * @param string   $hook          WordPress action hook name.
+	 * @param callable $resolver      Callable returning the component object.
+	 * @param string   $callback      Callback method name.
+	 * @param string   $capability    Capability the current user must have.
+	 * @param string   $nonce_name    Nonce action name.
+	 * @param string   $nonce_arg     Request key holding the nonce.
+	 * @param int      $priority      Hook priority.
+	 * @param int      $accepted_args Number of accepted arguments.
+	 */
+	public function add_guarded_lazy_ajax_action(
+		string $hook,
+		callable $resolver,
+		string $callback,
+		string $capability,
+		string $nonce_name = 'sscribe_export_nonce',
+		string $nonce_arg = 'nonce',
+		int $priority = 10,
+		int $accepted_args = 1
+	): void {
+		$handler = SScribe_AJAX_Guard::with_guard(
+			static function ( ...$args ) use ( $resolver, $callback ): void {
+				$component = $resolver();
+				if ( ! is_object( $component ) || ! is_callable( array( $component, $callback ) ) ) {
+					throw new LogicException( 'SScribe lazy AJAX resolver returned an invalid component.' );
+				}
+				$component->{$callback}( ...$args );
+			},
+			$capability,
+			$nonce_name,
+			$nonce_arg
+		);
+		add_action( $hook, $handler, $priority, $accepted_args );
+	}
+
+	/**
 	 * Register a new filter hook.
 	 *
 	 * @param string $hook          WordPress filter hook name.
