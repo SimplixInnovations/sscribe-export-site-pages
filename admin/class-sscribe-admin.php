@@ -394,6 +394,8 @@ class SScribe_Admin {
 				'selected'               => __( 'selected', 'sscribe-export-site-pages' ),
 				'calculating_time'       => __( 'Calculating...', 'sscribe-export-site-pages' ),
 				'dismiss_notification'   => __( 'Dismiss notification', 'sscribe-export-site-pages' ),
+				'current_step'           => __( 'Current step', 'sscribe-export-site-pages' ),
+				'completed_step'         => __( 'Completed', 'sscribe-export-site-pages' ),
 				'preview_error'          => __( 'Failed to generate preview.', 'sscribe-export-site-pages' ),
 				'download_unavailable'   => __( 'Download unavailable.', 'sscribe-export-site-pages' ),
 				/* translators: %1$d: current page number, %2$d: total pages */
