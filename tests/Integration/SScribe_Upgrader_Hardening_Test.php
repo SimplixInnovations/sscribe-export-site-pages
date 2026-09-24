@@ -17,42 +17,58 @@ final class SScribe_Upgrader_Hardening_Test extends TestCase {
 		return (string) file_get_contents( dirname( __DIR__, 2 ) . '/includes/class-sscribe-upgrader.php' );
 	}
 
-	public function test_migrations_converge_through_dbdelta_instead_of_mysql_only_introspection(): void {
-		$source = self::source();
-		$this->assertStringNotContainsString( 'SHOW INDEX FROM', $source );
-		$this->assertStringNotContainsString( 'SHOW COLUMNS FROM', $source );
-		$this->assertStringNotContainsString( 'MODIFY COLUMN', $source );
-		$this->assertStringContainsString( 'session_id VARCHAR(60)', $source );
-		$this->assertStringContainsString( 'KEY idx_session_id (session_id)', $source );
+	private static function activator_source(): string {
+		return (string) file_get_contents( dirname( __DIR__, 2 ) . '/includes/class-sscribe-activator.php' );
 	}
 
-	public function test_upgrader_fails_closed_when_dbdelta_is_unavailable(): void {
-		$source = self::source();
+	public function test_migrations_reuse_the_canonical_activation_schema(): void {
+		$upgrader  = self::source();
+		$activator = self::activator_source();
+
+		$this->assertStringNotContainsString( 'SHOW INDEX FROM', $upgrader );
+		$this->assertStringNotContainsString( 'SHOW COLUMNS FROM', $upgrader );
+		$this->assertStringNotContainsString( 'MODIFY COLUMN', $upgrader );
+		$this->assertStringContainsString( 'SScribe_Activator::create_database_tables( false )', $upgrader );
+		$this->assertStringNotContainsString( 'CREATE TABLE', $upgrader, 'The upgrader must not own a second schema declaration.' );
+
+		$this->assertStringContainsString( 'session_id VARCHAR(60)', $activator );
+		$this->assertStringContainsString( 'KEY idx_session_id (session_id)', $activator );
+		$this->assertStringContainsString( 'failed_pages INT UNSIGNED', $activator );
+	}
+
+	public function test_canonical_schema_fails_closed_when_dbdelta_is_unavailable(): void {
+		$source = self::activator_source();
 		$this->assertMatchesRegularExpression(
 			"/function_exists\(\s*'dbDelta'\s*\)/",
 			$source,
-			'Upgrader must verify dbDelta exists after loading upgrade.php.'
+			'Canonical schema reconciliation must verify dbDelta exists after loading upgrade.php.'
 		);
 	}
 
 
 	public function test_dbdelta_errors_are_checked_before_schema_version_can_advance(): void {
-		$source = self::source();
+		$activator = self::activator_source();
+		$upgrader  = self::source();
 
 		$this->assertStringContainsString(
 			'run_dbdelta_or_throw',
-			$source,
-			'Every canonical schema reconciliation must pass through one fail-closed dbDelta wrapper.'
+			$activator,
+			'Canonical schema reconciliation must pass through one fail-closed dbDelta wrapper.'
 		);
 		$this->assertStringContainsString(
 			'$wpdb->last_error',
-			$source,
+			$activator,
 			'dbDelta failures must be inspected explicitly because dbDelta can report SQL errors without throwing.'
 		);
 		$this->assertStringContainsString(
 			'assert_required_schema',
-			$source,
-			'The upgrader must verify required columns are queryable before recording the new schema version.'
+			$activator,
+			'Canonical reconciliation must verify required columns before recording the schema version.'
+		);
+		$this->assertStringContainsString(
+			'SScribe_Activator::create_database_tables( false )',
+			$upgrader,
+			'Runtime upgrades must reconcile without advancing schema_version prematurely.'
 		);
 	}
 
