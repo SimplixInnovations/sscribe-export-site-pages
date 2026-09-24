@@ -151,17 +151,37 @@ final class SScribe_Post_Audit_Performance_Test extends TestCase {
 		$method = substr( $src, $start );
 		$this->assertStringContainsString( '$is_admin_request', $method );
 		$this->assertStringContainsString( '$is_ajax_request', $method );
-		$this->assertStringContainsString( '$is_cron_request', $method );
 		$this->assertStringContainsString( '$this->define_content_hooks();', $method );
 		$this->assertStringContainsString( '$this->define_privacy_hooks();', $method );
+		$this->assertStringContainsString( '$this->define_ajax_hooks();', $method );
+		$this->assertStringContainsString( '$this->define_cron_hooks();', $method );
 		$privacy_pos = strpos( $method, '$this->define_privacy_hooks();' );
+		$ajax_pos = strpos( $method, '$this->define_ajax_hooks();' );
+		$cron_pos = strpos( $method, '$this->define_cron_hooks();' );
 		$admin_gate_pos = strpos( $method, 'if ( $is_admin_request && ! $is_ajax_request )' );
 		$this->assertIsInt( $privacy_pos );
+		$this->assertIsInt( $ajax_pos );
+		$this->assertIsInt( $cron_pos );
 		$this->assertIsInt( $admin_gate_pos );
 		$this->assertLessThan( $admin_gate_pos, $privacy_pos, 'Privacy filters must register before the non-AJAX admin gate.' );
-		$this->assertStringContainsString( 'if ( $is_admin_request && ! $is_ajax_request )', $method );
-		$this->assertStringContainsString( 'if ( $is_ajax_request )', $method );
-		$this->assertStringContainsString( 'if ( $is_cron_request )', $method );
+		$this->assertLessThan( $admin_gate_pos, $ajax_pos, 'AJAX hook names must remain globally dispatchable.' );
+		$this->assertLessThan( $admin_gate_pos, $cron_pos, 'Cron hook names must remain globally dispatchable.' );
+
+		$ajax_start = strpos( $src, 'private function define_ajax_hooks(): void' );
+		$ajax_end = strpos( $src, 'private function define_cron_hooks(): void', $ajax_start );
+		$this->assertNotFalse( $ajax_start );
+		$this->assertNotFalse( $ajax_end );
+		$ajax_method = substr( $src, $ajax_start, $ajax_end - $ajax_start );
+		$this->assertStringContainsString( 'add_guarded_lazy_ajax_action', $ajax_method );
+		$this->assertStringNotContainsString( '$container->get( SScribe_Batch_Processor::class );', $ajax_method );
+
+		$cron_start = strpos( $src, 'private function define_cron_hooks(): void' );
+		$cron_end = strpos( $src, 'private function define_lifecycle_hooks(): void', $cron_start );
+		$this->assertNotFalse( $cron_start );
+		$this->assertNotFalse( $cron_end );
+		$cron_method = substr( $src, $cron_start, $cron_end - $cron_start );
+		$this->assertStringNotContainsString( '$container->get( SScribe_Zip_Handler::class )', $cron_method );
+		$this->assertStringNotContainsString( '$container->get( SScribe_Session::class )', $cron_method );
 	}
 
 
