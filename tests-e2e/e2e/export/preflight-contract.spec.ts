@@ -94,4 +94,46 @@ test.describe('e2e / export / preflight-contract', () => {
 		const label = await adminPage.evaluate(() => (window as any).SScribe.getLanguageLabel('__all__'));
 		expect(label).toBe('All Languages');
 	});
+	test('preflight exits restore focus to the initiating export control', async ({ adminPage }) => {
+		await adminPage.goto('/wp-admin/admin.php?page=sscribe-export');
+		await adminPage.route('**/admin-ajax.php*', async (route) => {
+			if (!isPreflight(route.request().postData())) return route.continue();
+			return route.fulfill(
+				syntheticJson({
+					success: true,
+					data: {
+						status: 'warning',
+						can_proceed: true,
+						checks: {
+							memory: {
+								status: 'warning',
+								name: 'Memory',
+								message: 'Available memory is below the recommended level.',
+							},
+						},
+					},
+				})
+			);
+		});
+
+		const exportButton = adminPage.locator('#sscribe-export-btn');
+		await exportButton.focus();
+		await adminPage.evaluate(() => {
+			const w = window as any;
+			w.SScribe.runPreflightCheck('', 'publish', 'page', ['docx']);
+		});
+		const close = adminPage.locator('.sscribe-preflight-close');
+		await expect(close).toBeFocused();
+		await close.click();
+		await expect(exportButton).toBeFocused();
+
+		await adminPage.evaluate(() => {
+			const w = window as any;
+			w.SScribe.runPreflightCheck('', 'publish', 'page', ['docx']);
+		});
+		await expect(adminPage.locator('.sscribe-preflight-close')).toBeFocused();
+		await adminPage.keyboard.press('Escape');
+		await expect(exportButton).toBeFocused();
+	});
+
 });
