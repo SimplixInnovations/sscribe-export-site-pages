@@ -272,7 +272,7 @@ class SScribe_Upgrader {
 			$safe_label = sanitize_text_field( $label );
 			$safe_error = sanitize_text_field( $last_error );
 			throw new \RuntimeException(
-				sprintf( 'Database reconciliation failed for %1$s: %2$s', $safe_label, $safe_error )
+				sprintf( 'Database reconciliation failed for %1$s: %2$s', esc_html( $safe_label ), esc_html( $safe_error ) )
 			);
 		}
 	}
@@ -295,13 +295,13 @@ class SScribe_Upgrader {
 
 		$safe_label = sanitize_text_field( $label );
 		if ( 1 !== preg_match( '/^[A-Za-z0-9_]+$/D', $table ) || empty( $columns ) ) {
-			throw new \RuntimeException( 'Invalid schema verification target for ' . $safe_label . '.' );
+			throw new \RuntimeException( 'Invalid schema verification target for ' . esc_html( $safe_label ) . '.' );
 		}
 
 		$quoted_columns = array();
 		foreach ( $columns as $column ) {
 			if ( 1 !== preg_match( '/^[A-Za-z0-9_]+$/D', $column ) ) {
-				throw new \RuntimeException( 'Invalid schema verification column for ' . $safe_label . '.' );
+				throw new \RuntimeException( 'Invalid schema verification column for ' . esc_html( $safe_label ) . '.' );
 			}
 			$quoted_columns[] = '`' . $column . '`';
 		}
@@ -319,7 +319,7 @@ class SScribe_Upgrader {
 			$detail      = '' !== $last_error ? $last_error : 'required table or column is not queryable';
 			$safe_detail = sanitize_text_field( $detail );
 			throw new \RuntimeException(
-				sprintf( 'Schema verification failed for %1$s: %2$s', $safe_label, $safe_detail )
+				sprintf( 'Schema verification failed for %1$s: %2$s', esc_html( $safe_label ), esc_html( $safe_detail ) )
 			);
 		}
 	}
