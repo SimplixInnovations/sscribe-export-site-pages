@@ -75,6 +75,9 @@ final class SScribe_Agent_Audit_Regressions_Test extends TestCase {
 		self::assertStringContainsString("aria-current", $js);
 		self::assertStringContainsString('restorePersistedDismissals', $js);
 		self::assertStringContainsString('sscribe-history-filename', $display);
+		self::assertStringNotContainsString('<div class="sscribe-section-title">', $display);
+		self::assertStringNotContainsString('<div class="sscribe-config-section-header">', $display);
+		self::assertStringContainsString('<h3 class="sscribe-section-title">', $display);
 		self::assertMatchesRegularExpression('/id="sscribe-tab-history"[^>]*\shidden(?:\s|>)/', $display);
 		self::assertMatchesRegularExpression('/id="sscribe-tab-support"[^>]*\shidden(?:\s|>)/', $display);
 		self::assertStringContainsString('role="status"', $debug);
