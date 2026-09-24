@@ -78,6 +78,35 @@ final class SScribe_Deep_Audit_Performance_Test extends SScribe_WP_TestCase {
 		);
 	}
 
+	public function test_all_status_total_uses_one_bounded_readability_scan(): void {
+		global $wpdb;
+
+		$statuses = array( 'publish', 'draft', 'private', 'future', 'pending' );
+		foreach ( $statuses as $status ) {
+			for ( $i = 0; $i < 24; ++$i ) {
+				$this->factory()->post->create(
+					array(
+						'post_type'   => 'page',
+						'post_status' => $status,
+						'post_title'  => 'SScribe all-status query budget ' . $status . ' ' . $i,
+					)
+				);
+			}
+		}
+
+		$collector = new SScribe_Page_Collector();
+		$before    = (int) $wpdb->num_queries;
+		$total     = $collector->get_page_count_only( '', 'all', 'page' );
+		$delta     = (int) $wpdb->num_queries - $before;
+
+		$this->assertGreaterThanOrEqual( 120, $total );
+		$this->assertLessThan(
+			10,
+			$delta,
+			'All-status totals must use one paginated readable scan, not one scan per status. Queries: ' . $delta
+		);
+	}
+
 	public function test_export_history_rows_are_batch_loaded_from_options_table(): void {
 		global $wpdb;
 
