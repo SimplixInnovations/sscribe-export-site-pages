@@ -1186,7 +1186,11 @@ $sscribe_test_ajax_nonce_valid = true;
 
 			if ( preg_match( '/SELECT\s+(.+?)\s+FROM\s+[`]?([A-Za-z0-9_]+)[`]?\s+WHERE\s+1\s*=\s*0/i', (string) $query, $matches ) ) {
 				$table = $matches[2];
-				if ( ! isset( $sscribe_test_db_schema[ $table ] ) || ! is_array( $sscribe_test_db_schema[ $table ] ) ) {
+				if (
+					! array_key_exists( $table, (array) $sscribe_test_db_tables )
+					|| ! isset( $sscribe_test_db_schema[ $table ] )
+					|| ! is_array( $sscribe_test_db_schema[ $table ] )
+				) {
 					$this->last_error = "Table {$table} does not exist";
 					return false;
 				}
@@ -1228,7 +1232,10 @@ $sscribe_test_ajax_nonce_valid = true;
 
 			if ( preg_match( '/SHOW\s+INDEX\s+FROM\s+[`]?([A-Za-z0-9_]+)[`]?/i', (string) $query, $matches ) ) {
 				$table = $matches[1];
-				if ( ! isset( $sscribe_test_db_schema[ $table ] ) ) {
+				if (
+					! array_key_exists( $table, (array) $sscribe_test_db_tables )
+					|| ! isset( $sscribe_test_db_schema[ $table ] )
+				) {
 					$this->last_error = "Table {$table} does not exist";
 					return array();
 				}
