@@ -732,10 +732,11 @@ class SScribe_Zip_Handler {
 	 * each other; the server rotates it only after a successful
 	 * redemption. A replay with the consumed token therefore fails.
 	 *
-	 * @param string $zip_filename ZIP filename.
+	 * @param string     $zip_filename ZIP filename.
+	 * @param array|null $row          Optional already-loaded export row.
 	 * @return string
 	 */
-	public function get_ajax_download_url( string $zip_filename ): string {
+	public function get_ajax_download_url( string $zip_filename, ?array $row = null ): string {
 		$zip_filename = $this->normalize_zip_filename( $zip_filename );
 		if ( '' === $zip_filename || ! is_user_logged_in() ) {
 			return '';
@@ -743,7 +744,7 @@ class SScribe_Zip_Handler {
 		if ( null === $this->cached_nonce ) {
 			$this->cached_nonce = wp_create_nonce( 'sscribe_download' );
 		}
-		$row   = get_option( 'sscribe_export_row_' . md5( $zip_filename ), null );
+		$row   = null === $row ? get_option( 'sscribe_export_row_' . md5( $zip_filename ), null ) : $row;
 		$token = is_array( $row ) && isset( $row['dl_token'] ) && is_string( $row['dl_token'] )
 			? $row['dl_token']
 			: '';
