@@ -62,7 +62,7 @@ final class SScribe_Post_Audit_Performance_Test extends TestCase {
 			$src = (string) file_get_contents( self::root() . '/' . $file );
 			$this->assertStringNotContainsString( 'SHOW TABLES LIKE', $src, $file . ' must not depend on wildcard table-name semantics.' );
 			$this->assertStringContainsString( 'WHERE 1 = 0', $src, $file . ' must use a zero-row structural probe.' );
-			$this->assertStringContainsString( "preg_match( '/^[A-Za-z0-9_]+\\$/D'", $src, $file . ' must validate the internal table identifier before interpolation.' );
+			$this->assertStringContainsString( "preg_match( '/^[A-Za-z0-9_]+$/D'", $src, $file . ' must validate the internal table identifier before interpolation.' );
 		}
 	}
 
