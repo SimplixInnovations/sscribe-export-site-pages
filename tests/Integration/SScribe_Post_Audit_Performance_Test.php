@@ -197,8 +197,8 @@ final class SScribe_Post_Audit_Performance_Test extends TestCase {
 		$this->assertStringContainsString( "'date_to'   =>", $method );
 		$this->assertStringContainsString( 'wp_json_encode( $cache_filters )', $method );
 		$this->assertStringNotContainsString( 'wp_json_encode( $filters )', $method );
-		$this->assertStringContainsString( "wp_cache_get( $cache_key, 'sscribe_audit' )", $method );
-		$this->assertStringContainsString( "wp_cache_set( $cache_key, $result, 'sscribe_audit', 30 )", $method );
+		$this->assertStringContainsString( "wp_cache_get( \$cache_key, 'sscribe_audit' )", $method );
+		$this->assertStringContainsString( "wp_cache_set( \$cache_key, \$result, 'sscribe_audit', 30 )", $method );
 		$this->assertStringNotContainsString( 'set_transient( $cache_key', $method );
 	}
 
