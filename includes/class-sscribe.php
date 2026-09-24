@@ -153,10 +153,6 @@ class SScribe {
 		$this->loader->add_action( 'admin_init', $admin, 'maybe_redirect_after_activation' );
 		$this->loader->add_action( 'admin_enqueue_scripts', $admin, 'enqueue_admin_assets' );
 		$this->loader->add_action( 'admin_notices', $this, 'render_vendor_dependency_notice' );
-		$this->loader->add_action( 'save_post', $this, 'invalidate_admin_page_cache' );
-		$this->loader->add_action( 'trashed_post', $this, 'invalidate_admin_page_cache' );
-		$this->loader->add_action( 'deleted_post', $this, 'invalidate_admin_page_cache' );
-		$this->loader->add_action( 'untrashed_post', $this, 'invalidate_admin_page_cache' );
 		$this->loader->add_filter( 'plugin_action_links_' . SSCRIBE_PLUGIN_BASENAME, $admin, 'add_plugin_action_links' );
 	}
 
@@ -249,6 +245,17 @@ class SScribe {
 	 */
 	public function get_content_cache_generation(): int {
 		return max( 1, (int) get_option( 'sscribe_content_cache_generation', 1 ) );
+	}
+
+	/**
+	 * Register content-mutation hooks that must remain active for every request
+	 * type, including REST/front-end writes.
+	 */
+	private function define_content_hooks(): void {
+		$this->loader->add_action( 'save_post', $this, 'invalidate_admin_page_cache' );
+		$this->loader->add_action( 'trashed_post', $this, 'invalidate_admin_page_cache' );
+		$this->loader->add_action( 'deleted_post', $this, 'invalidate_admin_page_cache' );
+		$this->loader->add_action( 'untrashed_post', $this, 'invalidate_admin_page_cache' );
 	}
 
 	/**
@@ -384,11 +391,26 @@ class SScribe {
 		\SScribe_Request_Id::current();
 
 		$this->register_services();
-		$this->define_admin_hooks();
-		$this->define_ajax_hooks();
-		$this->define_cron_hooks();
+
+		$is_ajax_request  = function_exists( 'wp_doing_ajax' ) && wp_doing_ajax();
+		$is_cron_request  = function_exists( 'wp_doing_cron' ) && wp_doing_cron();
+		$is_admin_request = function_exists( 'is_admin' ) && is_admin();
+
+		// Keep content invalidation global so REST/front-end mutations stay fresh,
+		// but do not instantiate heavy admin/export/cron service graphs on normal
+		// public requests where their hooks cannot fire.
+		$this->define_content_hooks();
+		if ( $is_admin_request && ! $is_ajax_request ) {
+			$this->define_admin_hooks();
+			$this->define_privacy_hooks();
+		}
+		if ( $is_ajax_request ) {
+			$this->define_ajax_hooks();
+		}
+		if ( $is_cron_request ) {
+			$this->define_cron_hooks();
+		}
 		$this->define_lifecycle_hooks();
-		$this->define_privacy_hooks();
 
 		$this->loader->run();
 	}
