@@ -675,6 +675,15 @@ msgid "Dismiss notification"
 msgstr ""
 
 #: admin/class-sscribe-admin.php:397
+#: admin/partials/sscribe-admin-display.php:700
+msgid "Current step"
+msgstr ""
+
+#: admin/class-sscribe-admin.php:398
+msgid "Completed"
+msgstr ""
+
+#: admin/class-sscribe-admin.php:397
 msgid "Failed to generate preview."
 msgstr ""
 
