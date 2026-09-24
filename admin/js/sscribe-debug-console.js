@@ -1171,7 +1171,9 @@
 					}
 					const originalText = self.$clearBtn.data('original-text') || self.clearBtnOriginalText;
 					self.$clearBtn.text(originalText);
-					self.$clearBtn.after('<span class="sscribe-feedback sscribe-feedback-success" role="status" aria-live="polite">Cleared!</span>');
+					self.$clearBtn.after(
+						'<span class="sscribe-feedback sscribe-feedback-success" role="status" aria-live="polite">Cleared!</span>'
+					);
 					setTimeout(function () {
 						self.$clearBtn.siblings('.sscribe-feedback').remove();
 					}, 2000);
@@ -1203,7 +1205,9 @@
 					errorMsg = 'HTTP ' + xhr.status;
 				}
 				self.$clearBtn.after(
-					'<span class="sscribe-feedback sscribe-feedback-error" role="alert">' + escHtml(errorMsg) + '</span>'
+					'<span class="sscribe-feedback sscribe-feedback-error" role="alert">' +
+						escHtml(errorMsg) +
+						'</span>'
 				);
 				setTimeout(function () {
 					self.$clearBtn.siblings('.sscribe-feedback').remove();
