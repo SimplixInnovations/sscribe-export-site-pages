@@ -119,6 +119,27 @@ final class SScribe_PDF_Exporter_Backup_Font_Policy_Test extends TestCase {
 		$this::assertStringNotContainsString( "/tecnickcom/tcpdf/fonts", $source );
 	}
 
+	public function test_font_provenance_reports_locked_dependency_versions(): void {
+		$lock = json_decode( $this->read_plugin_file( 'composer.lock' ), true );
+		$this::assertIsArray( $lock );
+
+		$locked = array();
+		foreach ( (array) ( $lock['packages'] ?? array() ) as $package ) {
+			if ( ! is_array( $package ) || ! isset( $package['name'], $package['version'] ) ) {
+				continue;
+			}
+			if ( in_array( $package['name'], array( 'tecnickcom/tcpdf', 'tecnickcom/tc-lib-pdf-font' ), true ) ) {
+				$locked[ $package['name'] ] = ltrim( (string) $package['version'], 'v' );
+			}
+		}
+
+		$this::assertArrayHasKey( 'tecnickcom/tcpdf', $locked );
+		$this::assertArrayHasKey( 'tecnickcom/tc-lib-pdf-font', $locked );
+
+		$provenance = $this->read_plugin_file( 'scripts/resources/tcpdf-fonts/PROVENANCE.md' );
+		$this::assertStringContainsString( 'TCPDF ' . $locked['tecnickcom/tcpdf'], $provenance );
+		$this::assertStringContainsString( 'tc-lib-pdf-font` ' . $locked['tecnickcom/tc-lib-pdf-font'], $provenance );
+	}
 	public function test_readme_reports_locked_tcpdf_runtime_version(): void {
 		$lock = json_decode( $this->read_plugin_file( 'composer.lock' ), true );
 		$this::assertIsArray( $lock );
