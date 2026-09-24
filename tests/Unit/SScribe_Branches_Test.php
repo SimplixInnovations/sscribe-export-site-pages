@@ -87,15 +87,15 @@ final class SScribe_Branches_Test extends TestCase {
 		$this::assertSame( 8, $this->instance->get_content_cache_generation() );
 	}
 
-	public function test_invalidate_admin_page_cache_skips_non_post_types(): void {
+	public function test_invalidate_admin_page_cache_bumps_for_attachment_mutations(): void {
 		$GLOBALS['sscribe_test_post_type_override'] = 'attachment';
 		$GLOBALS['sscribe_test_options']['sscribe_content_cache_generation'] = 4;
 
 		$this->instance->invalidate_admin_page_cache( 99 );
 
-		// Generation must NOT have been bumped — non-post types skip the
-		// invalidation branch on line 209.
-		$this::assertSame( 4, $this->instance->get_content_cache_generation() );
+		// Featured-image export data depends on attachments, so attachment
+		// mutations must invalidate the shared content-derived generation.
+		$this::assertSame( 5, $this->instance->get_content_cache_generation() );
 	}
 
 	public function test_invalidate_admin_page_cache_skips_unknown_post_types(): void {
