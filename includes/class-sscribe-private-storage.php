@@ -69,7 +69,39 @@ final class SScribe_Private_Storage {
 	 * @return string Absolute path, or an empty string when no safe path exists.
 	 */
 	public static function get_export_dir( bool $create = true ): string {
-		foreach ( self::get_base_candidates() as $base ) {
+		static $resolved_paths = array();
+
+		$candidates = self::get_base_candidates();
+		$cache_key  = ( $create ? 'create' : 'read' )
+			. '|' . get_current_blog_id()
+			. '|' . self::get_directory_name()
+			. '|' . md5( (string) wp_json_encode( $candidates ) );
+
+		if ( array_key_exists( $cache_key, $resolved_paths ) ) {
+			$cached_path = (string) $resolved_paths[ $cache_key ];
+			if ( '' === $cached_path ) {
+				return '';
+			}
+
+			// A cached lexical path is only a shortcut, never a trust decision.
+			// Revalidate the leaf on every hit so deletion, replacement, symlink
+			// substitution, or a permissions change within the request fails closed.
+			clearstatcache( true, $cached_path );
+			$cached_real = realpath( $cached_path );
+			if (
+				false !== $cached_real
+				&& is_dir( $cached_path )
+				&& ! is_link( $cached_path )
+				&& self::normalize_path( $cached_real ) === self::normalize_path( $cached_path )
+				&& self::is_outside_public_roots( $cached_real )
+				&& ( ! $create || wp_is_writable( $cached_real ) )
+			) {
+				return $cached_path;
+			}
+			unset( $resolved_paths[ $cache_key ] );
+		}
+
+		foreach ( $candidates as $base ) {
 			$canonical_base = self::validate_base_candidate( $base );
 			if ( '' === $canonical_base ) {
 				continue;
@@ -110,9 +142,11 @@ final class SScribe_Private_Storage {
 				self::harden_file( $path . '/index.php' );
 			}
 
+			$resolved_paths[ $cache_key ] = $path;
 			return $path;
 		}
 
+		$resolved_paths[ $cache_key ] = '';
 		return '';
 	}
 
