@@ -120,9 +120,16 @@ final class SScribe_PDF_Exporter_Backup_Font_Policy_Test extends TestCase {
 	}
 
 	public function test_readme_reports_locked_tcpdf_runtime_version(): void {
-		$composer = json_decode( $this->read_plugin_file( 'composer.json' ), true );
-		$this::assertIsArray( $composer );
-		$locked = (string) ( $composer['require']['tecnickcom/tcpdf'] ?? '' );
+		$lock = json_decode( $this->read_plugin_file( 'composer.lock' ), true );
+		$this::assertIsArray( $lock );
+
+		$locked = '';
+		foreach ( (array) ( $lock['packages'] ?? array() ) as $package ) {
+			if ( is_array( $package ) && 'tecnickcom/tcpdf' === ( $package['name'] ?? '' ) ) {
+				$locked = ltrim( (string) ( $package['version'] ?? '' ), 'v' );
+				break;
+			}
+		}
 		$this::assertMatchesRegularExpression( '/^\\d+\\.\\d+\\.\\d+$/', $locked );
 
 		$readme = $this->read_plugin_file( 'readme.txt' );
