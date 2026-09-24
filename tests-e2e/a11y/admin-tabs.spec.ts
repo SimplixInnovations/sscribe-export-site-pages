@@ -201,7 +201,7 @@ test.describe('a11y / admin-tabs', () => {
     await historyTab.click();
     await expect(historyTab).toHaveAttribute('aria-selected', 'true');
     await expect(adminPage.locator('#sscribe-tab-btn-export')).toHaveAttribute('aria-selected', 'false');
-
+  });
 
   test('toast dismissal is a real keyboard-operable button', async ({ adminPage }) => {
     await adminPage.goto('/wp-admin/admin.php?page=sscribe-export');
@@ -218,6 +218,5 @@ test.describe('a11y / admin-tabs', () => {
     await expect(dismiss).toBeFocused();
     await adminPage.keyboard.press('Enter');
     await expect(toast).toHaveCount(0, { timeout: 1500 });
-  });
   });
 });
