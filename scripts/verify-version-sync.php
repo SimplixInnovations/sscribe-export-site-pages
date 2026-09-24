@@ -300,6 +300,13 @@ if ( $canonical_version ) {
 			if ( 'composer.json' === basename( $f ) ) {
 				continue;
 			}
+
+			// Tag policy intentionally records v2.0.3 as the historical boundary
+			// from which annotated release tags became mandatory. It is policy
+			// history, not a stale current plugin version.
+			if ( 'verify-tag-policy.php' === basename( $f ) ) {
+				continue;
+			}
 			$has_actual_warnings = true;
 			$unique              = array_unique( $vs );
 			foreach ( $unique as $v ) {
