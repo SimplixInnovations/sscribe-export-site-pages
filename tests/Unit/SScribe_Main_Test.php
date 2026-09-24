@@ -119,6 +119,32 @@ final class SScribe_Main_Test extends TestCase {
 		$this->assertArrayNotHasKey( $cache_key, $GLOBALS['sscribe_test_transients'] );
 	}
 
+	public function test_frontend_run_leaves_heavy_request_specific_singletons_unresolved(): void {
+		\SScribe_Container::reset();
+		$GLOBALS['sscribe_test_is_admin']   = false;
+		$GLOBALS['sscribe_test_doing_ajax'] = false;
+		$GLOBALS['sscribe_test_doing_cron'] = false;
+
+		try {
+			$plugin = new SScribe();
+			$plugin->run();
+
+			$container  = \SScribe_Container::instance();
+			$reflection = new ReflectionClass( $container );
+			$resolved   = $reflection->getProperty( 'resolved' )->getValue( $container );
+
+			$this->assertArrayNotHasKey( \SScribe_Admin::class, $resolved );
+			$this->assertArrayNotHasKey( \SScribe_Batch_Processor::class, $resolved );
+			$this->assertArrayNotHasKey( \SScribe_Zip_Handler::class, $resolved );
+			$this->assertArrayNotHasKey( \SScribe_Session::class, $resolved );
+		} finally {
+			$GLOBALS['sscribe_test_is_admin']   = true;
+			$GLOBALS['sscribe_test_doing_ajax'] = false;
+			$GLOBALS['sscribe_test_doing_cron'] = false;
+			\SScribe_Container::reset();
+		}
+	}
+
 	public function test_run_boots_services_and_registers_hooks(): void {
 		// run() must complete without throwing. The function chains
 		// require_once for fatal-handler + upgrader + request-id, then
