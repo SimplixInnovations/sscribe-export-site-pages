@@ -99,6 +99,28 @@ final class SScribe_Post_Audit_Performance_Test extends TestCase {
 		$this->assertStringContainsString( "'ID'", $method );
 	}
 
+	public function test_readability_hydration_is_processed_in_bounded_working_sets(): void {
+		$src = (string) file_get_contents( self::root() . '/includes/class-sscribe-page-collector.php' );
+		$start = strpos( $src, 'private function filter_readable_page_ids(' );
+		$end   = strpos( $src, 'private function prime_readability_posts(', $start );
+		$this->assertNotFalse( $start );
+		$this->assertNotFalse( $end );
+		$method = substr( $src, $start, $end - $start );
+		$this->assertStringContainsString( 'array_chunk( $page_ids, self::CACHE_MAX_SIZE )', $method );
+		$this->assertStringContainsString( 'unset( $this->readability_post_cache[ $page_id ] )', $method );
+	}
+
+	public function test_all_language_counts_use_one_aggregate_scan_per_language(): void {
+		$src = (string) file_get_contents( self::root() . '/includes/class-sscribe-export-query-controller.php' );
+		$start = strpos( $src, 'public function ajax_get_all_status_counts(' );
+		$end   = strpos( $src, 'private function compute_counts_payload(', $start );
+		$this->assertNotFalse( $start );
+		$this->assertNotFalse( $end );
+		$method = substr( $src, $start, $end - $start );
+		$this->assertStringContainsString( "get_page_count_only( \$query_language, 'all', \$post_type )", $method );
+		$this->assertStringNotContainsString( 'compute_counts_payload( $query_language', $method );
+	}
+
 	public function test_export_index_rows_are_batch_loaded_instead_of_one_option_query_per_row(): void {
 		$src = (string) file_get_contents( self::root() . '/includes/class-sscribe-zip-handler.php' );
 		$start = strpos( $src, 'public function list_export_entries(): array' );
