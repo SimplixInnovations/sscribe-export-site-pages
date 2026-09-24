@@ -158,7 +158,7 @@ if ( ! function_exists( 'sscribe_humanize_export_filename' ) ) {
 	<div id="sscribe-live-region" class="screen-reader-text" aria-live="polite" aria-atomic="true"></div>
 	<div id="sscribe-alert-region" class="screen-reader-text" aria-live="assertive" aria-atomic="true"></div>
 
-	<div id="sscribe-onboarding-banner" class="sscribe-onboarding-banner<?php echo empty( $sscribe_recent_exports ) ? '' : ' sscribe-hidden'; ?>" role="region" aria-label="<?php esc_attr_e( 'First-run guide', 'sscribe-export-site-pages' ); ?>">
+	<div id="sscribe-onboarding-banner" class="<?php echo esc_attr( 'sscribe-onboarding-banner' . ( empty( $sscribe_recent_exports ) ? '' : ' sscribe-hidden' ) ); ?>" role="region" aria-label="<?php esc_attr_e( 'First-run guide', 'sscribe-export-site-pages' ); ?>">
 		<div class="sscribe-onboarding-inner">
 			<div class="sscribe-onboarding-icon" aria-hidden="true">
 				<?php
@@ -256,7 +256,7 @@ if ( ! function_exists( 'sscribe_humanize_export_filename' ) ) {
 									$sscribe_type_is_first_non_any = false;
 								}
 								?>
-								<label class="sscribe-post-type-card<?php echo $sscribe_type_is_any ? ' sscribe-post-type-card-any' : ''; ?>">
+								<label class="<?php echo esc_attr( 'sscribe-post-type-card' . ( $sscribe_type_is_any ? ' sscribe-post-type-card-any' : '' ) ); ?>">
 									<input type="radio" name="sscribe_post_type" value="<?php echo esc_attr( $sscribe_type_slug ); ?>" <?php checked( $sscribe_type_checked ); ?>>
 									<div class="sscribe-post-type-card-inner">
 										<div class="sscribe-post-type-icon">
@@ -366,9 +366,7 @@ if ( ! function_exists( 'sscribe_humanize_export_filename' ) ) {
 								?>
 							<label class="<?php echo esc_attr( $sscribe_label_class ); ?>">
 								<input type="radio" name="sscribe_post_status" value="<?php echo esc_attr( $sscribe_status_key ); ?>" <?php checked( $sscribe_is_first ); ?>
-								<?php
-								echo $sscribe_is_zero ? ' disabled' : ''; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Static attribute string.
-								?>
+								<?php disabled( $sscribe_is_zero ); ?>
 								aria-label="<?php echo esc_attr( sprintf( '%1$s, %2$d %3$s', $sscribe_status_label, $sscribe_count, _n( 'page', 'pages', $sscribe_count, 'sscribe-export-site-pages' ) ) ); ?>"
 								>
 								<div class="sscribe-status-card-inner">
