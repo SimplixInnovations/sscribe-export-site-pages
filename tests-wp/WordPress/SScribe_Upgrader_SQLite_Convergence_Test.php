@@ -21,32 +21,37 @@ final class SScribe_Upgrader_SQLite_Convergence_Test extends SScribe_WP_TestCase
 
 		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
 
-		$table = $wpdb->prefix . 'sscribe_export_logs';
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange,WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Test fixture owns this plugin table.
-		$wpdb->query( "DROP TABLE IF EXISTS {$table}" );
-
-		$charset_collate = $wpdb->get_charset_collate();
-		$legacy_sql = "CREATE TABLE {$table} (
-			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
-			timestamp DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-			level VARCHAR(20) NOT NULL,
-			message TEXT NOT NULL,
-			context LONGTEXT,
-			user_id BIGINT UNSIGNED,
-			request_id VARCHAR(12),
-			memory_usage VARCHAR(20),
-			PRIMARY KEY  (id),
-			KEY idx_timestamp (timestamp),
-			KEY idx_level (level),
-			KEY idx_user_id (user_id),
-			KEY idx_request_id (request_id)
-		) {$charset_collate};";
-		dbDelta( $legacy_sql );
-
-		$this::assertFalse( $this->column_exists( $table, 'session_id' ), 'Fixture must start without session_id.' );
-		$this::assertFalse( $this->index_exists( $table, 'idx_session_id' ), 'Fixture must start without idx_session_id.' );
+		// Never mutate the canonical plugin tables in the shared WordPress test
+		// process. The SQLite integration keeps internal schema-emulation state;
+		// dropping/recreating the live table here poisoned later AJAX/session
+		// tests even when the table was restored in finally.
+		$original_prefix = $wpdb->prefix;
+		$test_suffix     = substr( hash( 'sha256', __METHOD__ . '|' . microtime( true ) ), 0, 12 );
+		$wpdb->prefix    = $original_prefix . 'sscribe_migration_' . $test_suffix . '_';
+		$table           = $wpdb->prefix . 'sscribe_export_logs';
 
 		try {
+			$charset_collate = $wpdb->get_charset_collate();
+			$legacy_sql      = "CREATE TABLE {$table} (
+				id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+				timestamp DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+				level VARCHAR(20) NOT NULL,
+				message TEXT NOT NULL,
+				context LONGTEXT,
+				user_id BIGINT UNSIGNED,
+				request_id VARCHAR(12),
+				memory_usage VARCHAR(20),
+				PRIMARY KEY  (id),
+				KEY idx_timestamp (timestamp),
+				KEY idx_level (level),
+				KEY idx_user_id (user_id),
+				KEY idx_request_id (request_id)
+			) {$charset_collate};";
+			dbDelta( $legacy_sql );
+
+			$this::assertFalse( $this->column_exists( $table, 'session_id' ), 'Fixture must start without session_id.' );
+			$this::assertFalse( $this->index_exists( $table, 'idx_session_id' ), 'Fixture must start without idx_session_id.' );
+
 			$method = new ReflectionMethod( SScribe_Upgrader::class, 'run_migrations' );
 			$method->setAccessible( true );
 			$method->invoke( null, '2.0.3' );
@@ -54,8 +59,6 @@ final class SScribe_Upgrader_SQLite_Convergence_Test extends SScribe_WP_TestCase
 			$this::assertTrue( $this->column_exists( $table, 'session_id' ), 'SQLite dbDelta migration must add session_id.' );
 			$this::assertTrue( $this->index_exists( $table, 'idx_session_id' ), 'SQLite dbDelta migration must add idx_session_id.' );
 
-			// Prove the converged column is writable through the same wpdb layer
-			// used by production rather than relying only on introspection.
 			$inserted = $wpdb->insert(
 				$table,
 				array(
@@ -69,12 +72,7 @@ final class SScribe_Upgrader_SQLite_Convergence_Test extends SScribe_WP_TestCase
 			$this::assertSame( 1, $inserted );
 			$this::assertSame( '', (string) $wpdb->last_error );
 		} finally {
-			// Restore the canonical table even when an assertion above fails so
-			// no later real-WordPress test inherits the legacy fixture.
-			$restore = new ReflectionMethod( SScribe_Activator::class, 'create_database_tables' );
-			$restore->setAccessible( true );
-			$restore->invoke( null );
-			update_option( 'sscribe_schema_version', SSCRIBE_VERSION, false );
+			$wpdb->prefix = $original_prefix;
 		}
 	}
 
