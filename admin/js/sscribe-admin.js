@@ -2088,7 +2088,9 @@
 								}, 1000);
 							}
 						} else {
-							$('#sscribe-download-btn').removeAttr('href').attr('aria-disabled', 'true');
+							$('#sscribe-download-btn')
+								.removeAttr('href')
+								.attr('aria-disabled', 'true');
 							self.showToast(
 								sscribe_data.strings.download_unavailable || 'Download unavailable.',
 								'warning'
