@@ -69,7 +69,18 @@ final class SScribe_Private_Storage {
 	 * @return string Absolute path, or an empty string when no safe path exists.
 	 */
 	public static function get_export_dir( bool $create = true ): string {
-		foreach ( self::get_base_candidates() as $base ) {
+		static $resolved_paths = array();
+
+		$candidates = self::get_base_candidates();
+		$cache_key  = ( $create ? 'create' : 'read' )
+			. '|' . get_current_blog_id()
+			. '|' . self::get_directory_name()
+			. '|' . md5( (string) wp_json_encode( $candidates ) );
+		if ( array_key_exists( $cache_key, $resolved_paths ) ) {
+			return $resolved_paths[ $cache_key ];
+		}
+
+		foreach ( $candidates as $base ) {
 			$canonical_base = self::validate_base_candidate( $base );
 			if ( '' === $canonical_base ) {
 				continue;
@@ -110,9 +121,11 @@ final class SScribe_Private_Storage {
 				self::harden_file( $path . '/index.php' );
 			}
 
+			$resolved_paths[ $cache_key ] = $path;
 			return $path;
 		}
 
+		$resolved_paths[ $cache_key ] = '';
 		return '';
 	}
 
