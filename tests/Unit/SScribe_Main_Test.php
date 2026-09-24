@@ -13,8 +13,8 @@
  *   1. Constructor wires version + loader.
  *   2. Public method names + signatures survive refactors.
  *   3. invalidate_admin_page_cache() drops the transient on
- *      page/post save and ignores autosaves/revisions/other
- *      post types.
+ *      real content/attachment mutations and ignores autosaves,
+ *      revisions, and unknown IDs.
  *
  * @package SScribe_Export_Site_Pages
  */
@@ -73,14 +73,13 @@ final class SScribe_Main_Test extends TestCase {
 		$this->assertArrayNotHasKey( $cache_key, $GLOBALS['sscribe_test_transients'] );
 	}
 
-	public function test_invalidate_admin_page_cache_ignores_post_type_other_than_page_or_post(): void {
+	public function test_invalidate_admin_page_cache_invalidates_attachment_dependent_exports(): void {
 		$plugin    = new SScribe();
 		$cache_key = 'sscribe_admin_page_data_v2_' . SSCRIBE_VERSION . '_' . get_current_blog_id();
 		$GLOBALS['sscribe_test_transients'][ $cache_key ] = 'cached-payload';
 
-		// Force the bootstrap get_post_type() stub to return 'attachment' for
-		// this test — the default stub returns 'page' which would also delete
-		// the cache and mask the post-type gate.
+		// Attachment mutations can change featured-image URLs/paths embedded
+		// in exports, so they must invalidate content-derived caches too.
 		$GLOBALS['sscribe_test_post_type_override'] = 'attachment';
 		try {
 			$plugin->invalidate_admin_page_cache( 99 );
@@ -88,7 +87,7 @@ final class SScribe_Main_Test extends TestCase {
 			unset( $GLOBALS['sscribe_test_post_type_override'] );
 		}
 
-		$this->assertArrayHasKey( $cache_key, $GLOBALS['sscribe_test_transients'] );
+		$this->assertArrayNotHasKey( $cache_key, $GLOBALS['sscribe_test_transients'] );
 	}
 
 	public function test_invalidate_admin_page_cache_returns_silently_on_unknown_post_type(): void {
