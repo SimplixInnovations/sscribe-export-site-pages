@@ -263,7 +263,14 @@ class SScribe {
 	 */
 	private function define_ajax_hooks(): void {
 		$container = SScribe_Container::instance();
-		$batch     = $container->get( SScribe_Batch_Processor::class );
+
+		// Debug endpoints are registered by SScribe_Admin_Debug rather than the
+		// batch processor. Non-AJAX admin bootstrap intentionally stays lazy, so
+		// register these callbacks explicitly on admin-ajax.php requests.
+		$debug = new SScribe_Admin_Debug();
+		$debug->register_hooks();
+
+		$batch = $container->get( SScribe_Batch_Processor::class );
 		$cap       = SScribe_Capabilities::get_required();
 		$health_cap      = SScribe_Capabilities::get_health_required();
 		$language_request = new SScribe_Language_Request();
