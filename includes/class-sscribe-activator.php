@@ -281,11 +281,102 @@ class SScribe_Activator {
 			throw new \RuntimeException( 'WordPress database upgrade functions are unavailable.' );
 		}
 
-		dbDelta( $sql_logs );
-		dbDelta( $sql_stats );
+		self::run_dbdelta_or_throw( $sql_logs, 'export logs schema' );
+		self::run_dbdelta_or_throw( $sql_stats, 'export stats schema' );
 
 		SScribe_Audit_Trail::create_table();
+
+		self::assert_required_schema(
+			$table_logs,
+			array( 'id', 'timestamp', 'level', 'message', 'context', 'session_id', 'user_id', 'request_id', 'memory_usage' ),
+			'export logs schema'
+		);
+		self::assert_required_schema(
+			$table_stats,
+			array( 'id', 'export_session_id', 'user_id', 'export_date', 'status', 'created_at' ),
+			'export stats schema'
+		);
+		self::assert_required_schema(
+			$wpdb->prefix . 'sscribe_audit_log',
+			array( 'id', 'timestamp', 'event', 'user_id', 'context', 'session_id' ),
+			'audit trail schema'
+		);
+
 		update_option( 'sscribe_schema_version', SSCRIBE_VERSION, false );
+	}
+
+	/**
+	 * Run one activation dbDelta reconciliation and fail closed on SQL errors.
+	 *
+	 * @param string $sql   Canonical CREATE TABLE statement.
+	 * @param string $label Human-readable schema label.
+	 * @return void
+	 * @throws \RuntimeException When WordPress reports a database error.
+	 */
+	private static function run_dbdelta_or_throw( string $sql, string $label ): void {
+		global $wpdb;
+
+		if ( property_exists( $wpdb, 'last_error' ) ) {
+			$wpdb->last_error = '';
+		}
+
+		dbDelta( $sql );
+
+		$last_error = property_exists( $wpdb, 'last_error' ) ? trim( (string) $wpdb->last_error ) : '';
+		if ( '' !== $last_error ) {
+			throw new \RuntimeException(
+				sprintf(
+					'Database reconciliation failed for %1$s: %2$s',
+					sanitize_text_field( $label ),
+					sanitize_text_field( $last_error )
+				)
+			);
+		}
+	}
+
+	/**
+	 * Prove required activation schema is queryable before recording success.
+	 *
+	 * @param string        $table   Plugin-owned table name.
+	 * @param array<string> $columns Required columns.
+	 * @param string        $label   Human-readable schema label.
+	 * @return void
+	 * @throws \RuntimeException When the table/columns are unavailable.
+	 */
+	private static function assert_required_schema( string $table, array $columns, string $label ): void {
+		global $wpdb;
+
+		if ( 1 !== preg_match( '/^[A-Za-z0-9_]+$/D', $table ) || empty( $columns ) ) {
+			throw new \RuntimeException( 'Invalid schema verification target.' );
+		}
+
+		$quoted_columns = array();
+		foreach ( $columns as $column ) {
+			if ( 1 !== preg_match( '/^[A-Za-z0-9_]+$/D', $column ) ) {
+				throw new \RuntimeException( 'Invalid schema verification column.' );
+			}
+			$quoted_columns[] = '`' . $column . '`';
+		}
+
+		if ( property_exists( $wpdb, 'last_error' ) ) {
+			$wpdb->last_error = '';
+		}
+
+		$sql = 'SELECT ' . implode( ', ', $quoted_columns ) . ' FROM `' . $table . '` WHERE 1 = 0';
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.PreparedSQL.NotPrepared -- Internal identifiers are regex-validated; zero-row structural probe only.
+		$result = $wpdb->query( $sql );
+		$last_error = property_exists( $wpdb, 'last_error' ) ? trim( (string) $wpdb->last_error ) : '';
+
+		if ( false === $result || '' !== $last_error ) {
+			$detail = '' !== $last_error ? $last_error : 'required table or column is not queryable';
+			throw new \RuntimeException(
+				sprintf(
+					'Schema verification failed for %1$s: %2$s',
+					sanitize_text_field( $label ),
+					sanitize_text_field( $detail )
+				)
+			);
+		}
 	}
 
 	/**
