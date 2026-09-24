@@ -387,25 +387,28 @@ class SScribe_Activator {
 			throw new \RuntimeException( 'Invalid schema verification target.' );
 		}
 
-		$quoted_columns = array();
 		foreach ( $columns as $column ) {
 			if ( 1 !== preg_match( '/^[A-Za-z0-9_]+$/D', $column ) ) {
 				throw new \RuntimeException( 'Invalid schema verification column.' );
 			}
-			$quoted_columns[] = '`' . $column . '`';
 		}
 
 		$wpdb->last_error = '';
 
-		$sql = 'SELECT ' . implode( ', ', $quoted_columns ) . ' FROM `' . $table . '` WHERE 1 = 0';
 		$previous_suppression = $wpdb->suppress_errors( true );
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.PreparedSQL.NotPrepared -- Internal identifiers are regex-validated; zero-row structural probe only.
-		$result = $wpdb->query( $sql );
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.PreparedSQL.NotPrepared -- Internal table identifier is regex-validated and escaped; zero-row structural probe only.
+		$result = $wpdb->query( 'SELECT * FROM `' . esc_sql( $table ) . '` WHERE 1 = 0' );
 		$last_error = trim( (string) $wpdb->last_error );
+		$available_columns = false !== $result ? array_map( 'strval', (array) $wpdb->get_col_info( 'name' ) ) : array();
 		$wpdb->suppress_errors( (bool) $previous_suppression );
 
-		if ( false === $result || '' !== $last_error ) {
-			$detail = '' !== $last_error ? $last_error : 'required table or column is not queryable';
+		$missing_columns = array_values( array_diff( $columns, $available_columns ) );
+		if ( false === $result || '' !== $last_error || ! empty( $missing_columns ) ) {
+			$detail = '' !== $last_error
+				? $last_error
+				: ( ! empty( $missing_columns )
+					? 'missing required columns: ' . implode( ', ', $missing_columns )
+					: 'required table or column is not queryable' );
 			// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Internal exception is caught/logged; values are sanitized and never rendered directly.
 			throw new \RuntimeException(
 				sprintf(
@@ -445,8 +448,8 @@ class SScribe_Activator {
 
 		$wpdb->last_error    = '';
 		$previous_suppression = $wpdb->suppress_errors( true );
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Plugin-owned table identifier is strictly validated above; SHOW INDEX is structural introspection.
-		$rows       = $wpdb->get_results( "SHOW INDEX FROM `{$table}`" );
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.PreparedSQL.NotPrepared -- Plugin-owned table identifier is strictly validated and escaped; SHOW INDEX is structural introspection.
+		$rows       = $wpdb->get_results( 'SHOW INDEX FROM `' . esc_sql( $table ) . '`' );
 		$last_error = trim( (string) $wpdb->last_error );
 		$wpdb->suppress_errors( (bool) $previous_suppression );
 
