@@ -212,6 +212,24 @@ final class SScribe_Batch_Step_Handler_Trait_Test extends TestCase {
 		}
 	}
 
+
+	public function test_ajax_batch_primes_child_metadata_for_the_session_post_type(): void {
+		$source = (string) file_get_contents(
+			SSCRIBE_PLUGIN_DIR . 'includes/traits/trait-sscribe-batch-step-handler.php'
+		);
+
+		$this::assertStringContainsString(
+			"\$post_type         = isset( \$session['post_type'] )",
+			$source,
+			'Batch processing must resolve the selected post type from the persisted export session.'
+		);
+		$this::assertStringContainsString(
+			"\$this->collector->get_child_pages_batch( \$batch, \$post_type );",
+			$source,
+			'Child metadata priming must use the session post type instead of the get_child_pages_batch() page default.'
+		);
+	}
+
 	public function test_restore_ob_level_is_noop_when_at_target(): void {
 		$start_level = ob_get_level();
 		$this->call( 'restore_ob_level', $start_level );
