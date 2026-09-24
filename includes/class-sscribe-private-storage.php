@@ -85,12 +85,18 @@ final class SScribe_Private_Storage {
 			// substitution, or a permissions change within the request fails closed.
 			clearstatcache( true, $cached_path );
 			$cached_real = realpath( $cached_path );
+			$cached_base = self::validate_base_candidate(
+				dirname( dirname( dirname( $cached_path ) ) )
+			);
 			if (
 				false !== $cached_real
+				&& '' !== $cached_base
 				&& is_dir( $cached_path )
 				&& ! is_link( $cached_path )
 				&& self::normalize_path( $cached_real ) === self::normalize_path( $cached_path )
+				&& self::path_is_within( $cached_real, $cached_base, false )
 				&& self::is_outside_public_roots( $cached_real )
+				&& self::prepare_managed_path( $cached_path, $cached_base, false )
 				&& ( ! $create || wp_is_writable( $cached_real ) )
 			) {
 				return $cached_path;
