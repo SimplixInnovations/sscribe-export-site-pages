@@ -63,8 +63,6 @@ class SScribe_Admin {
 		$this->zip_handler = $zip_handler ?? new SScribe_Zip_Handler();
 
 		$this->debug = new SScribe_Admin_Debug();
-
-		$this->debug->register_hooks();
 	}
 
 	/**
