@@ -189,7 +189,7 @@ test.describe('a11y / admin-tabs', () => {
 
     // Every inactive panel must be removed from sequential focus/navigation,
     // not merely labelled aria-hidden.
-    const inactivePanels = adminPage.locator('.sscribe-tab-panel[aria-hidden="true"]');
+    const inactivePanels = adminPage.locator('.sscribe-tab-content[aria-hidden="true"]');
     const inactiveCount = await inactivePanels.count();
     expect(inactiveCount).toBeGreaterThan(0);
     for (let i = 0; i < inactiveCount; i += 1) {
