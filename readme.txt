@@ -99,6 +99,8 @@ The bundled PhpOffice/PhpWord library uses LGPL-3.0-only. Its notice is included
 
 The bundled TCPDF 7.0.10 and its Tecnick tc-lib runtime dependencies use LGPL-3.0-or-later. Its license notice and the required notices for all bundled dependencies remain alongside their source in the plugin package.
 
+Bundled LGPL-3.0 code is GPL-compatible under the GPLv3 option of SScribe's GPL-2.0-or-later license.
+
 == Development ==
 
 Canonical source repository: https://github.com/SimplixInnovations/sscribe-export-site-pages
