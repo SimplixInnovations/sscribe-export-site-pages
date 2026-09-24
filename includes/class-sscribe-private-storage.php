@@ -78,9 +78,6 @@ final class SScribe_Private_Storage {
 			. '|' . md5( (string) wp_json_encode( $candidates ) );
 		if ( array_key_exists( $cache_key, $resolved_paths ) ) {
 			$cached_path = (string) $resolved_paths[ $cache_key ];
-			if ( '' === $cached_path ) {
-				return '';
-			}
 			clearstatcache( true, $cached_path );
 			$cached_real = realpath( $cached_path );
 			if (
@@ -141,7 +138,9 @@ final class SScribe_Private_Storage {
 			return $path;
 		}
 
-		$resolved_paths[ $cache_key ] = '';
+		// Failed resolution is intentionally not memoized. Storage availability can
+		// change within a request after filters, mounts, permissions, or test
+		// fixtures change; caching failure would make a transient condition sticky.
 		return '';
 	}
 
