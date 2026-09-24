@@ -293,14 +293,15 @@ class SScribe_Upgrader {
 	private static function assert_required_schema( string $table, array $columns, string $label ): void {
 		global $wpdb;
 
+		$safe_label = sanitize_text_field( $label );
 		if ( 1 !== preg_match( '/^[A-Za-z0-9_]+$/D', $table ) || empty( $columns ) ) {
-			throw new \RuntimeException( 'Invalid schema verification target for ' . $label . '.' );
+			throw new \RuntimeException( 'Invalid schema verification target for ' . $safe_label . '.' );
 		}
 
 		$quoted_columns = array();
 		foreach ( $columns as $column ) {
 			if ( 1 !== preg_match( '/^[A-Za-z0-9_]+$/D', $column ) ) {
-				throw new \RuntimeException( 'Invalid schema verification column for ' . $label . '.' );
+				throw new \RuntimeException( 'Invalid schema verification column for ' . $safe_label . '.' );
 			}
 			$quoted_columns[] = '`' . $column . '`';
 		}
@@ -315,8 +316,7 @@ class SScribe_Upgrader {
 		$last_error = property_exists( $wpdb, 'last_error' ) ? trim( (string) $wpdb->last_error ) : '';
 
 		if ( false === $result || '' !== $last_error ) {
-			$detail     = '' !== $last_error ? $last_error : 'required table or column is not queryable';
-			$safe_label = sanitize_text_field( $label );
+			$detail      = '' !== $last_error ? $last_error : 'required table or column is not queryable';
 			$safe_detail = sanitize_text_field( $detail );
 			throw new \RuntimeException(
 				sprintf( 'Schema verification failed for %1$s: %2$s', $safe_label, $safe_detail )
