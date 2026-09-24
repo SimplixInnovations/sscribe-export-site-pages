@@ -29,7 +29,10 @@ jobs:
         run: composer validate --strict
       - name: Show dependency delta
         run: |
-          composer show tecnickcom/tcpdf tecnickcom/tc-lib-pdf tecnickcom/tc-lib-pdf-font tecnickcom/tc-lib-file --locked
+          composer show tecnickcom/tcpdf --locked
+          composer show tecnickcom/tc-lib-pdf --locked
+          composer show tecnickcom/tc-lib-pdf-font --locked
+          composer show tecnickcom/tc-lib-file --locked
           git diff -- composer.lock
       - name: Upload resolved lock
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
