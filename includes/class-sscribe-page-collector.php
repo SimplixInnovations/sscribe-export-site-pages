@@ -708,11 +708,8 @@ class SScribe_Page_Collector {
 		$post_status = $this->validate_post_status( $post_status );
 
 		if ( 'any' === $post_status ) {
-			$total = 0;
-			foreach ( $this->get_page_ids_chunked( $language, 'any', $post_type, self::CACHE_MAX_SIZE ) as $chunk ) {
-				$total += count( $chunk );
-			}
-			return $total;
+			$counts = $this->get_post_status_counts( $language, $post_type );
+			return (int) ( $counts['all'] ?? 0 );
 		}
 
 		// The found_posts fast path is safe only when every resolved post type
