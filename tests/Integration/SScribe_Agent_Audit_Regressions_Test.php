@@ -81,6 +81,16 @@ final class SScribe_Agent_Audit_Regressions_Test extends TestCase {
 		self::assertStringContainsString("role: 'status'", $debug_js);
 	}
 
+	public function test_content_cache_invalidation_is_not_limited_to_admin_ui_requests(): void {
+		$src = self::source('includes/class-sscribe.php');
+		self::assertStringContainsString('private function define_content_invalidation_hooks(): void', $src);
+		self::assertStringContainsString("'save_post'", $src);
+		self::assertStringContainsString("'trashed_post'", $src);
+		self::assertStringContainsString("'deleted_post'", $src);
+		self::assertStringContainsString("'untrashed_post'", $src);
+		self::assertStringContainsString('$this->define_content_invalidation_hooks();', $src);
+	}
+
 	public function test_boot_notices_use_current_wordpress_notice_classes(): void {
 		$src = self::source('sscribe-export-site-pages.php');
 		self::assertStringNotContainsString('<div class="error">', $src);
