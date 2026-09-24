@@ -35,6 +35,27 @@ final class SScribe_Upgrader_Hardening_Test extends TestCase {
 		);
 	}
 
+
+	public function test_dbdelta_errors_are_checked_before_schema_version_can_advance(): void {
+		$source = self::source();
+
+		$this->assertStringContainsString(
+			'run_dbdelta_or_throw',
+			$source,
+			'Every canonical schema reconciliation must pass through one fail-closed dbDelta wrapper.'
+		);
+		$this->assertStringContainsString(
+			'$wpdb->last_error',
+			$source,
+			'dbDelta failures must be inspected explicitly because dbDelta can report SQL errors without throwing.'
+		);
+		$this->assertStringContainsString(
+			'assert_required_schema',
+			$source,
+			'The upgrader must verify required columns are queryable before recording the new schema version.'
+		);
+	}
+
 	public function test_failed_upgrade_has_context_gate_and_exponential_retry_backoff(): void {
 		$source = self::source();
 		$this->assertStringContainsString( 'should_attempt_upgrade', $source );
