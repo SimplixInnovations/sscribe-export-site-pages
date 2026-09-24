@@ -683,6 +683,10 @@ msgstr ""
 msgid "Completed"
 msgstr ""
 
+#: includes/class-sscribe-loader.php:132
+msgid "The requested SScribe action is temporarily unavailable."
+msgstr ""
+
 #: admin/class-sscribe-admin.php:397
 msgid "Failed to generate preview."
 msgstr ""
