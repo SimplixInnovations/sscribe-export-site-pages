@@ -136,7 +136,7 @@ final class SScribe_Post_Audit_Performance_Test extends TestCase {
 		$this->assertStringContainsString( 'get_ajax_download_url( $filename, $data )', $admin );
 
 		$url_start = strpos( $src, 'public function get_ajax_download_url(' );
-		$url_end   = strpos( $src, 'public function stream_download(', $url_start );
+		$url_end   = strpos( $src, 'public function rotate_dl_token(', $url_start );
 		$this->assertNotFalse( $url_start );
 		$this->assertNotFalse( $url_end );
 		$url_method = substr( $src, $url_start, $url_end - $url_start );
