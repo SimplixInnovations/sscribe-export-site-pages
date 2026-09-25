@@ -27,6 +27,30 @@ import { test, expect } from '../../fixtures/shared';
  * prove the SECOND consumption is rejected.
  */
 test.describe('e2e / export / download-token-auth', () => {
+  test('invalid and missing download requests preserve their HTTP error status', async ({ adminPage }) => {
+    await adminPage.goto('/wp-admin/admin.php?page=sscribe-export');
+    await expect(adminPage.locator('#sscribe-export-btn')).toBeEnabled({ timeout: 30_000 });
+
+    const responses = await adminPage.evaluate(async () => {
+      const data = (window as any).sscribe_data;
+      const results = [];
+      for (const file of ['invalid/../export.zip', 'missing-status-regression.zip']) {
+        const url = new URL(data.ajaxurl, window.location.href);
+        url.searchParams.set('action', 'sscribe_download');
+        url.searchParams.set('nonce', data.download_nonce);
+        url.searchParams.set('file', file);
+        const response = await fetch(url, { credentials: 'same-origin' });
+        results.push({ status: response.status, body: await response.text() });
+      }
+      return results;
+    });
+
+    expect(responses[0].status).toBe(400);
+    expect(responses[0].body).toMatch(/Invalid file request/i);
+    expect(responses[1].status).toBe(404);
+    expect(responses[1].body).toMatch(/File not found or has expired/i);
+  });
+
   test('download token is single-use: replay returns 403', async ({ adminPage }) => {
     await adminPage.goto('/wp-admin/admin.php?page=sscribe-export');
 

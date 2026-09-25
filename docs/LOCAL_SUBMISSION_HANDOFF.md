@@ -6,6 +6,11 @@ ZIP before tagging or uploading. Never copy PASS values from an earlier SHA.
 
 ## Final review changes to verify first
 
+- Download failures must retain HTTP 400/403/404/429/500 as appropriate.
+  WordPress AJAX defaults wp_die to HTTP 200 unless response is explicit.
+  Run the download-token-auth browser spec, including invalid and missing
+  filenames, and confirm rejection bodies are not served as successful files.
+
 - A short final private/draft query page that crosses the candidate scan limit
   must return an indeterminate count, not an exact zero that omits later
   readable content. A fully examined short page must retain its exact count.
