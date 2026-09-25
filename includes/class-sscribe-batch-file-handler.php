@@ -74,12 +74,12 @@ class SScribe_Batch_File_Handler {
 	public function ajax_download(): void {
 		if ( ! check_ajax_referer( 'sscribe_download', 'nonce', false ) ) {
 			status_header( 403 );
-			wp_die( esc_html__( 'Security check failed. The download link may have expired. Please refresh the page and try again.', 'sscribe-export-site-pages' ) );
+			wp_die( esc_html__( 'Security check failed. The download link may have expired. Please refresh the page and try again.', 'sscribe-export-site-pages' ), '', array( 'response' => 403 ) );
 		}
 
 		if ( ! current_user_can( $this->get_required_capability() ) ) {
 			status_header( 403 );
-			wp_die( esc_html__( 'Permission denied.', 'sscribe-export-site-pages' ) );
+			wp_die( esc_html__( 'Permission denied.', 'sscribe-export-site-pages' ), '', array( 'response' => 403 ) );
 		}
 
 		$decision = $this->check_rate_limit_decision( 'export_finalize' );
@@ -90,7 +90,7 @@ class SScribe_Batch_File_Handler {
 				$retry_seconds = 1;
 			}
 			header( 'Retry-After: ' . $retry_seconds );
-			wp_die( esc_html__( 'Too many requests. Please wait a moment and try again.', 'sscribe-export-site-pages' ) );
+			wp_die( esc_html__( 'Too many requests. Please wait a moment and try again.', 'sscribe-export-site-pages' ), '', array( 'response' => $decision->http_status() ) );
 		}
 
 		$raw_filename = isset( $_GET['file'] ) && is_string( $_GET['file'] ) ? sanitize_text_field( wp_unslash( $_GET['file'] ) ) : '';
@@ -98,7 +98,7 @@ class SScribe_Batch_File_Handler {
 
 		if ( '' === $filename || ! hash_equals( $raw_filename, $filename ) || 1 !== preg_match( '/^[A-Za-z0-9][A-Za-z0-9._-]{0,199}\.zip$/D', $filename ) ) {
 			status_header( 400 );
-			wp_die( esc_html__( 'Invalid file request.', 'sscribe-export-site-pages' ) );
+			wp_die( esc_html__( 'Invalid file request.', 'sscribe-export-site-pages' ), '', array( 'response' => 400 ) );
 		}
 
 		$export_dir = '';
@@ -110,7 +110,7 @@ class SScribe_Batch_File_Handler {
 
 			if ( empty( $filename ) || ! file_exists( $file_path ) ) {
 				status_header( 404 );
-				wp_die( esc_html__( 'File not found or has expired. Please generate a new export.', 'sscribe-export-site-pages' ) );
+				wp_die( esc_html__( 'File not found or has expired. Please generate a new export.', 'sscribe-export-site-pages' ), '', array( 'response' => 404 ) );
 			}
 
 			$real_path = realpath( $file_path );
@@ -126,14 +126,14 @@ class SScribe_Batch_File_Handler {
 				|| ! is_readable( $real_path )
 			) {
 				status_header( 400 );
-				wp_die( esc_html__( 'Invalid file request.', 'sscribe-export-site-pages' ) );
+				wp_die( esc_html__( 'Invalid file request.', 'sscribe-export-site-pages' ), '', array( 'response' => 400 ) );
 			}
 
 			$exports = $this->zip_handler->get_export_entry( $filename );
 			if ( null === $exports ) {
 				$this->auditor->log( 'download_orphaned_denied', array( 'filename' => $filename ) );
 				status_header( 403 );
-				wp_die( esc_html__( 'Invalid file access.', 'sscribe-export-site-pages' ) );
+				wp_die( esc_html__( 'Invalid file access.', 'sscribe-export-site-pages' ), '', array( 'response' => 403 ) );
 			}
 
 			$export_info   = $exports;
@@ -141,7 +141,7 @@ class SScribe_Batch_File_Handler {
 			if ( $stored_user_id <= 0 || get_current_user_id() !== $stored_user_id ) {
 				$this->auditor->log( 'download_access_denied', array( 'filename' => $filename ) );
 				status_header( 403 );
-				wp_die( esc_html__( 'Invalid file access.', 'sscribe-export-site-pages' ) );
+				wp_die( esc_html__( 'Invalid file access.', 'sscribe-export-site-pages' ), '', array( 'response' => 403 ) );
 			}
 
 			// Single-use per-row download token: admin views reuse the current
@@ -163,7 +163,7 @@ class SScribe_Batch_File_Handler {
 			$file_size      = filesize( (string) $real_path );
 			if ( false === $file_size ) {
 				status_header( 500 );
-				wp_die( esc_html__( 'Unable to read the export size. Please regenerate the export.', 'sscribe-export-site-pages' ) );
+				wp_die( esc_html__( 'Unable to read the export size. Please regenerate the export.', 'sscribe-export-site-pages' ), '', array( 'response' => 500 ) );
 			}
 
 			header( 'Content-Type: application/zip' );
@@ -210,7 +210,7 @@ class SScribe_Batch_File_Handler {
 				)
 			);
 			status_header( 500 );
-			wp_die( esc_html__( 'Server misconfiguration: export directory is invalid or inaccessible.', 'sscribe-export-site-pages' ) );
+			wp_die( esc_html__( 'Server misconfiguration: export directory is invalid or inaccessible.', 'sscribe-export-site-pages' ), '', array( 'response' => 500 ) );
 		}
 	}
 
