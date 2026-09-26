@@ -39,19 +39,37 @@ if ( 'cli' !== php_sapi_name() ) {
 $root_dir      = dirname( __DIR__ );
 $triage_doc    = $root_dir . '/docs/PLUGIN_CHECK_WARNINGS_v2.0.0.md';
 $manifest_path = $root_dir . '/dist/plugin-check-triage-manifest.json';
+// Live Plugin Check report from `wp plugin check` (TSV/JSON). When present,
+// every emitted warning/error code must appear in the triage table.
+$live_report_candidates = array(
+	$root_dir . '/dist/evidence/plugin-check.log',
+	$root_dir . '/dist/plugin-check/plugin-check-report.json',
+	$root_dir . '/dist/evidence/plugin-check.json',
+);
 
 $matrix = array();
 $errors = array();
+$blocked = array();
+$strict = getenv( 'SSCRIBE_RELEASE_CERTIFICATION' ) === '1';
 
-$record = static function ( string $rule, bool $passes, string $detail ) use ( &$matrix, &$errors ): void {
+$record = static function ( string $rule, bool $passes, string $detail, string $state = 'auto' ) use ( &$matrix, &$errors, &$blocked, $strict ): void {
 	$matrix[] = array(
 		'rule'   => $rule,
 		'passes' => $passes,
 		'detail' => $detail,
+		'state'  => $state,
 	);
-	if ( ! $passes ) {
-		$errors[] = $detail;
+	if ( $passes ) {
+		return;
 	}
+	if ( 'blocked' === $state || str_starts_with( $detail, 'BLOCKED:' ) ) {
+		$blocked[] = $detail;
+		if ( $strict ) {
+			$errors[] = $detail;
+		}
+		return;
+	}
+	$errors[] = $detail;
 };
 
 /**
@@ -219,6 +237,60 @@ $record(
 );
 
 /**
+ * Rule 8b: live Plugin Check report, when present, must be parseable and
+ * every emitted warning/error code must be listed in the triage table.
+ * A missing report is recorded as BLOCKED (not PASS) so certification
+ * cannot claim Plugin Check green from a stub.
+ */
+$live_report_path = '';
+foreach ( $live_report_candidates as $candidate ) {
+	if ( is_file( $candidate ) && (int) filesize( $candidate ) > 0 ) {
+		$live_report_path = $candidate;
+		break;
+	}
+}
+$live_codes = array();
+if ( '' === $live_report_path ) {
+	$record(
+		'live_plugin_check_report',
+		false,
+		'BLOCKED: no live Plugin Check report found at dist/evidence/plugin-check.log (or dist/plugin-check/*). Certification must run `wp plugin check` on the exact ZIP; a stub must never count as PASS.'
+	);
+} else {
+	$live_src = (string) file_get_contents( $live_report_path );
+	// Match WPCS / Plugin Check codes such as WordPress.DB.DirectDatabaseQuery.DirectQuery
+	// or PluginCheck.Security.DirectDB.UnescapedDBParameter in TSV or JSON reports.
+	if ( preg_match_all( '/\b((?:PluginCheck|WordPress|PHPCompatibility|Generic|Squiz)\.[A-Za-z0-9_.]+)\b/', $live_src, $code_hits ) ) {
+		$live_codes = array_values( array_unique( $code_hits[1] ) );
+	}
+	// DirectQuery / NoCaching / UnescapedDBParameter / PrefixAllGlobals are expected codes.
+	$triage_codes = array();
+	if ( is_file( $triage_doc ) ) {
+		$doc_for_codes = (string) file_get_contents( $triage_doc );
+		if ( preg_match_all( '/\b((?:PluginCheck|WordPress|PHPCompatibility)\.[A-Za-z0-9_.]+)\b/', $doc_for_codes, $triage_hits ) ) {
+			$triage_codes = array_values( array_unique( $triage_hits[1] ) );
+		}
+	}
+	$untriaged = array_values( array_diff( $live_codes, $triage_codes ) );
+	$record(
+		'live_plugin_check_report',
+		'' !== $live_report_path && ( count( $live_codes ) > 0 || false !== strpos( $live_src, 'FILE:' ) || false !== strpos( $live_src, 'Success' ) || '' !== trim( $live_src ) ),
+		sprintf(
+			'Live report %s parsed; codes=%s',
+			$live_report_path,
+			$live_codes ? implode( ', ', $live_codes ) : '(none detected)'
+		)
+	);
+	$record(
+		'live_warnings_triaged',
+		0 === count( $untriaged ),
+		0 === count( $untriaged )
+			? 'Every live Plugin Check code appears in the triage table.'
+			: 'Untriaged Plugin Check codes: ' . implode( ', ', $untriaged )
+	);
+}
+
+/**
  * Rule 9: integration test exists.
  */
 $test_path = $root_dir . '/tests/Integration/SScribe_Plugin_Check_Triage_Test.php';
@@ -235,11 +307,14 @@ if ( ! is_dir( $manifest_dir ) ) {
 }
 $manifest = array(
 	'generated_at' => gmdate( 'c' ),
+	'strict'       => $strict,
 	'rule_count'   => count( $matrix ),
 	'passed_count' => count( array_filter( $matrix, static fn( $r ) => $r['passes'] ) ),
 	'errors_count' => count( $errors ),
+	'blocked_count'=> count( $blocked ),
 	'passes'       => 0 === count( $errors ),
 	'errors'       => $errors,
+	'blocked'      => $blocked,
 	'matrix'       => $matrix,
 );
 file_put_contents(

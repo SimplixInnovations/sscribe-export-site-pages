@@ -57,6 +57,10 @@ exit with zero errors and zero warnings.
 | Warning code | Source | Severity | Status | Remediation | Owner |
 |--------------|--------|----------|--------|-------------|-------|
 | `WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound` | `includes/class-sscribe-operational-logger.php` | warning | `fixed` | Replaced the dynamic `$GLOBALS[$lock_key]` shutdown recursion lock with class-scoped static state in v2.0.3. | Simplix Innovations |
+| `WordPress.DB.DirectDatabaseQuery.DirectQuery` | `includes/class-sscribe-audit-trail.php` | warning | `acknowledged` | Intentional one-shot `table_exists()` schema probe on a plugin-owned table (regex-validated identifier, `esc_sql`-quoted, result cached in `$table_exists_cache`). Not a user-input query. `phpcs:ignore` documents the exemption. | Simplix Innovations |
+| `WordPress.DB.DirectDatabaseQuery.NoCaching` | `includes/class-sscribe-audit-trail.php` | warning | `acknowledged` | Same probe; caching is the class-level `$table_exists_cache` boolean, not the object cache. | Simplix Innovations |
+| `WordPress.DB.DirectDatabaseQuery.DirectQuery` | `includes/class-sscribe-logger-enhanced.php` | warning | `acknowledged` | Same one-shot schema probe pattern as audit trail. | Simplix Innovations |
+| `WordPress.DB.DirectDatabaseQuery.NoCaching` | `includes/class-sscribe-logger-enhanced.php` | warning | `acknowledged` | Same probe; result cached in `$table_exists_cache`. | Simplix Innovations |
 
 ## Adding a new warning
 

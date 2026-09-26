@@ -80,7 +80,7 @@ class SScribe_Audit_Trail {
 			}
 			$wpdb->last_error = '';
 			$previous_suppression = $wpdb->suppress_errors( true );
-			// Identifier is regex-validated above; zero-row structural probe only.
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- One-shot schema probe; result cached in $table_exists_cache.
 			$result = $wpdb->query( 'SELECT 1 FROM `' . esc_sql( $this->table_name ) . '` WHERE 1 = 0' );
 			$last_error = trim( (string) $wpdb->last_error );
 			$wpdb->suppress_errors( (bool) $previous_suppression );

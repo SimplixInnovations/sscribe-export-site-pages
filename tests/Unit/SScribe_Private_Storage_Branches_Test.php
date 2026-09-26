@@ -516,6 +516,57 @@ final class SScribe_Private_Storage_Branches_Test extends TestCase {
 		}
 	}
 
+	/**
+	 * TCPDF autoconfig writes a synthetic filesystem-root DOCUMENT_ROOT
+	 * ('/') when the SAPI has none. That value must not disable private
+	 * storage by marking every absolute path public.
+	 */
+	public function test_get_export_dir_ignores_synthetic_filesystem_root_document_root(): void {
+		$prev = $_SERVER['DOCUMENT_ROOT'] ?? null;
+		foreach ( array( '/', '\\', 'C:/', 'C:\\', '//' ) as $synthetic ) {
+			$_SERVER['DOCUMENT_ROOT'] = $synthetic;
+			$dir = \SScribe_Private_Storage::get_export_dir( false );
+			$this::assertNotSame(
+				'',
+				$dir,
+				"DOCUMENT_ROOT={$synthetic} must not disable private storage (TCPDF autoconfig pollution)."
+			);
+		}
+		if ( null === $prev ) {
+			unset( $_SERVER['DOCUMENT_ROOT'] );
+		} else {
+			$_SERVER['DOCUMENT_ROOT'] = $prev;
+		}
+	}
+
+	public function test_get_usable_document_root_rejects_filesystem_roots(): void {
+		$prev = $_SERVER['DOCUMENT_ROOT'] ?? null;
+		$cases = array(
+			'/'     => '',
+			'\\'    => '',
+			'//'    => '',
+			'C:/'   => '',
+			'C:\\'  => '',
+			'C:'    => '',
+			''      => '',
+		);
+		foreach ( $cases as $raw => $expected ) {
+			$_SERVER['DOCUMENT_ROOT'] = $raw;
+			$this::assertSame(
+				$expected,
+				$this->call_private( 'get_usable_document_root' ),
+				"DOCUMENT_ROOT={$raw} must normalize to empty usable root."
+			);
+		}
+		$_SERVER['DOCUMENT_ROOT'] = '/var/www/html';
+		$this::assertSame( '/var/www/html', $this->call_private( 'get_usable_document_root' ) );
+		if ( null === $prev ) {
+			unset( $_SERVER['DOCUMENT_ROOT'] );
+		} else {
+			$_SERVER['DOCUMENT_ROOT'] = $prev;
+		}
+	}
+
 	// ------------------------------------------------------------------
 	// path_is_within() — empty path/root branch (lines 422-424).
 	// ------------------------------------------------------------------

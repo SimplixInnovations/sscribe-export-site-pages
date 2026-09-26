@@ -46,24 +46,47 @@ final class SScribe_Plugin_Check_Triage_Test extends TestCase {
 
 	public function test_live_manifest_passes_verifier(): void {
 		list( $code, $output ) = $this->run_verifier();
+		// Non-strict source CI must not fail solely because the live
+		// Plugin Check report is absent; that gap is BLOCKED and only
+		// fatal under SSCRIBE_RELEASE_CERTIFICATION=1.
 		$this::assertSame(
 			0,
 			$code,
-			'Phase 64 verifier must return exit 0. Output:' . "\n" . $output
+			'Phase 64 verifier must return exit 0 in non-strict mode. Output:' . "\n" . $output
 		);
 		$this::assertStringContainsString( 'Plugin-check triage contract valid', $output );
 	}
 
-	public function test_manifest_records_all_rules_passing(): void {
+	public function test_manifest_records_structural_rules_and_never_fakes_live_report_pass(): void {
 		list( $code ) = $this->run_verifier();
 		$this::assertSame( 0, $code );
 
 		$payload = json_decode( (string) file_get_contents( self::plugin_root() . '/' . self::MANIFEST_PATH ), true );
-		$this::assertIsArray( $payload );
+		$this->assertIsArray( $payload );
 		$this::assertTrue( $payload['passes'] );
-		$this::assertGreaterThanOrEqual( 8, $payload['rule_count'] );
-		$this::assertSame( $payload['rule_count'], $payload['passed_count'] );
+		$this->assertGreaterThanOrEqual( 8, $payload['rule_count'] );
 		$this::assertSame( 0, $payload['errors_count'] );
+
+		$live = null;
+		foreach ( $payload['matrix'] as $row ) {
+			if ( 'live_plugin_check_report' === $row['rule'] ) {
+				$live = $row;
+			}
+		}
+		$this::assertIsArray( $live, 'live_plugin_check_report rule must exist.' );
+		$report_exists = is_file( self::plugin_root() . '/dist/evidence/plugin-check.log' )
+			|| is_file( self::plugin_root() . '/dist/plugin-check/plugin-check-report.json' );
+		if ( ! $report_exists ) {
+			$this::assertFalse(
+				$live['passes'],
+				'A missing live Plugin Check report must never be recorded as PASS.'
+			);
+			$this::assertStringContainsString( 'BLOCKED', $live['detail'] );
+			$this::assertArrayHasKey( 'blocked_count', $payload );
+			$this::assertGreaterThan( 0, $payload['blocked_count'] );
+		} else {
+			$this::assertTrue( $live['passes'] );
+		}
 	}
 
 	public function test_triage_doc_exists(): void {

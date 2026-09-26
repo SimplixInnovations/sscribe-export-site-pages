@@ -438,6 +438,30 @@ class SScribe_Admin {
 				'live_region_no_pages'   => __( 'No pages match selected options. Export button is disabled.', 'sscribe-export-site-pages' ),
 				/* translators: 1: prefix (e.g. "Export progress:"), 2: percentage */
 				'live_region_progress'   => __( '%1$s %2$d%%', 'sscribe-export-site-pages' ),
+
+				// Debug console (sscribe-debug-console.js).
+				'debug_unsaved'          => __( 'Unsaved changes', 'sscribe-export-site-pages' ),
+				'debug_clearing'         => __( 'Clearing...', 'sscribe-export-site-pages' ),
+				'debug_confirm_clear'    => __( 'Click to confirm', 'sscribe-export-site-pages' ),
+				'debug_saved'            => __( 'Saved', 'sscribe-export-site-pages' ),
+				'debug_saved_bang'       => __( 'Saved!', 'sscribe-export-site-pages' ),
+				'debug_reloading'        => __( 'Debug mode changed : reloading…', 'sscribe-export-site-pages' ),
+				'debug_empty_default'    => __( 'No log entries found.', 'sscribe-export-site-pages' ),
+				'debug_empty_disabled'   => __( 'Debug logging is disabled. Enable it in Settings above to capture logs.', 'sscribe-export-site-pages' ),
+				'debug_empty_no_file'    => __( 'Debug is enabled but no log file exists yet. Run an export to generate logs.', 'sscribe-export-site-pages' ),
+				'debug_empty_rotated'    => __( 'This rotated log file is empty.', 'sscribe-export-site-pages' ),
+				'debug_empty_filtered'   => __( 'No entries match the current filters. Adjust level, search, or session above.', 'sscribe-export-site-pages' ),
+				'debug_loading'          => __( 'Loading...', 'sscribe-export-site-pages' ),
+				'debug_error'            => __( 'Error', 'sscribe-export-site-pages' ),
+				/* translators: %d: entry count */
+				'debug_entry_one'        => __( '1 entry', 'sscribe-export-site-pages' ),
+				/* translators: %d: entry count */
+				'debug_entry_many'       => __( '%d entries', 'sscribe-export-site-pages' ),
+				'debug_scope_all'        => __( ' (all)', 'sscribe-export-site-pages' ),
+				'debug_scope_filtered'   => __( ' (filtered)', 'sscribe-export-site-pages' ),
+				'debug_exporting'        => __( ' : exporting...', 'sscribe-export-site-pages' ),
+				'debug_rotated_empty'    => __( 'No rotated log files.', 'sscribe-export-site-pages' ),
+				'debug_loading_more'     => __( 'Loading more entries...', 'sscribe-export-site-pages' ),
 			) + $post_type_strings,
 		);
 	}

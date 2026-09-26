@@ -21,9 +21,18 @@
 		if (str === null || str === undefined) {
 			return '';
 		}
-		const div = document.createElement('div');
-		div.textContent = String(str);
-		return div.innerHTML;
+		return String(str)
+			.replace(/&/g, '&amp;')
+			.replace(/</g, '&lt;')
+			.replace(/>/g, '&gt;')
+			.replace(/"/g, '&quot;')
+			.replace(/'/g, '&#39;');
+	}
+	function t(key, fallback) {
+		if (typeof sscribe_data !== 'undefined' && sscribe_data.strings && sscribe_data.strings[key]) {
+			return sscribe_data.strings[key];
+		}
+		return fallback;
 	}
 	function escAttr(str) {
 		if (str === null || str === undefined) {
@@ -131,7 +140,7 @@
 			this.$consoleBody = $('#sscribe-debug-console-body');
 			this.$entries = $('#sscribe-debug-entries');
 			this.$empty = $('#sscribe-debug-empty');
-			this.defaultEmptyMessage = this.$empty.find('p').text().trim() || 'No log entries found.';
+			this.defaultEmptyMessage = this.$empty.find('p').text().trim() || t('debug_empty_default', 'No log entries found.');
 			this.$entryCount = $('#sscribe-debug-entry-count');
 			this.$clearBtn = $('#sscribe-debug-clear-btn');
 			this.clearBtnOriginalText = this.$clearBtn.text();
@@ -168,7 +177,7 @@
 				return;
 			}
 			this.$saveSettings.addClass('sscribe-button-dirty');
-			this.$saveFeedback.removeClass('success error').text('Unsaved changes');
+			this.$saveFeedback.removeClass('success error').text(t('debug_unsaved', 'Unsaved changes'));
 		},
 		clearSettingsDirty: function () {
 			if (!this.$saveSettings || !this.$saveSettings.length) {
@@ -300,7 +309,7 @@
 						clearTimeout(self.clearBtnTimeout);
 						self.clearBtnTimeout = null;
 					}
-					$btn.data('confirming', false).removeClass('sscribe-btn-confirming').text('Clearing...');
+					$btn.data('confirming', false).removeClass('sscribe-btn-confirming').text(t('debug_clearing', 'Clearing...'));
 					$btn.prop('disabled', true);
 					self.clearLogs();
 				} else {
@@ -341,7 +350,7 @@
 						self.$staleBanner.addClass('sscribe-hidden').attr('hidden', true);
 					}
 					if (self.$saveFeedback && self.$saveFeedback.length) {
-						self.$saveFeedback.removeClass('error').text('Saved');
+						self.$saveFeedback.removeClass('error').text(t('debug_saved', 'Saved'));
 					}
 					self.saveSettings(self.isAutoRefresh);
 				});
@@ -621,7 +630,7 @@
 		},
 		updateExportButtonScope: function () {
 			const hasFilter = this.currentFilter !== 'ALL' || this.searchQuery !== '' || this.sessionFilter !== '';
-			this.$exportBtn.find('.sscribe-export-btn-scope').text(hasFilter ? ' (filtered)' : ' (all)');
+			this.$exportBtn.find('.sscribe-export-btn-scope').text(hasFilter ? t('debug_scope_filtered', ' (filtered)') : t('debug_scope_all', ' (all)'));
 		},
 		/**
 		 * Phase 11 helper: single source of truth for whether any
@@ -733,7 +742,7 @@
 				self.$refreshMode.prop('disabled', false);
 				if (response.success) {
 					self.clearSettingsDirty();
-					self.$saveFeedback.removeClass('success error').text('Saved!').addClass('success');
+					self.$saveFeedback.removeClass('success error').text(t('debug_saved_bang', 'Saved!')).addClass('success');
 					if (response.data && response.data.nonce) {
 						sscribe_data.nonce = response.data.nonce;
 					}
@@ -751,7 +760,7 @@
 						}
 						self.$saveFeedback
 							.removeClass('success error')
-							.text('Debug mode changed : reloading\u2026')
+							.text(t('debug_reloading', 'Debug mode changed : reloading…'))
 							.addClass('success');
 						self.saveFeedbackTimeout = setTimeout(function () {
 							self.saveFeedbackTimeout = null;
@@ -866,7 +875,7 @@
 				this.isRefreshing = true;
 				this.isRefreshingSince = Date.now();
 				self.$entries.css('opacity', '0.5');
-				self.$entryCount.text('Loading...');
+				self.$entryCount.text(t('debug_loading', 'Loading...'));
 				self.$consoleBody.addClass('is-loading');
 			} else {
 				self.isLoadingMore = true;
@@ -919,13 +928,13 @@
 					self.hasMoreEntries = self.currentOffset < totalCount;
 					self.lastEntryCount = totalCount;
 					self.$clearBtn.prop('disabled', totalCount <= 0);
-					self.$entryCount.text(1 === totalCount ? '1 entry' : totalCount + ' entries');
+					self.$entryCount.text(1 === totalCount ? t('debug_entry_one', '1 entry') : t('debug_entry_many', '%d entries').replace('%d', totalCount));
 					if (!self.hasMoreEntries) {
 						self.destroyObserver();
 					}
 				} else {
 					self.destroyObserver();
-					self.$entryCount.text('Error');
+					self.$entryCount.text(t('debug_error', 'Error'));
 					self.showConsoleError(self.getResponseMessage(response, 'Unable to load debug logs.'));
 				}
 			}).fail(function (xhr) {
@@ -949,7 +958,7 @@
 				self.hideAppendLoading();
 				self.destroyObserver();
 				if (isInitialLoad) {
-					self.$entryCount.text('Error');
+					self.$entryCount.text(t('debug_error', 'Error'));
 					let errorMsg;
 					if (xhr.status === 0) {
 						errorMsg = 'Network error. Please check your connection.';
@@ -1031,7 +1040,7 @@
 						// State 1 of 5: debug_disabled.
 						this.$empty
 							.find('p')
-							.text('Debug logging is disabled. Enable it in Settings above to capture logs.');
+							.text(t('debug_empty_disabled', 'Debug logging is disabled. Enable it in Settings above to capture logs.'));
 						if (this.$emptyEnableBtn && this.$emptyEnableBtn.length) {
 							this.$emptyEnableBtn.removeClass('sscribe-hidden').attr('hidden', false);
 						}
@@ -1039,17 +1048,17 @@
 						// State 2 of 5: no_log_file.
 						this.$empty
 							.find('p')
-							.text('Debug is enabled but no log file exists yet. Run an export to generate logs.');
+							.text(t('debug_empty_no_file', 'Debug is enabled but no log file exists yet. Run an export to generate logs.'));
 					} else if (extraData.status === 'rotated') {
 						// State 3 of 5: rotated-view empty (sub-case of no_entries).
-						this.$empty.find('p').text('This rotated log file is empty.');
+						this.$empty.find('p').text(t('debug_empty_rotated', 'This rotated log file is empty.'));
 					} else if (this.computeHasFilter()) {
 						// State 4 of 5: no_filter_matches. Debug is on,
 						// log file exists, but the current level / search /
 						// session filter excluded everything.
 						this.$empty
 							.find('p')
-							.text('No entries match the current filters. Adjust level, search, or session above.');
+							.text(t('debug_empty_filtered', 'No entries match the current filters. Adjust level, search, or session above.'));
 					} else {
 						// State 5 of 5: no_entries (default — no filter
 						// active, log file exists but is genuinely empty).
@@ -1357,7 +1366,7 @@
 				data.filename = this.currentRotatedFilename;
 			}
 			self.$exportBtn.prop('disabled', true);
-			self.$exportBtn.find('.sscribe-export-btn-scope').text(' : exporting...');
+			self.$exportBtn.find('.sscribe-export-btn-scope').text(t('debug_exporting', ' : exporting...'));
 			this.showPausedIndicator('Export in progress : download should begin shortly');
 			this.downloadViaFetch(sscribe_data.ajaxurl, data, {
 				onSuccess: function () {
@@ -1499,7 +1508,7 @@
 					const parsedCount = parseInt(response.data.count, 10);
 					const rotatedCount = !isNaN(parsedCount) && parsedCount > 0 ? parsedCount : entries.length;
 					self.renderLogs(entries, true, { status: 'rotated', count: rotatedCount }, true);
-					self.$entryCount.text((1 === rotatedCount ? '1 entry' : rotatedCount + ' entries') + ' (rotated)');
+					self.$entryCount.text((1 === rotatedCount ? t('debug_entry_one', '1 entry') : rotatedCount + ' entries') + ' (rotated)');
 					self.$entries.prepend(
 						'<div class="sscribe-debug-rotated-banner">' +
 							'<span>Viewing archived log: ' +
@@ -1515,7 +1524,7 @@
 							self.backToCurrentLog();
 						});
 				} else {
-					self.$entryCount.text('Error');
+					self.$entryCount.text(t('debug_error', 'Error'));
 					self.showConsoleError(self.getResponseMessage(response, 'Unable to open rotated log.'));
 				}
 			}).fail(function (xhr) {
@@ -1524,7 +1533,7 @@
 				}
 				self.viewRotatedRequest = null;
 				self.isViewingRotated = false;
-				self.$entryCount.text('Error');
+				self.$entryCount.text(t('debug_error', 'Error'));
 				self.showConsoleError('Unable to open rotated log.');
 				const cleanUrl = new URL(window.location.href);
 				cleanUrl.searchParams.delete('view');
@@ -1553,7 +1562,7 @@
 			this.isRefreshingSince = null;
 			this.slowRefreshNoticeSince = null;
 			this.$entries.empty();
-			this.$entryCount.text('Loading...');
+			this.$entryCount.text(t('debug_loading', 'Loading...'));
 			const url = new URL(window.location.href);
 			url.searchParams.delete('view');
 			url.searchParams.delete('file');
@@ -1622,7 +1631,7 @@
 			if (!$btn.data('original-text')) {
 				$btn.data('original-text', $btn.text());
 			}
-			$btn.data('confirming', true).addClass('sscribe-btn-confirming').text('Click to confirm');
+			$btn.data('confirming', true).addClass('sscribe-btn-confirming').text(t('debug_confirm_clear', 'Click to confirm'));
 			const revertTimeout = setTimeout(function () {
 				$btn.removeData('delete-timeout');
 				if ($btn.data('confirming')) {
