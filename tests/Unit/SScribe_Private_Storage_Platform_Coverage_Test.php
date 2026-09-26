@@ -146,18 +146,19 @@ final class SScribe_Private_Storage_Platform_Coverage_Test extends TestCase {
 		wp_mkdir_p( $legacy );
 		file_put_contents( $legacy . '/legacy.txt', 'legacy' );
 
-		$prev = $_SERVER['DOCUMENT_ROOT'] ?? null;
-		// Forward slashes: the wp_unslash() test stub strips backslashes,
-		// which would mangle a native Windows temp path.
-		$_SERVER['DOCUMENT_ROOT'] = str_replace( '\\', '/', sys_get_temp_dir() );
+		// Force every private-storage base candidate to fail validation so
+		// get_export_dir() cannot resolve a migration target. Using the
+		// supported filter is deterministic on Windows and CLI, unlike
+		// DOCUMENT_ROOT tricks (parent-of-docroot remains a valid base and
+		// TCPDF autoconfig mutates DOCUMENT_ROOT itself).
+		$filter = static function ( $candidates ) {
+			return array( sys_get_temp_dir() . '/sscribe-never-created-' . uniqid() );
+		};
+		add_filter( 'sscribe_private_storage_base_candidates', $filter );
 		try {
 			$this::assertFalse( \SScribe_Private_Storage::migrate_legacy_storage() );
 		} finally {
-			if ( null === $prev ) {
-				unset( $_SERVER['DOCUMENT_ROOT'] );
-			} else {
-				$_SERVER['DOCUMENT_ROOT'] = $prev;
-			}
+			remove_filter( 'sscribe_private_storage_base_candidates', $filter );
 			@unlink( $legacy . '/legacy.txt' );
 			@rmdir( $legacy );
 		}

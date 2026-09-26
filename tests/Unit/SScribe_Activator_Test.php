@@ -92,7 +92,6 @@ class SScribe_Activator_Test extends TestCase {
 
 		try {
 			$method = new \ReflectionMethod( \SScribe_Activator::class, 'cleanup_orphaned_data' );
-			$method->setAccessible( true );
 			$method->invoke( null );
 		} finally {
 			$GLOBALS['wpdb'] = $original_wpdb;

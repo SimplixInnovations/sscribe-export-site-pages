@@ -84,13 +84,18 @@ class SScribe_Batch_File_Handler {
 
 		$decision = $this->check_rate_limit_decision( 'export_finalize' );
 		if ( ! $decision->allowed ) {
-			status_header( $decision->http_status() );
+			$http_status = (int) $decision->http_status();
+			status_header( $http_status );
 			$retry_seconds = (int) ceil( $decision->retry_after_ms / 1000 );
 			if ( $retry_seconds < 1 ) {
 				$retry_seconds = 1;
 			}
 			header( 'Retry-After: ' . $retry_seconds );
-			wp_die( esc_html__( 'Too many requests. Please wait a moment and try again.', 'sscribe-export-site-pages' ), '', array( 'response' => $decision->http_status() ) );
+			wp_die(
+				esc_html__( 'Too many requests. Please wait a moment and try again.', 'sscribe-export-site-pages' ),
+				'',
+				array( 'response' => absint( $http_status ) )
+			);
 		}
 
 		$raw_filename = isset( $_GET['file'] ) && is_string( $_GET['file'] ) ? sanitize_text_field( wp_unslash( $_GET['file'] ) ) : '';

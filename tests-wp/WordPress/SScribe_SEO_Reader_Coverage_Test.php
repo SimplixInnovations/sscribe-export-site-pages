@@ -142,13 +142,11 @@ final class SScribe_SEO_Reader_Coverage_Test extends SScribe_WP_TestCase {
 
 	public function test_has_seo_data_returns_false_for_empty_array(): void {
 		$ref = new \ReflectionMethod( SScribe_SEO_Reader::class, 'has_seo_data' );
-		$ref->setAccessible( true );
 		$this::assertFalse( $ref->invoke( new SScribe_SEO_Reader(), array() ) );
 	}
 
 	public function test_has_seo_data_returns_true_when_meta_title_set(): void {
 		$ref = new \ReflectionMethod( SScribe_SEO_Reader::class, 'has_seo_data' );
-		$ref->setAccessible( true );
 		$this::assertTrue(
 			$ref->invoke( new SScribe_SEO_Reader(), array( 'meta_title' => 'Hello' ) )
 		);
@@ -156,7 +154,6 @@ final class SScribe_SEO_Reader_Coverage_Test extends SScribe_WP_TestCase {
 
 	public function test_empty_seo_data_has_all_required_keys(): void {
 		$ref = new \ReflectionMethod( SScribe_SEO_Reader::class, 'empty_seo_data' );
-		$ref->setAccessible( true );
 		$empty = $ref->invoke( new SScribe_SEO_Reader() );
 		foreach (
 			array(
@@ -182,7 +179,6 @@ final class SScribe_SEO_Reader_Coverage_Test extends SScribe_WP_TestCase {
 
 	public function test_get_primary_taxonomy_returns_category_for_pages(): void {
 		$ref = new \ReflectionMethod( SScribe_SEO_Reader::class, 'get_primary_taxonomy' );
-		$ref->setAccessible( true );
 		// In the WP testbench 'page' post type has at least one
 		// hierarchical public taxonomy registered → 'category' is
 		// canonical.
@@ -195,31 +191,26 @@ final class SScribe_SEO_Reader_Coverage_Test extends SScribe_WP_TestCase {
 
 	public function test_is_yoast_active_returns_false_when_constant_undefined(): void {
 		$ref = new \ReflectionMethod( SScribe_SEO_Reader::class, 'is_yoast_active' );
-		$ref->setAccessible( true );
 		$this::assertFalse( $ref->invoke( new SScribe_SEO_Reader() ) );
 	}
 
 	public function test_is_rankmath_active_returns_false_when_class_missing(): void {
 		$ref = new \ReflectionMethod( SScribe_SEO_Reader::class, 'is_rankmath_active' );
-		$ref->setAccessible( true );
 		$this::assertFalse( $ref->invoke( new SScribe_SEO_Reader() ) );
 	}
 
 	public function test_is_seopress_active_returns_false_when_constant_undefined(): void {
 		$ref = new \ReflectionMethod( SScribe_SEO_Reader::class, 'is_seopress_active' );
-		$ref->setAccessible( true );
 		$this::assertFalse( $ref->invoke( new SScribe_SEO_Reader() ) );
 	}
 
 	public function test_is_tsf_active_returns_false_when_constant_undefined(): void {
 		$ref = new \ReflectionMethod( SScribe_SEO_Reader::class, 'is_tsf_active' );
-		$ref->setAccessible( true );
 		$this::assertFalse( $ref->invoke( new SScribe_SEO_Reader() ) );
 	}
 
 	public function test_is_aioseo_v3_active_requires_class_and_no_v4(): void {
 		$ref = new \ReflectionMethod( SScribe_SEO_Reader::class, 'is_aioseo_v3_active' );
-		$ref->setAccessible( true );
 		// v3 needs the legacy class AND v4 must be inactive (no
 		// `aioseo` function). With neither true, returns false.
 		$this::assertFalse( $ref->invoke( new SScribe_SEO_Reader() ) );
@@ -227,7 +218,6 @@ final class SScribe_SEO_Reader_Coverage_Test extends SScribe_WP_TestCase {
 
 	public function test_is_aioseo_v4_active_requires_function_and_constant(): void {
 		$ref = new \ReflectionMethod( SScribe_SEO_Reader::class, 'is_aioseo_v4_active' );
-		$ref->setAccessible( true );
 		// In the testbench `aioseo()` and AIOSEO_VERSION are both
 		// absent → returns false.
 		$this::assertFalse( $ref->invoke( new SScribe_SEO_Reader() ) );
@@ -239,7 +229,6 @@ final class SScribe_SEO_Reader_Coverage_Test extends SScribe_WP_TestCase {
 
 	public function test_read_yoast_returns_empty_when_inactive(): void {
 		$ref = new \ReflectionMethod( SScribe_SEO_Reader::class, 'read_yoast' );
-		$ref->setAccessible( true );
 		$empty = $ref->invoke( new SScribe_SEO_Reader(), 0 );
 		$this::assertSame( '', $empty['meta_title'] );
 		$this::assertSame( '', $empty['source'] );
@@ -264,7 +253,6 @@ final class SScribe_SEO_Reader_Coverage_Test extends SScribe_WP_TestCase {
 
 	public function test_read_rankmath_returns_empty_when_inactive(): void {
 		$ref = new \ReflectionMethod( SScribe_SEO_Reader::class, 'read_rankmath' );
-		$ref->setAccessible( true );
 		$empty = $ref->invoke( new SScribe_SEO_Reader(), 0 );
 		$this::assertSame( '', $empty['meta_title'] );
 		$this::assertFalse( $empty['noindex'] );
@@ -310,7 +298,6 @@ final class SScribe_SEO_Reader_Coverage_Test extends SScribe_WP_TestCase {
 
 	public function test_read_aioseo_v4_returns_empty_when_inactive(): void {
 		$ref = new \ReflectionMethod( SScribe_SEO_Reader::class, 'read_aioseo_v4' );
-		$ref->setAccessible( true );
 		$empty = $ref->invoke( new SScribe_SEO_Reader(), 0 );
 		$this::assertSame( '', $empty['meta_title'] );
 		$this::assertFalse( $empty['noindex'] );
@@ -332,7 +319,6 @@ final class SScribe_SEO_Reader_Coverage_Test extends SScribe_WP_TestCase {
 
 	public function test_read_aioseo_v3_returns_empty_when_inactive(): void {
 		$ref = new \ReflectionMethod( SScribe_SEO_Reader::class, 'read_aioseo_v3' );
-		$ref->setAccessible( true );
 		$empty = $ref->invoke( new SScribe_SEO_Reader(), 0 );
 		$this::assertSame( '', $empty['meta_title'] );
 		$this::assertFalse( $empty['noindex'] );
@@ -367,7 +353,6 @@ final class SScribe_SEO_Reader_Coverage_Test extends SScribe_WP_TestCase {
 
 	public function test_read_seopress_returns_empty_when_inactive(): void {
 		$ref = new \ReflectionMethod( SScribe_SEO_Reader::class, 'read_seopress' );
-		$ref->setAccessible( true );
 		$empty = $ref->invoke( new SScribe_SEO_Reader(), 0 );
 		$this::assertSame( '', $empty['meta_title'] );
 		$this::assertFalse( $empty['noindex'] );
@@ -384,7 +369,6 @@ final class SScribe_SEO_Reader_Coverage_Test extends SScribe_WP_TestCase {
 
 	public function test_read_tsf_returns_empty_when_inactive(): void {
 		$ref = new \ReflectionMethod( SScribe_SEO_Reader::class, 'read_tsf' );
-		$ref->setAccessible( true );
 		$empty = $ref->invoke( new SScribe_SEO_Reader(), 0 );
 		$this::assertSame( '', $empty['meta_title'] );
 		$this::assertFalse( $empty['noindex'] );
@@ -493,8 +477,6 @@ final class SScribe_SEO_Reader_For_Coverage extends SScribe_SEO_Reader {
 	 */
 	public function call_reader( string $reader, int $page_id ): array {
 		$reader_ref = new \ReflectionMethod( parent::class, $reader );
-		$reader_ref->setAccessible( true );
-
 		// PHP's private methods aren't polymorphic, so we can't override
 		// is_*_active() in the subclass. Instead, install temporary
 		// stubs via runkit-style namespace function shims: we register

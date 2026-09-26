@@ -40,7 +40,6 @@ final class SScribe_DOCX_Content_Renderer_Coverage_Test extends SScribe_WP_TestC
 	private function call( string $method, array $args, ?SScribe_DOCX_Content_Renderer $r = null ): mixed {
 		$r   = $r ?? new SScribe_DOCX_Content_Renderer();
 		$ref = new \ReflectionMethod( $r, $method );
-		$ref->setAccessible( true );
 		return $ref->invokeArgs( $r, $args );
 	}
 
@@ -339,7 +338,6 @@ final class SScribe_DOCX_Content_Renderer_Coverage_Test extends SScribe_WP_TestC
 	 */
 	private function read_prop( object $obj, string $name ): mixed {
 		$ref = new \ReflectionProperty( $obj, $name );
-		$ref->setAccessible( true );
 		return $ref->getValue( $obj );
 	}
 }

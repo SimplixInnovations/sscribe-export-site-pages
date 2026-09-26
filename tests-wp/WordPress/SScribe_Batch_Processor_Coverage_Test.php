@@ -493,7 +493,6 @@ final class SScribe_Batch_Processor_Coverage_Test extends SScribe_WP_TestCase {
 	private function invoke_private( object $object, string $method, array $args = array() ): mixed {
 		$ref  = new \ReflectionClass( $object );
 		$func = $ref->getMethod( $method );
-		$func->setAccessible( true );
 		return $func->invokeArgs( $object, $args );
 	}
 
@@ -508,7 +507,6 @@ final class SScribe_Batch_Processor_Coverage_Test extends SScribe_WP_TestCase {
 		return static function ( ...$args ) use ( $processor, $method ): mixed {
 			$ref  = new \ReflectionClass( $processor );
 			$func = $ref->getMethod( $method );
-			$func->setAccessible( true );
 			return $func->invokeArgs( $processor, $args );
 		};
 	}
@@ -520,7 +518,6 @@ final class SScribe_Batch_Processor_Coverage_Test extends SScribe_WP_TestCase {
 	 */
 	private static function setRestrictedProperty( object $object, string $property, $value ): void {
 		$ref = new \ReflectionProperty( $object, $property );
-		$ref->setAccessible( true );
 		$ref->setValue( $object, $value );
 	}
 
@@ -531,7 +528,6 @@ final class SScribe_Batch_Processor_Coverage_Test extends SScribe_WP_TestCase {
 	 */
 	private static function getRestrictedProperty( object $object, string $property ) {
 		$ref = new \ReflectionProperty( $object, $property );
-		$ref->setAccessible( true );
 		return $ref->getValue( $object );
 	}
 

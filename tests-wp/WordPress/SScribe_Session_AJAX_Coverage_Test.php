@@ -178,8 +178,6 @@ final class SScribe_Session_AJAX_Coverage_Test extends SScribe_WP_Ajax_TestCase 
 	public function test_validate_session_ownership_returns_false_for_missing_user_id(): void {
 		$session = new SScribe_Session();
 		$ref     = new \ReflectionMethod( $session, 'validate_session_ownership' );
-		$ref->setAccessible( true );
-
 		$this::assertFalse(
 			$ref->invoke( $session, array( 'session_id' => 'abc' ), 'abc' )
 		);
@@ -190,8 +188,6 @@ final class SScribe_Session_AJAX_Coverage_Test extends SScribe_WP_Ajax_TestCase 
 		// a session with user_id != 0 must fail.
 		$session = new SScribe_Session();
 		$ref     = new \ReflectionMethod( $session, 'validate_session_ownership' );
-		$ref->setAccessible( true );
-
 		$this::assertFalse(
 			$ref->invoke( $session, array( 'user_id' => 999 ), 'abc' )
 		);
@@ -203,8 +199,6 @@ final class SScribe_Session_AJAX_Coverage_Test extends SScribe_WP_Ajax_TestCase 
 		// user_id must match $this->admin_user_id to drive the happy path.
 		$session = new SScribe_Session();
 		$ref     = new \ReflectionMethod( $session, 'validate_session_ownership' );
-		$ref->setAccessible( true );
-
 		$this::assertTrue(
 			$ref->invoke( $session, array( 'user_id' => $this->admin_user_id ), 'abc' )
 		);
@@ -217,8 +211,6 @@ final class SScribe_Session_AJAX_Coverage_Test extends SScribe_WP_Ajax_TestCase 
 	public function test_cleanup_cancelled_export_with_empty_temp_dir_is_noop(): void {
 		$session_obj = new SScribe_Session();
 		$ref         = new \ReflectionMethod( $session_obj, 'cleanup_cancelled_export' );
-		$ref->setAccessible( true );
-
 		// No temp_dir, no session_id → both guards fail, nothing happens.
 		$ref->invoke( $session_obj, array() );
 		$this::assertTrue( true, 'cleanup_cancelled_export must complete without throw on empty session.' );
@@ -227,8 +219,6 @@ final class SScribe_Session_AJAX_Coverage_Test extends SScribe_WP_Ajax_TestCase 
 	public function test_cleanup_cancelled_export_deletes_existing_temp_dir(): void {
 		$session_obj = new SScribe_Session();
 		$ref         = new \ReflectionMethod( $session_obj, 'cleanup_cancelled_export' );
-		$ref->setAccessible( true );
-
 		// Build a temp_dir that exists so the ! empty() && is_dir()
 		// guard inside cleanup_cancelled_export fires. Whether the
 		// downstream delete actually succeeds is platform-dependent

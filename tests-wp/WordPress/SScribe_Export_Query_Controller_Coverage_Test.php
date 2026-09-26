@@ -53,7 +53,6 @@ final class SScribe_Export_Query_Controller_Coverage_Test extends SScribe_WP_Aja
 	private function call_private( string $method, array $args, ?object $on = null ): mixed {
 		$on  = $on ?? $this->controller();
 		$ref = new \ReflectionMethod( $on, $method );
-		$ref->setAccessible( true );
 		return $ref->invokeArgs( $on, $args );
 	}
 
@@ -425,49 +424,42 @@ final class SScribe_Export_Query_Controller_Coverage_Test extends SScribe_WP_Aja
 	public function test_constructor_lazy_default_rate_limiter(): void {
 		$c = new SScribe_Export_Query_Controller();
 		$ref = new \ReflectionProperty( $c, 'rate_limiter' );
-		$ref->setAccessible( true );
 		$this::assertInstanceOf( SScribe_Export_Rate_Limiter::class, $ref->getValue( $c ) );
 	}
 
 	public function test_constructor_lazy_default_diagnostics(): void {
 		$c = new SScribe_Export_Query_Controller();
 		$ref = new \ReflectionProperty( $c, 'diagnostics' );
-		$ref->setAccessible( true );
 		$this::assertInstanceOf( SScribe_Diagnostics::class, $ref->getValue( $c ) );
 	}
 
 	public function test_constructor_lazy_default_collector(): void {
 		$c = new SScribe_Export_Query_Controller();
 		$ref = new \ReflectionProperty( $c, 'collector' );
-		$ref->setAccessible( true );
 		$this::assertInstanceOf( SScribe_Page_Collector::class, $ref->getValue( $c ) );
 	}
 
 	public function test_constructor_lazy_default_logger(): void {
 		$c = new SScribe_Export_Query_Controller();
 		$ref = new \ReflectionProperty( $c, 'logger' );
-		$ref->setAccessible( true );
 		$this::assertInstanceOf( SScribe_Logger_Interface::class, $ref->getValue( $c ) );
 	}
 
 	public function test_constructor_lazy_default_zip_handler(): void {
 		$c = new SScribe_Export_Query_Controller();
 		$ref = new \ReflectionProperty( $c, 'zip_handler' );
-		$ref->setAccessible( true );
 		$this::assertInstanceOf( SScribe_Zip_Handler::class, $ref->getValue( $c ) );
 	}
 
 	public function test_constructor_lazy_default_adaptive_metrics(): void {
 		$c = new SScribe_Export_Query_Controller();
 		$ref = new \ReflectionProperty( $c, 'adaptive_metrics' );
-		$ref->setAccessible( true );
 		$this::assertInstanceOf( SScribe_Adaptive_Metrics::class, $ref->getValue( $c ) );
 	}
 
 	public function test_constructor_lazy_default_error_handler(): void {
 		$c = new SScribe_Export_Query_Controller();
 		$ref = new \ReflectionProperty( $c, 'error_handler' );
-		$ref->setAccessible( true );
 		$this::assertInstanceOf( SScribe_Export_Error_Handler::class, $ref->getValue( $c ) );
 	}
 }

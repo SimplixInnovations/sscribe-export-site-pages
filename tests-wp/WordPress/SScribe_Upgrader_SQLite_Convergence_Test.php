@@ -58,7 +58,6 @@ final class SScribe_Upgrader_SQLite_Convergence_Test extends SScribe_WP_TestCase
 			$this::assertFalse( $this->index_exists( $table, 'idx_session_id' ), 'Fixture must start without idx_session_id.' );
 
 			$index_guard = new ReflectionMethod( SScribe_Activator::class, 'assert_required_indexes' );
-			$index_guard->setAccessible( true );
 			$guard_failed = false;
 			try {
 				$index_guard->invoke( null, $table, array( 'idx_session_id' ), 'legacy export logs schema' );
@@ -72,7 +71,6 @@ final class SScribe_Upgrader_SQLite_Convergence_Test extends SScribe_WP_TestCase
 			);
 
 			$method = new ReflectionMethod( SScribe_Upgrader::class, 'run_migrations' );
-			$method->setAccessible( true );
 			$method->invoke( null, '2.0.3' );
 
 			$this::assertTrue( $this->column_exists( $table, 'session_id' ), 'SQLite dbDelta migration must add session_id.' );

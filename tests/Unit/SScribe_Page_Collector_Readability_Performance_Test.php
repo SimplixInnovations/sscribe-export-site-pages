@@ -94,8 +94,6 @@ final class SScribe_Page_Collector_Readability_Performance_Test extends TestCase
 
 		$collector = new SScribe_Page_Collector();
 		$method    = new ReflectionMethod( $collector, 'count_readable_nonpublic_posts' );
-		$method->setAccessible( true );
-
 		$this->assertSame(
 			10001,
 			$method->invoke( $collector, '', 'page' ),
@@ -113,8 +111,6 @@ final class SScribe_Page_Collector_Readability_Performance_Test extends TestCase
 
 		$collector = new SScribe_Page_Collector();
 		$method = new ReflectionMethod( $collector, 'count_readable_nonpublic_posts' );
-		$method->setAccessible( true );
-
 		$this->assertSame( 10001, $method->invoke( $collector, '', 'page' ), 'An unread candidate in a short final page still makes the count indeterminate.' );
 	}
 
@@ -127,8 +123,6 @@ final class SScribe_Page_Collector_Readability_Performance_Test extends TestCase
 
 		$collector = new SScribe_Page_Collector();
 		$method = new ReflectionMethod( $collector, 'count_readable_nonpublic_posts' );
-		$method->setAccessible( true );
-
 		$this->assertSame( 1, $method->invoke( $collector, '', 'page' ), 'A fully examined short page proves the exact count even at the candidate limit.' );
 	}
 
@@ -152,8 +146,6 @@ final class SScribe_Page_Collector_Readability_Performance_Test extends TestCase
 	public function test_filter_readable_page_ids_bulk_hydrates_instead_of_get_post_per_id(): void {
 		$collector = new SScribe_Page_Collector();
 		$method = new ReflectionMethod( $collector, 'filter_readable_page_ids' );
-		$method->setAccessible( true );
-
 		$ids = range( 1, 500 );
 		$result = $method->invoke( $collector, $ids );
 

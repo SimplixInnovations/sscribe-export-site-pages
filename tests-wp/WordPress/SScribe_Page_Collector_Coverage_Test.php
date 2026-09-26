@@ -190,8 +190,6 @@ final class SScribe_Page_Collector_Coverage_Test extends SScribe_WP_TestCase {
 		// without needing a real WPML install.
 		$reflection = new \ReflectionClass( $this->collector );
 		$method     = $reflection->getMethod( 'normalize_wpml_languages' );
-		$method->setAccessible( true );
-
 		$input = array(
 			// Valid row with full keys.
 			array(
@@ -801,7 +799,6 @@ final class SScribe_Page_Collector_Coverage_Test extends SScribe_WP_TestCase {
 	private function invoke_private( object $object, string $method, array $args ): mixed {
 		$reflection = new \ReflectionClass( $object );
 		$fn         = $reflection->getMethod( $method );
-		$fn->setAccessible( true );
 		return $fn->invokeArgs( $object, $args );
 	}
 }

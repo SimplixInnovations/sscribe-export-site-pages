@@ -293,7 +293,6 @@ final class SScribe_Batch_File_Handler_Coverage_Test extends SScribe_WP_Ajax_Tes
 	public function test_get_required_capability_returns_default(): void {
 		$handler = new SScribe_Batch_File_Handler();
 		$ref     = new \ReflectionMethod( $handler, 'get_required_capability' );
-		$ref->setAccessible( true );
 		$cap = (string) $ref->invoke( $handler );
 
 		$this::assertSame( 'sscribe_export', $cap );
@@ -302,7 +301,6 @@ final class SScribe_Batch_File_Handler_Coverage_Test extends SScribe_WP_Ajax_Tes
 	public function test_check_rate_limit_decision_returns_decision_object(): void {
 		$handler = new SScribe_Batch_File_Handler();
 		$ref     = new \ReflectionMethod( $handler, 'check_rate_limit_decision' );
-		$ref->setAccessible( true );
 		$decision = $ref->invoke( $handler, 'export_finalize' );
 
 		$this::assertInstanceOf( \SScribe_Rate_Limit_Decision::class, $decision );

@@ -470,7 +470,6 @@ final class SScribe_Batch_Step_Handler_Coverage_Test extends SScribe_WP_Ajax_Tes
 	private function call_private( string $method, array $args ): mixed {
 		$obj = new SScribe_Batch_Processor();
 		$ref = new \ReflectionMethod( $obj, $method );
-		$ref->setAccessible( true );
 		return $ref->invokeArgs( $obj, $args );
 	}
 
@@ -555,7 +554,6 @@ final class SScribe_Batch_Step_Handler_Coverage_Test extends SScribe_WP_Ajax_Tes
 		$this::assertGreaterThan( $before, ob_get_level() );
 
 		$ref = new \ReflectionMethod( $obj, 'restore_ob_level' );
-		$ref->setAccessible( true );
 		$ref->invoke( $obj, $before );
 
 		$this::assertSame( $before, ob_get_level(), 'restore_ob_level must close all buffers above the target.' );

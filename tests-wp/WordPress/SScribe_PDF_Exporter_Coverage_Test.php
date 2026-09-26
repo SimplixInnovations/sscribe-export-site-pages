@@ -536,7 +536,6 @@ final class SScribe_PDF_Exporter_Coverage_Test extends SScribe_WP_TestCase {
 	private function invoke_private( object $object, string $method, array $args = array() ): mixed {
 		$ref  = new \ReflectionClass( $object );
 		$func = $ref->getMethod( $method );
-		$func->setAccessible( true );
 		return $func->invokeArgs( $object, $args );
 	}
 
@@ -553,7 +552,6 @@ final class SScribe_PDF_Exporter_Coverage_Test extends SScribe_WP_TestCase {
 		return static function ( ...$args ) use ( $exporter, $method ): mixed {
 			$ref  = new \ReflectionClass( $exporter );
 			$func = $ref->getMethod( $method );
-			$func->setAccessible( true );
 			return $func->invokeArgs( $exporter, $args );
 		};
 	}

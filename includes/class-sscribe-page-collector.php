@@ -731,6 +731,7 @@ class SScribe_Page_Collector {
 		$page            = 1;
 		$chunk_size      = self::CACHE_MAX_SIZE;
 		$candidate_cap   = self::COUNT_SENTINEL;
+		$candidate_ids   = array();
 
 		do {
 			$args = array(
