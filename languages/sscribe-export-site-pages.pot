@@ -9,7 +9,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-09-26T19:10:26+00:00\n"
+"POT-Creation-Date: 2026-09-27T07:37:23+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.12.0\n"
 "X-Domain: sscribe-export-site-pages\n"
@@ -511,7 +511,7 @@ msgid "Debug mode may expose extra detail intended for administrators only."
 msgstr ""
 
 #: admin/class-sscribe-admin.php:354
-#: admin/class-sscribe-admin.php:769
+#: admin/class-sscribe-admin.php:780
 #: includes/class-sscribe-export-query-controller.php:583
 #: includes/class-sscribe-exporter.php:1405
 msgid "All Languages"
@@ -736,6 +736,7 @@ msgid "Delete %1$d %2$s?"
 msgstr ""
 
 #: admin/class-sscribe-admin.php:413
+#: admin/class-sscribe-admin.php:467
 msgid "Retry"
 msgstr ""
 
@@ -780,20 +781,20 @@ msgid "Click again within 3s to confirm"
 msgstr ""
 
 #: admin/class-sscribe-admin.php:425
-#: admin/class-sscribe-admin.php:510
+#: admin/class-sscribe-admin.php:521
 #: admin/partials/sscribe-admin-display.php:559
 #: admin/partials/sscribe-admin-display.php:765
 msgid "Pages"
 msgstr ""
 
 #: admin/class-sscribe-admin.php:426
-#: admin/class-sscribe-admin.php:513
+#: admin/class-sscribe-admin.php:524
 msgid "Posts"
 msgstr ""
 
 #: admin/class-sscribe-admin.php:427
-#: admin/class-sscribe-admin.php:479
-#: admin/class-sscribe-admin.php:590
+#: admin/class-sscribe-admin.php:490
+#: admin/class-sscribe-admin.php:601
 msgid "All types"
 msgstr ""
 
@@ -915,70 +916,106 @@ msgstr ""
 msgid "%d entries"
 msgstr ""
 
-#: admin/class-sscribe-admin.php:460
+#. translators: %d: log entry count to clear
+#: admin/class-sscribe-admin.php:461
+msgid "Clear 1 log entry"
+msgstr ""
+
+#. translators: %d: log entry count to clear
+#: admin/class-sscribe-admin.php:463
+#, php-format
+msgid "Clear %d log entries"
+msgstr ""
+
+#: admin/class-sscribe-admin.php:464
+#: admin/partials/sscribe-admin-debug-tab.php:182
+msgid "Click to expand"
+msgstr ""
+
+#: admin/class-sscribe-admin.php:465
+msgid "Click to collapse"
+msgstr ""
+
+#: admin/class-sscribe-admin.php:466
+msgid "Failed to load more entries."
+msgstr ""
+
+#: admin/class-sscribe-admin.php:468
+msgid "Auto-refresh paused : no new log entries"
+msgstr ""
+
+#: admin/class-sscribe-admin.php:469
+msgid "Auto-refresh paused : scrolled into history"
+msgstr ""
+
+#: admin/class-sscribe-admin.php:470
+msgid "Archived log"
+msgstr ""
+
+#: admin/class-sscribe-admin.php:471
 msgid " (all)"
 msgstr ""
 
-#: admin/class-sscribe-admin.php:461
+#: admin/class-sscribe-admin.php:472
 msgid " (filtered)"
 msgstr ""
 
-#: admin/class-sscribe-admin.php:462
+#: admin/class-sscribe-admin.php:473
 msgid " : exporting..."
 msgstr ""
 
-#: admin/class-sscribe-admin.php:463
+#: admin/class-sscribe-admin.php:474
 #: admin/partials/sscribe-admin-debug-tab.php:185
 msgid "No rotated log files."
 msgstr ""
 
-#: admin/class-sscribe-admin.php:464
+#: admin/class-sscribe-admin.php:475
 msgid "Loading more entries..."
 msgstr ""
 
-#: admin/class-sscribe-admin.php:825
+#: admin/class-sscribe-admin.php:836
 msgid "WPML is active but no languages are configured."
 msgstr ""
 
-#: admin/class-sscribe-admin.php:826
+#: admin/class-sscribe-admin.php:837
 msgid "Add at least one secondary language in WPML -> Languages before exporting to produce a multilingual package."
 msgstr ""
 
-#: admin/class-sscribe-admin.php:835
+#: admin/class-sscribe-admin.php:846
 msgid "No published pages are available to export."
 msgstr ""
 
-#: admin/class-sscribe-admin.php:836
+#: admin/class-sscribe-admin.php:847
 msgid "Publish at least one page, or expand the post-type filter on the left to include drafts and private posts."
 msgstr ""
 
-#: admin/class-sscribe-admin.php:845
+#: admin/class-sscribe-admin.php:856
 msgid "The exports directory could not be created."
 msgstr ""
 
-#: admin/class-sscribe-admin.php:846
+#: admin/class-sscribe-admin.php:857
 msgid "Check that private temporary storage is writable, then refresh this page."
 msgstr ""
 
 #. translators: %s: current PHP memory_limit (e.g. "128M")
-#: admin/class-sscribe-admin.php:855
+#: admin/class-sscribe-admin.php:866
 #, php-format
 msgid "PHP memory limit is %s; large exports may run out of memory."
 msgstr ""
 
-#: admin/class-sscribe-admin.php:863
+#: admin/class-sscribe-admin.php:874
 msgid "Ask your host to raise memory_limit to at least 256M for sites with hundreds of pages or images."
 msgstr ""
 
-#: admin/class-sscribe-admin.php:872
+#: admin/class-sscribe-admin.php:883
 msgid "WP_DEBUG is enabled on this site."
 msgstr ""
 
-#: admin/class-sscribe-admin.php:873
+#: admin/class-sscribe-admin.php:884
 msgid "Keep WP_DEBUG disabled on production sites except while actively troubleshooting."
 msgstr ""
 
-#: admin/class-sscribe-admin.php:1007
+#: admin/class-sscribe-admin.php:1018
 msgid "Export Pages"
 msgstr ""
 
@@ -1103,10 +1140,6 @@ msgstr ""
 #: admin/partials/sscribe-admin-debug-tab.php:181
 #: admin/partials/sscribe-admin-debug-tab.php:196
 msgid "Rotated Logs"
-msgstr ""
-
-#: admin/partials/sscribe-admin-debug-tab.php:182
-msgid "Click to expand"
 msgstr ""
 
 #: admin/partials/sscribe-admin-debug-tab.php:190

@@ -1,14 +1,20 @@
 ---
 feature: cert-closeout-2.0.4
-status: designed
+status: delivered
 updated: 2026-09-26
 branch: cert/closeout-2.0.4
-commits: 
+commits: 224144f7..fb6654db
 ---
 
 # Certification Closeout 2.0.4
 
 ## Report
+
+**What was built** — Storage-boundary regressions for synthetic TCPDF DOCUMENT_ROOT; live Plugin Check report validation that BLOCKS without a real report; DirectQuery triage rows; debug-console i18n via sscribe_data.strings + escHtml quote parity; full E2E/a11y and strict manifests against the frozen ZIP.
+
+**Verification** — PHPUnit 2573/8014 green; E2E full 32/32; Plugin Check 0 errors; plugin-check-triage PASS with live report; final-ci-state PASS under SSCRIBE_RELEASE_CERTIFICATION=1; release-blockers correctly DEFERRED on unavailable environments.
+
+**Journey log** — Strauss nested under release:determinism hung on Windows worktree (2nd clean rebuild); ran prefix steps directly. Strict evidence schema requires exact check keys and local:dist/evidence/* paths. Honest PARTIAL/BLOCKED must not be coerced to PASS.
 
 ## [S1] Problem
 Local certification of SScribe 2.0.4 is incomplete. Plugin Check still emits DirectQuery/NoCaching warnings; Plugin Check report validation is not wired to the live report; debug-console JS has untranslated strings; storage-boundary behavior around synthetic TCPDF DOCUMENT_ROOT needs an explicit regression; compatibility matrix and strict evidence manifests are missing. Tracked source must be fixed and frozen before any final ZIP/SHA is certified. Final reports and evidence must stay untracked.

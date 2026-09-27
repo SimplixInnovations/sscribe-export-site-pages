@@ -321,9 +321,9 @@
 					if (n <= 0) {
 						confirmLabel = self.clearBtnOriginalText;
 					} else if (n === 1) {
-						confirmLabel = 'Clear 1 log entry';
+						confirmLabel = t('debug_clear_one', 'Clear 1 log entry');
 					} else {
-						confirmLabel = 'Clear ' + n + ' log entries';
+						confirmLabel = t('debug_clear_many', 'Clear %d log entries').replace('%d', String(n));
 					}
 					$btn.data('confirming', true)
 						.addClass('sscribe-btn-confirming')
@@ -471,7 +471,7 @@
 				this._toggleHandler = function () {
 					const $hint = self.$rotatedHint && self.$rotatedHint[0];
 					if ($hint) {
-						$hint.textContent = rotatedEl.open ? 'Click to collapse' : 'Click to expand';
+						$hint.textContent = rotatedEl.open ? t('debug_rotated_collapse', 'Click to collapse') : t('debug_rotated_expand', 'Click to expand');
 					}
 					if (rotatedEl.open) {
 						self.fetchRotatedLogs();
@@ -585,11 +585,11 @@
 					return;
 				}
 				if (self.currentOffset !== 0) {
-					self.showPausedIndicator('Auto-refresh paused : scrolled into history');
+					self.showPausedIndicator(t('debug_paused_history', 'Auto-refresh paused : scrolled into history'));
 					return;
 				}
 				if (self.consecutiveNoChange >= self.noChangeStopThreshold) {
-					self.showPausedIndicator('Auto-refresh paused : no new log entries');
+					self.showPausedIndicator(t('debug_paused_idle', 'Auto-refresh paused : no new log entries'));
 					return;
 				}
 				self.hidePausedIndicator();
@@ -928,7 +928,7 @@
 					self.hasMoreEntries = self.currentOffset < totalCount;
 					self.lastEntryCount = totalCount;
 					self.$clearBtn.prop('disabled', totalCount <= 0);
-					self.$entryCount.text(1 === totalCount ? t('debug_entry_one', '1 entry') : t('debug_entry_many', '%d entries').replace('%d', totalCount));
+					self.entryCountText(totalCount);
 					if (!self.hasMoreEntries) {
 						self.destroyObserver();
 					}
@@ -995,7 +995,10 @@
 					}
 					self.$entries.append(
 						'<div class="sscribe-debug-append-error">' +
-							'Failed to load more entries. <button type="button" class="sscribe-button sscribe-button-sm sscribe-debug-retry-append">Retry</button>' +
+							t('debug_load_more_failed', 'Failed to load more entries.') +
+							' <button type="button" class="sscribe-button sscribe-button-sm sscribe-debug-retry-append">' +
+							t('debug_retry', 'Retry') +
+							'</button>' +
 							'</div>'
 					);
 				}
@@ -1005,6 +1008,14 @@
 			this.$entries.find('.sscribe-debug-append-error').remove();
 			this.isLoadingMore = false;
 			this.fetchLogs(true);
+		},
+		entryCountText: function (totalCount) {
+			const n = Number(totalCount) || 0;
+			const text =
+				1 === n
+					? t('debug_entry_one', '1 entry')
+					: t('debug_entry_many', '%d entries').replace('%d', String(n));
+			this.$entryCount.text(text);
 		},
 		buildLogsHtml: function (entries) {
 			let html = '';

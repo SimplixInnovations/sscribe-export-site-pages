@@ -457,6 +457,17 @@ class SScribe_Admin {
 				'debug_entry_one'        => __( '1 entry', 'sscribe-export-site-pages' ),
 				/* translators: %d: entry count */
 				'debug_entry_many'       => __( '%d entries', 'sscribe-export-site-pages' ),
+				/* translators: %d: log entry count to clear */
+				'debug_clear_one'        => __( 'Clear 1 log entry', 'sscribe-export-site-pages' ),
+				/* translators: %d: log entry count to clear */
+				'debug_clear_many'       => __( 'Clear %d log entries', 'sscribe-export-site-pages' ),
+				'debug_rotated_expand'   => __( 'Click to expand', 'sscribe-export-site-pages' ),
+				'debug_rotated_collapse' => __( 'Click to collapse', 'sscribe-export-site-pages' ),
+				'debug_load_more_failed' => __( 'Failed to load more entries.', 'sscribe-export-site-pages' ),
+				'debug_retry'            => __( 'Retry', 'sscribe-export-site-pages' ),
+				'debug_paused_idle'      => __( 'Auto-refresh paused : no new log entries', 'sscribe-export-site-pages' ),
+				'debug_paused_history'   => __( 'Auto-refresh paused : scrolled into history', 'sscribe-export-site-pages' ),
+				'debug_archived_hint'    => __( 'Archived log', 'sscribe-export-site-pages' ),
 				'debug_scope_all'        => __( ' (all)', 'sscribe-export-site-pages' ),
 				'debug_scope_filtered'   => __( ' (filtered)', 'sscribe-export-site-pages' ),
 				'debug_exporting'        => __( ' : exporting...', 'sscribe-export-site-pages' ),

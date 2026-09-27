@@ -242,51 +242,61 @@ $record(
  * A missing report is recorded as BLOCKED (not PASS) so certification
  * cannot claim Plugin Check green from a stub.
  */
-$live_report_path = '';
-foreach ( $live_report_candidates as $candidate ) {
-	if ( is_file( $candidate ) && (int) filesize( $candidate ) > 0 ) {
-		$live_report_path = $candidate;
-		break;
+require_once __DIR__ . '/lib/plugin-check-report.php';
+
+$live_report_path = getenv( 'SSCRIBE_PLUGIN_CHECK_REPORT' );
+if ( ! is_string( $live_report_path ) || '' === $live_report_path ) {
+	$live_report_path = '';
+	foreach ( $live_report_candidates as $candidate ) {
+		if ( is_file( $candidate ) && (int) filesize( $candidate ) > 0 ) {
+			$live_report_path = $candidate;
+			break;
+		}
 	}
 }
-$live_codes = array();
-if ( '' === $live_report_path ) {
+$triage_rows = sscribe_load_triage_rows( $triage_doc );
+$parsed      = sscribe_parse_plugin_check_report( (string) $live_report_path );
+$expected_id = array(
+	'expected_source' => 'sscribe-export-site-pages',
+);
+if ( is_file( $root_dir . '/dist/evidence/artifact-identity.json' ) ) {
+	$identity = json_decode( (string) file_get_contents( $root_dir . '/dist/evidence/artifact-identity.json' ), true );
+	if ( is_array( $identity ) ) {
+		if ( isset( $identity['FINAL_SHA'] ) ) {
+			$expected_id['source_sha'] = (string) $identity['FINAL_SHA'];
+		}
+		if ( isset( $identity['ZIP_SHA256'] ) ) {
+			$expected_id['zip_sha256'] = (string) $identity['ZIP_SHA256'];
+		}
+	}
+}
+$validation = sscribe_validate_plugin_check_report( $parsed, $triage_rows, $expected_id );
+
+if ( ! $parsed['exists'] ) {
 	$record(
 		'live_plugin_check_report',
 		false,
-		'BLOCKED: no live Plugin Check report found at dist/evidence/plugin-check.log (or dist/plugin-check/*). Certification must run `wp plugin check` on the exact ZIP; a stub must never count as PASS.'
+		'BLOCKED: no live Plugin Check report found at dist/evidence/plugin-check.log (or dist/plugin-check/*). Certification must run `wp plugin check` on the exact ZIP; a stub must never count as PASS.',
+		'blocked'
 	);
 } else {
-	$live_src = (string) file_get_contents( $live_report_path );
-	// Match WPCS / Plugin Check codes such as WordPress.DB.DirectDatabaseQuery.DirectQuery
-	// or PluginCheck.Security.DirectDB.UnescapedDBParameter in TSV or JSON reports.
-	if ( preg_match_all( '/\b((?:PluginCheck|WordPress|PHPCompatibility|Generic|Squiz)\.[A-Za-z0-9_.]+)\b/', $live_src, $code_hits ) ) {
-		$live_codes = array_values( array_unique( $code_hits[1] ) );
-	}
-	// DirectQuery / NoCaching / UnescapedDBParameter / PrefixAllGlobals are expected codes.
-	$triage_codes = array();
-	if ( is_file( $triage_doc ) ) {
-		$doc_for_codes = (string) file_get_contents( $triage_doc );
-		if ( preg_match_all( '/\b((?:PluginCheck|WordPress|PHPCompatibility)\.[A-Za-z0-9_.]+)\b/', $doc_for_codes, $triage_hits ) ) {
-			$triage_codes = array_values( array_unique( $triage_hits[1] ) );
-		}
-	}
-	$untriaged = array_values( array_diff( $live_codes, $triage_codes ) );
 	$record(
 		'live_plugin_check_report',
-		'' !== $live_report_path && ( count( $live_codes ) > 0 || false !== strpos( $live_src, 'FILE:' ) || false !== strpos( $live_src, 'Success' ) || '' !== trim( $live_src ) ),
+		$parsed['parseable'] && ! $parsed['is_stub'] && ! $parsed['empty'],
 		sprintf(
-			'Live report %s parsed; codes=%s',
+			'Live report %s parsed; codes=%s; errors=%d; stub=%s',
 			$live_report_path,
-			$live_codes ? implode( ', ', $live_codes ) : '(none detected)'
+			$parsed['codes'] ? implode( ', ', $parsed['codes'] ) : '(none detected)',
+			$parsed['error_count'],
+			$parsed['is_stub'] ? 'yes' : 'no'
 		)
 	);
 	$record(
 		'live_warnings_triaged',
-		0 === count( $untriaged ),
-		0 === count( $untriaged )
-			? 'Every live Plugin Check code appears in the triage table.'
-			: 'Untriaged Plugin Check codes: ' . implode( ', ', $untriaged )
+		$validation['ok'],
+		$validation['ok']
+			? 'Live report validates: codes triaged, no errors, no fixed-warning recurrence, source/identity consistent.'
+			: 'Live report validation failed: ' . implode( ', ', $validation['violations'] )
 	);
 }
 
