@@ -1,0 +1,6 @@
+FILE: includes/class-sscribe-audit-trail.php
+line	column	type	code	message
+84	23	ERROR	WordPress.DB.DirectDatabaseQuery.DirectQuery	Use of a direct database call is discouraged.
+84	23	WARNING	WordPress.DB.DirectDatabaseQuery.NoCaching	Direct database call without caching detected.
+
+1 errors, 1 warnings

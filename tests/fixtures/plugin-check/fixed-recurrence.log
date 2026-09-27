@@ -1,0 +1,5 @@
+FILE: includes/class-sscribe-operational-logger.php
+line	column	type	code	message
+1	1	WARNING	WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound	Fixed in v2.0.3 — must not recur.
+
+1 warnings

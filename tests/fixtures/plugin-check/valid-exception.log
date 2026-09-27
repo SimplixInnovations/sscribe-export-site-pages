@@ -1,0 +1,6 @@
+FILE: includes/class-sscribe-audit-trail.php
+line	column	type	code	message
+84	23	WARNING	WordPress.DB.DirectDatabaseQuery.DirectQuery	Acknowledged schema probe.
+84	23	WARNING	WordPress.DB.DirectDatabaseQuery.NoCaching	Acknowledged schema probe.
+
+Success: Checks complete. No errors found.
