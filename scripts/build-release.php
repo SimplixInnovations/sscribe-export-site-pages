@@ -8,6 +8,7 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/lib/build-workspace.php';
+require_once __DIR__ . '/lib/release-metadata.php';
 
 echo "\n===========================================\n";
 echo "  SSCRIBE EXPORT BUILD\n";
@@ -436,6 +437,13 @@ if ( in_array( '--skip-validation', $argv, true ) ) {
 
 try {
 	$version = get_version( $root, $config['mainPluginFile'] );
+	$source_sha = sscribe_build_git( $root, array( 'rev-parse', 'HEAD' ) );
+	if ( ! preg_match( '/\A[0-9a-f]{40}\z/', $source_sha ) ) {
+		throw new RuntimeException( 'Cannot resolve full release source SHA.' );
+	}
+	if ( '' !== sscribe_build_git( $root, array( 'status', '--porcelain', '--untracked-files=no' ) ) ) {
+		throw new RuntimeException( 'Commit tracked changes before building a release with a source SHA.' );
+	}
 	echo "     Version: $version\n";
 } catch ( RuntimeException $e ) {
 	echo "     ❌ " . $e->getMessage() . "\n";
@@ -589,6 +597,15 @@ foreach ( $iterator as $file ) {
 }
 
 echo "     ✅ Copied: $copied files\n";
+
+// This is our generated root identity, not third-party dependency source.
+// Normalize the staged copy so an older Composer install or a different branch
+// cannot change the release bytes. Dependency records and checkout stay intact.
+sscribe_write_release_composer_metadata(
+	$plugin_dir . '/vendor-prefixed/composer/installed.php',
+	$version,
+	$source_sha
+);
 
 // The upstream PHPWord notice is required for LGPL attribution, but Plugin
 // Check treats its `.LESSER` suffix as a forbidden extension. Copy the exact
@@ -917,7 +934,7 @@ if ( is_file( $invariant_test ) && is_file( $root . '/vendor/bin/phpunit' ) ) {
 }
 
 echo "\n===========================================\n";
-echo "  READY FOR WORDPRESS.ORG\n";
+echo "  PACKAGE BUILT - RELEASE GATES STILL REQUIRED\n";
 echo "===========================================\n\n";
 
 // Phase 24: build transparency. Reviewers must be able to see at a
@@ -981,6 +998,9 @@ echo "  Vendor-specific handling:\n";
 echo "    - vendor-prefixed/ files are copied byte-for-byte after Strauss\n";
 echo "      namespace isolation; first-party comment/Unicode sanitizers do\n";
 echo "      not rewrite third-party source or notices.\n";
+echo "    - composer/installed.php: only our generated root record is\n";
+echo "      bound to plugin version and source SHA; dependency records\n";
+echo "      remain byte-for-byte unchanged. Checkout metadata is preserved.\n";
 echo "    - vendor-prefixed/phpoffice/phpword/COPYING.LESSER renamed to\n";
 echo "      COPYING.LESSER.txt (WP.org plugin-check rejects the bare\n";
 echo "      .lesser extension as an unexpected file type).\n";

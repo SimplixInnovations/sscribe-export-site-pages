@@ -24,6 +24,7 @@ Never commit onto a tag, delete/recreate a tag, or rebuild a certified artifact.
 
 ## PHPUnit
 
+- Required setup order on a fresh or updated checkout: `composer install --no-interaction --prefer-dist` → `composer vendor:prefix` → `composer test`. The ignored `vendor-prefixed/autoload.php` must exist before testing; otherwise PHPWord's unprefixed and prefixed types can conflict. Install from the lock file; do not update dependency versions to fix setup errors.
 - Run: `composer test` (random order, `release-contract` group excluded).
 - **Random-order tests**: every test must be order-independent. Establish your own fixtures (temp dirs via the production resolver, options via setUp/tearDown cleanup). Never rely on another test's side effects.
 - Deterministic re-runs: `composer test -- --random-order-seed=<n>`.

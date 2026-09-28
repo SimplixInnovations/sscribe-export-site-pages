@@ -120,7 +120,22 @@ after Strauss performs the intentional namespace/class isolation, third-party
 source and license files are copied byte-for-byte into the release staging
 tree. SScribe's comment stripper and Unicode sanitizer do not rewrite vendor
 content. Explicit vendor pruning and the PHPWord license-filename normalization
-listed below occur after that copy.
+listed below occur after that copy. The generated Composer root record is
+also canonicalized in the staging tree as described below.
+
+### Generated Composer root identity
+
+`scripts/lib/release-metadata.php` replaces only SScribe's root record in the
+staged `vendor-prefixed/composer/installed.php`. It records the plugin release
+version, its normalized four-component version, the current full Git HEAD SHA,
+the root install path, empty aliases and `dev: false`. Composer's cached branch
+name or previous install SHA must not affect release bytes. The builder rejects
+uncommitted tracked changes before building a SHA-labelled package.
+
+The entire dependency `versions` section remains byte-for-byte unchanged,
+including upstream references and relative install paths. The checkout's
+generated metadata is not modified. Missing metadata, an unexpected root
+package/layout, invalid identity or failed write aborts packaging.
 
 ### PHP — `strip_php_comments( $source )`
 
@@ -180,9 +195,9 @@ would fail the build.
 - Third-party package source and license files under `vendor-prefixed/` that
   survive exclusion/pruning are copied byte-for-byte from the post-prefix build
   tree. SScribe does not comment-strip or Unicode-sanitize third-party source or
-  notices. The only deterministic pre-build rewrite in this tree is the
-  generated Composer initializer suffix normalization documented above; package
-  source is not rewritten by that step.
+  notices. Generated Composer initializer suffixes are normalized before build;
+  our generated root metadata record is normalized in staging. Both operations
+  are documented above and leave third-party package source unchanged.
 - TCPDF and its transitive tc-lib packages' extensionless development metadata
   `Makefile` and `VERSION` are removed before release-content validation.
 - `vendor-prefixed/tecnickcom/tc-lib-pdf-font/util/` is removed after the

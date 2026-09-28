@@ -80,6 +80,24 @@ final class SScribe_Build_Workspace_Test extends TestCase {
 		sscribe_create_build_workspace( $this->fixture );
 	}
 
+	public function test_direct_release_rejects_dirty_source_before_packaging(): void {
+		mkdir( $this->fixture . '/scripts/lib', 0700, true );
+		foreach ( array( 'scripts/build-release.php', 'scripts/lib/build-workspace.php', 'scripts/lib/release-metadata.php' ) as $file ) {
+			copy( dirname( __DIR__, 2 ) . '/' . $file, $this->fixture . '/' . $file );
+		}
+		file_put_contents( $this->fixture . '/sscribe-export-site-pages.php', "<?php\n/** Version: 2.0.4 */\n" );
+		$this->commit_source();
+		file_put_contents( $this->fixture . '/source.php', 'uncommitted runtime change' );
+		$proc = proc_open( array( PHP_BINARY, $this->fixture . '/scripts/build-release.php', '--skip-validation' ), array( 0 => array( 'pipe', 'r' ), 1 => array( 'file', $this->fixture . '/build.log', 'w' ), 2 => array( 'redirect', 1 ) ), $pipes );
+		self::assertIsResource( $proc );
+		fclose( $pipes[0] );
+		$code = proc_close( $proc );
+		$output = (string) file_get_contents( $this->fixture . '/build.log' );
+		self::assertSame( 1, $code, $output );
+		self::assertStringContainsString( 'Commit tracked changes before building a release', $output );
+		self::assertDirectoryDoesNotExist( $this->fixture . '/dist' );
+	}
+
 	public function test_failed_evidence_write_is_rejected(): void {
 		$this->expectException( \RuntimeException::class );
 		$this->expectExceptionMessage( 'Cannot persist build evidence' );

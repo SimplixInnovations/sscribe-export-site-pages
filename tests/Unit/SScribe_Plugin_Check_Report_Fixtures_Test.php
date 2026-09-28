@@ -5,7 +5,7 @@ use PHPUnit\Framework\TestCase;
 require_once dirname( __DIR__, 2 ) . '/scripts/lib/plugin-check-report.php';
 final class SScribe_Plugin_Check_Report_Fixtures_Test extends TestCase {
 	public function test_unsupported_or_incomplete_reports_fail_closed(): void {
-		foreach ( array( '{}', '{"success":false}', '[{"type":"ERROR","code":"bad"}]', 'Plugin Check', 'FILE: includes/example.php', 'line column type code', "Success: Checks complete. No errors found.\nWARNING ignored", '' ) as $raw ) {
+		foreach ( array( '{}', '{"success":false}', '[{"type":"ERROR","code":"bad"}]', 'Plugin Check', 'FILE: includes/example.php', 'line column type code', "Success: Checks complete. No errors found.\nWARNING ignored", "Success: Checks complete. No errors found.\nPHP Warning: Constant WP_PLUGIN_CHECK_PLUGIN_DIR_PATH already defined", '' ) as $raw ) {
 			$file = tempnam( sys_get_temp_dir(), 'pcp' );
 			file_put_contents( $file, $raw );
 			$parsed = sscribe_parse_plugin_check_report( $file );
