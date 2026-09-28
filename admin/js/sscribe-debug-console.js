@@ -135,7 +135,8 @@
 			this.$consoleBody = $('#sscribe-debug-console-body');
 			this.$entries = $('#sscribe-debug-entries');
 			this.$empty = $('#sscribe-debug-empty');
-			this.defaultEmptyMessage = this.$empty.find('p').text().trim() || __('No log entries found.', 'sscribe-export-site-pages');
+			this.defaultEmptyMessage =
+				this.$empty.find('p').text().trim() || __('No log entries found.', 'sscribe-export-site-pages');
 			this.$entryCount = $('#sscribe-debug-entry-count');
 			this.$clearBtn = $('#sscribe-debug-clear-btn');
 			this.clearBtnOriginalText = this.$clearBtn.text();
@@ -304,7 +305,9 @@
 						clearTimeout(self.clearBtnTimeout);
 						self.clearBtnTimeout = null;
 					}
-					$btn.data('confirming', false).removeClass('sscribe-btn-confirming').text(__('Clearing...', 'sscribe-export-site-pages'));
+					$btn.data('confirming', false)
+						.removeClass('sscribe-btn-confirming')
+						.text(__('Clearing...', 'sscribe-export-site-pages'));
 					$btn.prop('disabled', true);
 					self.clearLogs();
 				} else {
@@ -316,7 +319,10 @@
 					if (n <= 0) {
 						confirmLabel = self.clearBtnOriginalText;
 					} else {
-						confirmLabel = sprintf(_n('Clear %d log entry', 'Clear %d log entries', n, 'sscribe-export-site-pages'), n);
+						confirmLabel = sprintf(
+							_n('Clear %d log entry', 'Clear %d log entries', n, 'sscribe-export-site-pages'),
+							n
+						);
 					}
 					$btn.data('confirming', true)
 						.addClass('sscribe-btn-confirming')
@@ -422,7 +428,8 @@
 					closeBtn.innerHTML = '<span aria-hidden="true">&times;</span>';
 					closeBtn.setAttribute(
 						'aria-label',
-						(sscribe_data.strings && sscribe_data.strings.close) || __('Close dialog', 'sscribe-export-site-pages')
+						(sscribe_data.strings && sscribe_data.strings.close) ||
+							__('Close dialog', 'sscribe-export-site-pages')
 					);
 					closeBtn.addEventListener('click', closeDialog);
 					const header = document.createElement('div');
@@ -464,7 +471,9 @@
 				this._toggleHandler = function () {
 					const $hint = self.$rotatedHint && self.$rotatedHint[0];
 					if ($hint) {
-						$hint.textContent = rotatedEl.open ? __('Click to collapse', 'sscribe-export-site-pages') : __('Click to expand', 'sscribe-export-site-pages');
+						$hint.textContent = rotatedEl.open
+							? __('Click to collapse', 'sscribe-export-site-pages')
+							: __('Click to expand', 'sscribe-export-site-pages');
 					}
 					if (rotatedEl.open) {
 						self.fetchRotatedLogs();
@@ -566,7 +575,9 @@
 					const pendingMs = Date.now() - self.isRefreshingSince;
 					if (pendingMs > 5000 && !self.slowRefreshNoticeSince) {
 						self.slowRefreshNoticeSince = self.isRefreshingSince + 5000;
-						self.showPausedIndicator(__('Refresh taking longer than expected...', 'sscribe-export-site-pages'));
+						self.showPausedIndicator(
+							__('Refresh taking longer than expected...', 'sscribe-export-site-pages')
+						);
 					}
 					if (pendingMs > 10000) {
 						self.isRefreshing = false;
@@ -578,11 +589,15 @@
 					return;
 				}
 				if (self.currentOffset !== 0) {
-					self.showPausedIndicator(__('Auto-refresh paused : scrolled into history', 'sscribe-export-site-pages'));
+					self.showPausedIndicator(
+						__('Auto-refresh paused : scrolled into history', 'sscribe-export-site-pages')
+					);
 					return;
 				}
 				if (self.consecutiveNoChange >= self.noChangeStopThreshold) {
-					self.showPausedIndicator(__('Auto-refresh paused : no new log entries', 'sscribe-export-site-pages'));
+					self.showPausedIndicator(
+						__('Auto-refresh paused : no new log entries', 'sscribe-export-site-pages')
+					);
 					return;
 				}
 				self.hidePausedIndicator();
@@ -623,7 +638,13 @@
 		},
 		updateExportButtonScope: function () {
 			const hasFilter = this.currentFilter !== 'ALL' || this.searchQuery !== '' || this.sessionFilter !== '';
-			this.$exportBtn.find('.sscribe-export-btn-scope').text(hasFilter ? __(' (filtered)', 'sscribe-export-site-pages') : __(' (all)', 'sscribe-export-site-pages'));
+			this.$exportBtn
+				.find('.sscribe-export-btn-scope')
+				.text(
+					hasFilter
+						? __(' (filtered)', 'sscribe-export-site-pages')
+						: __(' (all)', 'sscribe-export-site-pages')
+				);
 		},
 		/**
 		 * Phase 11 helper: single source of truth for whether any
@@ -644,7 +665,9 @@
 			this.$entries.html(
 				'<div class="sscribe-debug-entry">' +
 					'<div class="sscribe-debug-entry-header">' +
-					'<span class="sscribe-debug-entry-badge error">' + escHtml(__('ERROR', 'sscribe-export-site-pages')) + '</span>' +
+					'<span class="sscribe-debug-entry-badge error">' +
+					escHtml(__('ERROR', 'sscribe-export-site-pages')) +
+					'</span>' +
 					'<span class="sscribe-debug-entry-message">' +
 					escHtml(message) +
 					'</span>' +
@@ -735,7 +758,10 @@
 				self.$refreshMode.prop('disabled', false);
 				if (response.success) {
 					self.clearSettingsDirty();
-					self.$saveFeedback.removeClass('success error').text(__('Saved!', 'sscribe-export-site-pages')).addClass('success');
+					self.$saveFeedback
+						.removeClass('success error')
+						.text(__('Saved!', 'sscribe-export-site-pages'))
+						.addClass('success');
 					if (response.data && response.data.nonce) {
 						sscribe_data.nonce = response.data.nonce;
 					}
@@ -928,7 +954,9 @@
 				} else {
 					self.destroyObserver();
 					self.$entryCount.text(__('Error', 'sscribe-export-site-pages'));
-					self.showConsoleError(self.getResponseMessage(response, __('Unable to load debug logs.', 'sscribe-export-site-pages')));
+					self.showConsoleError(
+						self.getResponseMessage(response, __('Unable to load debug logs.', 'sscribe-export-site-pages'))
+					);
 				}
 			}).fail(function (xhr) {
 				if (xhr.statusText === 'abort') {
@@ -956,7 +984,10 @@
 					if (xhr.status === 0) {
 						errorMsg = __('Network error. Please check your connection.', 'sscribe-export-site-pages');
 					} else if (xhr.status === 403) {
-						errorMsg = __('Session expired. Please reload the page to continue.', 'sscribe-export-site-pages');
+						errorMsg = __(
+							'Session expired. Please reload the page to continue.',
+							'sscribe-export-site-pages'
+						);
 						self.refreshNonce(function () {
 							if (isInitialLoad) {
 								self.fetchLogs();
@@ -1041,7 +1072,12 @@
 						// State 1 of 5: debug_disabled.
 						this.$empty
 							.find('p')
-							.text(__('Debug logging is disabled. Enable it in Settings above to capture logs.', 'sscribe-export-site-pages'));
+							.text(
+								__(
+									'Debug logging is disabled. Enable it in Settings above to capture logs.',
+									'sscribe-export-site-pages'
+								)
+							);
 						if (this.$emptyEnableBtn && this.$emptyEnableBtn.length) {
 							this.$emptyEnableBtn.removeClass('sscribe-hidden').attr('hidden', false);
 						}
@@ -1049,7 +1085,12 @@
 						// State 2 of 5: no_log_file.
 						this.$empty
 							.find('p')
-							.text(__('Debug is enabled but no log file exists yet. Run an export to generate logs.', 'sscribe-export-site-pages'));
+							.text(
+								__(
+									'Debug is enabled but no log file exists yet. Run an export to generate logs.',
+									'sscribe-export-site-pages'
+								)
+							);
 					} else if (extraData.status === 'rotated') {
 						// State 3 of 5: rotated-view empty (sub-case of no_entries).
 						this.$empty.find('p').text(__('This rotated log file is empty.', 'sscribe-export-site-pages'));
@@ -1059,7 +1100,12 @@
 						// session filter excluded everything.
 						this.$empty
 							.find('p')
-							.text(__('No entries match the current filters. Adjust level, search, or session above.', 'sscribe-export-site-pages'));
+							.text(
+								__(
+									'No entries match the current filters. Adjust level, search, or session above.',
+									'sscribe-export-site-pages'
+								)
+							);
 					} else {
 						// State 5 of 5: no_entries (default — no filter
 						// active, log file exists but is genuinely empty).
@@ -1076,7 +1122,15 @@
 				const count = entries.length;
 				if (this.$staleBannerMessage && this.$staleBannerMessage.length) {
 					this.$staleBannerMessage.text(
-						sprintf(_n('Debug mode is OFF. Showing %d entry from previous runs.', 'Debug mode is OFF. Showing %d entries from previous runs.', count, 'sscribe-export-site-pages'), count)
+						sprintf(
+							_n(
+								'Debug mode is OFF. Showing %d entry from previous runs.',
+								'Debug mode is OFF. Showing %d entries from previous runs.',
+								count,
+								'sscribe-export-site-pages'
+							),
+							count
+						)
 					);
 				}
 				this.$staleBanner.removeClass('sscribe-hidden').attr('hidden', false);
@@ -1125,7 +1179,11 @@
 			this.setupObserver();
 		},
 		showAppendLoading: function () {
-			this.$entries.append('<div class="sscribe-debug-append-loading">' + escHtml(__('Loading more entries...', 'sscribe-export-site-pages')) + '</div>');
+			this.$entries.append(
+				'<div class="sscribe-debug-append-loading">' +
+					escHtml(__('Loading more entries...', 'sscribe-export-site-pages')) +
+					'</div>'
+			);
 		},
 		hideAppendLoading: function () {
 			this.$entries.find('.sscribe-debug-append-loading').remove();
@@ -1179,7 +1237,9 @@
 					const originalText = self.$clearBtn.data('original-text') || self.clearBtnOriginalText;
 					self.$clearBtn.text(originalText);
 					self.$clearBtn.after(
-						'<span class="sscribe-feedback sscribe-feedback-success" role="status" aria-live="polite">' + escHtml(__('Cleared!', 'sscribe-export-site-pages')) + '</span>'
+						'<span class="sscribe-feedback sscribe-feedback-success" role="status" aria-live="polite">' +
+							escHtml(__('Cleared!', 'sscribe-export-site-pages')) +
+							'</span>'
 					);
 					setTimeout(function () {
 						self.$clearBtn.siblings('.sscribe-feedback').remove();
@@ -1236,7 +1296,9 @@
 					}
 				}
 			).fail(function () {
-				self.showPausedIndicator(__('Nonce refresh failed : you may need to reload the page.', 'sscribe-export-site-pages'));
+				self.showPausedIndicator(
+					__('Nonce refresh failed : you may need to reload the page.', 'sscribe-export-site-pages')
+				);
 			});
 		},
 		/**
@@ -1314,7 +1376,9 @@
 				.catch(function (err) {
 					const message = err && err.message ? err.message : __('Unknown error', 'sscribe-export-site-pages');
 					if (self && typeof self.showPausedIndicator === 'function') {
-						self.showPausedIndicator(sprintf(__('Export failed: %s', 'sscribe-export-site-pages'), message));
+						self.showPausedIndicator(
+							sprintf(__('Export failed: %s', 'sscribe-export-site-pages'), message)
+						);
 					}
 					onError(message);
 				});
@@ -1346,7 +1410,9 @@
 					resumeAutoRefresh();
 				}
 			).fail(function () {
-				self.showPausedIndicator(__('Nonce refresh failed : attempting export anyway.', 'sscribe-export-site-pages'));
+				self.showPausedIndicator(
+					__('Nonce refresh failed : attempting export anyway.', 'sscribe-export-site-pages')
+				);
 				self.doExportLogs();
 				resumeAutoRefresh();
 			});
@@ -1365,7 +1431,9 @@
 			}
 			self.$exportBtn.prop('disabled', true);
 			self.$exportBtn.find('.sscribe-export-btn-scope').text(__(' : exporting...', 'sscribe-export-site-pages'));
-			this.showPausedIndicator(__('Export in progress : download should begin shortly', 'sscribe-export-site-pages'));
+			this.showPausedIndicator(
+				__('Export in progress : download should begin shortly', 'sscribe-export-site-pages')
+			);
 			this.downloadViaFetch(sscribe_data.ajaxurl, data, {
 				onSuccess: function () {
 					self.$exportBtn.prop('disabled', false);
@@ -1400,7 +1468,12 @@
 				} else {
 					self.$rotatedBody.html(
 						'<div class="sscribe-debug-rotated-empty">' +
-							escHtml(self.getResponseMessage(response, __('Unable to load rotated logs.', 'sscribe-export-site-pages'))) +
+							escHtml(
+								self.getResponseMessage(
+									response,
+									__('Unable to load rotated logs.', 'sscribe-export-site-pages')
+								)
+							) +
 							'</div>'
 					);
 				}
@@ -1418,7 +1491,11 @@
 		},
 		renderRotatedLogs: function (files) {
 			if (!files || files.length === 0) {
-				this.$rotatedBody.html('<div class="sscribe-debug-rotated-empty">' + escHtml(__('No rotated log files.', 'sscribe-export-site-pages')) + '</div>');
+				this.$rotatedBody.html(
+					'<div class="sscribe-debug-rotated-empty">' +
+						escHtml(__('No rotated log files.', 'sscribe-export-site-pages')) +
+						'</div>'
+				);
 				return;
 			}
 			let html = '';
@@ -1506,13 +1583,20 @@
 					const parsedCount = parseInt(response.data.count, 10);
 					const rotatedCount = !isNaN(parsedCount) && parsedCount > 0 ? parsedCount : entries.length;
 					self.renderLogs(entries, true, { status: 'rotated', count: rotatedCount }, true);
-					self.$entryCount.text(sprintf(_n('%d entry (rotated)', '%d entries (rotated)', rotatedCount, 'sscribe-export-site-pages'), rotatedCount));
+					self.$entryCount.text(
+						sprintf(
+							_n('%d entry (rotated)', '%d entries (rotated)', rotatedCount, 'sscribe-export-site-pages'),
+							rotatedCount
+						)
+					);
 					self.$entries.prepend(
 						'<div class="sscribe-debug-rotated-banner">' +
 							'<span>' +
 							escHtml(sprintf(__('Viewing archived log: %s', 'sscribe-export-site-pages'), filename)) +
 							'</span>' +
-							'<button type="button" class="sscribe-button sscribe-button-primary" id="sscribe-back-to-current">' + escHtml(__('Back to current log', 'sscribe-export-site-pages')) + '</button>' +
+							'<button type="button" class="sscribe-button sscribe-button-primary" id="sscribe-back-to-current">' +
+							escHtml(__('Back to current log', 'sscribe-export-site-pages')) +
+							'</button>' +
 							'</div>'
 					);
 					self.$entries
@@ -1523,7 +1607,12 @@
 						});
 				} else {
 					self.$entryCount.text(__('Error', 'sscribe-export-site-pages'));
-					self.showConsoleError(self.getResponseMessage(response, __('Unable to open rotated log.', 'sscribe-export-site-pages')));
+					self.showConsoleError(
+						self.getResponseMessage(
+							response,
+							__('Unable to open rotated log.', 'sscribe-export-site-pages')
+						)
+					);
 				}
 			}).fail(function (xhr) {
 				if (xhr.statusText === 'abort') {
@@ -1629,7 +1718,9 @@
 			if (!$btn.data('original-text')) {
 				$btn.data('original-text', $btn.text());
 			}
-			$btn.data('confirming', true).addClass('sscribe-btn-confirming').text(__('Click to confirm', 'sscribe-export-site-pages'));
+			$btn.data('confirming', true)
+				.addClass('sscribe-btn-confirming')
+				.text(__('Click to confirm', 'sscribe-export-site-pages'));
 			const revertTimeout = setTimeout(function () {
 				$btn.removeData('delete-timeout');
 				if ($btn.data('confirming')) {
@@ -1666,7 +1757,9 @@
 						if ($row.length) {
 							$row.find('.sscribe-debug-rotated-file-actions').after(
 								'<div class="sscribe-rotated-error" role="alert">' +
-									escHtml(self.getResponseMessage(response, __('Error', 'sscribe-export-site-pages'))) +
+									escHtml(
+										self.getResponseMessage(response, __('Error', 'sscribe-export-site-pages'))
+									) +
 									'</div>'
 							);
 							setTimeout(function () {
@@ -1685,7 +1778,9 @@
 					const $row = $btn.closest('.sscribe-debug-rotated-file');
 					if ($row.length) {
 						$row.find('.sscribe-debug-rotated-file-actions').after(
-							'<div class="sscribe-rotated-error" role="alert">' + escHtml(__('Error', 'sscribe-export-site-pages')) + '</div>'
+							'<div class="sscribe-rotated-error" role="alert">' +
+								escHtml(__('Error', 'sscribe-export-site-pages')) +
+								'</div>'
 						);
 						setTimeout(function () {
 							$row.find('.sscribe-rotated-error').remove();
@@ -1726,7 +1821,8 @@
 					try {
 						value = JSON.stringify(value, null, 2);
 						if (typeof value === 'string' && value.length > 5000) {
-							value = value.substring(0, 5000) + '\n' + __('... [truncated]', 'sscribe-export-site-pages');
+							value =
+								value.substring(0, 5000) + '\n' + __('... [truncated]', 'sscribe-export-site-pages');
 						}
 					} catch (e) {
 						const detail = e && e.message ? e.message : typeof value;
@@ -1753,7 +1849,11 @@
 		}
 		const hasContext = contextHtml !== '';
 		const msgText = String(entry.message || '').trim();
-		const fallbackLabel = sprintf(__('%1$s entry at %2$s', 'sscribe-export-site-pages'), String(entry.level || __('log', 'sscribe-export-site-pages')), String(entry.timestamp || ''));
+		const fallbackLabel = sprintf(
+			__('%1$s entry at %2$s', 'sscribe-export-site-pages'),
+			String(entry.level || __('log', 'sscribe-export-site-pages')),
+			String(entry.timestamp || '')
+		);
 		const ariaLabelText = msgText ? truncateForAriaLabel(msgText, 50) : truncateForAriaLabel(fallbackLabel, 50);
 		if (!hasContext) {
 			return (
