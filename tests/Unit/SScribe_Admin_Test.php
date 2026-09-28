@@ -27,7 +27,7 @@ class SScribe_Admin_Test extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 
-		global $sscribe_test_filters, $sscribe_test_menu_pages, $sscribe_test_styles, $sscribe_test_scripts, $sscribe_test_localized;
+		global $sscribe_test_filters, $sscribe_test_menu_pages, $sscribe_test_styles, $sscribe_test_scripts, $sscribe_test_localized, $sscribe_test_script_translations;
 		global $sscribe_test_transients, $sscribe_test_options, $sscribe_test_current_user_can, $sscribe_test_is_admin, $sscribe_test_doing_ajax;
 
 		$sscribe_test_filters          = array();
@@ -35,6 +35,7 @@ class SScribe_Admin_Test extends TestCase {
 		$sscribe_test_styles           = array();
 		$sscribe_test_scripts          = array();
 		$sscribe_test_localized        = array();
+		$sscribe_test_script_translations = array();
 		$sscribe_test_transients       = array();
 		$sscribe_test_options          = array();
 		$sscribe_test_current_user_can = true;
@@ -72,13 +73,14 @@ class SScribe_Admin_Test extends TestCase {
 	}
 
 	public function test_enqueue_admin_assets_only_runs_for_plugin_pages(): void {
-		global $sscribe_test_styles, $sscribe_test_scripts, $sscribe_test_current_user_can;
+		global $sscribe_test_styles, $sscribe_test_scripts, $sscribe_test_current_user_can, $sscribe_test_script_translations;
 
 		$admin = new SScribe_Admin();
 		$admin->enqueue_admin_assets( 'dashboard_page_unrelated' );
 
 		$this->assertCount( 0, $sscribe_test_styles );
 		$this->assertCount( 0, $sscribe_test_scripts );
+		$this->assertSame( array(), $sscribe_test_script_translations );
 
 		// Export-only users do not receive the diagnostics console assets.
 		$sscribe_test_current_user_can = false;
@@ -86,6 +88,7 @@ class SScribe_Admin_Test extends TestCase {
 
 		$this->assertCount( 2, $sscribe_test_styles );
 		$this->assertCount( 1, $sscribe_test_scripts );
+		$this->assertSame( array(), $sscribe_test_script_translations );
 
 		// Diagnostics users need the controls even while logging is disabled.
 		$sscribe_test_styles          = array();
@@ -95,6 +98,17 @@ class SScribe_Admin_Test extends TestCase {
 
 		$this->assertCount( 3, $sscribe_test_styles );
 		$this->assertCount( 2, $sscribe_test_scripts );
+		$this->assertContains( 'wp-i18n', $sscribe_test_scripts[1]['deps'] );
+		$this->assertSame(
+			array(
+				array(
+					'handle' => 'sscribe-debug-console',
+					'domain' => 'sscribe-export-site-pages',
+					'path'   => SSCRIBE_PLUGIN_DIR . 'languages',
+				),
+			),
+			$sscribe_test_script_translations
+		);
 	}
 
 	public function test_plugin_action_link_points_to_top_level_admin_page(): void {

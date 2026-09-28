@@ -1109,6 +1109,7 @@ $sscribe_test_menu_pages    = array();
 $sscribe_test_styles        = array();
 $sscribe_test_scripts       = array();
 $sscribe_test_localized     = array();
+$sscribe_test_script_translations = array();
 $sscribe_test_current_user_can = true;
 $sscribe_test_is_admin         = true;
 $sscribe_test_doing_ajax       = false;
@@ -2027,6 +2028,14 @@ if ( ! function_exists( 'wp_enqueue_script' ) ) {
 	}
 }
 
+if ( ! function_exists( 'wp_set_script_translations' ) ) {
+	function wp_set_script_translations( $handle, $domain = 'default', $path = '' ) {
+		global $sscribe_test_script_translations;
+		$sscribe_test_script_translations[] = compact( 'handle', 'domain', 'path' );
+		return true;
+	}
+}
+
 if ( ! function_exists( 'wp_localize_script' ) ) {
 	function wp_localize_script( $handle, $object_name, $l10n ) {
 		global $sscribe_test_localized;
@@ -2217,4 +2226,3 @@ if ( 'cli' === php_sapi_name() && ! defined( 'SSCRIBE_TEST_BOOTSTRAP_QUIET' ) ) 
 		unset( $cmd, $null_device, $regen_script );
 	}
 }
-

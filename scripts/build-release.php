@@ -7,6 +7,8 @@
 
 declare(strict_types=1);
 
+require_once __DIR__ . '/lib/build-workspace.php';
+
 echo "\n===========================================\n";
 echo "  SSCRIBE EXPORT BUILD\n";
 echo "===========================================\n\n";
@@ -476,11 +478,9 @@ if ( $config['auto_clean_root'] && is_dir( $root . '/build' ) ) {
 	rrmdir( $root . '/build' );
 }
 
-if ( is_dir( $dist_dir ) ) {
-	if ( $config['clean_dist'] ) {
-		echo "  🧹 Cleaning dist folder...\n";
-		rrmdir( $dist_dir );
-	}
+if ( $config['clean_dist'] ) {
+	echo "  🧹 Replacing current package outputs; preserving evidence bundles...\n";
+	sscribe_clean_release_output( $dist_dir, $version );
 }
 
 if ( ! is_dir( $dist_dir ) ) {

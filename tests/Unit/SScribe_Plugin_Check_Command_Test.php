@@ -4,6 +4,45 @@ declare( strict_types=1 );
 namespace SScribe\Tests\Unit;
 use PHPUnit\Framework\TestCase;
 final class SScribe_Plugin_Check_Command_Test extends TestCase {
+	/** Remove only this test's owned tree, closing directory handles before deletion. */
+	private static function remove_fixture_tree( string $path ): void {
+		if ( is_link( $path ) || is_file( $path ) ) {
+			// Git objects are read-only on Windows; unlink alone cannot remove them.
+			if ( ! is_link( $path ) && ! chmod( $path, 0600 ) ) {
+				throw new \RuntimeException( 'Cannot make fixture writable: ' . $path );
+			}
+			if ( ! unlink( $path ) ) {
+				throw new \RuntimeException( 'Cannot remove fixture file: ' . $path );
+			}
+			return;
+		}
+		if ( ! is_dir( $path ) ) {
+			return;
+		}
+		$entries = scandir( $path );
+		if ( false === $entries ) {
+			throw new \RuntimeException( 'Cannot enumerate fixture: ' . $path );
+		}
+		foreach ( $entries as $entry ) {
+			if ( '.' !== $entry && '..' !== $entry ) {
+				self::remove_fixture_tree( $path . '/' . $entry );
+			}
+		}
+		if ( ! rmdir( $path ) ) {
+			throw new \RuntimeException( 'Cannot remove fixture directory: ' . $path );
+		}
+	}
+
+	public function test_fixture_cleanup_removes_read_only_git_objects(): void {
+		$root = sys_get_temp_dir() . '/sscribe-pc-cleanup-' . bin2hex( random_bytes( 6 ) );
+		mkdir( $root . '/.git/objects/ab', 0700, true );
+		$object = $root . '/.git/objects/ab/object';
+		file_put_contents( $object, 'read-only Git fixture' );
+		chmod( $object, 0444 );
+		self::remove_fixture_tree( $root );
+		self::assertDirectoryDoesNotExist( $root );
+	}
+
 	public function test_strict_verifier_requires_complete_current_evidence(): void {
 		$root = sys_get_temp_dir() . '/sscribe-pc-command-' . bin2hex( random_bytes( 6 ) );
 		mkdir( $root, 0700 );
@@ -54,9 +93,7 @@ final class SScribe_Plugin_Check_Command_Test extends TestCase {
 				self::assertSame( 1, $verify(), $raw );
 			}
 		} finally {
-			$files = new \RecursiveIteratorIterator( new \RecursiveDirectoryIterator( $root, \FilesystemIterator::SKIP_DOTS ), \RecursiveIteratorIterator::CHILD_FIRST );
-			foreach ( $files as $file ) { $file->isDir() ? rmdir( $file->getPathname() ) : unlink( $file->getPathname() ); }
-			rmdir( $root );
+			self::remove_fixture_tree( $root );
 		}
 	}
 }

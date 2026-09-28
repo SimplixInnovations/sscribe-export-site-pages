@@ -55,14 +55,22 @@ jobs:
             - name: Verify two clean builds are byte-identical
               run: composer release:determinism
 
+            # Determinism runs in a disposable checkout and preserves this one.
+            - name: Build canonical package for runtime audit
+              run: |
+                  composer install --no-interaction --no-progress --optimize-autoloader
+                  composer vendor:prefix
+                  php scripts/build-release.php --skip-validation
+
             - name: Provision WordPress + Plugin Check for release audit
               run: |
                   composer test:wp:install
                   wp --path=tests-wp/_wordpress config create --dbname=sscribe --dbuser=sscribe --dbpass=sscribe --dbhost=localhost --skip-check
                   wp --path=tests-wp/_wordpress core install --url=http://localhost --title=SScribe --admin_user=admin --admin_password=sscribe-ci-password --admin_email=ci@example.invalid --skip-email
                   wp --path=tests-wp/_wordpress plugin install plugin-check
-                  ZIP_PATH="$(find dist -maxdepth 1 -type f -name 'sscribe-export-site-pages-*.zip' -print -quit)"
-                  test -n "$ZIP_PATH"
+                  VERSION="$(node -p "JSON.parse(require('fs').readFileSync('package.json', 'utf8')).version")"
+                  ZIP_PATH="dist/sscribe-export-site-pages-${VERSION}.zip"
+                  test -f "$ZIP_PATH"
                   wp --path=tests-wp/_wordpress plugin install "$ZIP_PATH" --force --activate
 
             - name: Run release audit

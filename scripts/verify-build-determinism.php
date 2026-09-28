@@ -2,8 +2,9 @@
 /**
  * Verify that two clean release builds produce byte-identical ZIP archives.
  *
- * This is the executable form of release invariant #5. Each pass deletes the
- * generated dependency/prefix/dist trees, reinstalls the locked Composer
+ * This is the executable form of release invariant #5. In an isolated copy of
+ * committed source, each pass deletes generated dependency/prefix/dist trees,
+ * reinstalls the locked Composer
  * toolchain, regenerates the prefixed runtime dependencies, and builds the
  * canonical release ZIP. If the ZIP hashes differ, the verifier reports
  * whether staged file content or ZIP metadata drifted.
@@ -17,7 +18,20 @@ if ( 'cli' !== PHP_SAPI ) {
 	exit( "This script must be run from the command line.\n" );
 }
 
-$root = dirname( __DIR__ );
+require_once __DIR__ . '/lib/build-workspace.php';
+
+try {
+	$workspace = sscribe_create_build_workspace( dirname( __DIR__ ) );
+} catch ( Throwable $error ) {
+	fwrite( STDERR, 'BUILD DETERMINISM ERROR: ' . $error->getMessage() . "\n" );
+	exit( 1 );
+}
+$root = $workspace['root'];
+echo 'Isolated build directory: ' . $workspace['directory'] . "\n";
+echo 'Source SHA: ' . $workspace['source_sha'] . "\n";
+echo "Original checkout, dependencies, ZIP and evidence bundles are preserved.\n";
+$result_path = $workspace['directory'] . '/determinism-result.json';
+sscribe_write_build_json( $result_path, array_merge( $workspace, array( 'status' => 'RUNNING' ) ) );
 $plugin_file = $root . '/sscribe-export-site-pages.php';
 $plugin_source = is_file( $plugin_file ) ? (string) file_get_contents( $plugin_file ) : '';
 if ( ! preg_match( "/define\\s*\\(\\s*['\"]SSCRIBE_VERSION['\"]\\s*,\\s*['\"]([^'\"]+)['\"]/", $plugin_source, $version_match ) ) {
@@ -26,62 +40,50 @@ if ( ! preg_match( "/define\\s*\\(\\s*['\"]SSCRIBE_VERSION['\"]\\s*,\\s*['\"]([^
 }
 $version = (string) $version_match[1];
 
-$run = static function ( string $command, string $label ) use ( $root ): void {
+$step = 0;
+$run = static function ( string $command, string $label ) use ( $root, $workspace, &$step ): void {
 	echo "\n== {$label} ==\n";
-	$previous = getcwd();
-	if ( false === chdir( $root ) ) {
-		throw new RuntimeException( 'Unable to enter repository root.' );
+	$log = $workspace['directory'] . '/step-' . ++$step . '.log';
+	echo "Raw output (written live): {$log}\n";
+	$environment = getenv();
+	if ( ! is_array( $environment ) ) {
+		$environment = array();
 	}
+	$environment['SSCRIBE_STRAUSS_VERBOSE'] = '1';
+	$started = microtime( true );
+	$process = proc_open( $command, array( 0 => array( 'pipe', 'r' ), 1 => array( 'file', $log, 'w' ), 2 => array( 'redirect', 1 ) ), $pipes, $root, $environment );
+	if ( ! is_resource( $process ) ) {
+		throw new RuntimeException( 'Cannot start ' . $label );
+	}
+	fclose( $pipes[0] );
+	$process_status = proc_get_status( $process );
+	$state = array( 'label' => $label, 'command' => $command, 'pid' => $process_status['pid'], 'started_at' => gmdate( 'c' ), 'status' => 'RUNNING' );
 	try {
-		passthru( $command, $exit_code );
+		sscribe_write_build_json( $log . '.json', $state );
+		$closed_code = proc_close( $process );
 	} finally {
-		if ( false !== $previous ) {
-			chdir( $previous );
+		if ( is_resource( $process ) ) {
+			proc_close( $process );
 		}
 	}
+	$exit_code = ! $process_status['running'] && $process_status['exitcode'] >= 0 ? $process_status['exitcode'] : $closed_code;
+	$state['status'] = 0 === $exit_code ? 'PASS' : 'FAIL';
+	$state['exit_code'] = $exit_code;
+	$state['elapsed_seconds'] = round( microtime( true ) - $started, 3 );
+	sscribe_write_build_json( $log . '.json', $state );
+	readfile( $log );
+	echo "\n{$label}: exit {$exit_code}, {$state['elapsed_seconds']} seconds\n";
 	if ( 0 !== $exit_code ) {
 		throw new RuntimeException( "{$label} failed with exit code {$exit_code}." );
 	}
 };
 
 $remove_tree = static function ( string $path ) use ( $root ): void {
-	$root_real = realpath( $root );
-	if ( false === $root_real ) {
-		throw new RuntimeException( 'Repository root cannot be resolved.' );
-	}
-
-	if ( is_link( $path ) || is_file( $path ) ) {
-		if ( ! @unlink( $path ) && file_exists( $path ) ) {
-			throw new RuntimeException( "Unable to remove {$path}." );
-		}
-		return;
-	}
-	if ( ! is_dir( $path ) ) {
-		return;
-	}
-
 	$allowed = array( 'vendor', 'vendor-prefixed', 'dist' );
 	if ( ! in_array( basename( $path ), $allowed, true ) || dirname( $path ) !== $root ) {
 		throw new RuntimeException( "Refusing to remove unexpected path {$path}." );
 	}
-
-	$iterator = new RecursiveIteratorIterator(
-		new RecursiveDirectoryIterator( $path, FilesystemIterator::SKIP_DOTS ),
-		RecursiveIteratorIterator::CHILD_FIRST
-	);
-	foreach ( $iterator as $item ) {
-		$item_path = $item->getPathname();
-		if ( $item->isLink() || $item->isFile() ) {
-			if ( ! @unlink( $item_path ) && file_exists( $item_path ) ) {
-				throw new RuntimeException( "Unable to remove file {$item_path}." );
-			}
-		} elseif ( $item->isDir() && ! @rmdir( $item_path ) && is_dir( $item_path ) ) {
-			throw new RuntimeException( "Unable to remove directory {$item_path}." );
-		}
-	}
-	if ( ! @rmdir( $path ) && is_dir( $path ) ) {
-		throw new RuntimeException( "Unable to remove directory {$path}." );
-	}
+	sscribe_remove_build_path( $path );
 };
 
 $file_map = static function ( string $dir ): array {
@@ -172,6 +174,7 @@ $describe_diff = static function ( array $first, array $second, string $label ):
 
 $build_pass = static function ( int $pass ) use (
 	$root,
+	$workspace,
 	$version,
 	$run,
 	$remove_tree,
@@ -182,6 +185,8 @@ $build_pass = static function ( int $pass ) use (
 	echo " CLEAN REPRODUCIBILITY BUILD PASS {$pass}\n";
 	echo "===========================================\n";
 
+	// Restore tracked inputs in this disposable checkout before each clean pass.
+	sscribe_build_git( $root, array( '-c', 'core.autocrlf=false', 'reset', '--hard', $workspace['source_sha'] ) );
 	foreach ( array( 'vendor', 'vendor-prefixed', 'dist' ) as $generated ) {
 		$remove_tree( $root . DIRECTORY_SEPARATOR . $generated );
 	}
@@ -217,6 +222,9 @@ $build_pass = static function ( int $pass ) use (
 		'files'    => $file_map( $stage_dir ),
 		'zip_meta' => $zip_map( $zip_path ),
 	);
+	if ( ! copy( $zip_path, $workspace['directory'] . '/pass-' . $pass . '.zip' ) ) {
+		throw new RuntimeException( 'Unable to preserve pass ZIP.' );
+	}
 	echo "PASS {$pass} SHA-256: {$hash}\n";
 	echo "PASS {$pass} ZIP bytes: {$result['zip_size']}\n";
 	echo 'PASS ' . $pass . ' staged files: ' . count( $result['files'] ) . "\n";
@@ -227,6 +235,7 @@ try {
 	$first = $build_pass( 1 );
 	$second = $build_pass( 2 );
 } catch ( Throwable $e ) {
+	sscribe_write_build_json( $result_path, array_merge( $workspace, array( 'status' => 'FAIL', 'error' => $e->getMessage() ) ) );
 	fwrite( STDERR, "\nBUILD DETERMINISM ERROR: {$e->getMessage()}\n" );
 	exit( 1 );
 }
@@ -235,6 +244,9 @@ echo "\n=== SScribe Clean Build Determinism ===\n";
 echo "Version: {$version}\n";
 echo "Pass 1: {$first['sha256']} ({$first['zip_size']} bytes)\n";
 echo "Pass 2: {$second['sha256']} ({$second['zip_size']} bytes)\n";
+
+$matches = $first === $second;
+sscribe_write_build_json( $result_path, array_merge( $workspace, array( 'status' => $matches ? 'PASS' : 'FAIL', 'first' => $first, 'second' => $second ) ) );
 
 if ( $first['sha256'] !== $second['sha256'] ) {
 	echo "\nERROR: two clean builds produced different ZIP bytes.\n";
@@ -256,4 +268,5 @@ if ( $first['zip_meta'] !== $second['zip_meta'] ) {
 }
 
 echo "✓ Two clean builds are byte-identical and release invariant #5 is proven.\n";
+echo 'Preserved logs, result and both ZIPs: ' . $workspace['directory'] . "\n";
 exit( 0 );

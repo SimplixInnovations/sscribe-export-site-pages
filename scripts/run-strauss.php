@@ -51,5 +51,16 @@ if ( ! class_exists( BrianHenryIE\Strauss\Console\Application::class ) ) {
 	exit( 1 );
 }
 
-$app = new BrianHenryIE\Strauss\Console\Application( '0.27.2' );
-$app->run();
+$version = Composer\InstalledVersions::getPrettyVersion( 'brianhenryie/strauss' ) ?? 'unknown';
+$arguments = $argv;
+if ( '1' === getenv( 'SSCRIBE_STRAUSS_VERBOSE' ) ) {
+	$arguments[] = '-vvv';
+	$arguments[] = '--no-ansi';
+}
+$started = microtime( true );
+fwrite( STDOUT, sprintf( "[strauss] version=%s PHP=%s pid=%d memory_limit=%s xdebug=%s\n", $version, PHP_VERSION, getmypid(), ini_get( 'memory_limit' ), extension_loaded( 'xdebug' ) ? (string) ini_get( 'xdebug.mode' ) : 'off' ) );
+$app = new BrianHenryIE\Strauss\Console\Application( $version );
+$app->setAutoExit( false );
+$code = $app->run( new Symfony\Component\Console\Input\ArgvInput( $arguments ) );
+fwrite( STDOUT, sprintf( "[strauss] exit=%d elapsed=%.3fs peak_memory=%d bytes\n", $code, microtime( true ) - $started, memory_get_peak_usage( true ) ) );
+exit( $code );
