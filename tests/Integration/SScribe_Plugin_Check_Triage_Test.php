@@ -34,17 +34,35 @@ final class SScribe_Plugin_Check_Triage_Test extends TestCase {
 	private function run_verifier(): array {
 		$root        = self::plugin_root();
 		$descriptors = array( 0 => array( 'pipe', 'r' ), 1 => array( 'pipe', 'w' ), 2 => array( 'pipe', 'w' ) );
-		$process     = proc_open( array( PHP_BINARY, $root . '/' . self::VERIFIER_PATH ), $descriptors, $pipes );
-		if ( ! \is_resource( $process ) ) {
-			throw new \RuntimeException( 'Could not spawn verifier subprocess.' );
+		$fixture_dir = sys_get_temp_dir() . '/sscribe-triage-missing-' . bin2hex( random_bytes( 8 ) );
+		mkdir( $fixture_dir, 0700 );
+		$environment = getenv();
+		if ( ! is_array( $environment ) ) {
+			$environment = array();
 		}
-		$stdout = (string) stream_get_contents( $pipes[1] );
-		$stderr = (string) stream_get_contents( $pipes[2] );
-		$code   = proc_close( $process );
-		return array( (int) $code, $stdout . $stderr );
+		foreach ( array( 'SSCRIBE_RELEASE_CERTIFICATION', 'SSCRIBE_SOURCE_SHA', 'SSCRIBE_RELEASE_ZIP', 'SSCRIBE_PLUGIN_CHECK_EVIDENCE' ) as $key ) {
+			unset( $environment[ $key ] );
+		}
+		// An explicit absent report prevents local dist evidence from changing this scenario.
+		$environment['SSCRIBE_PLUGIN_CHECK_REPORT'] = $fixture_dir . '/missing-report.log';
+		try {
+			$process = proc_open( array( PHP_BINARY, $root . '/' . self::VERIFIER_PATH ), $descriptors, $pipes, $root, $environment );
+			if ( ! \is_resource( $process ) ) {
+				throw new \RuntimeException( 'Could not spawn verifier subprocess.' );
+			}
+			fclose( $pipes[0] );
+			$stdout = (string) stream_get_contents( $pipes[1] );
+			$stderr = (string) stream_get_contents( $pipes[2] );
+			fclose( $pipes[1] );
+			fclose( $pipes[2] );
+			$code = proc_close( $process );
+			return array( (int) $code, $stdout . $stderr );
+		} finally {
+			rmdir( $fixture_dir );
+		}
 	}
 
-	public function test_live_manifest_passes_verifier(): void {
+	public function test_missing_report_is_blocked_without_failing_non_strict_verifier(): void {
 		list( $code, $output ) = $this->run_verifier();
 		// Non-strict source CI must not fail solely because the live
 		// Plugin Check report is absent; that gap is BLOCKED and only
@@ -63,6 +81,7 @@ final class SScribe_Plugin_Check_Triage_Test extends TestCase {
 
 		$payload = json_decode( (string) file_get_contents( self::plugin_root() . '/' . self::MANIFEST_PATH ), true );
 		$this->assertIsArray( $payload );
+		$this::assertFalse( $payload['strict'] );
 		$this::assertTrue( $payload['passes'] );
 		$this->assertGreaterThanOrEqual( 8, $payload['rule_count'] );
 		$this::assertSame( 0, $payload['errors_count'] );
@@ -74,19 +93,14 @@ final class SScribe_Plugin_Check_Triage_Test extends TestCase {
 			}
 		}
 		$this::assertIsArray( $live, 'live_plugin_check_report rule must exist.' );
-		$report_exists = is_file( self::plugin_root() . '/dist/evidence/plugin-check.log' )
-			|| is_file( self::plugin_root() . '/dist/plugin-check/plugin-check-report.json' );
-		if ( ! $report_exists ) {
-			$this::assertFalse(
-				$live['passes'],
-				'A missing live Plugin Check report must never be recorded as PASS.'
-			);
-			$this::assertStringContainsString( 'BLOCKED', $live['detail'] );
-			$this::assertArrayHasKey( 'blocked_count', $payload );
-			$this::assertGreaterThan( 0, $payload['blocked_count'] );
-		} else {
-			$this::assertTrue( $live['passes'] );
-		}
+		$this::assertFalse(
+			$live['passes'],
+			'A missing live Plugin Check report must never be recorded as PASS.'
+		);
+		$this::assertSame( 'blocked', $live['state'] );
+		$this::assertStringContainsString( 'BLOCKED', $live['detail'] );
+		$this::assertArrayHasKey( 'blocked_count', $payload );
+		$this::assertGreaterThan( 0, $payload['blocked_count'] );
 	}
 
 	public function test_triage_doc_exists(): void {

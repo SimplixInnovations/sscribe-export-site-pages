@@ -539,6 +539,19 @@ final class SScribe_Private_Storage_Branches_Test extends TestCase {
 		}
 	}
 
+	public function test_web_filesystem_roots_remain_public_boundaries(): void {
+		foreach ( array( '/', 'C:/', 'C:\\' ) as $root ) {
+			self::assertSame( $root, $this->call_private( 'classify_document_root', $root, 'fpm-fcgi' ) );
+			self::assertSame( '', $this->call_private( 'classify_document_root', $root, 'cli' ) );
+		}
+		self::assertSame( '/', $this->call_private( 'normalize_path', '/' ) );
+		if ( 'Windows' !== PHP_OS_FAMILY ) {
+			self::assertTrue( $this->call_private( 'path_is_within', sys_get_temp_dir(), '/', true ) );
+			self::assertFalse( $this->call_private( 'path_is_within', '/', '/', false ) );
+			self::assertTrue( $this->call_private( 'path_is_within', '/', '/', true ) );
+		}
+	}
+
 	public function test_get_usable_document_root_rejects_filesystem_roots(): void {
 		$prev = $_SERVER['DOCUMENT_ROOT'] ?? null;
 		$cases = array(

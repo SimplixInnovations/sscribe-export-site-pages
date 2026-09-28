@@ -244,28 +244,29 @@ final class SScribe_Private_Storage {
 	}
 
 	/**
-	 * Return a usable web document root, or '' when none is meaningful.
+	 * Return the configured public root, ignoring root placeholders only in CLI.
 	 *
-	 * TCPDF's `tcpdf_autoconfig.php` writes a synthetic filesystem-root
-	 * `DOCUMENT_ROOT` (`/`) when the SAPI has none (CLI, WP-CLI, some
-	 * containers). Treating that as a web root would mark every absolute
-	 * path "public" and disable private storage entirely. Ignore roots
-	 * that are the filesystem root or a bare drive letter.
+	 * @return string Configured public root or an empty string for a CLI placeholder.
 	 */
 	private static function get_usable_document_root(): string {
 		$document_root = isset( $_SERVER['DOCUMENT_ROOT'] )
-			? sanitize_text_field( wp_unslash( $_SERVER['DOCUMENT_ROOT'] ) )
-			: '';
+			? sanitize_text_field( wp_unslash( $_SERVER['DOCUMENT_ROOT'] ) ) : '';
+		return self::classify_document_root( $document_root, PHP_SAPI );
+	}
 
-		if ( '' === $document_root ) {
+	/**
+	 * Keep genuine web-server filesystem roots authoritative.
+	 *
+	 * @param string $document_root Configured document root.
+	 * @param string $sapi          PHP server API that supplied the root.
+	 * @return string Document root or an empty string for a CLI placeholder.
+	 */
+	private static function classify_document_root( string $document_root, string $sapi ): string {
+		$normalized = str_replace( '\\', '/', $document_root );
+		$is_root    = '' === rtrim( $normalized, '/' ) || preg_match( '#^[a-z]:/*$#i', $normalized );
+		if ( in_array( $sapi, array( 'cli', 'phpdbg' ), true ) && $is_root ) {
 			return '';
 		}
-
-		$normalized = rtrim( str_replace( '\\', '/', $document_root ), '/' );
-		if ( '' === $normalized || preg_match( '#^[a-z]:$#i', $normalized ) ) {
-			return '';
-		}
-
 		return $document_root;
 	}
 
@@ -676,11 +677,11 @@ final class SScribe_Private_Storage {
 	 */
 	private static function path_is_within( string $path, string $root, bool $allow_equal ): bool {
 		$path = self::resolve_path_for_comparison( $path );
-		$root = rtrim( self::resolve_path_for_comparison( $root ), '/' );
+		$root = self::resolve_path_for_comparison( $root );
 		if ( '' === $path || '' === $root ) {
 			return false;
 		}
-		return ( $allow_equal && $path === $root ) || str_starts_with( $path, $root . '/' );
+		return $path === $root ? $allow_equal : str_starts_with( $path, rtrim( $root, '/' ) . '/' );
 	}
 
 	/**
@@ -742,7 +743,7 @@ final class SScribe_Private_Storage {
 	 */
 	private static function normalize_path( string $path ): string {
 		$path = function_exists( 'wp_normalize_path' ) ? wp_normalize_path( $path ) : str_replace( '\\', '/', $path );
-		$path = rtrim( $path, '/' );
+		$path = preg_match( '#^(?:/+|[a-z]:/+)$#i', $path ) ? rtrim( $path, '/' ) . '/' : rtrim( $path, '/' );
 		return 'Windows' === PHP_OS_FAMILY ? strtolower( $path ) : $path;
 	}
 

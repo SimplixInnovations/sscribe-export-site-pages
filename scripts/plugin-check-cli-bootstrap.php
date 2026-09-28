@@ -29,4 +29,12 @@ if ( ! defined( 'WP_PLUGIN_CHECK_PLUGIN_DIR_PATH' ) ) {
 	define( 'WP_PLUGIN_CHECK_PLUGIN_DIR_PATH', $plugin_check_dir );
 }
 
+// Keep machine-verified report markers stable without changing site options.
+WP_CLI::add_hook(
+	'after_wp_load',
+	static function (): void {
+		switch_to_locale( 'en_US' );
+	}
+);
+
 require $plugin_check_cli;

@@ -158,22 +158,7 @@ if ( is_file( $triage_doc ) ) {
 }
 
 /**
- * Rule 7: the published ZIP must already have run clean (0 errors
- * and 0 warnings) — captured by the Phase 33 Plugin Check contract.
- * The verifier asserts the canonical count target is met at the
- * source level (the actual ZIP run lives in ci.yml).
- */
-$record(
-	'plugin_check_target_is_zero_errors_and_warnings',
-	true, // The CI workflow is the authoritative source. This row
-	      // is the SLA target — a regression that causes Plugin
-	      // Check to emit a NEW warning fails this gate by failing
-	      // to match the triage doc's status table.
-	'Plugin Check target is 0 errors and 0 warnings at audited SHA. The CI workflow enforces this via the strict + include-experimental flags (Phase 33).'
-);
-
-/**
- * Rule 8: scan the source tree for Plugin Check known-bad patterns.
+ * Rule 7: scan the source tree for Plugin Check known-bad patterns.
  * If any appear, the verifier fails so the regression is caught
  * BEFORE the full dist build runs.
  */
@@ -237,7 +222,7 @@ $record(
 );
 
 /**
- * Rule 8b: live Plugin Check report, when present, must be parseable and
+ * Rule 8: live Plugin Check report, when present, must be parseable and
  * every emitted warning/error code must be listed in the triage table.
  * A missing report is recorded as BLOCKED (not PASS) so certification
  * cannot claim Plugin Check green from a stub.
@@ -256,20 +241,25 @@ if ( ! is_string( $live_report_path ) || '' === $live_report_path ) {
 }
 $triage_rows = sscribe_load_triage_rows( $triage_doc );
 $parsed      = sscribe_parse_plugin_check_report( (string) $live_report_path );
+// Compare capture evidence against independently supplied release inputs and bytes.
+$source_sha = getenv( 'SSCRIBE_SOURCE_SHA' ) ?: '';
+$git_output = array();
+$git_status = 1;
+exec( 'git -C ' . escapeshellarg( $root_dir ) . ' rev-parse HEAD', $git_output, $git_status );
+$record( 'source_matches_checkout', 0 === $git_status && $source_sha === trim( implode( '', $git_output ) ), 'Source SHA must exactly match the current checkout HEAD.', $parsed['exists'] ? 'auto' : 'blocked' );
+$git_output = array();
+exec( 'git -C ' . escapeshellarg( $root_dir ) . ' status --porcelain --untracked-files=no', $git_output, $git_status );
+$record( 'source_tree_clean', 0 === $git_status && array() === $git_output, 'Tracked source changes must be committed before certification.', $parsed['exists'] ? 'auto' : 'blocked' );
+
+$zip_path = getenv( 'SSCRIBE_RELEASE_ZIP' ) ?: '';
+$evidence_path = getenv( 'SSCRIBE_PLUGIN_CHECK_EVIDENCE' ) ?: $root_dir . '/dist/evidence/plugin-check-evidence.json';
+$evidence = is_file( $evidence_path ) ? json_decode( (string) file_get_contents( $evidence_path ), true ) : null;
 $expected_id = array(
-	'expected_source' => 'sscribe-export-site-pages',
+	'source_sha' => $source_sha,
+	'zip_sha256' => is_file( $zip_path ) ? hash_file( 'sha256', $zip_path ) : '',
+	'report_sha256' => $parsed['sha256'],
+	'evidence' => is_array( $evidence ) ? $evidence : array(),
 );
-if ( is_file( $root_dir . '/dist/evidence/artifact-identity.json' ) ) {
-	$identity = json_decode( (string) file_get_contents( $root_dir . '/dist/evidence/artifact-identity.json' ), true );
-	if ( is_array( $identity ) ) {
-		if ( isset( $identity['FINAL_SHA'] ) ) {
-			$expected_id['source_sha'] = (string) $identity['FINAL_SHA'];
-		}
-		if ( isset( $identity['ZIP_SHA256'] ) ) {
-			$expected_id['zip_sha256'] = (string) $identity['ZIP_SHA256'];
-		}
-	}
-}
 $validation = sscribe_validate_plugin_check_report( $parsed, $triage_rows, $expected_id );
 
 if ( ! $parsed['exists'] ) {

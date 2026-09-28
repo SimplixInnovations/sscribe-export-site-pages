@@ -215,6 +215,7 @@ class SScribe_Admin {
 				$debug_js_version,
 				true
 			);
+			wp_set_script_translations( 'sscribe-debug-console', 'sscribe-export-site-pages', SSCRIBE_PLUGIN_DIR . 'languages' );
 		}
 
 		add_action( 'admin_print_footer_scripts', array( $this, 'print_localized_data' ), 0 );
@@ -439,40 +440,6 @@ class SScribe_Admin {
 				/* translators: 1: prefix (e.g. "Export progress:"), 2: percentage */
 				'live_region_progress'   => __( '%1$s %2$d%%', 'sscribe-export-site-pages' ),
 
-				// Debug console (sscribe-debug-console.js).
-				'debug_unsaved'          => __( 'Unsaved changes', 'sscribe-export-site-pages' ),
-				'debug_clearing'         => __( 'Clearing...', 'sscribe-export-site-pages' ),
-				'debug_confirm_clear'    => __( 'Click to confirm', 'sscribe-export-site-pages' ),
-				'debug_saved'            => __( 'Saved', 'sscribe-export-site-pages' ),
-				'debug_saved_bang'       => __( 'Saved!', 'sscribe-export-site-pages' ),
-				'debug_reloading'        => __( 'Debug mode changed : reloading…', 'sscribe-export-site-pages' ),
-				'debug_empty_default'    => __( 'No log entries found.', 'sscribe-export-site-pages' ),
-				'debug_empty_disabled'   => __( 'Debug logging is disabled. Enable it in Settings above to capture logs.', 'sscribe-export-site-pages' ),
-				'debug_empty_no_file'    => __( 'Debug is enabled but no log file exists yet. Run an export to generate logs.', 'sscribe-export-site-pages' ),
-				'debug_empty_rotated'    => __( 'This rotated log file is empty.', 'sscribe-export-site-pages' ),
-				'debug_empty_filtered'   => __( 'No entries match the current filters. Adjust level, search, or session above.', 'sscribe-export-site-pages' ),
-				'debug_loading'          => __( 'Loading...', 'sscribe-export-site-pages' ),
-				'debug_error'            => __( 'Error', 'sscribe-export-site-pages' ),
-				/* translators: %d: entry count */
-				'debug_entry_one'        => __( '1 entry', 'sscribe-export-site-pages' ),
-				/* translators: %d: entry count */
-				'debug_entry_many'       => __( '%d entries', 'sscribe-export-site-pages' ),
-				/* translators: %d: log entry count to clear */
-				'debug_clear_one'        => __( 'Clear 1 log entry', 'sscribe-export-site-pages' ),
-				/* translators: %d: log entry count to clear */
-				'debug_clear_many'       => __( 'Clear %d log entries', 'sscribe-export-site-pages' ),
-				'debug_rotated_expand'   => __( 'Click to expand', 'sscribe-export-site-pages' ),
-				'debug_rotated_collapse' => __( 'Click to collapse', 'sscribe-export-site-pages' ),
-				'debug_load_more_failed' => __( 'Failed to load more entries.', 'sscribe-export-site-pages' ),
-				'debug_retry'            => __( 'Retry', 'sscribe-export-site-pages' ),
-				'debug_paused_idle'      => __( 'Auto-refresh paused : no new log entries', 'sscribe-export-site-pages' ),
-				'debug_paused_history'   => __( 'Auto-refresh paused : scrolled into history', 'sscribe-export-site-pages' ),
-				'debug_archived_hint'    => __( 'Archived log', 'sscribe-export-site-pages' ),
-				'debug_scope_all'        => __( ' (all)', 'sscribe-export-site-pages' ),
-				'debug_scope_filtered'   => __( ' (filtered)', 'sscribe-export-site-pages' ),
-				'debug_exporting'        => __( ' : exporting...', 'sscribe-export-site-pages' ),
-				'debug_rotated_empty'    => __( 'No rotated log files.', 'sscribe-export-site-pages' ),
-				'debug_loading_more'     => __( 'Loading more entries...', 'sscribe-export-site-pages' ),
 			) + $post_type_strings,
 		);
 	}

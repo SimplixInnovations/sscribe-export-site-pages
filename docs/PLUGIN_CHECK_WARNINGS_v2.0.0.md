@@ -8,9 +8,12 @@ ships with the sScribe Export Site Pages submission.
 The release pipeline runs [`wordpress/plugin-check-action@v1`](https://github.com/wordpress/plugin-check-action)
 in strict mode (with `include-experimental: true`) against the
 build artifact at `./dist/sscribe-export-site-pages/`. Plugin Check
-exits non-zero on any error OR warning. The action produces a JSON
-report at `dist/plugin-check/plugin-check-report.json` that this
-document reconciles against the triage table below.
+exits non-zero on any error OR warning in the CI action. Local evidence is
+captured separately as upstream `FILE:` sections plus JSON arrays in
+`dist/evidence/plugin-check.log`, or the exact upstream zero-finding success
+message. Generic JSON, tables, headers, incomplete reports and trailing output
+are rejected. A completed command sidecar is required; parsing alone is never
+certification.
 
 A regression that introduces a NEW warning not listed here — or that
 re-introduces a `fixed` warning — fails the
@@ -20,9 +23,8 @@ is cut.
 ## Triage process
 
 1. CI runs Plugin Check on the built dist tree (Phase 33 contract).
-2. The Plugin Check JSON report is persisted to
-   `dist/plugin-check/plugin-check-report.json` and uploaded as a
-   workflow artifact (`plugin-check-report`).
+2. Run the exact-artifact capture command below and retain both the raw report
+   and `plugin-check-evidence.json` with its command exit status and hashes.
 3. Any warning emitted by the report MUST appear in the **Warnings
    table** below with one of four statuses:
 
@@ -42,7 +44,7 @@ is cut.
 | Metric                       | Value |
 |------------------------------|-------|
 | Audited SHA                  | see `dist/release-pipeline-manifest.json` `source_sha` |
-| Plugin Check exit code       | `0` (zero errors, zero warnings) |
+| Plugin Check exit code       | Unverified for corrected SHA; release HOLD |
 | Strict mode                  | `true` |
 | `include-experimental`       | `true` |
 | Last audit run               | `bin/release-audit.sh` |
@@ -51,8 +53,9 @@ is cut.
 ## Warnings table
 
 The table records warnings discovered during release hardening even when they
-are fixed before the final certified ZIP. The final Plugin Check run must still
-exit with zero errors and zero warnings.
+are fixed before the final certified ZIP. The CI action still requires zero errors and warnings. The local triage gate
+allows only exact code + plugin-relative file + warning severity rows marked
+`acknowledged`; `fixed`, `in_progress`, `deferred` and all errors fail.
 
 | Warning code | Source | Severity | Status | Remediation | Owner |
 |--------------|--------|----------|--------|-------------|-------|
@@ -104,17 +107,46 @@ surfaces as a CI failure independent of Plugin Check itself.
 
 ## How an independent auditor verifies this
 
-```bash
-# 1. Re-run Plugin Check against the published artifact.
-wp plugin check dist/sscribe-export-site-pages --allow-root
+Use the [exact-artifact capture and re-verification commands below](#exact-artifact-local-capture-release-hold)
+from a clean checkout of the audited SHA. Retain the release ZIP, raw report,
+and completed evidence sidecar together. The strict verifier checks the
+checkout SHA, ZIP/report hashes, command exit status, and each finding's exact
+code, plugin-relative file, severity, and allowed triage status. A code-only
+comparison cannot establish those requirements.
 
-# 2. Confirm the JSON report matches this doc.
-diff <(jq -S '.[] | .code' dist/plugin-check/plugin-check-report.json | sort -u) \
-     <(awk -F'|' '/^\| / && $2 !~ /Warning code/ && $2 !~ /_/ { gsub(/ /, "", $2); print $2 }' \
-        docs/PLUGIN_CHECK_WARNINGS_v2.0.0.md | sort -u)
+## Exact-artifact local capture (release HOLD)
 
-# 3. Run the triage gate.
-composer test:plugin-check-triage
+On the final published SHA, commit all tracked changes, build the release ZIP,
+and use an isolated WordPress installation with Plugin Check installed. The
+command extracts the ZIP into a fresh private temporary directory and checks
+that directory, never an unrelated installed slug. It rejects unsafe ZIP paths
+and symlinks, records HEAD and ZIP bytes before and after the command, captures
+all output plus exit status, then runs the actual strict verifier:
+
+```sh
+php scripts/capture-plugin-check.php /absolute/path/release.zip /absolute/path/isolated-wordpress
 ```
 
-A clean diff + a green gate = the Plugin Check contract holds.
+The command sets `SSCRIBE_WP_ROOT` for the isolated installation and loads
+`scripts/plugin-check-cli-bootstrap.php` through WP-CLI `--require` so the
+official Plugin Check CLI can initialize runtime checks before WordPress loads.
+Its `after_wp_load` hook switches this process to `en_US`, keeping the exact
+upstream English clean-report marker stable without changing WordPress options.
+
+For independent re-verification of the saved evidence:
+
+```sh
+SSCRIBE_RELEASE_CERTIFICATION=1 \
+SSCRIBE_SOURCE_SHA="$(git rev-parse HEAD)" \
+SSCRIBE_RELEASE_ZIP=/absolute/path/release.zip \
+php scripts/verify-plugin-check-triage.php
+```
+
+The supplied source SHA must match checkout HEAD, tracked files must be clean,
+and the sidecar must match actual ZIP/report SHA-256 bytes and completed exit
+code zero. Missing evidence is BLOCKED and fails strict certification. This
+capture does not establish release approval or replace the other exact-SHA
+runtime gates. PHP, WordPress, WP-CLI, PHPUnit and POT regeneration were not run
+in the implementation environment; the POT was updated from changed literals
+and references. Locally run `php scripts/make-pot.php`, the focused PHPUnit
+report/command/private-storage suites, and the full required runtime gates.
