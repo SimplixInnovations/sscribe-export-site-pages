@@ -1690,9 +1690,9 @@ if ( ! function_exists( 'get_sites' ) ) {
 if ( ! function_exists( 'pll_languages_list' ) ) {
 	/**
 	 * @param array<string, mixed> $args Arguments.
-	 * @return array<int, mixed>
+	 * @return mixed Language list; its shape depends on the fields argument.
 	 */
-	function pll_languages_list( $args = array() ): array {
+	function pll_languages_list( $args = array() ) {
 		return array();
 	}
 }
@@ -1714,7 +1714,7 @@ if ( ! function_exists( 'trp_translate' ) ) {
 	 * @param string      $content                  Text or HTML to translate.
 	 * @param string|null $language                 Target locale.
 	 * @param bool        $prevent_over_translation Skip already translated text.
-	 * @return string
+	 * @return mixed
 	 */
 	function trp_translate( $content, $language = null, $prevent_over_translation = true ) {
 		return $content;
