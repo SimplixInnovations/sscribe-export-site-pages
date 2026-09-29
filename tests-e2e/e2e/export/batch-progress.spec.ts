@@ -26,7 +26,8 @@ import { test, expect } from '../../fixtures/shared';
  *     past the per-test timeout ceiling).
  *   - Timeouts are tuned for WP-Playground: 30s for the first batch
  *     transition; completion is bounded by stalled progress (no change
- *     for 60s), not by a fixed wall-clock budget, so a slow but advancing
+ *     for longer than the slowest request the UI itself allows), not by a
+ *     fixed wall-clock budget, so a slow but advancing
  *     run passes and a hung one still fails. The per-test timeout in
  *     playwright.config.ts caps the whole run.
  */
@@ -88,8 +89,10 @@ test.describe('e2e / export / batch-progress', () => {
     // wizard-happy-path test uses — `#sscribe-download-area` becomes
     // visible. A fixed 90s budget expired mid-export on a slow Windows
     // host while progress was still advancing, so fail only on a stall.
+    // Progress moves only when a request succeeds, and the admin JS allows
+    // a batch request 200s (finalize 120s), so a stall must outlast that.
     const downloadArea = adminPage.locator('#sscribe-download-area');
-    const stallLimitMs = 60_000;
+    const stallLimitMs = 210_000;
     let lastProgress = -1;
     let lastChangeAt = Date.now();
     while (!(await downloadArea.isVisible())) {
