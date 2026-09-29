@@ -207,6 +207,43 @@ class SScribe_Diagnostics_Test extends TestCase {
 		$this->assertArrayHasKey( 'message', $result );
 	}
 
+	/**
+	 * Exports run one batch per request, so a large page count must not be
+	 * forecast as if every page were held in memory at once.
+	 */
+	public function test_check_memory_sizes_forecast_per_batch_not_per_export(): void {
+		$method   = new \ReflectionMethod( SScribe_Diagnostics::class, 'check_memory' );
+		$previous = ini_get( 'memory_limit' );
+		ini_set( 'memory_limit', ( (int) ceil( memory_get_usage( true ) / 1048576 ) + 256 ) . 'M' );
+		try {
+			$result = $method->invokeArgs( $this->diagnostics, array( 5000, array( 'docx' ) ) );
+		} finally {
+			ini_set( 'memory_limit', (string) $previous );
+		}
+
+		$this->assertSame( 'ok', $result['status'], (string) $result['message'] );
+		$this->assertStringContainsString( 'estimated need per batch: 75MB', (string) $result['message'] );
+	}
+
+	public function test_check_memory_still_errors_when_one_batch_cannot_fit(): void {
+		$method   = new \ReflectionMethod( SScribe_Diagnostics::class, 'check_memory' );
+		$previous = ini_get( 'memory_limit' );
+		// Hold enough memory that a limit of usage + 40MB clears the 128MB
+		// minimum, so the per-batch forecast (75MB for DOCX) is what fails.
+		$ballast = str_repeat( 'x', max( 0, 100 * 1048576 - memory_get_usage( true ) ) );
+		ini_set( 'memory_limit', ( (int) ceil( memory_get_usage( true ) / 1048576 ) + 40 ) . 'M' );
+		try {
+			$result = $method->invokeArgs( $this->diagnostics, array( 5000, array( 'docx' ) ) );
+		} finally {
+			ini_set( 'memory_limit', (string) $previous );
+			unset( $ballast );
+		}
+
+		$this->assertSame( 'error', $result['status'] );
+		$this->assertSame( 'Memory Forecast', $result['name'], (string) $result['message'] );
+		$this->assertStringContainsString( 'Each export batch needs ~75MB', (string) $result['message'] );
+	}
+
 	public function test_check_execution_time_returns_valid(): void {
 		$method = new \ReflectionMethod( SScribe_Diagnostics::class, 'check_execution_time' );
 
@@ -216,6 +253,20 @@ class SScribe_Diagnostics_Test extends TestCase {
 		$this->assertIsArray( $result );
 		$this->assertArrayHasKey( 'name', $result );
 		$this->assertArrayHasKey( 'status', $result );
+	}
+
+	public function test_check_execution_time_sizes_estimate_per_batch(): void {
+		$method   = new \ReflectionMethod( SScribe_Diagnostics::class, 'check_execution_time' );
+		$previous = ini_get( 'max_execution_time' );
+		ini_set( 'max_execution_time', '600' );
+		try {
+			$result = $method->invokeArgs( $this->diagnostics, array( 5000 ) );
+		} finally {
+			ini_set( 'max_execution_time', (string) $previous );
+		}
+
+		$this->assertSame( 'ok', $result['status'], (string) $result['message'] );
+		$this->assertStringContainsString( 'estimated need per batch: 10s', (string) $result['message'] );
 	}
 
 	public function test_check_upload_directory_returns_valid(): void {

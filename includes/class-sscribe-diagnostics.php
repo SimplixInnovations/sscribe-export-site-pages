@@ -477,7 +477,11 @@ class SScribe_Diagnostics {
 			$estimate_per_page += 1;
 		}
 
-		$estimated_total_mb = ( $page_count * $estimate_per_page ) + 50;
+		// Pages are exported one batch per request, so the memory that must
+		// fit under memory_limit is one batch's worth, not the whole export.
+		$monitor            = new SScribe_Export_Resource_Monitor();
+		$pages_per_request  = min( max( 1, $page_count ), $monitor->get_optimal_batch_size( $formats ) );
+		$estimated_total_mb = ( $pages_per_request * $estimate_per_page ) + 50;
 
 		if ( $available_mb <= 0 ) {
 			return array(
@@ -516,15 +520,15 @@ class SScribe_Diagnostics {
 					'name'    => __( 'Memory Forecast', 'sscribe-export-site-pages' ),
 					'status'  => 'error',
 					'message' => sprintf(
-						/* translators: 1: estimated memory need in MB, 2: available memory in MB, 3: recommended memory in MB. */
-						__( 'Export requires ~%1$dMB but only %2$dMB available. Increase memory to %3$dMB+ or reduce page count.', 'sscribe-export-site-pages' ),
+						/* translators: 1: estimated memory need per export batch in MB, 2: available memory in MB, 3: recommended memory in MB. */
+						__( 'Each export batch needs ~%1$dMB but only %2$dMB is available. Increase memory to %3$dMB+.', 'sscribe-export-site-pages' ),
 						$estimated_total_mb,
 						$available_mb,
 						$recommended_memory
 					),
 					'fix'     => sprintf(
 						/* translators: %d: recommended memory limit in MB. */
-						__( 'Add define( "WP_MEMORY_LIMIT", "%dM" ); to wp-config.php or export fewer pages.', 'sscribe-export-site-pages' ),
+						__( 'Add define( "WP_MEMORY_LIMIT", "%dM" ); to wp-config.php.', 'sscribe-export-site-pages' ),
 						$recommended_memory
 					),
 				);
@@ -536,8 +540,8 @@ class SScribe_Diagnostics {
 				'name'    => __( 'Memory Forecast', 'sscribe-export-site-pages' ),
 				'status'  => 'warning',
 				'message' => sprintf(
-					/* translators: 1: estimated memory use in MB, 2: available memory in MB, 3: percentage of available memory. */
-					__( 'Export will use ~%1$dMB of %2$dMB available (%3$d%%). Consider increasing memory for safety.', 'sscribe-export-site-pages' ),
+					/* translators: 1: estimated memory use per export batch in MB, 2: available memory in MB, 3: percentage of available memory. */
+					__( 'Each export batch will use ~%1$dMB of %2$dMB available (%3$d%%). Consider increasing memory for safety.', 'sscribe-export-site-pages' ),
 					$estimated_total_mb,
 					$available_mb,
 					$percent
@@ -565,8 +569,8 @@ class SScribe_Diagnostics {
 			'name'    => __( 'Memory', 'sscribe-export-site-pages' ),
 			'status'  => 'ok',
 			'message' => sprintf(
-				/* translators: 1: available memory in MB, 2: memory limit in MB, 3: used memory in MB, 4: estimated memory need in MB. */
-				__( '%1$dMB available (limit: %2$dMB, used: %3$dMB, estimated need: %4$dMB)', 'sscribe-export-site-pages' ),
+				/* translators: 1: available memory in MB, 2: memory limit in MB, 3: used memory in MB, 4: estimated memory need per export batch in MB. */
+				__( '%1$dMB available (limit: %2$dMB, used: %3$dMB, estimated need per batch: %4$dMB)', 'sscribe-export-site-pages' ),
 				$available_mb,
 				$memory_mb,
 				$used_mb,
@@ -584,7 +588,10 @@ class SScribe_Diagnostics {
 	private function check_execution_time( int $page_count ): array {
 		$max_execution = (int) ini_get( 'max_execution_time' );
 
-		$estimated_seconds = $page_count * 2;
+		// Like memory, the time limit applies to each batch request.
+		$monitor           = new SScribe_Export_Resource_Monitor();
+		$pages_per_request = min( max( 1, $page_count ), $monitor->get_optimal_batch_size() );
+		$estimated_seconds = $pages_per_request * 2;
 
 		if ( $max_execution > 0 && ( $max_execution < 30 || $estimated_seconds > $max_execution ) ) {
 			return array(
@@ -604,14 +611,14 @@ class SScribe_Diagnostics {
 			'status'  => 'ok',
 			'message' => $max_execution > 0
 				? sprintf(
-					/* translators: 1: max execution time in seconds, 2: estimated execution time in seconds. */
-					__( 'max_execution_time: %1$ds (estimated need: %2$ds)', 'sscribe-export-site-pages' ),
+					/* translators: 1: max execution time in seconds, 2: estimated execution time per export batch in seconds. */
+					__( 'max_execution_time: %1$ds (estimated need per batch: %2$ds)', 'sscribe-export-site-pages' ),
 					$max_execution,
 					$estimated_seconds
 				)
 				: sprintf(
-					/* translators: %d: estimated execution time in seconds. */
-					__( 'max_execution_time: unlimited (estimated need: %ds)', 'sscribe-export-site-pages' ),
+					/* translators: %d: estimated execution time per export batch in seconds. */
+					__( 'max_execution_time: unlimited (estimated need per batch: %ds)', 'sscribe-export-site-pages' ),
 					$estimated_seconds
 				),
 		);
