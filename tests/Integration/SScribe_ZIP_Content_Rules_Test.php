@@ -578,6 +578,7 @@ final class SScribe_ZIP_Content_Rules_Test extends TestCase {
 				'languages/sscribe-export-site-pages.pot' => 'msgid ""',
 				'assets/icons/index.svg'        => '<svg/>',
 				'phpunit-coverage.xml'          => '<phpunit/>',
+				'clover.xml'                    => '<coverage/>',
 				'vendor-prefixed/tecnickcom/tcpdf/test/TcpdfTest.php' => "<?php // vendor test\n",
 				'vendor-prefixed/tecnickcom/tc-lib-color/codecov.yml' => 'coverage: true',
 				'vendor-prefixed/tecnickcom/tc-lib-pdf/context7.json' => '{}',
@@ -597,6 +598,7 @@ final class SScribe_ZIP_Content_Rules_Test extends TestCase {
 		list( $code, $output ) = $this->run_against_dist( array( 'tree_builder' => $builder ) );
 		$this::assertSame( 1, $code, 'Development artifacts nested in vendor-prefixed or at plugin root must fail. Output:' . "\n" . $output );
 		$this::assertStringContainsString( 'phpunit-coverage.xml', $output );
+		$this::assertStringContainsString( 'clover.xml', $output );
 		$this::assertStringContainsString( 'vendor development artifact', $output );
 		$this::assertStringContainsString( 'tcpdf/test/TcpdfTest.php', $output );
 		$this::assertStringContainsString( 'codecov.yml', $output );

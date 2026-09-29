@@ -128,6 +128,8 @@ final class SScribe_Artifact_Certification_Test extends TestCase {
 		'.distignore',
 		'phpunit-wp.xml',
 		'playwright.config.ts',
+		'clover.xml',
+		'.phpunit.result.cache',
 		'composer.lock',
 		'CONTRIBUTING.md',
 		'CHANGELOG.md',
@@ -380,9 +382,16 @@ final class SScribe_Artifact_Certification_Test extends TestCase {
 
 	public function test_zip_contains_no_forbidden_top_level_entries(): void {
 		$top_level = array();
+		$prefix    = self::PLUGIN_SLUG . '/';
 		foreach ( self::$zip_entries as $entry ) {
-			$first = explode( '/', $entry, 2 )[0];
-			$top_level[ $first ] = true;
+			// Entries are `<slug>/<path>`; the plugin root is what matters.
+			if ( ! str_starts_with( $entry, $prefix ) ) {
+				continue;
+			}
+			$first = explode( '/', substr( $entry, strlen( $prefix ) ), 2 )[0];
+			if ( '' !== $first ) {
+				$top_level[ $first ] = true;
+			}
 		}
 		$top_level = array_keys( $top_level );
 		sort( $top_level );

@@ -104,6 +104,10 @@ $config = array(
 		//   - phpunit-wp.xml: real-WP testbench config. Dev-only.
 		//   - playwright.config.ts: E2E test config. Dev-only.
 		'.superpowers', 'phpunit-wp.xml', 'playwright.config.ts',
+		// Coverage output from `composer test:coverage:merge` lands at the repo
+		// root. It is gitignored but still on disk, and it embeds absolute local
+		// paths, so it must never reach the ZIP.
+		'clover.xml', '.phpunit.result.cache',
 	),
 
 	'font_excludes'    => array(),

@@ -314,6 +314,8 @@ if ( ! is_dir( $dist_dir ) ) {
 		'phpunit-coverage.xml',
 		'phpunit-coverage-core.xml',
 		'phpunit-coverage-wp.xml',
+		'clover.xml',
+		'.phpunit.result.cache',
 		'phpunit-wp.xml',
 		'playwright.config.ts',
 		'composer.lock',
