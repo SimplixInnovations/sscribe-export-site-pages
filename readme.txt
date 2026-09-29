@@ -25,7 +25,7 @@ SScribe turns WordPress pages into portable documents for content handovers, aud
 
 * Bounded AJAX batches designed for large sites
 * Resumable export sessions with durable page queues
-* WPML language selection and language metadata
+* Language selection and language metadata with WPML, Polylang, or TranslatePress
 * RTL output for Arabic, Farsi, Urdu, and other Arabic-script languages
 * SEO metadata from Yoast SEO, Rank Math, All in One SEO, SEOPress, and The SEO Framework
 * Cover pages, headings, tables, lists, code blocks, and images
@@ -51,15 +51,17 @@ SScribe turns WordPress pages into portable documents for content handovers, aud
 
 = Which content can I export? =
 
-SScribe exports WordPress pages, posts, and registered public custom post types. You can narrow an export by post type, post status, and, when WPML is active, language.
+SScribe exports WordPress pages, posts, and registered public custom post types. You can narrow an export by post type, post status, and, when WPML, Polylang, or TranslatePress is active, language.
 
 = Does SScribe support RTL languages? =
 
 Yes. The exporters detect RTL languages and apply direction-aware document structure and fonts. The admin interface also supports WordPress RTL mode.
 
-= Does SScribe work with WPML? =
+= Does SScribe work with WPML, Polylang, or TranslatePress? =
 
-Yes. When WPML is active, you can export one language or all registered languages. SScribe preserves the selected language metadata in the exported documents.
+Yes. When WPML, Polylang, or TranslatePress is active, you can export one language or all registered languages. SScribe preserves the selected language metadata in the exported documents, and RTL languages get right-to-left output whichever plugin provides them. If more than one of these plugins is active, SScribe uses WPML first, then Polylang, then TranslatePress.
+
+TranslatePress keeps every language on the same page, so a TranslatePress export includes every page, translated into the selected language through TranslatePress. Exporting "All Languages" with TranslatePress produces the pages in the site's default language.
 
 = Can a large export resume after the browser closes? =
 

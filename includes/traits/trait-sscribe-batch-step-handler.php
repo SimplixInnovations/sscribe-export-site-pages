@@ -416,7 +416,8 @@ trait SScribe_Batch_Step_Handler {
 						$this->export_log->update_page_status( $page_id, 'processing' );
 					}
 
-					$page_data = $this->collector->get_page_data( $page_id );
+					$export_language = (string) ( $session['language'] ?? '' );
+					$page_data       = $this->collector->get_page_data( $page_id, $export_language );
 
 					if ( ! $page_data ) {
 						$error_msg = sprintf(

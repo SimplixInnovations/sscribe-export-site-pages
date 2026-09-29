@@ -28,10 +28,31 @@ This is the canonical WPML constant + class pair. A future maintainer
 who swaps in `function_exists('icl_get_languages')` (which only proves
 the function is callable, not that WPML is loaded) breaks the contract.
 
-Polylang is **not** a hard dependency. The plugin does not check for
-`POLYLANG_VERSION` because Polylang does not expose a stable WPML-style
-filter (`wpml_current_language`). Any user with Polylang installed
-exports in the default language only; documented in the readme.
+## Polylang and TranslatePress
+
+Neither plugin is a hard dependency. `SScribe_Page_Collector::get_multilingual_provider()`
+picks exactly one provider, in this order: WPML, Polylang, TranslatePress.
+All language-aware code goes through `is_multilingual_active()`,
+`get_languages()` and the private `apply_language_to_query()` /
+`restore_language_after_query()` pair, so the WPML path above is unchanged.
+
+- **Polylang** is detected by `POLYLANG_VERSION` plus the public
+  `pll_languages_list()` and `pll_get_post_language()` functions.
+  Languages come from `pll_languages_list( array( 'fields' => '' ) )`.
+  Queries are scoped with the `lang` query var (an empty string means all
+  languages). A page's language is the first two letters of its Polylang
+  locale, so RTL detection works even when a site uses custom slugs.
+- **TranslatePress** is detected by the `TRP_Translate_Press` class.
+  Languages are the `publish-languages` locales in the `trp_settings`
+  option, exposed as `sanitize_key( $locale )` codes (`fr_FR` -> `fr_fr`).
+  TranslatePress keeps every language on one post, so queries are never
+  narrowed; instead `get_page_data( $id, $language )` runs the title,
+  content, excerpt and breadcrumbs through `trp_translate()` and converts
+  URLs with the `url_converter` component. Without a target language, or
+  with the default language, the page is exported untouched.
+
+Both paths are covered by `tests/Unit/SScribe_Page_Collector_Multilingual_Test.php`,
+which loads minimal stand-ins for each plugin's API in separate processes.
 
 ## Test matrix
 
@@ -40,7 +61,9 @@ exports in the default language only; documented in the readme.
 | WPML inactive (default)           | Unit + integration on every CI run          | Every PR  |
 | WPML active (mocked hook listener)| Unit + integration via `apply_filters` mock | Every PR  |
 | WPML active (real WPML)           | Manual smoke test in `bin/release-audit.sh` | Pre-tag   |
-| Polylang present                  | Documented; not auto-tested                 | —         |
+| Polylang active (mocked API)      | Unit, separate process                      | Every PR  |
+| TranslatePress active (mocked API)| Unit, separate process                      | Every PR  |
+| Polylang / TranslatePress (real)  | Manual smoke test                           | Pre-tag   |
 
 ### Path 1 — WPML inactive
 
@@ -77,8 +100,8 @@ A failure here blocks the tag; a fix lands before the tag moves.
 
 ## What this strategy does NOT cover
 
-- Polylang — the plugin reads site-default language only. Documented
-  in the readme.
+- Polylang Pro and TranslatePress add-ons (for example automatic
+  translation or SEO slug translation) beyond the public APIs listed above.
 - WPML String Translation — the plugin ships its own `.pot`; WPML's
   string translation is a no-op overlay, not a substitute.
 - WPML Translation Management — out of scope; the plugin exports

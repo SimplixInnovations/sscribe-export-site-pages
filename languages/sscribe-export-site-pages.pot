@@ -411,7 +411,7 @@ msgid "You have exceeded the request rate limit. Please wait about 1 minute and 
 msgstr ""
 
 #: admin/class-sscribe-admin.php:328
-msgid "No pages match the selected language and status combination. Go back and verify your selection. If using WPML, ensure the selected language has pages assigned to it."
+msgid "No pages match the selected language and status combination. Go back and verify your selection. If using WPML or Polylang, ensure the selected language has pages assigned to it."
 msgstr ""
 
 #: admin/class-sscribe-admin.php:329
@@ -431,7 +431,7 @@ msgid "The connection to your server was interrupted. Check your internet connec
 msgstr ""
 
 #: admin/class-sscribe-admin.php:333
-msgid "The selected language code is not recognized by WPML. Go back to step 1 and select a valid language. If you recently changed your WPML configuration, refresh this page first."
+msgid "The selected language code is not recognized by your multilingual plugin. Go back to step 1 and select a valid language. If you recently changed your language settings, refresh this page first."
 msgstr ""
 
 #: admin/class-sscribe-admin.php:334
@@ -864,11 +864,11 @@ msgid "%1$s %2$d%%"
 msgstr ""
 
 #: admin/class-sscribe-admin.php:803
-msgid "WPML is active but no languages are configured."
+msgid "A multilingual plugin is active but no languages are configured."
 msgstr ""
 
 #: admin/class-sscribe-admin.php:804
-msgid "Add at least one secondary language in WPML -> Languages before exporting to produce a multilingual package."
+msgid "Add at least one secondary language in your multilingual plugin settings before exporting to produce a multilingual package."
 msgstr ""
 
 #: admin/class-sscribe-admin.php:813
@@ -2439,7 +2439,7 @@ msgid "Create pages in the selected language/status."
 msgstr ""
 
 #: includes/class-sscribe-error.php:395
-msgid "Check if WPML is properly configured if using language filters."
+msgid "Check that your multilingual plugin (WPML, Polylang or TranslatePress) is properly configured if using language filters."
 msgstr ""
 
 #: includes/class-sscribe-error.php:402
@@ -2447,7 +2447,7 @@ msgid "Invalid language code: {language}."
 msgstr ""
 
 #: includes/class-sscribe-error.php:403
-msgid "The selected language does not exist in your WPML configuration."
+msgid "The selected language does not exist in your multilingual plugin configuration."
 msgstr ""
 
 #: includes/class-sscribe-error.php:404
@@ -2459,7 +2459,7 @@ msgid "Refresh the page to see available languages."
 msgstr ""
 
 #: includes/class-sscribe-error.php:407
-msgid "Verify WPML is properly configured."
+msgid "Verify your multilingual plugin (WPML, Polylang or TranslatePress) is properly configured."
 msgstr ""
 
 #: includes/class-sscribe-error.php:414

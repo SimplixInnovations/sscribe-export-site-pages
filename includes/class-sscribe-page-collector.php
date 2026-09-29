@@ -32,6 +32,15 @@ class SScribe_Page_Collector {
 	/** Sentinel proving the readable/export limit has been exceeded or the bounded count became indeterminate. */
 	public const COUNT_SENTINEL = 10001;
 
+	/** Multilingual provider: WPML. */
+	public const PROVIDER_WPML = 'wpml';
+
+	/** Multilingual provider: Polylang. */
+	public const PROVIDER_POLYLANG = 'polylang';
+
+	/** Multilingual provider: TranslatePress. */
+	public const PROVIDER_TRANSLATEPRESS = 'translatepress';
+
 	/**
 	 * Cached featured images by page ID.
 	 *
@@ -232,22 +241,7 @@ class SScribe_Page_Collector {
 		$switched = false;
 
 		try {
-			if ( $this->is_wpml_active() ) {
-				$target_lang = ! empty( $language ) ? $language : 'all';
-
-				$this->debug_log(
-					'WPML: Switching language',
-					array(
-						'requested_language' => $language,
-						'target_lang'        => $target_lang,
-					)
-				);
-
-				// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WPML hook.
-				do_action( 'wpml_switch_language', $target_lang );
-				$args['suppress_filters'] = false;
-				$switched                 = true;
-			}
+			$switched = $this->apply_language_to_query( $args, $language );
 
 			$query    = new WP_Query( $args );
 			$page_ids = $query->posts;
@@ -263,11 +257,7 @@ class SScribe_Page_Collector {
 				)
 			);
 		} finally {
-			if ( $switched ) {
-				// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WPML hook.
-				do_action( 'wpml_switch_language', null );
-				$this->debug_log( 'WPML: Language reset' );
-			}
+			$this->restore_language_after_query( $switched );
 		}
 
 		set_transient(
@@ -529,20 +519,11 @@ class SScribe_Page_Collector {
 			$switched = false;
 
 			try {
-				if ( $this->is_wpml_active() ) {
-					$target_lang = ! empty( $language ) ? $language : 'all';
-					// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WPML hook.
-					do_action( 'wpml_switch_language', $target_lang );
-					$args['suppress_filters'] = false;
-					$switched                 = true;
-				}
+				$switched = $this->apply_language_to_query( $args, $language );
 
 				$query = new WP_Query( $args );
 			} finally {
-				if ( $switched ) {
-					// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WPML hook.
-					do_action( 'wpml_switch_language', null );
-				}
+				$this->restore_language_after_query( $switched );
 			}
 
 			$fetched = count( $query->posts );
@@ -750,20 +731,11 @@ class SScribe_Page_Collector {
 
 			$switched = false;
 			try {
-				if ( $this->is_wpml_active() ) {
-					$target_lang = ! empty( $language ) ? $language : 'all';
-					// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WPML hook.
-					do_action( 'wpml_switch_language', $target_lang );
-					$args['suppress_filters'] = false;
-					$switched                 = true;
-				}
+				$switched = $this->apply_language_to_query( $args, $language );
 
 				$query = new WP_Query( $args );
 			} finally {
-				if ( $switched ) {
-					// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WPML hook.
-					do_action( 'wpml_switch_language', null );
-				}
+				$this->restore_language_after_query( $switched );
 			}
 
 			$fetched = count( $query->posts );
@@ -858,22 +830,13 @@ class SScribe_Page_Collector {
 
 			$switched = false;
 			try {
-				if ( $this->is_wpml_active() ) {
-					$target_lang = ! empty( $language ) ? $language : 'all';
-					// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WPML hook.
-					do_action( 'wpml_switch_language', $target_lang );
-					$args['suppress_filters'] = false;
-					$switched                 = true;
-				}
+				$switched = $this->apply_language_to_query( $args, $language );
 
 				$query = new WP_Query( $args );
 				$count = (int) $query->found_posts;
 				wp_reset_postdata();
 			} finally {
-				if ( $switched ) {
-					// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WPML hook.
-					do_action( 'wpml_switch_language', null );
-				}
+				$this->restore_language_after_query( $switched );
 			}
 
 			return $count;
@@ -965,10 +928,13 @@ class SScribe_Page_Collector {
 	 * same PHP process will skip apply_filters('the_content') silently. The
 	 * finally block resets the guard, but an OOM kill skips the finally block.
 	 *
-	 * @param int $page_id Page ID.
+	 * @param int    $page_id         Page ID.
+	 * @param string $export_language Language the export targets (empty for all
+	 *                                languages). Only TranslatePress needs it,
+	 *                                because its translations share one post.
 	 * @return array|false Page data or false.
 	 */
-	public function get_page_data( int $page_id ): array|false {
+	public function get_page_data( int $page_id, string $export_language = '' ): array|false {
 		$page_id = absint( $page_id );
 		if ( $page_id <= 0 ) {
 			return false;
@@ -1020,7 +986,7 @@ class SScribe_Page_Collector {
 				'reading_time'        => 0,
 				'breadcrumbs'         => array(),
 				'children'            => array(),
-				'language'            => $this->get_page_language( $page_id ),
+				'language'            => $this->get_page_language( $page_id, $export_language ),
 				'parent_id'           => $post_object->post_parent,
 				'seo'                 => array(),
 			);
@@ -1074,7 +1040,7 @@ class SScribe_Page_Collector {
 
 		$content = SScribe_Helpers::strip_page_builder_attributes( $content );
 
-		$language = $this->get_page_language( $page_id );
+		$language = $this->get_page_language( $page_id, $export_language );
 
 		require_once SSCRIBE_PLUGIN_DIR . 'includes/class-sscribe-arabic-segmenter.php';
 
@@ -1116,7 +1082,7 @@ class SScribe_Page_Collector {
 			$page_id
 		);
 
-		$language = $this->get_page_language( $page_id );
+		$language = $this->get_page_language( $page_id, $export_language );
 
 		if ( $this->is_wpml_active() && ! empty( $language ) ) {
 			// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WPML hook.
@@ -1135,35 +1101,37 @@ class SScribe_Page_Collector {
 			$permalink = __( '[Draft - Not Published]', 'sscribe-export-site-pages' );
 		}
 
-		$filtered = apply_filters(
-			'sscribe_page_data',
-			array(
-				'id'                  => $page_id,
-				'title'               => html_entity_decode(
-					$page_title,
-					ENT_QUOTES | ENT_HTML5,
-					'UTF-8'
-				),
-				'content'             => $content,
-				'raw_content'         => $post_object->post_content,
-				'excerpt'             => $post_object->post_excerpt,
-				'permalink'           => $permalink,
-				'slug'                => $post_object->post_name,
-				'author'              => $author,
-				'date_published'      => get_the_date( 'F j, Y', $page_id ),
-				'date_modified'       => get_the_modified_date( 'F j, Y', $page_id ),
-				'featured_image_url'  => $featured_image_url,
-				'featured_image_path' => $featured_image_path,
-				'word_count'          => $word_count,
-				'reading_time'        => $reading_time,
-				'breadcrumbs'         => $breadcrumbs,
-				'children'            => $children,
-				'language'            => $language,
-				'parent_id'           => $post_object->post_parent,
-				'seo'                 => $this->seo_reader->get_seo_data( $page_id ),
+		$page_data = array(
+			'id'                  => $page_id,
+			'title'               => html_entity_decode(
+				$page_title,
+				ENT_QUOTES | ENT_HTML5,
+				'UTF-8'
 			),
-			$page_id
+			'content'             => $content,
+			'raw_content'         => $post_object->post_content,
+			'excerpt'             => $post_object->post_excerpt,
+			'permalink'           => $permalink,
+			'slug'                => $post_object->post_name,
+			'author'              => $author,
+			'date_published'      => get_the_date( 'F j, Y', $page_id ),
+			'date_modified'       => get_the_modified_date( 'F j, Y', $page_id ),
+			'featured_image_url'  => $featured_image_url,
+			'featured_image_path' => $featured_image_path,
+			'word_count'          => $word_count,
+			'reading_time'        => $reading_time,
+			'breadcrumbs'         => $breadcrumbs,
+			'children'            => $children,
+			'language'            => $language,
+			'parent_id'           => $post_object->post_parent,
+			'seo'                 => $this->seo_reader->get_seo_data( $page_id ),
 		);
+
+		if ( self::PROVIDER_TRANSLATEPRESS === $this->get_multilingual_provider() ) {
+			$page_data = $this->translate_page_data_with_translatepress( $page_data, $export_language );
+		}
+
+		$filtered = apply_filters( 'sscribe_page_data', $page_data, $page_id );
 
 		return is_array( $filtered ) ? $filtered : false;
 	}
@@ -1314,16 +1282,40 @@ class SScribe_Page_Collector {
 	/**
 	 * Get the language of a page.
 	 *
-	 * @param int $page_id Page ID.
+	 * The result is a two-letter code for every provider, so RTL detection,
+	 * word segmentation and the per-language ZIP folders behave the same
+	 * whichever multilingual plugin is active.
+	 *
+	 * @param int    $page_id         Page ID.
+	 * @param string $export_language Language the export targets (TranslatePress only).
 	 * @return string Language code.
 	 */
-	private function get_page_language( int $page_id ): string {
-		if ( $this->is_wpml_active() ) {
+	private function get_page_language( int $page_id, string $export_language = '' ): string {
+		$provider = $this->get_multilingual_provider();
+		if ( self::PROVIDER_WPML === $provider ) {
 			// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WPML hook.
 			$language_details = apply_filters( 'wpml_post_language_details', null, $page_id );
 			if ( $language_details && ! is_wp_error( $language_details ) ) {
 				$code = isset( $language_details['language_code'] ) ? $language_details['language_code'] : 'en';
 				return strtolower( substr( $code, 0, 2 ) );
+			}
+		} elseif ( self::PROVIDER_POLYLANG === $provider ) {
+			// The locale (he_IL, ar, fa_IR) always starts with the ISO 639-1
+			// code, while Polylang slugs can be customised by the site owner.
+			$locale = pll_get_post_language( $page_id, 'locale' );
+			if ( ! is_string( $locale ) || '' === $locale ) {
+				$locale = pll_get_post_language( $page_id, 'slug' );
+			}
+			if ( is_string( $locale ) && '' !== $locale ) {
+				return strtolower( substr( $locale, 0, 2 ) );
+			}
+		} elseif ( self::PROVIDER_TRANSLATEPRESS === $provider ) {
+			$locale = $this->get_translatepress_locale( $export_language );
+			if ( '' === $locale ) {
+				$locale = $this->get_translatepress_default_locale();
+			}
+			if ( '' !== $locale ) {
+				return strtolower( substr( $locale, 0, 2 ) );
 			}
 		}
 		$lang = get_bloginfo( 'language' );
@@ -1635,13 +1627,14 @@ class SScribe_Page_Collector {
 	}
 
 	/**
-	 * Validate a requested language against WPML's active language list.
+	 * Validate a requested language against the active multilingual plugin's
+	 * language list.
 	 *
 	 * @param string $language Requested language code; empty means all languages.
 	 * @return string Active language code or an empty string.
 	 */
 	public function normalize_language_code( string $language ): string {
-		if ( '' === $language || ! $this->is_wpml_active() ) {
+		if ( '' === $language || ! $this->is_multilingual_active() ) {
 			return '';
 		}
 
@@ -1650,12 +1643,387 @@ class SScribe_Page_Collector {
 			return '';
 		}
 
-		foreach ( $this->get_wpml_languages() as $active_language ) {
+		foreach ( $this->get_languages() as $active_language ) {
 			if ( isset( $active_language['code'] ) && hash_equals( sanitize_key( (string) $active_language['code'] ), $language ) ) {
 				return $language;
 			}
 		}
 
 		return '';
+	}
+
+	/**
+	 * Name the multilingual plugin SScribe reads languages from.
+	 *
+	 * Only one provider is used at a time. WPML wins when several are loaded,
+	 * then Polylang, then TranslatePress, so existing WPML sites keep their
+	 * behavior even if a second multilingual plugin is left active.
+	 *
+	 * @return string One of the PROVIDER_* constants, or '' when none is active.
+	 */
+	public function get_multilingual_provider(): string {
+		if ( $this->is_wpml_active() ) {
+			return self::PROVIDER_WPML;
+		}
+		if ( $this->is_polylang_active() ) {
+			return self::PROVIDER_POLYLANG;
+		}
+		if ( $this->is_translatepress_active() ) {
+			return self::PROVIDER_TRANSLATEPRESS;
+		}
+		return '';
+	}
+
+	/**
+	 * Check whether any supported multilingual plugin is active.
+	 *
+	 * @return bool
+	 */
+	public function is_multilingual_active(): bool {
+		return '' !== $this->get_multilingual_provider();
+	}
+
+	/**
+	 * Check if Polylang (free or Pro) is active.
+	 *
+	 * @return bool
+	 */
+	public function is_polylang_active(): bool {
+		return defined( 'POLYLANG_VERSION' )
+			&& function_exists( 'pll_languages_list' )
+			&& function_exists( 'pll_get_post_language' );
+	}
+
+	/**
+	 * Check if TranslatePress is active.
+	 *
+	 * @return bool
+	 */
+	public function is_translatepress_active(): bool {
+		return class_exists( 'TRP_Translate_Press' );
+	}
+
+	/**
+	 * Get the active languages of whichever multilingual plugin is in use.
+	 *
+	 * Rows share the WPML shape: code, name, native_name and flag_url.
+	 *
+	 * @return array<int, array<string, string>> Language rows.
+	 */
+	public function get_languages(): array {
+		switch ( $this->get_multilingual_provider() ) {
+			case self::PROVIDER_WPML:
+				return $this->get_wpml_languages();
+			case self::PROVIDER_POLYLANG:
+				return $this->get_polylang_languages();
+			case self::PROVIDER_TRANSLATEPRESS:
+				return $this->get_translatepress_languages();
+			default:
+				return array();
+		}
+	}
+
+	/**
+	 * Get Polylang's configured languages.
+	 *
+	 * @return array<int, array<string, string>> Language rows.
+	 */
+	public function get_polylang_languages(): array {
+		if ( ! $this->is_polylang_active() ) {
+			return array();
+		}
+
+		// An empty `fields` value makes Polylang return full language objects.
+		$languages_raw = pll_languages_list(
+			array(
+				'fields'     => '',
+				'hide_empty' => false,
+			)
+		);
+		if ( ! is_array( $languages_raw ) ) {
+			return array();
+		}
+
+		$rows = array();
+		foreach ( array_slice( $languages_raw, 0, 100 ) as $language ) {
+			if ( is_object( $language ) ) {
+				$language = get_object_vars( $language );
+			}
+			if ( ! is_array( $language ) ) {
+				continue;
+			}
+			$rows[] = array(
+				'code'        => (string) ( $language['slug'] ?? '' ),
+				'name'        => (string) ( $language['name'] ?? '' ),
+				'native_name' => (string) ( $language['name'] ?? '' ),
+				'flag_url'    => (string) ( $language['flag_url'] ?? '' ),
+			);
+		}
+
+		return $this->normalize_wpml_languages( $rows );
+	}
+
+	/**
+	 * Get TranslatePress's published languages.
+	 *
+	 * TranslatePress stores locales (fr_FR, ar). The language code SScribe
+	 * passes around is the locale run through sanitize_key() (fr_fr, ar).
+	 *
+	 * @return array<int, array<string, string>> Language rows.
+	 */
+	public function get_translatepress_languages(): array {
+		if ( ! $this->is_translatepress_active() ) {
+			return array();
+		}
+
+		$locales = $this->get_translatepress_locales();
+		if ( empty( $locales ) ) {
+			return array();
+		}
+
+		$english_names = $this->get_translatepress_language_names( $locales, 'english_name' );
+		$native_names  = $this->get_translatepress_language_names( $locales, 'native_name' );
+		$flag_base     = defined( 'TRP_PLUGIN_URL' ) ? trailingslashit( (string) TRP_PLUGIN_URL ) . 'assets/images/flags/' : '';
+
+		$rows = array();
+		foreach ( $locales as $locale ) {
+			$rows[] = array(
+				'code'        => sanitize_key( $locale ),
+				'name'        => $english_names[ $locale ] ?? $locale,
+				'native_name' => $native_names[ $locale ] ?? ( $english_names[ $locale ] ?? $locale ),
+				'flag_url'    => '' !== $flag_base ? $flag_base . rawurlencode( $locale ) . '.png' : '',
+			);
+		}
+
+		return $this->normalize_wpml_languages( $rows );
+	}
+
+	/**
+	 * Read the published TranslatePress locales from its settings.
+	 *
+	 * @return array<int, string> Locales, default language first.
+	 */
+	private function get_translatepress_locales(): array {
+		$settings = get_option( 'trp_settings' );
+		if ( ! is_array( $settings ) ) {
+			return array();
+		}
+
+		$locales = $settings['publish-languages'] ?? ( $settings['translation-languages'] ?? array() );
+		if ( ! is_array( $locales ) ) {
+			return array();
+		}
+
+		$default = $this->get_translatepress_default_locale();
+		if ( '' !== $default ) {
+			array_unshift( $locales, $default );
+		}
+
+		$clean = array();
+		foreach ( $locales as $locale ) {
+			if ( ! is_string( $locale ) || 1 !== preg_match( '/^[A-Za-z]{2,3}(?:_[A-Za-z0-9]{2,8})*$/D', $locale ) ) {
+				continue;
+			}
+			$clean[ $locale ] = $locale;
+		}
+
+		return array_slice( array_values( $clean ), 0, 100 );
+	}
+
+	/**
+	 * Get the TranslatePress default (source) locale.
+	 *
+	 * @return string Locale, or '' when TranslatePress is not configured.
+	 */
+	private function get_translatepress_default_locale(): string {
+		$settings = get_option( 'trp_settings' );
+		$default  = is_array( $settings ) ? ( $settings['default-language'] ?? '' ) : '';
+		return is_string( $default ) ? $default : '';
+	}
+
+	/**
+	 * Map a SScribe language code back to its TranslatePress locale.
+	 *
+	 * @param string $language Language code (sanitized locale).
+	 * @return string Locale, or '' when the code is empty or unknown.
+	 */
+	private function get_translatepress_locale( string $language ): string {
+		if ( '' === $language ) {
+			return '';
+		}
+		foreach ( $this->get_translatepress_locales() as $locale ) {
+			if ( sanitize_key( $locale ) === $language ) {
+				return $locale;
+			}
+		}
+		return '';
+	}
+
+	/**
+	 * Look up TranslatePress's display names for locales.
+	 *
+	 * @param array<int, string> $locales Locales.
+	 * @param string             $which   'english_name' or 'native_name'.
+	 * @return array<string, string> Names keyed by locale.
+	 */
+	private function get_translatepress_language_names( array $locales, string $which ): array {
+		$component = $this->get_translatepress_component( 'languages' );
+		if ( ! $component || ! method_exists( $component, 'get_language_names' ) ) {
+			return array();
+		}
+
+		try {
+			$names = $component->get_language_names( $locales, $which );
+		} catch ( \Throwable $e ) {
+			$this->debug_log( 'TranslatePress: language names unavailable', array( 'error' => $e->getMessage() ) );
+			return array();
+		}
+
+		return is_array( $names ) ? array_filter( $names, 'is_string' ) : array();
+	}
+
+	/**
+	 * Get a TranslatePress component (languages, url_converter, ...).
+	 *
+	 * @param string $name Component name.
+	 * @return object|null
+	 */
+	private function get_translatepress_component( string $name ): ?object {
+		if ( ! $this->is_translatepress_active() ) {
+			return null;
+		}
+
+		try {
+			$instance  = TRP_Translate_Press::get_trp_instance();
+			$component = $instance ? $instance->get_component( $name ) : null;
+		} catch ( \Throwable $e ) {
+			$this->debug_log( 'TranslatePress: component unavailable', array( 'component' => $name ) );
+			return null;
+		}
+
+		return is_object( $component ) ? $component : null;
+	}
+
+	/**
+	 * Translate collected page data into the export's TranslatePress language.
+	 *
+	 * TranslatePress keeps every language on the same post and translates the
+	 * rendered output, so the page is collected in the default language and
+	 * then run through TranslatePress's own translation and URL helpers. With
+	 * no target language, or the default language, the page is left as is.
+	 *
+	 * @param array  $page_data       Page data built by get_page_data().
+	 * @param string $export_language Language code the export targets.
+	 * @return array Page data in the target language.
+	 */
+	private function translate_page_data_with_translatepress( array $page_data, string $export_language ): array {
+		$locale = $this->get_translatepress_locale( $export_language );
+		if ( '' === $locale || $locale === $this->get_translatepress_default_locale() ) {
+			return $page_data;
+		}
+
+		if ( function_exists( 'trp_translate' ) ) {
+			foreach ( array( 'title', 'content', 'excerpt' ) as $field ) {
+				if ( isset( $page_data[ $field ] ) && is_string( $page_data[ $field ] ) && '' !== $page_data[ $field ] ) {
+					$page_data[ $field ] = $this->translatepress_translate( $page_data[ $field ], $locale );
+				}
+			}
+			foreach ( $page_data['breadcrumbs'] ?? array() as $index => $crumb ) {
+				if ( is_array( $crumb ) && isset( $crumb['title'] ) && is_string( $crumb['title'] ) ) {
+					$page_data['breadcrumbs'][ $index ]['title'] = $this->translatepress_translate( $crumb['title'], $locale );
+				}
+			}
+
+			$content                   = is_string( $page_data['content'] ?? null ) ? $page_data['content'] : '';
+			$page_data['word_count']   = SScribe_Arabic_Segmenter::count_words( $content, (string) $page_data['language'] );
+			$page_data['reading_time'] = SScribe_Arabic_Segmenter::get_reading_time( $content, (string) $page_data['language'] );
+		} else {
+			$this->debug_log( 'TranslatePress: trp_translate() unavailable, exporting source text', array( 'locale' => $locale ) );
+		}
+
+		$converter = $this->get_translatepress_component( 'url_converter' );
+		if ( $converter && method_exists( $converter, 'get_url_for_language' ) ) {
+			if ( is_string( $page_data['permalink'] ?? null ) && 1 === preg_match( '#^https?://#i', $page_data['permalink'] ) ) {
+				$page_data['permalink'] = (string) $converter->get_url_for_language( $locale, $page_data['permalink'], '' );
+			}
+			foreach ( $page_data['breadcrumbs'] ?? array() as $index => $crumb ) {
+				if ( is_array( $crumb ) && is_string( $crumb['url'] ?? null ) && '' !== $crumb['url'] ) {
+					$page_data['breadcrumbs'][ $index ]['url'] = (string) $converter->get_url_for_language( $locale, $crumb['url'], '' );
+				}
+			}
+		}
+
+		return $page_data;
+	}
+
+	/**
+	 * Run one string through TranslatePress, falling back to the source text.
+	 *
+	 * @param string $text   Source text or HTML.
+	 * @param string $locale Target locale.
+	 * @return string
+	 */
+	private function translatepress_translate( string $text, string $locale ): string {
+		try {
+			$translated = trp_translate( $text, $locale );
+		} catch ( \Throwable $e ) {
+			$this->debug_log( 'TranslatePress: translation failed', array( 'error' => $e->getMessage() ) );
+			return $text;
+		}
+		return is_string( $translated ) && '' !== $translated ? $translated : $text;
+	}
+
+	/**
+	 * Scope a WP_Query to one language (or all languages) for the active
+	 * multilingual plugin.
+	 *
+	 * WPML switches its global language and must be reset afterwards with
+	 * restore_language_after_query(). Polylang reads the `lang` query var,
+	 * where an empty string means every language. TranslatePress stores all
+	 * languages on the same post, so its queries are never narrowed.
+	 *
+	 * @param array  $args     WP_Query arguments, modified in place.
+	 * @param string $language Language code, or '' for all languages.
+	 * @return bool Whether a global language switch must be reverted.
+	 */
+	private function apply_language_to_query( array &$args, string $language ): bool {
+		$provider = $this->get_multilingual_provider();
+
+		if ( self::PROVIDER_WPML === $provider ) {
+			$target_lang = '' !== $language ? $language : 'all';
+			$this->debug_log(
+				'WPML: Switching language',
+				array(
+					'requested_language' => $language,
+					'target_lang'        => $target_lang,
+				)
+			);
+			// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WPML hook.
+			do_action( 'wpml_switch_language', $target_lang );
+			$args['suppress_filters'] = false;
+			return true;
+		}
+
+		if ( self::PROVIDER_POLYLANG === $provider ) {
+			$args['lang']             = $language;
+			$args['suppress_filters'] = false;
+		}
+
+		return false;
+	}
+
+	/**
+	 * Undo a language switch made by apply_language_to_query().
+	 *
+	 * @param bool $switched Value returned by apply_language_to_query().
+	 * @return void
+	 */
+	private function restore_language_after_query( bool $switched ): void {
+		if ( ! $switched ) {
+			return;
+		}
+		// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WPML hook.
+		do_action( 'wpml_switch_language', null );
+		$this->debug_log( 'WPML: Language reset' );
 	}
 }
