@@ -120,4 +120,17 @@ class SScribe_Export_Resource_Monitor_Test extends TestCase {
 			$this->assertNull( $result );
 		}
 	}
+
+	public function test_get_memory_warning_sizes_need_per_batch(): void {
+		$monitor  = new \SScribe_Export_Resource_Monitor();
+		$previous = ini_get( 'memory_limit' );
+		ini_set( 'memory_limit', ( (int) ceil( memory_get_usage( true ) / 1048576 ) + 256 ) . 'M' );
+		try {
+			$result = $monitor->get_memory_warning( 5000, array( 'docx' ) );
+		} finally {
+			ini_set( 'memory_limit', (string) $previous );
+		}
+
+		$this->assertNull( $result, 'A 5000-page export runs in batches and must not warn when one batch fits.' );
+	}
 }

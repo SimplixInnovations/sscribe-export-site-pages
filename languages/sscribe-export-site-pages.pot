@@ -1887,22 +1887,22 @@ msgstr ""
 msgid "Memory limit: %dMB. Minimum required: 128MB. Increase memory_limit in php.ini."
 msgstr ""
 
-#. translators: 1: estimated memory need in MB, 2: available memory in MB, 3: recommended memory in MB.
+#. translators: 1: estimated memory need per export batch in MB, 2: available memory in MB, 3: recommended memory in MB.
 #: includes/class-sscribe-diagnostics.php:520
 #, php-format
-msgid "Export requires ~%1$dMB but only %2$dMB available. Increase memory to %3$dMB+ or reduce page count."
+msgid "Each export batch needs ~%1$dMB but only %2$dMB is available. Increase memory to %3$dMB+."
 msgstr ""
 
 #. translators: %d: recommended memory limit in MB.
 #: includes/class-sscribe-diagnostics.php:527
 #, php-format
-msgid "Add define( \"WP_MEMORY_LIMIT\", \"%dM\" ); to wp-config.php or export fewer pages."
+msgid "Add define( \"WP_MEMORY_LIMIT\", \"%dM\" ); to wp-config.php."
 msgstr ""
 
-#. translators: 1: estimated memory use in MB, 2: available memory in MB, 3: percentage of available memory.
+#. translators: 1: estimated memory use per export batch in MB, 2: available memory in MB, 3: percentage of available memory.
 #: includes/class-sscribe-diagnostics.php:540
 #, php-format
-msgid "Export will use ~%1$dMB of %2$dMB available (%3$d%%). Consider increasing memory for safety."
+msgid "Each export batch will use ~%1$dMB of %2$dMB available (%3$d%%). Consider increasing memory for safety."
 msgstr ""
 
 #: includes/class-sscribe-diagnostics.php:545
@@ -1923,10 +1923,10 @@ msgstr ""
 msgid "Increase memory_limit or reduce batch size"
 msgstr ""
 
-#. translators: 1: available memory in MB, 2: memory limit in MB, 3: used memory in MB, 4: estimated memory need in MB.
+#. translators: 1: available memory in MB, 2: memory limit in MB, 3: used memory in MB, 4: estimated memory need per export batch in MB.
 #: includes/class-sscribe-diagnostics.php:569
 #, php-format
-msgid "%1$dMB available (limit: %2$dMB, used: %3$dMB, estimated need: %4$dMB)"
+msgid "%1$dMB available (limit: %2$dMB, used: %3$dMB, estimated need per batch: %4$dMB)"
 msgstr ""
 
 #: includes/class-sscribe-diagnostics.php:591
@@ -1944,16 +1944,16 @@ msgstr ""
 msgid "Increase max_execution_time or rely on batch processing"
 msgstr ""
 
-#. translators: 1: max execution time in seconds, 2: estimated execution time in seconds.
+#. translators: 1: max execution time in seconds, 2: estimated execution time per export batch in seconds.
 #: includes/class-sscribe-diagnostics.php:608
 #, php-format
-msgid "max_execution_time: %1$ds (estimated need: %2$ds)"
+msgid "max_execution_time: %1$ds (estimated need per batch: %2$ds)"
 msgstr ""
 
-#. translators: %d: estimated execution time in seconds.
+#. translators: %d: estimated execution time per export batch in seconds.
 #: includes/class-sscribe-diagnostics.php:614
 #, php-format
-msgid "max_execution_time: unlimited (estimated need: %ds)"
+msgid "max_execution_time: unlimited (estimated need per batch: %ds)"
 msgstr ""
 
 #: includes/class-sscribe-diagnostics.php:629
@@ -2637,16 +2637,16 @@ msgstr ""
 msgid "Unable to load support information right now. Please try again later."
 msgstr ""
 
-#. translators: 1: Estimated memory needed (MB), 2: Available memory (MB), 3: Recommended memory limit (MB)
+#. translators: 1: Estimated memory needed per export batch (MB), 2: Available memory (MB), 3: Recommended memory limit (MB)
 #: includes/class-sscribe-export-resource-monitor.php:195
 #, php-format
-msgid "Warning: Export requires ~%1$d MB but only %2$d MB available. Increase PHP memory_limit to %3$d MB+ for reliable export."
+msgid "Warning: Each export batch needs ~%1$d MB but only %2$d MB is available. Increase PHP memory_limit to %3$d MB+ for reliable export."
 msgstr ""
 
-#. translators: 1: Estimated memory needed (MB), 2: Available memory (MB), 3: Usage percentage
+#. translators: 1: Estimated memory needed per export batch (MB), 2: Available memory (MB), 3: Usage percentage
 #: includes/class-sscribe-export-resource-monitor.php:210
 #, php-format
-msgid "Note: Export will use ~%1$d MB of %2$d MB available (%3$d%%). Consider increasing memory for safety."
+msgid "Note: Each export batch will use ~%1$d MB of %2$d MB available (%3$d%%). Consider increasing memory for safety."
 msgstr ""
 
 #: includes/class-sscribe-exporter.php:334

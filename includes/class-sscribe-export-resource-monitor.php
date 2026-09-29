@@ -175,7 +175,9 @@ class SScribe_Export_Resource_Monitor {
 		$current_usage = memory_get_usage( true );
 		$available     = max( 0, $memory_limit - $current_usage );
 
-		$estimated_need = $this->calculate_export_memory_requirement( $page_count, $formats );
+		// Each batch runs in its own request, so only one batch has to fit.
+		$pages_per_request = min( max( 1, $page_count ), $this->get_optimal_batch_size( $formats ) );
+		$estimated_need    = $this->calculate_export_memory_requirement( $pages_per_request, $formats );
 		$safe_available = (int) ( $available * 0.8 );
 
 		if ( $estimated_need <= $safe_available ) {
@@ -191,8 +193,8 @@ class SScribe_Export_Resource_Monitor {
 			return array(
 				'level'          => 'error',
 				'message'        => sprintf(
-					/* translators: 1: Estimated memory needed (MB), 2: Available memory (MB), 3: Recommended memory limit (MB) */
-					__( 'Warning: Export requires ~%1$d MB but only %2$d MB available. Increase PHP memory_limit to %3$d MB+ for reliable export.', 'sscribe-export-site-pages' ),
+					/* translators: 1: Estimated memory needed per export batch (MB), 2: Available memory (MB), 3: Recommended memory limit (MB) */
+					__( 'Warning: Each export batch needs ~%1$d MB but only %2$d MB is available. Increase PHP memory_limit to %3$d MB+ for reliable export.', 'sscribe-export-site-pages' ),
 					$estimated_mb,
 					$available_mb,
 					$recommended_mb
@@ -206,8 +208,8 @@ class SScribe_Export_Resource_Monitor {
 		return array(
 			'level'        => 'warning',
 			'message'      => sprintf(
-				/* translators: 1: Estimated memory needed (MB), 2: Available memory (MB), 3: Usage percentage */
-				__( 'Note: Export will use ~%1$d MB of %2$d MB available (%3$d%%). Consider increasing memory for safety.', 'sscribe-export-site-pages' ),
+				/* translators: 1: Estimated memory needed per export batch (MB), 2: Available memory (MB), 3: Usage percentage */
+				__( 'Note: Each export batch will use ~%1$d MB of %2$d MB available (%3$d%%). Consider increasing memory for safety.', 'sscribe-export-site-pages' ),
 				$estimated_mb,
 				$available_mb,
 				(int) round( ( $estimated_mb / $available_mb ) * 100 )
