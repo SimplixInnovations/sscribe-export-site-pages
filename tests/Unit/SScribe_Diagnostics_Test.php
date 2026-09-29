@@ -228,14 +228,20 @@ class SScribe_Diagnostics_Test extends TestCase {
 	public function test_check_memory_still_errors_when_one_batch_cannot_fit(): void {
 		$method   = new \ReflectionMethod( SScribe_Diagnostics::class, 'check_memory' );
 		$previous = ini_get( 'memory_limit' );
+		// Hold enough memory that a limit of usage + 40MB clears the 128MB
+		// minimum, so the per-batch forecast (75MB for DOCX) is what fails.
+		$ballast = str_repeat( 'x', max( 0, 100 * 1048576 - memory_get_usage( true ) ) );
 		ini_set( 'memory_limit', ( (int) ceil( memory_get_usage( true ) / 1048576 ) + 40 ) . 'M' );
 		try {
 			$result = $method->invokeArgs( $this->diagnostics, array( 5000, array( 'docx' ) ) );
 		} finally {
 			ini_set( 'memory_limit', (string) $previous );
+			unset( $ballast );
 		}
 
 		$this->assertSame( 'error', $result['status'] );
+		$this->assertSame( 'Memory Forecast', $result['name'], (string) $result['message'] );
+		$this->assertStringContainsString( 'Each export batch needs ~75MB', (string) $result['message'] );
 	}
 
 	public function test_check_execution_time_returns_valid(): void {
