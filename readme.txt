@@ -25,7 +25,7 @@ SScribe turns WordPress pages into portable documents for content handovers, aud
 
 * Bounded AJAX batches designed for large sites
 * Resumable export sessions with durable page queues
-* WPML language selection and language metadata
+* WPML, Polylang, and TranslatePress language selection
 * RTL output for Arabic, Farsi, Urdu, and other Arabic-script languages
 * SEO metadata from Yoast SEO, Rank Math, All in One SEO, SEOPress, and The SEO Framework
 * Cover pages, headings, tables, lists, code blocks, and images
@@ -51,15 +51,15 @@ SScribe turns WordPress pages into portable documents for content handovers, aud
 
 = Which content can I export? =
 
-SScribe exports WordPress pages, posts, and registered public custom post types. You can narrow an export by post type, post status, and, when WPML is active, language.
+SScribe exports WordPress pages, posts, and registered public custom post types. You can narrow an export by post type, post status, and, when WPML, Polylang, or TranslatePress is active, language.
 
 = Does SScribe support RTL languages? =
 
 Yes. The exporters detect RTL languages and apply direction-aware document structure and fonts. The admin interface also supports WordPress RTL mode.
 
-= Does SScribe work with WPML? =
+= Does SScribe work with WPML, Polylang, or TranslatePress? =
 
-Yes. When WPML is active, you can export one language or all registered languages. SScribe preserves the selected language metadata in the exported documents.
+Yes. Export one language or all, with language metadata and RTL output. TranslatePress pages are translated into the selected language.
 
 = Can a large export resume after the browser closes? =
 

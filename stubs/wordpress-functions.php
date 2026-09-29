@@ -1685,3 +1685,57 @@ if ( ! function_exists( 'get_sites' ) ) {
 		return array();
 	}
 }
+
+// Polylang public API (https://polylang.pro/doc/function-reference/).
+if ( ! function_exists( 'pll_languages_list' ) ) {
+	/**
+	 * @param array<string, mixed> $args Arguments.
+	 * @return mixed Language list; its shape depends on the fields argument.
+	 */
+	function pll_languages_list( $args = array() ) {
+		return array();
+	}
+}
+
+if ( ! function_exists( 'pll_get_post_language' ) ) {
+	/**
+	 * @param int    $post_id Post ID.
+	 * @param string $field   Language field to return.
+	 * @return string|false
+	 */
+	function pll_get_post_language( $post_id, $field = 'slug' ) {
+		return false;
+	}
+}
+
+// TranslatePress public API.
+if ( ! function_exists( 'trp_translate' ) ) {
+	/**
+	 * @param string      $content                  Text or HTML to translate.
+	 * @param string|null $language                 Target locale.
+	 * @param bool        $prevent_over_translation Skip already translated text.
+	 * @return mixed
+	 */
+	function trp_translate( $content, $language = null, $prevent_over_translation = true ) {
+		return $content;
+	}
+}
+
+if ( ! class_exists( 'TRP_Translate_Press' ) ) {
+	class TRP_Translate_Press {
+		/**
+		 * @return TRP_Translate_Press|null
+		 */
+		public static function get_trp_instance() {
+			return null;
+		}
+
+		/**
+		 * @param string $component Component name.
+		 * @return object|null
+		 */
+		public function get_component( $component ) {
+			return null;
+		}
+	}
+}

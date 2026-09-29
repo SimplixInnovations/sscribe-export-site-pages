@@ -392,7 +392,7 @@ class SScribe_Error {
 				'fix_steps' => array(
 					__( 'Try selecting "All Languages" or "All Statuses".', 'sscribe-export-site-pages' ),
 					__( 'Create pages in the selected language/status.', 'sscribe-export-site-pages' ),
-					__( 'Check if WPML is properly configured if using language filters.', 'sscribe-export-site-pages' ),
+					__( 'Check that your multilingual plugin (WPML, Polylang or TranslatePress) is properly configured if using language filters.', 'sscribe-export-site-pages' ),
 				),
 			),
 
@@ -400,11 +400,11 @@ class SScribe_Error {
 				'category'  => self::CATEGORY_VALIDATION,
 				'severity'  => self::SEVERITY_ERROR,
 				'message'   => __( 'Invalid language code: {language}.', 'sscribe-export-site-pages' ),
-				'details'   => __( 'The selected language does not exist in your WPML configuration.', 'sscribe-export-site-pages' ),
+				'details'   => __( 'The selected language does not exist in your multilingual plugin configuration.', 'sscribe-export-site-pages' ),
 				'guidance'  => __( 'Select a valid language from the available options.', 'sscribe-export-site-pages' ),
 				'fix_steps' => array(
 					__( 'Refresh the page to see available languages.', 'sscribe-export-site-pages' ),
-					__( 'Verify WPML is properly configured.', 'sscribe-export-site-pages' ),
+					__( 'Verify your multilingual plugin (WPML, Polylang or TranslatePress) is properly configured.', 'sscribe-export-site-pages' ),
 				),
 			),
 

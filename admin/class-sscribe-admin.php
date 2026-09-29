@@ -325,12 +325,12 @@ class SScribe_Admin {
 				'err_session_expired'    => __( 'The export session was lost : this typically happens when the PHP session or database connection timed out. Click "Try Again" to start a fresh export. If this keeps happening, ask your hosting provider to increase the PHP max_execution_time (recommended: 120s or higher).', 'sscribe-export-site-pages' ),
 				'err_data_corrupted'     => __( 'The encrypted export session data could not be verified. Clear the session and start a new export. If this repeats, check database health and available storage.', 'sscribe-export-site-pages' ),
 				'err_rate_limit'         => __( 'You have exceeded the request rate limit. Please wait about 1 minute and then try again.', 'sscribe-export-site-pages' ),
-				'err_no_pages'           => __( 'No pages match the selected language and status combination. Go back and verify your selection. If using WPML, ensure the selected language has pages assigned to it.', 'sscribe-export-site-pages' ),
+				'err_no_pages'           => __( 'No pages match the selected language and status combination. Go back and verify your selection. If using WPML or Polylang, ensure the selected language has pages assigned to it.', 'sscribe-export-site-pages' ),
 				'err_zip'                => __( 'The server could not create the ZIP archive. Verify that private temporary storage is writable, sufficient disk space is available, and the PHP ZIP extension is installed.', 'sscribe-export-site-pages' ),
 				'err_timeout'            => __( 'The server took too long to respond. This usually happens with large pages or slow server hardware. The plugin processes pages individually and will resume from where it left off. If this keeps happening, ask your hosting provider to increase max_execution_time to at least 120 seconds.', 'sscribe-export-site-pages' ),
 				'err_memory'             => __( 'The server ran out of PHP memory during export. Ask your hosting provider to increase the WordPress memory limit (WP_MEMORY_LIMIT) to at least 256M. You can also try exporting fewer pages at a time by selecting a specific language.', 'sscribe-export-site-pages' ),
 				'err_connection'         => __( 'The connection to your server was interrupted. Check your internet connection and try again. If you are behind a proxy or CDN (e.g., Cloudflare), ensure AJAX requests are not being blocked or cached.', 'sscribe-export-site-pages' ),
-				'err_invalid_lang'       => __( 'The selected language code is not recognized by WPML. Go back to step 1 and select a valid language. If you recently changed your WPML configuration, refresh this page first.', 'sscribe-export-site-pages' ),
+				'err_invalid_lang'       => __( 'The selected language code is not recognized by your multilingual plugin. Go back to step 1 and select a valid language. If you recently changed your language settings, refresh this page first.', 'sscribe-export-site-pages' ),
 				'err_in_progress'        => __( 'A previous export session is still active. Click "Try Again" to force-clear it and start fresh.', 'sscribe-export-site-pages' ),
 				'err_500'                => __( 'Your server encountered an internal error (HTTP 500). Check your server\'s PHP error log for details. Common causes: a conflicting plugin, PHP memory limit too low, or a corrupted .htaccess file.', 'sscribe-export-site-pages' ),
 				'err_403'                => __( 'The server rejected the request (HTTP 403 Forbidden). This is usually caused by a security plugin (e.g., Wordfence, Sucuri, iThemes Security) or server-level firewall blocking AJAX requests. Whitelist the SScribe AJAX actions in your security plugin settings.', 'sscribe-export-site-pages' ),
@@ -595,8 +595,10 @@ class SScribe_Admin {
 			$sscribe_selectable_types    = $cached_page_data['selectable_types'] ?? $this->build_selectable_type_rows();
 		} else {
 
-			$sscribe_wpml_active = $this->collector->is_wpml_active();
-			$sscribe_languages   = $this->collector->get_wpml_languages();
+			// "wpml_active" predates Polylang/TranslatePress support; it now
+			// means any supported multilingual plugin is active.
+			$sscribe_wpml_active = $this->collector->is_multilingual_active();
+			$sscribe_languages   = $this->collector->get_languages();
 
 			$sscribe_total_pages_all = $this->collector->get_page_count_only( '', 'publish' );
 			$sscribe_total_posts_all = $this->collector->get_page_count_only( '', 'publish', 'post' );
@@ -800,8 +802,8 @@ class SScribe_Admin {
 				'code'     => 'wpml_no_languages',
 				'icon'     => 'info',
 				'severity' => 'info',
-				'message'  => __( 'WPML is active but no languages are configured.', 'sscribe-export-site-pages' ),
-				'detail'   => __( 'Add at least one secondary language in WPML -> Languages before exporting to produce a multilingual package.', 'sscribe-export-site-pages' ),
+				'message'  => __( 'A multilingual plugin is active but no languages are configured.', 'sscribe-export-site-pages' ),
+				'detail'   => __( 'Add at least one secondary language in your multilingual plugin settings before exporting to produce a multilingual package.', 'sscribe-export-site-pages' ),
 			);
 		}
 

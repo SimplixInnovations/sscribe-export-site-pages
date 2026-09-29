@@ -1084,8 +1084,8 @@ final class SScribe_Batch_Processor {
 			);
 		}
 
-		if ( ! empty( $language ) && $this->collector->is_wpml_active() ) {
-			$valid_languages = wp_list_pluck( $this->collector->get_wpml_languages(), 'code' );
+		if ( ! empty( $language ) && $this->collector->is_multilingual_active() ) {
+			$valid_languages = wp_list_pluck( $this->collector->get_languages(), 'code' );
 			if ( ! in_array( $language, $valid_languages, true ) ) {
 				SScribe_AJAX_Guard::error(
 					array(

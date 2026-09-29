@@ -243,9 +243,9 @@ trait SScribe_Export_Finalizer {
 
 			$lang_name = $has_language ? strtoupper( $lang_code ) : 'All Languages';
 			$flag_url  = '';
-			if ( $this->collector->is_wpml_active() && $has_language ) {
-				$wpml_languages = $this->collector->get_wpml_languages();
-				foreach ( $wpml_languages as $wl ) {
+			if ( $this->collector->is_multilingual_active() && $has_language ) {
+				$active_languages = $this->collector->get_languages();
+				foreach ( $active_languages as $wl ) {
 					if ( isset( $wl['code'] ) && $wl['code'] === $lang_code ) {
 						$lang_name = $wl['name'] ?? strtoupper( $lang_code );
 						$flag_url  = $wl['flag_url'] ?? '';

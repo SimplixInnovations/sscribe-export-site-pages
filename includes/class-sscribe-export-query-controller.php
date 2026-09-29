@@ -581,9 +581,9 @@ class SScribe_Export_Query_Controller {
 		}
 
 		$language_display = '' !== $language ? $language : __( 'All Languages', 'sscribe-export-site-pages' );
-		if ( '' !== $language && $this->collector->is_wpml_active() ) {
-			$wpml_languages = $this->collector->get_wpml_languages();
-			foreach ( $wpml_languages as $wl ) {
+		if ( '' !== $language && $this->collector->is_multilingual_active() ) {
+			$active_languages = $this->collector->get_languages();
+			foreach ( $active_languages as $wl ) {
 				if ( isset( $wl['code'] ) && $wl['code'] === $language ) {
 					$language_display = $wl['name'] ?? strtoupper( $language );
 					break;
