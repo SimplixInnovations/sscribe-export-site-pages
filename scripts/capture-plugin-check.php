@@ -27,6 +27,8 @@ if ( is_file( $evidence ) ) { unlink( $evidence ); }
 file_put_contents( $report, '' );
 $temp = sys_get_temp_dir() . '/sscribe-plugin-check-' . bin2hex( random_bytes( 12 ) );
 mkdir( $temp, 0700 );
+// Fail closed if capture throws before the triage verifier runs.
+$verification = array( 'code' => 1 );
 try {
 	$zip = new ZipArchive();
 	if ( true !== $zip->open( $zip_path ) ) { throw new RuntimeException( 'Cannot open ZIP.' ); }

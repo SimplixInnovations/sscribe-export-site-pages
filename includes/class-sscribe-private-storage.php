@@ -69,6 +69,8 @@ final class SScribe_Private_Storage {
 	 * @return string Absolute path, or an empty string when no safe path exists.
 	 */
 	public static function get_export_dir( bool $create = true ): string {
+		// Process-lifetime cache. Hits are always revalidated below; tests that
+		// change SSCRIBE_PRIVATE_STORAGE_DIR run in separate PHP processes.
 		static $resolved_paths = array();
 
 		$candidates = self::get_base_candidates();
