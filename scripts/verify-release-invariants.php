@@ -153,12 +153,16 @@ $normalizer_script  = $root_dir . '/scripts/normalize-prefixed-autoloader.php';
 $composer_path       = $root_dir . '/composer.json';
 $release_audit_yml   = $root_dir . '/.github/workflows/release-audit.yml';
 $composer_src        = is_file( $composer_path ) ? (string) file_get_contents( $composer_path ) : '';
+$composer_json       = json_decode( $composer_src, true );
+$determinism_command = is_array( $composer_json ) ? ( $composer_json['scripts']['release:determinism'] ?? null ) : null;
 $release_audit_src   = is_file( $release_audit_yml ) ? (string) file_get_contents( $release_audit_yml ) : '';
 $record(
 	'clean_build_determinism_gate_wired',
 	is_file( $determinism_script )
 		&& is_file( $normalizer_script )
-		&& false !== strpos( $composer_src, '"release:determinism": "php scripts/verify-build-determinism.php"' )
+		// The outer Composer timeout is lifted because the verifier wraps two
+		// full clean builds; its inner Composer steps keep their own timeout.
+		&& array( 'Composer\\Config::disableProcessTimeout', 'php scripts/verify-build-determinism.php' ) === $determinism_command
 		&& false !== strpos( $composer_src, 'scripts/run-strauss.php && php scripts/normalize-prefixed-autoloader.php' )
 		&& false !== strpos( $release_audit_src, 'composer release:determinism' ),
 	'Release invariant #5 must be enforced by clean-build determinism plus deterministic Strauss generated-autoloader normalization.'
