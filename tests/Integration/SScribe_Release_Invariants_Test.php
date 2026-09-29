@@ -159,9 +159,9 @@ final class SScribe_Release_Invariants_Test extends TestCase {
 		$composer = json_decode( (string) file_get_contents( $this->repo_root . '/composer.json' ), true );
 		$this->assertIsArray( $composer );
 		$this->assertSame(
-			'php scripts/verify-build-determinism.php',
+			array( 'Composer\\Config::disableProcessTimeout', 'php scripts/verify-build-determinism.php' ),
 			$composer['scripts']['release:determinism'] ?? null,
-			'composer release:determinism must invoke the clean-build verifier.'
+			'composer release:determinism must invoke the clean-build verifier without the outer Composer timeout; its inner Composer steps keep their own.'
 		);
 
 		$normalizer = $this->repo_root . '/scripts/normalize-prefixed-autoloader.php';

@@ -106,6 +106,8 @@ $forbidden_substrings = array(
 	'/phpunit.xml',
 	'/phpstan.neon',
 	'/playwright.config.ts',
+	'/clover.xml',
+	'/.phpunit.result.cache',
 	'/fake-wp/',
 	'/stubs/',
 	'/.stubs/',
