@@ -31,9 +31,9 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/SScribe_WP_TestCase.php';
 
-if ( ! function_exists( 'update_post_meta_cache' ) ) {
+if ( ! function_exists( 'update_postmeta_cache' ) ) {
 	/**
-	 * Stub for the WP core function `update_post_meta_cache`. The real
+	 * Stub for the WP core function `update_postmeta_cache`. The real
 	 * function primes the postmeta cache via a single SQL SELECT; the
 	 * testbench doesn't ship a working stub for it. The SEO reader's
 	 * prime_meta_cache() helper calls this function after its SEO-plugin
@@ -41,7 +41,7 @@ if ( ! function_exists( 'update_post_meta_cache' ) ) {
 	 *
 	 * @param array<int> $page_ids Page IDs to warm.
 	 */
-	function update_post_meta_cache( array $page_ids ): bool { // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals
+	function update_postmeta_cache( array $page_ids ): bool { // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals
 		unset( $page_ids );
 		return true;
 	}
@@ -395,7 +395,7 @@ final class SScribe_SEO_Reader_Coverage_Test extends SScribe_WP_TestCase {
 	public function test_prime_meta_cache_short_circuits_when_no_plugin_active(): void {
 		// With no SEO plugin active, prime_meta_cache() returns at the
 		// `if ( ! $this->has_seo_plugin() )` guard before reaching
-		// update_post_meta_cache() (which the testbench doesn't stub).
+		// update_postmeta_cache() (which the testbench doesn't stub).
 		// Mixed-type array exercises the array_filter/absint branches.
 		$reader = new SScribe_SEO_Reader();
 		$reader->prime_meta_cache(
@@ -415,7 +415,7 @@ final class SScribe_SEO_Reader_Coverage_Test extends SScribe_WP_TestCase {
 				2,
 			)
 		);
-		$this::assertTrue( true, 'No-plugin path must short-circuit before update_post_meta_cache().' );
+		$this::assertTrue( true, 'No-plugin path must short-circuit before update_postmeta_cache().' );
 	}
 
 	// -----------------------------------------------------------------

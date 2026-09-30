@@ -80,6 +80,21 @@ class SScribe_Diagnostics {
 	}
 
 	/**
+	 * Name the active multilingual plugin for the support snapshot.
+	 *
+	 * @param string $provider One of SScribe_Page_Collector::PROVIDER_*, or ''.
+	 * @return string Plugin name, or "None".
+	 */
+	private static function describe_multilingual_provider( string $provider ): string {
+		$names = array(
+			SScribe_Page_Collector::PROVIDER_WPML           => 'WPML',
+			SScribe_Page_Collector::PROVIDER_POLYLANG       => 'Polylang',
+			SScribe_Page_Collector::PROVIDER_TRANSLATEPRESS => 'TranslatePress',
+		);
+		return $names[ $provider ] ?? __( 'None', 'sscribe-export-site-pages' );
+	}
+
+	/**
 	 * Get site + plugin support snapshot for the diagnostics export.
 	 *
 	 * @return array
@@ -145,8 +160,11 @@ class SScribe_Diagnostics {
 			$this->support_errors[] = 'session_check unavailable';
 		}
 
+		$multilingual_provider = '';
 		try {
-			$wpml_active = $container->get( SScribe_Page_Collector::class )->is_wpml_active();
+			$collector             = $container->get( SScribe_Page_Collector::class );
+			$wpml_active           = $collector->is_wpml_active();
+			$multilingual_provider = $collector->get_multilingual_provider();
 		} catch ( \Throwable $e ) {
 			$wpml_active = false;
 			if ( defined( 'WP_DEBUG_LOG' ) && WP_DEBUG_LOG ) {
@@ -191,6 +209,7 @@ class SScribe_Diagnostics {
 				'plugin_version' => SSCRIBE_VERSION,
 				'debug_mode'     => $debug_enabled ? __( 'Enabled', 'sscribe-export-site-pages' ) : __( 'Disabled', 'sscribe-export-site-pages' ),
 				'wpml_active'    => $wpml_active ? __( 'Yes', 'sscribe-export-site-pages' ) : __( 'No', 'sscribe-export-site-pages' ),
+				'multilingual'   => self::describe_multilingual_provider( $multilingual_provider ),
 				'seo_plugins'    => $seo_plugins,
 			),
 		);

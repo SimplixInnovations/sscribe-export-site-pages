@@ -353,6 +353,7 @@ class SScribe_Admin {
 				'support_generated'      => __( 'Generated', 'sscribe-export-site-pages' ),
 				'support_debug'          => __( 'Debug mode may expose extra detail intended for administrators only.', 'sscribe-export-site-pages' ),
 				'all_languages'          => __( 'All Languages', 'sscribe-export-site-pages' ),
+				'all_formats'            => __( 'All formats', 'sscribe-export-site-pages' ),
 				'preflight_title'        => __( 'Export Readiness Check', 'sscribe-export-site-pages' ),
 				'preflight_errors'       => __( 'Critical Issues', 'sscribe-export-site-pages' ),
 				'preflight_warnings'     => __( 'Recommendations', 'sscribe-export-site-pages' ),
@@ -397,6 +398,12 @@ class SScribe_Admin {
 				'dismiss_notification'   => __( 'Dismiss notification', 'sscribe-export-site-pages' ),
 				'preview_error'          => __( 'Failed to generate preview.', 'sscribe-export-site-pages' ),
 				'download_unavailable'   => __( 'Download unavailable.', 'sscribe-export-site-pages' ),
+				/* translators: %d: Number of problems. */
+				'export_issues_one'      => __( '%d problem during this export', 'sscribe-export-site-pages' ),
+				/* translators: %d: Number of problems. */
+				'export_issues_many'     => __( '%d problems during this export', 'sscribe-export-site-pages' ),
+				/* translators: %d: Number of problems not listed. */
+				'export_issues_more'     => __( '...and %d more', 'sscribe-export-site-pages' ),
 				/* translators: %1$d: current page number, %2$d: total pages */
 				'progress_pages'         => __( 'Processing %1$d of %2$d pages', 'sscribe-export-site-pages' ),
 				'err_cancel_failed'      => __( 'Could not confirm cancellation : the server may still be processing. Reload the page before starting a new export.', 'sscribe-export-site-pages' ),

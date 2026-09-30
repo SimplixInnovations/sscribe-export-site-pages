@@ -61,5 +61,10 @@ if ( ! class_exists( 'SScribeVendor_TCPDF', false ) ) {
 		): void {}
 
 		public function Output( string $name = 'doc.pdf', string $dest = 'I' ): string {}
+
+		/**
+		 * @return array<int, string>
+		 */
+		protected function fileAllowedPaths(): array {}
 	}
 }

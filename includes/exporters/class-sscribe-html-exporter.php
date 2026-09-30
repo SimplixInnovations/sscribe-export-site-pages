@@ -328,6 +328,7 @@ class SScribe_HTML_Exporter implements SScribe_Exporter_Interface {
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	<title>' . $title . ' | ' . esc_html( $site_name ) . '</title>
+	' . $this->get_head_seo_tags( $page_data ) . '
 	' . $style_block . '
 </head>
 <body lang="' . esc_attr( $language ) . '" dir="' . esc_attr( $direction ) . '">
@@ -516,6 +517,48 @@ class SScribe_HTML_Exporter implements SScribe_Exporter_Interface {
 
 		$html .= '</div>';
 		return $html;
+	}
+
+	/**
+	 * Build the SEO tags for the document head.
+	 *
+	 * Writes the page's meta description, canonical URL and robots rules
+	 * from the active SEO plugin, so the exported file carries the same SEO
+	 * metadata as the live page. Falls back to the excerpt for the
+	 * description.
+	 *
+	 * @param array $page_data Page data.
+	 * @return string Head tags, or an empty string.
+	 */
+	private function get_head_seo_tags( array $page_data ): string {
+		$seo  = isset( $page_data['seo'] ) && is_array( $page_data['seo'] ) ? $page_data['seo'] : array();
+		$tags = array();
+
+		$description = $this->normalize_scalar( $seo['meta_description'] ?? '' );
+		if ( '' === $description ) {
+			$description = $this->normalize_scalar( $page_data['excerpt'] ?? '' );
+		}
+		if ( '' !== $description ) {
+			$tags[] = '<meta name="description" content="' . esc_attr( wp_strip_all_tags( $description ) ) . '">';
+		}
+
+		$canonical = esc_url( $this->normalize_scalar( $seo['canonical_url'] ?? '' ) );
+		if ( '' !== $canonical ) {
+			$tags[] = '<link rel="canonical" href="' . $canonical . '">';
+		}
+
+		$robots = array();
+		if ( ! empty( $seo['noindex'] ) ) {
+			$robots[] = 'noindex';
+		}
+		if ( ! empty( $seo['nofollow'] ) ) {
+			$robots[] = 'nofollow';
+		}
+		if ( ! empty( $robots ) ) {
+			$tags[] = '<meta name="robots" content="' . esc_attr( implode( ', ', $robots ) ) . '">';
+		}
+
+		return implode( "\n\t", $tags );
 	}
 
 	/**

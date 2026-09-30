@@ -116,10 +116,10 @@ class SScribe_SEO_Reader {
 			return;
 		}
 
-		// update_post_meta_cache() primes only the keys that actually exist
+		// update_postmeta_cache() primes only the keys that actually exist
 		// in wp_postmeta for these posts, so the IN(...) stays small and
 		// the warm-up is a single SELECT per batch.
-		update_post_meta_cache( $page_ids );
+		update_postmeta_cache( $page_ids );
 	}
 
 

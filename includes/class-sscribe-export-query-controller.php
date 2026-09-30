@@ -114,7 +114,9 @@ class SScribe_Export_Query_Controller {
 
 		$requested_language = SScribe_AJAX_Guard::post_text( 'language', self::SENTINEL_ALL, 100 );
 		$language           = $this->collector->normalize_language_code( $requested_language );
-		if ( self::SENTINEL_ALL !== $requested_language && '' === $language ) {
+		// Sites without a multilingual plugin render no language radios, so the
+		// admin script sends an empty language. Treat it like __all__.
+		if ( '' !== $requested_language && self::SENTINEL_ALL !== $requested_language && '' === $language ) {
 			SScribe_AJAX_Guard::error( array( 'message' => __( 'Invalid or inactive language.', 'sscribe-export-site-pages' ) ), 400 );
 		}
 		$post_type = $this->normalize_post_type_input(
@@ -486,6 +488,23 @@ class SScribe_Export_Query_Controller {
 	}
 
 	/**
+	 * Build the plain-text sample shown in the Preview dialog.
+	 *
+	 * The admin script escapes this text, so it must be plain text: tags are
+	 * replaced by spaces (so "<li>One</li><li>Two</li>" reads "One Two", not
+	 * "OneTwo") and entities are decoded (so "&amp;" does not show literally).
+	 *
+	 * @param string $content Raw post content.
+	 * @return string Plain text of at most 50 words.
+	 */
+	private function build_preview_excerpt( string $content ): string {
+		$text = preg_replace( '/<\/?(?:p|div|li|ul|ol|h[1-6]|br|hr|tr|td|th|table|blockquote|figure|figcaption|pre|section)\b/i', ' $0', strip_shortcodes( $content ) ) ?? $content;
+		$text = wp_strip_all_tags( $text );
+		$text = wp_trim_words( $text, 50, "\u{2026}" );
+		return html_entity_decode( $text, ENT_QUOTES | ENT_HTML5, 'UTF-8' );
+	}
+
+	/**
 	 * AJAX handler for export preview.
 	 *
 	 * @param string $export_capability Required capability.
@@ -503,7 +522,7 @@ class SScribe_Export_Query_Controller {
 			SScribe_AJAX_Guard::error( array( 'message' => __( 'Invalid or inactive language.', 'sscribe-export-site-pages' ) ), 400 );
 		}
 		$post_status = SScribe_AJAX_Guard::post_text( 'post_status', 'publish', 30 );
-		if ( ! in_array( $post_status, array( 'publish', 'private', 'draft', 'pending', 'future' ), true ) ) {
+		if ( ! in_array( $post_status, array( 'publish', 'private', 'draft', 'pending', 'future', 'all' ), true ) ) {
 			$post_status = 'publish';
 		}
 
@@ -575,7 +594,7 @@ class SScribe_Export_Query_Controller {
 				$sample_page = array(
 					'title'   => $sample_post->post_title,
 					'url'     => get_permalink( $sample_id ),
-					'content' => wp_kses_post( wp_trim_words( strip_shortcodes( $sample_post->post_content ), 50 ) ),
+					'content' => $this->build_preview_excerpt( $sample_post->post_content ),
 				);
 			}
 		}

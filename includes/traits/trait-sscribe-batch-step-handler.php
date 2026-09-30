@@ -530,13 +530,22 @@ trait SScribe_Batch_Step_Handler {
 
 					$page_duration = round( microtime( true ) - $page_start_time, 3 );
 
-					if ( ! $export_success ) {
+					// A page where some formats worked and others failed (for
+					// example DOCX saved but PDF did not) is reported too, so the
+					// finished export never claims files that are not in the ZIP.
+					if ( ! $export_success || ! empty( $export_errors ) ) {
 						$string_export_errors = array();
-						$error_msg            = sprintf(
-							/* translators: %s: Page title. */
-							__( 'Failed to generate exports for "%s".', 'sscribe-export-site-pages' ),
-							$page_data['title']
-						);
+						$error_msg            = $export_success
+							? sprintf(
+								/* translators: %s: Page title. */
+								__( 'Some formats could not be created for "%s".', 'sscribe-export-site-pages' ),
+								$page_data['title']
+							)
+							: sprintf(
+								/* translators: %s: Page title. */
+								__( 'Failed to generate exports for "%s".', 'sscribe-export-site-pages' ),
+								$page_data['title']
+							);
 
 						foreach ( $export_errors as $export_error ) {
 							$string_export_errors[] = sprintf(
@@ -549,7 +558,11 @@ trait SScribe_Batch_Step_Handler {
 						$errors[] = $error_msg . ' ' . implode( ', ', $string_export_errors );
 
 						if ( $this->export_log ) {
-							$this->export_log->log_page_failure( $page_id, implode( '; ', $string_export_errors ), $formats );
+							if ( $export_success ) {
+								$this->export_log->log_page_success( $page_id, $successful_formats );
+							} else {
+								$this->export_log->log_page_failure( $page_id, implode( '; ', $string_export_errors ), $formats );
+							}
 						}
 
 						$detailed_errors = array();

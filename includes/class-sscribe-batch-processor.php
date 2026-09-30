@@ -1004,7 +1004,9 @@ final class SScribe_Batch_Processor {
 		}
 		$post_status = SScribe_AJAX_Guard::post_text( 'post_status', 'publish', 30 );
 
-		$allowed_statuses = array( 'publish', 'private', 'draft', 'pending', 'future' );
+		// "all" is the All card in the status step; the collector maps it to
+		// every exportable status.
+		$allowed_statuses = array( 'publish', 'private', 'draft', 'pending', 'future', 'all' );
 		if ( ! in_array( $post_status, $allowed_statuses, true ) ) {
 			$post_status = 'publish';
 		}

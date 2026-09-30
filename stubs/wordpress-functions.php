@@ -260,7 +260,7 @@ if ( ! function_exists( 'get_post_meta' ) ) {
 if ( ! function_exists( 'update_post_meta' ) ) {
 	function update_post_meta( $post_id, $meta_key, $meta_value, $prev_value = '' ): int|bool { return true; }
 }
-if ( ! function_exists( 'update_post_meta_cache' ) ) {
+if ( ! function_exists( 'update_postmeta_cache' ) ) {
 	/**
 	 * Prime the post meta cache for the given posts so subsequent
 	 * get_post_meta() calls do not hit the database.
@@ -268,7 +268,7 @@ if ( ! function_exists( 'update_post_meta_cache' ) ) {
 	 * @param int[]|int $post_ids Array of post IDs or a single post ID.
 	 * @return array|false False on failure, otherwise an empty array.
 	 */
-	function update_post_meta_cache( $post_ids ): array|false { return array(); }
+	function update_postmeta_cache( $post_ids ): array|false { return array(); }
 }
 if ( ! function_exists( 'add_post_meta' ) ) {
 	function add_post_meta( $post_id, $meta_key, $meta_value, $unique = false ): int|false { return 1; }

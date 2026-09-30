@@ -218,6 +218,38 @@ class SScribe_Export_Query_Controller_Test extends TestCase {
 		$this->assertSame( 'publish', $json['data']['post_status'] );
 	}
 
+	/**
+	 * The "All" status card posts post_status=all. The preview used to reset
+	 * it to "publish", so drafts and private pages were silently left out.
+	 */
+	public function test_ajax_get_export_preview_keeps_all_statuses(): void {
+		$_POST['nonce']       = wp_create_nonce( 'sscribe_export_nonce' );
+		$_POST['post_status'] = 'all';
+		$_POST['post_type']   = 'page';
+		$_POST['format']      = 'docx';
+
+		$collector = $this->createMock( \SScribe_Page_Collector::class );
+		$collector->method( 'normalize_language_code' )->willReturn( '' );
+		$collector->expects( $this->once() )->method( 'get_page_count_only' )->with( '', 'all', 'page' )->willReturn( 3 );
+		$collector->method( 'get_page_ids' )->willReturn( array() );
+
+		$adaptive_metrics = $this->createMock( \SScribe_Adaptive_Metrics::class );
+		$adaptive_metrics->method( 'get_seconds_per_page' )->willReturn( 0.0 );
+		$adaptive_metrics->method( 'get_mb_per_page' )->willReturn( 0.0 );
+
+		$controller = $this->build_controller( collector: $collector, adaptive_metrics: $adaptive_metrics );
+
+		$json = $this->invoke_and_capture( $controller, 'ajax_get_export_preview' );
+
+		$this->assertSame( 'all', $json['data']['post_status'] );
+	}
+
+	public function test_start_export_accepts_all_statuses(): void {
+		$source = (string) file_get_contents( SSCRIBE_PLUGIN_DIR . 'includes/class-sscribe-batch-processor.php' );
+
+		$this->assertMatchesRegularExpression( "/\\\$allowed_statuses\\s*=\\s*array\\([^)]*'all'/", $source );
+	}
+
 	public function test_ajax_get_support_info_health_cap_gate(): void {
 		$GLOBALS['sscribe_test_current_user_can'] = false;
 		$_POST['nonce']                          = wp_create_nonce( 'sscribe_health_nonce' );
@@ -311,6 +343,45 @@ class SScribe_Export_Query_Controller_Test extends TestCase {
 			$json['data'],
 			'Phase 1 removed the per-process PHP request_seq mechanism; it must not come back'
 		);
+	}
+
+	/**
+	 * Without a multilingual plugin the admin page renders no language radios,
+	 * so the script posts language=''. That must count every page, not fail
+	 * with "Invalid or inactive language" (which left Generate disabled).
+	 */
+	public function test_ajax_get_status_counts_accepts_empty_language_without_multilingual_plugin(): void {
+		$_POST['nonce']     = wp_create_nonce( 'sscribe_export_nonce' );
+		$_POST['post_type'] = 'page';
+		$_POST['language']  = '';
+
+		$collector = $this->createMock( \SScribe_Page_Collector::class );
+		$collector->method( 'normalize_language_code' )->willReturn( '' );
+		$collector->method( 'get_post_status_counts' )->willReturn(
+			array( 'publish' => 3 )
+		);
+
+		$controller = $this->build_controller( collector: $collector );
+
+		$json = $this->invoke_and_capture( $controller, 'ajax_get_status_counts' );
+
+		$this->assertTrue( $json['success'] );
+		$this->assertSame( '', $json['data']['language'], 'the empty language must be echoed so the script accepts the response' );
+	}
+
+	public function test_ajax_get_status_counts_still_rejects_unknown_language(): void {
+		$_POST['nonce']     = wp_create_nonce( 'sscribe_export_nonce' );
+		$_POST['post_type'] = 'page';
+		$_POST['language']  = 'xx';
+
+		$collector = $this->createMock( \SScribe_Page_Collector::class );
+		$collector->method( 'normalize_language_code' )->willReturn( '' );
+
+		$controller = $this->build_controller( collector: $collector );
+
+		$json = $this->invoke_and_capture( $controller, 'ajax_get_status_counts' );
+
+		$this->assertFalse( $json['success'] );
 	}
 
 	public function test_phase1_ajax_get_status_counts_default_generation_is_zero(): void {

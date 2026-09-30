@@ -80,4 +80,9 @@ class SScribe_Arabic_Segmenter_Test extends TestCase {
 		$time = \SScribe_Arabic_Segmenter::get_reading_time( $text, 'en' );
 		$this->assertEquals( 5, $time );
 	}
+
+	public function test_block_tags_separate_words(): void {
+		$this->assertSame( 3, \SScribe_Arabic_Segmenter::count_words( '<ul><li>One</li><li>Two</li></ul><p>Three</p>', 'en' ) );
+		$this->assertSame( 3, \SScribe_Arabic_Segmenter::count_words( '<h2>خدماتنا</h2><p>نقدم <strong>الاستشارات</strong></p>', 'ar' ) );
+	}
 }

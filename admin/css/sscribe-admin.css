@@ -2803,6 +2803,12 @@ body.rtl .sscribe-progress-bar-fill {
 		gap: var(--ss-space-1-5);
 	}
 
+	/* A sideways-scrolling row hid every language after the second on
+	   phones, with nothing showing that more existed. Wrap instead. */
+	.sscribe-language-cards.sscribe-cards-row {
+		flex-wrap: wrap;
+	}
+
 	.sscribe-post-type-card-inner,
 	.sscribe-status-card-inner,
 	.sscribe-format-card-inner {
@@ -4614,6 +4620,28 @@ body.rtl .sscribe-progress-bar-fill {
 	font-family: var(--ss-font-mono);
 }
 
+/* The ID-scoped "#sscribe-history-table .sscribe-file-details span" rule
+   makes every span a block, which stacked the date, size and expiry of
+   each export on separate lines with stray separators. Keep them on one
+   line. */
+#sscribe-history-table .sscribe-file-details .sscribe-file-meta {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: var(--ss-space-1);
+	white-space: normal;
+}
+
+#sscribe-history-table .sscribe-file-meta .sscribe-meta-sep,
+#sscribe-history-table .sscribe-file-meta .sscribe-file-size {
+	display: inline;
+	margin: 0;
+}
+
+#sscribe-history-table .sscribe-file-meta .sscribe-file-retention {
+	display: inline-flex;
+}
+
 .sscribe-history-row.sscribe-history-row-hidden {
 	display: none;
 }
@@ -5080,6 +5108,35 @@ body.rtl .sscribe-progress-bar-fill {
 	font-variant-numeric: tabular-nums;
 	margin: 0;
 	line-height: var(--ss-leading-tight);
+}
+
+.sscribe-success-issues {
+	margin: var(--ss-space-4) 0 0;
+	padding: var(--ss-space-3) var(--ss-space-4);
+	color: var(--ss-warning);
+	background: var(--ss-warning-bg);
+	border: 1px solid var(--ss-warning-border);
+	border-radius: var(--ss-radius-md, 8px);
+}
+
+.sscribe-success-issues.sscribe-hidden {
+	display: none;
+}
+
+.sscribe-success-issues-title {
+	margin: 0 0 var(--ss-space-2);
+	font-weight: var(--ss-font-semibold);
+}
+
+.sscribe-success-issues-list {
+	margin: 0 0 var(--ss-space-2) var(--ss-space-5);
+	padding: 0;
+	list-style: disc;
+	overflow-wrap: anywhere;
+}
+
+.sscribe-success-issues-hint {
+	margin: 0;
 }
 
 .sscribe-modal-close-btn {

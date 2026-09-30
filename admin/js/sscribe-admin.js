@@ -242,9 +242,6 @@
 			$(document).on('click.sscribe', '#sscribe-error-try-again', $.proxy(this.retry, this));
 			$(document).on('click.sscribe', '#sscribe-error-change-config', $.proxy(this.changeConfiguration, this));
 			$(document).on('click.sscribe', '#sscribe-cancel-btn', $.proxy(this.cancelExport, this));
-			$('.sscribe-lang-card-label').on('click.sscribe', function () {
-				$(this).find('input[type="radio"]').prop('checked', true);
-			});
 			$('input[name="sscribe_post_type"]').on('change.sscribe', $.proxy(this.onPostTypeChange, this));
 			$('input[name="sscribe_language"]').on('change.sscribe', $.proxy(this.onLanguageChange, this));
 			$('input[name="sscribe_post_status"]').on('change.sscribe', $.proxy(this.updateConfigSummary, this));
@@ -1076,7 +1073,7 @@
 			$('#sscribe-summary-post-type').text(resolvePostTypeLabel(postType));
 			$('#sscribe-summary-status').text(statusLabels[status] || status);
 			$('#sscribe-summary-language').text(this.getLanguageLabel(language));
-			$('#sscribe-summary-format').text(format === 'all' ? S.status_all || 'All' : format.toUpperCase());
+			$('#sscribe-summary-format').text(format === 'all' ? S.all_formats || 'All formats' : format.toUpperCase());
 			const $pagesChip = $('#sscribe-summary-pages');
 			const pagesText =
 				(state.loaded ? '' : '~') +
@@ -3596,12 +3593,56 @@
 						: Math.round(data.file_size / 1024) + ' KB';
 				setVal('sscribe-success-size', formatted);
 			}
+			this.renderSuccessIssues(Array.isArray(data.errors) ? data.errors : []);
 			if (typeof data.elapsed !== 'undefined') {
 				setVal('sscribe-success-time', 'in ' + data.elapsed + 's');
 			} else if (data.created_at) {
 				const stamp = new Date(data.created_at * 1000 || Date.now());
 				setVal('sscribe-success-time', stamp.toLocaleString());
 			}
+		},
+		/**
+		 * Show pages or formats that failed, so a finished export never
+		 * looks complete when files are missing from the ZIP.
+		 *
+		 * @param {Array<string>} errors Error messages from the server.
+		 */
+		renderSuccessIssues: function (errors) {
+			const box = document.getElementById('sscribe-success-issues');
+			const list = document.getElementById('sscribe-success-issues-list');
+			const title = document.getElementById('sscribe-success-issues-title');
+			if (!box || !list || !title) {
+				return;
+			}
+			const messages = errors.filter(function (e) {
+				return typeof e === 'string' && e !== '';
+			});
+			list.textContent = '';
+			if (messages.length === 0) {
+				box.classList.add('sscribe-hidden');
+				return;
+			}
+			const strings = sscribe_data.strings || {};
+			const titleTemplate =
+				messages.length === 1
+					? strings.export_issues_one || '%d problem during this export'
+					: strings.export_issues_many || '%d problems during this export';
+			title.textContent = titleTemplate.replace('%d', String(messages.length));
+			const shown = messages.slice(0, 5);
+			shown.forEach(function (message) {
+				const li = document.createElement('li');
+				li.textContent = message;
+				list.appendChild(li);
+			});
+			if (messages.length > shown.length) {
+				const more = document.createElement('li');
+				more.textContent = (strings.export_issues_more || '...and %d more').replace(
+					'%d',
+					String(messages.length - shown.length)
+				);
+				list.appendChild(more);
+			}
+			box.classList.remove('sscribe-hidden');
 		},
 		startExportFromPreview: function (e) {
 			e.preventDefault();

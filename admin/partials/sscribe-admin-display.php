@@ -778,6 +778,11 @@ if ( ! function_exists( 'sscribe_humanize_export_filename' ) ) {
 						<dd id="sscribe-success-time">-</dd>
 					</div>
 				</dl>
+				<div id="sscribe-success-issues" class="sscribe-success-issues sscribe-hidden" role="status">
+					<p class="sscribe-success-issues-title" id="sscribe-success-issues-title"></p>
+					<ul class="sscribe-success-issues-list" id="sscribe-success-issues-list"></ul>
+					<p class="sscribe-success-issues-hint"><?php esc_html_e( 'The ZIP contains everything else. The History tab lists these problems with steps to fix them.', 'sscribe-export-site-pages' ); ?></p>
+				</div>
 				<div class="sscribe-success-actions">
 					<a id="sscribe-download-btn" class="sscribe-button sscribe-button-success" download aria-describedby="sscribe-download-hint" aria-disabled="true" tabindex="-1">
 						<span><?php esc_html_e( 'Download ZIP', 'sscribe-export-site-pages' ); ?></span>

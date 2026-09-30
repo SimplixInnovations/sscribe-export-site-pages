@@ -91,4 +91,29 @@ final class SScribe_SEO_Reader_Coverage_Test extends TestCase {
 		$reader->prime_meta_cache( array( 1, 'two', null, false, 0, -3, 4 ) );
 		$this::assertTrue( true );
 	}
+
+	/**
+	 * WordPress core names this function update_postmeta_cache(). An earlier
+	 * call to the non-existent update_post_meta_cache() was a fatal error on
+	 * every export from a site with an SEO plugin active.
+	 */
+	#[\PHPUnit\Framework\Attributes\RunInSeparateProcess]
+	#[\PHPUnit\Framework\Attributes\PreserveGlobalState(false)]
+	public function test_prime_meta_cache_calls_core_update_postmeta_cache_when_seo_plugin_active(): void {
+		if ( ! function_exists( 'update_postmeta_cache' ) ) {
+			// phpcs:ignore Squiz.PHP.Eval.Discouraged -- Defines the core function in this isolated process only.
+			eval( 'function update_postmeta_cache( $ids ) { $GLOBALS["sscribe_primed_ids"] = $ids; return array(); }' );
+		}
+		define( 'WPSEO_VERSION', '99.0' );
+
+		$reader = new \SScribe_SEO_Reader();
+		$reader->prime_meta_cache( array( 3, 3, 7 ) );
+
+		$this::assertSame( array( 3, 7 ), array_values( $GLOBALS['sscribe_primed_ids'] ?? array() ) );
+	}
+
+	public function test_seo_reader_never_calls_non_existent_update_post_meta_cache(): void {
+		$source = (string) file_get_contents( SSCRIBE_PLUGIN_DIR . 'includes/class-sscribe-seo-reader.php' );
+		$this::assertDoesNotMatchRegularExpression( '/\bupdate_post_meta_cache\s*\(/', $source );
+	}
 }

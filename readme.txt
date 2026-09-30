@@ -18,7 +18,7 @@ SScribe turns WordPress pages into portable documents for content handovers, aud
 
 * **DOCX** for Microsoft Word, Google Docs, and LibreOffice
 * **PDF** for a consistent portable document
-* **HTML** with packaged styles and media
+* **HTML** as a single styled page with SEO meta tags
 * **Markdown** with YAML front matter
 
 = Highlights =
@@ -55,7 +55,7 @@ SScribe exports WordPress pages, posts, and registered public custom post types.
 
 = Does SScribe support RTL languages? =
 
-Yes. The exporters detect RTL languages and apply direction-aware document structure and fonts. The admin interface also supports WordPress RTL mode.
+Yes. The exporters detect RTL languages and apply direction-aware document structure and fonts. The admin interface also supports WordPress RTL mode. In RTL PDFs, links are shown as styled text and list bullets sit on the left; DOCX keeps both fully RTL.
 
 = Does SScribe work with WPML, Polylang, or TranslatePress? =
 
@@ -120,19 +120,20 @@ Build transformations are documented in docs/BUILD_TRANSFORMATIONS.md.
 == Changelog ==
 
 = 2.0.4 =
-* Fixed SQLite upgrades and bounded failed-upgrade retries.
-* Improved large-site query/cache behavior and admin accessibility/UX.
-* Hardened deterministic WordPress.org packaging and exact-release/tag admission.
+* Added Polylang and TranslatePress language support.
+* Fixed exports on sites without a multilingual plugin or with an SEO plugin, and PDFs that failed on images or left them out.
+* Fixed the All status, block tables in DOCX, code samples, Markdown captions, and Arabic PDF links.
+* Choosing a language now updates the page counts, so Generate always matches the selection.
+* The finished export now lists any page or format that failed.
+* Added meta description, canonical, and robots tags to HTML exports.
+* Fixed SQLite upgrades, large-site caching, admin accessibility, and release packaging.
 
 = 2.0.3 =
-* Fixed activation on managed hosting and container environments by accepting validated writable private bases without weakening public-path or symlink protections.
-* Removed a dynamic global shutdown lock flagged by WordPress Plugin Check; the operational logger now uses class-scoped state and retains the documented five rotated logs plus the live log.
-* Hardened export finalization so archive publication stops when durable session state, locks, ZIP integrity, or export metadata cannot be safely committed.
-* Hardened admin-rendered dynamic HTML and URL attributes against attribute injection while preserving same-origin download and media URL checks.
-* Improved database portability, session/key persistence, lock renewal, stale-lock takeover, and concurrent export cleanup behavior.
-* Fixed session-admission, cancellation, scheduled cleanup, and privacy-erasure races so live export locks cannot be removed by competing requests.
-* Fixed registered public custom post type exports so selectable custom content is hydrated and exported instead of being rejected after selection.
-* Hardened cross-platform release tooling, real-WordPress compatibility coverage, and exact-package certification.
+* Fixed activation on managed hosting and containers without weakening path or symlink protections.
+* Removed a global shutdown lock flagged by Plugin Check.
+* Hardened export finalization, admin output escaping, database portability, and lock handling.
+* Fixed session, cancellation, cleanup, and privacy-erasure races.
+* Fixed exports of public custom post types.
 
 = 2.0.2 =
 * Release-system hardening plus runtime reliability fixes, including storage/activation compatibility and export-path corrections.
@@ -161,7 +162,7 @@ Build transformations are documented in docs/BUILD_TRANSFORMATIONS.md.
 == Upgrade Notice ==
 
 = 2.0.4 =
-Upgrade, large-site, accessibility, and release-package hardening; no manual migration action required.
+Adds Polylang and TranslatePress, and fixes PDF, DOCX, Markdown, and status-filter export problems. No manual migration is required.
 
 = 2.0.3 =
 Fixes private-storage activation compatibility, Plugin Check compliance, export finalization reliability, custom post type exports, session concurrency safety, and admin-output hardening. No manual data migration is required.

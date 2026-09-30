@@ -54,6 +54,7 @@ class SScribe_Diagnostics_Test extends TestCase {
 		$this->assertSame( SSCRIBE_VERSION, $plugin['plugin_version'] );
 		$this->assertArrayHasKey( 'debug_mode', $plugin );
 		$this->assertArrayHasKey( 'wpml_active', $plugin );
+		$this->assertSame( 'None', $plugin['multilingual'] ?? '', 'The snapshot must name the multilingual plugin, not only WPML.' );
 		$this->assertArrayHasKey( 'seo_plugins', $plugin );
 	}
 
