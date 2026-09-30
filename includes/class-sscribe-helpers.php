@@ -340,10 +340,11 @@ class SScribe_Helpers {
 	 * @return string Cleaned HTML.
 	 */
 	public static function strip_page_builder_attributes( string $html ): string {
-		$patterns = array(
+		$html = preg_replace( '/<style[^>]*>.*?<\/style>/is', '', $html ) ?? $html;
+
+		$attribute_patterns = array(
 			'/\s*style="[^"]*"/i',
 			"/\s*style='[^']*'/i",
-			'/<style[^>]*>.*?<\/style>/is',
 			'/\s*class="[^"]*"/i',
 			"/\s*class='[^']*'/i",
 			'/\s*data-elementor(-[a-z]+)?="[^"]*"/i',
@@ -351,7 +352,15 @@ class SScribe_Helpers {
 			'/\s*id="elementor-[^"]*"/i',
 		);
 
-		return preg_replace( $patterns, '', $html ) ?? $html;
+		// Attributes are removed only inside tags, so page text such as an
+		// escaped code sample ("&lt;div class=...&gt;") is left as written.
+		return preg_replace_callback(
+			'/<[a-zA-Z][^>]*>/',
+			static function ( array $m ) use ( $attribute_patterns ): string {
+				return preg_replace( $attribute_patterns, '', $m[0] ) ?? $m[0];
+			},
+			$html
+		) ?? $html;
 	}
 
 	/**

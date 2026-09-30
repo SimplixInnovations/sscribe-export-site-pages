@@ -33,6 +33,7 @@ The canonical long-lived branch is `main`. All work uses transient review branch
 - `includes/` — plugin runtime: exporters (DOCX/PDF/HTML/Markdown), batch processor, session handling, ZIP handler, image processor, diagnostics.
 - Security boundary (90%+ coverage enforced): private-storage root (`class-sscribe-private-storage.php`), filesystem containment (`class-sscribe-filesystem.php`), path-scope validation (`class-sscribe-security.php`), audit-trail writer (`class-sscribe-audit-trail.php`).
 - `admin/` — WP Admin UI (settings, history, debug console).
+- Multilingual: WPML, Polylang, or TranslatePress, one at a time (WPML first). See `docs/developer-reference.md` for how each is exported and for every filter and action.
 - Private archives and logs live outside public web directories, guarded by capability, ownership, nonce, and single-use download-token checks.
 - Third-party libraries are vendor-prefixed via Strauss (`vendor-prefixed/`) so the shipped ZIP never collides with other plugins. See `docs/BUILD_TRANSFORMATIONS.md`.
 

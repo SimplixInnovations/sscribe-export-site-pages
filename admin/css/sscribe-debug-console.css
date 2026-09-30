@@ -197,7 +197,8 @@
 }
 
 .sscribe-debug-filter label,
-.sscribe-debug-session-filter label {
+.sscribe-debug-session-filter label,
+.sscribe-debug-search label {
 	font-size: var(--ss-text-caption);
 	font-weight: var(--ss-font-medium);
 	color: var(--ss-text-tertiary);

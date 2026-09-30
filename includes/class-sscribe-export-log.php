@@ -294,6 +294,48 @@ class SScribe_Export_Log {
 	}
 
 	/**
+	 * Log a page where some formats were created and others failed.
+	 *
+	 * The page counts as processed successfully because its files are in the
+	 * ZIP, but each failed format is recorded on the page and in the log's
+	 * error list, so History shows what is missing and why.
+	 *
+	 * @param int                   $page_id            Page ID.
+	 * @param array<int, string>    $successful_formats Formats that were created.
+	 * @param array<string, string> $format_errors      Failed format => error message.
+	 * @param string                $message            Summary shown in the error list.
+	 * @return void
+	 */
+	public function log_page_partial( int $page_id, array $successful_formats, array $format_errors, string $message ): void {
+		$this->log_page_success( $page_id, $successful_formats );
+
+		$data = $this->read_log();
+		if ( isset( $data['pages'][ $page_id ] ) ) {
+			foreach ( array_slice( $format_errors, 0, 20, true ) as $format => $error ) {
+				$format = substr( sanitize_key( (string) $format ), 0, 40 );
+				if ( '' === $format ) {
+					continue;
+				}
+				$data['pages'][ $page_id ]['formats'][ $format ] = array(
+					'success' => false,
+					'file'    => '',
+					'error'   => self::limit_text( (string) $error, 1000 ),
+				);
+			}
+			$data['pages'][ $page_id ]['error'] = self::limit_text( $message, 1000 );
+		}
+
+		$data['errors'][] = array(
+			'page_id' => $page_id,
+			'message' => self::limit_text( $message, 1000 ),
+			'time'    => current_time( 'mysql', true ),
+		);
+		$data['errors']   = array_slice( $data['errors'], -self::MAX_ERROR_ENTRIES );
+
+		$this->write_log( $data );
+	}
+
+	/**
 	 * Log failed processing of a page.
 	 *
 	 * @param int        $page_id       Page ID.

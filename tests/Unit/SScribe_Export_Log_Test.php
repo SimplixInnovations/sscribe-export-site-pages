@@ -72,6 +72,30 @@ final class SScribe_Export_Log_Test extends TestCase {
 		$log->delete();
 	}
 
+	/**
+	 * A page with some formats saved and others failed used to be logged as a
+	 * plain success, so History showed nothing about the missing files.
+	 */
+	public function test_log_page_partial_keeps_success_and_records_failed_formats(): void {
+		$session = $this->new_session_id();
+		$log     = new SScribe_Export_Log( $session );
+		$log->set_total_pages( 1 );
+
+		$log->log_page_start( 7, 'Pricing', 'pricing' );
+		$log->log_page_partial( 7, array( 'docx' ), array( 'PDF' => 'Renderer failed' ), 'Some formats could not be created for "Pricing". PDF: Renderer failed' );
+		$log->flush();
+
+		$data = json_decode( (string) file_get_contents( (string) $this->find_log_file( $session ) ), true );
+
+		$this->assertSame( 1, $data['success'] );
+		$this->assertSame( 0, $data['failed'] );
+		$this->assertTrue( $data['pages'][7]['formats']['docx']['success'] );
+		$this->assertFalse( $data['pages'][7]['formats']['pdf']['success'] );
+		$this->assertSame( 'Renderer failed', $data['pages'][7]['formats']['pdf']['error'] );
+		$this->assertStringContainsString( 'Pricing', $data['errors'][0]['message'] );
+		$log->delete();
+	}
+
 	public function test_log_page_failure(): void {
 		$session = $this->new_session_id();
 		$log     = new SScribe_Export_Log( $session );

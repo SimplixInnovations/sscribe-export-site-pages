@@ -356,6 +356,42 @@ class SScribe_Content_Parser {
 	}
 
 	/**
+	 * Parse a <figure> that holds no image, such as a block table.
+	 *
+	 * @param \DOMNode $node         The figure element.
+	 * @param int      $depth        Current nesting depth.
+	 * @param string   $caption_text The figcaption text, if any.
+	 * @return array<int, array<string, mixed>>|null Parsed child elements.
+	 */
+	private function parse_figure_without_image( \DOMNode $node, int $depth, string $caption_text ): ?array {
+		$elements = array();
+		foreach ( $node->childNodes as $child ) {
+			if ( ! $child instanceof \DOMElement || 'figcaption' === strtolower( $child->tagName ) ) {
+				continue;
+			}
+			$parsed = $this->parse_node( $child, $depth );
+			if ( null === $parsed ) {
+				continue;
+			}
+			if ( isset( $parsed[0] ) && is_array( $parsed[0] ) ) {
+				foreach ( $parsed as $item ) {
+					$elements[] = $item;
+				}
+			} else {
+				$elements[] = $parsed;
+			}
+		}
+		if ( '' !== $caption_text ) {
+			$elements[] = array(
+				'type'    => 'paragraph',
+				'content' => $caption_text,
+				'runs'    => array( array( 'text' => $caption_text ) ),
+			);
+		}
+		return empty( $elements ) ? null : $elements;
+	}
+
+	/**
 	 * Parse a single DOM node into structured element(s).
 	 *
 	 * @param \DOMNode $node  DOM node.
@@ -485,6 +521,13 @@ class SScribe_Content_Parser {
 					if ( $descendant_imgs->length > 0 ) {
 						$img_node = $descendant_imgs->item( 0 );
 					}
+				}
+
+				// WordPress wraps block tables, pull quotes and embeds in
+				// <figure>. Without an image, keep the figure's own content
+				// instead of dropping it.
+				if ( null === $img_node ) {
+					return $this->parse_figure_without_image( $node, $depth, $caption_text );
 				}
 
 				$src        = null !== $img_node ? $img_node->getAttribute( 'src' ) : null;

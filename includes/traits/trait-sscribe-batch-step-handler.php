@@ -530,13 +530,22 @@ trait SScribe_Batch_Step_Handler {
 
 					$page_duration = round( microtime( true ) - $page_start_time, 3 );
 
-					if ( ! $export_success ) {
+					// A page where some formats worked and others failed (for
+					// example DOCX saved but PDF did not) is reported too, so the
+					// finished export never claims files that are not in the ZIP.
+					if ( ! $export_success || ! empty( $export_errors ) ) {
 						$string_export_errors = array();
-						$error_msg            = sprintf(
-							/* translators: %s: Page title. */
-							__( 'Failed to generate exports for "%s".', 'sscribe-export-site-pages' ),
-							$page_data['title']
-						);
+						$error_msg            = $export_success
+							? sprintf(
+								/* translators: %s: Page title. */
+								__( 'Some formats could not be created for "%s".', 'sscribe-export-site-pages' ),
+								$page_data['title']
+							)
+							: sprintf(
+								/* translators: %s: Page title. */
+								__( 'Failed to generate exports for "%s".', 'sscribe-export-site-pages' ),
+								$page_data['title']
+							);
 
 						foreach ( $export_errors as $export_error ) {
 							$string_export_errors[] = sprintf(
@@ -549,7 +558,20 @@ trait SScribe_Batch_Step_Handler {
 						$errors[] = $error_msg . ' ' . implode( ', ', $string_export_errors );
 
 						if ( $this->export_log ) {
-							$this->export_log->log_page_failure( $page_id, implode( '; ', $string_export_errors ), $formats );
+							if ( $export_success ) {
+								$format_errors = array();
+								foreach ( $export_errors as $export_error ) {
+									$format_errors[ (string) $export_error['format'] ] = (string) ( $export_error['message'] ?? '' );
+								}
+								$this->export_log->log_page_partial(
+									$page_id,
+									$successful_formats,
+									$format_errors,
+									$error_msg . ' ' . implode( ', ', $string_export_errors )
+								);
+							} else {
+								$this->export_log->log_page_failure( $page_id, implode( '; ', $string_export_errors ), $formats );
+							}
 						}
 
 						$detailed_errors = array();

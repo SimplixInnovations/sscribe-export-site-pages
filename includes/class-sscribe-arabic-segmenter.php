@@ -30,6 +30,9 @@ class SScribe_Arabic_Segmenter {
 			return 0;
 		}
 
+		// Block tags separate words even without whitespace between them
+		// ("<li>One</li><li>Two</li>" is two words, not "OneTwo").
+		$text = preg_replace( '/<\/?(?:p|div|li|ul|ol|h[1-6]|br|hr|tr|td|th|table|blockquote|figure|figcaption|pre|section)\b/i', ' $0', $text ) ?? $text;
 		$text = wp_strip_all_tags( $text );
 		$text = trim( $text );
 

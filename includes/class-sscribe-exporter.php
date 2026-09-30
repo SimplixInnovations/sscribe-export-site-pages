@@ -1327,7 +1327,7 @@ final class SScribe_Exporter {
 			$this->safe_text(
 				sprintf(
 					/* translators: %s: site name */
-					__( '%s | EXTERNAL AUDIT AND DOCUMENTATION', 'sscribe-export-site-pages' ),
+					__( '%s | PAGE EXPORT', 'sscribe-export-site-pages' ),
 					$this->get_site_name()
 				)
 			),
@@ -1393,7 +1393,7 @@ final class SScribe_Exporter {
 
 		$meta_cell = $info_table->addCell( Converter::inchToTwip( 6.5 ), array( 'bgColor' => $this->colors['light_bg'] ) );
 		$meta_cell->addText(
-			__( 'DOCUMENT BLUEPRINT OVERVIEW', 'sscribe-export-site-pages' ),
+			__( 'DOCUMENT DETAILS', 'sscribe-export-site-pages' ),
 			array(
 				'name'  => $this->font_name,
 				'size'  => 11,

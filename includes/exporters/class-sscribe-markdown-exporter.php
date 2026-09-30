@@ -22,6 +22,12 @@ require_once SSCRIBE_PLUGIN_DIR . 'includes/class-sscribe-rtl-helper.php';
 class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 
 	/**
+	 * Stand-ins for escaped "<" and ">" while tags are stripped.
+	 */
+	private const LT_PLACEHOLDER = "\u{E000}";
+	private const GT_PLACEHOLDER = "\u{E001}";
+
+	/**
 	 * Logger instance.
 	 *
 	 * @var SScribe_Logger_Interface|null
@@ -282,6 +288,7 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 		$md = $this->convert_tables( $md );
 		$md = $this->convert_headings( $md );
 		$md = $this->convert_images( $md );
+		$md = $this->convert_figures( $md );
 		$md = $this->convert_links( $md );
 		$md = $this->convert_formatting( $md );
 		$md = $this->convert_lists( $md );
@@ -291,13 +298,77 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 		$md = $this->convert_horizontal_rules( $md );
 		$md = $this->convert_details( $md );
 
-		$md = html_entity_decode( $md, ENT_QUOTES | ENT_HTML5, 'UTF-8' );
+		// Escaped angle brackets are the author's literal text (for example
+		// "&lt;div&gt;" in a code sample). Park them before tags are stripped
+		// so they are not mistaken for markup and lost.
+		$md = str_ireplace( array( '&lt;', '&#60;', '&#x3c;', '&gt;', '&#62;', '&#x3e;' ), array( self::LT_PLACEHOLDER, self::LT_PLACEHOLDER, self::LT_PLACEHOLDER, self::GT_PLACEHOLDER, self::GT_PLACEHOLDER, self::GT_PLACEHOLDER ), $md );
 		$md = wp_strip_all_tags( $md );
+		$md = html_entity_decode( $md, ENT_QUOTES | ENT_HTML5, 'UTF-8' );
+		$md = $this->restore_literal_angle_brackets( $md );
 
 		$md = preg_replace( '/\n{3,}/', "\n\n", $md );
 		$md = preg_replace( '/[ \t]+$/m', '', $md );
 
 		return trim( $md );
+	}
+
+	/**
+	 * Put literal angle brackets back and drop source indentation.
+	 *
+	 * Inside code (fenced blocks and inline code spans) a bracket is written
+	 * as is. In prose "<" is written as "\<" so Markdown viewers show it as
+	 * text instead of treating it as HTML. Tab indentation copied from the
+	 * page's HTML source is removed outside code, because Markdown shows a
+	 * line indented that far as a code block.
+	 *
+	 * @param string $md Markdown with angle bracket placeholders.
+	 * @return string Final Markdown.
+	 */
+	private function restore_literal_angle_brackets( string $md ): string {
+		$parts = preg_split( '/(^`{3,}[^\n]*\n.*?^`{3,}[ \t]*$)/ms', $md, -1, PREG_SPLIT_DELIM_CAPTURE );
+		if ( ! is_array( $parts ) ) {
+			return str_replace( array( self::LT_PLACEHOLDER, self::GT_PLACEHOLDER ), array( '<', '>' ), $md );
+		}
+		$out = '';
+		foreach ( $parts as $i => $part ) {
+			if ( 1 === $i % 2 ) {
+				$out .= str_replace( array( self::LT_PLACEHOLDER, self::GT_PLACEHOLDER ), array( '<', '>' ), $part );
+				continue;
+			}
+			$part  = preg_replace( '/^[ ]*\t[ \t]*/m', '', $part ) ?? $part;
+			$spans = preg_split( '/(`+[^`\n]*`+)/', $part, -1, PREG_SPLIT_DELIM_CAPTURE );
+			if ( ! is_array( $spans ) ) {
+				$spans = array( $part );
+			}
+			foreach ( $spans as $j => $span ) {
+				$out .= str_replace(
+					array( self::LT_PLACEHOLDER, self::GT_PLACEHOLDER ),
+					1 === $j % 2 ? array( '<', '>' ) : array( '\\<', '>' ),
+					$span
+				);
+			}
+		}
+		return $out;
+	}
+
+	/**
+	 * Convert figure wrappers and captions to Markdown.
+	 *
+	 * A caption goes on its own line in italics under its image or table.
+	 *
+	 * @param string $html HTML content.
+	 * @return string Content with figures converted.
+	 */
+	private function convert_figures( string $html ): string {
+		$html = preg_replace_callback(
+			'/<figcaption[^>]*>(.*?)<\/figcaption>/is',
+			static function ( array $m ): string {
+				$caption = trim( wp_strip_all_tags( $m[1] ) );
+				return '' === $caption ? '' : "\n\n*" . $caption . "*\n\n";
+			},
+			$html
+		) ?? $html;
+		return preg_replace( '/<\/?figure[^>]*>/i', "\n", $html ) ?? $html;
 	}
 
 	/**
@@ -324,12 +395,21 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 			$html
 		) ?? $html;
 
-		$html = preg_replace( '/\s*style="[^"]*"/i', '', $html ) ?? $html;
-		$html = preg_replace( "/\s*style='[^']*'/i", '', $html ) ?? $html;
-		$html = preg_replace( '/\s*class="[^"]*"/i', '', $html ) ?? $html;
-		$html = preg_replace( "/\s*class='[^']*'/i", '', $html ) ?? $html;
-		$html = preg_replace( '/\s*data-[a-z-]+="[^"]*"/i', '', $html ) ?? $html;
-		$html = preg_replace( "/\s*data-[a-z-]+='[^']*'/i", '', $html ) ?? $html;
+		// Only strip attributes inside real tags. Text such as an escaped
+		// code sample ("&lt;div class=...&gt;") must keep its attributes.
+		$html = preg_replace_callback(
+			'/<[a-zA-Z][^>]*>/',
+			static function ( array $m ): string {
+				$tag = $m[0];
+				$tag = preg_replace( '/\s*style="[^"]*"/i', '', $tag ) ?? $tag;
+				$tag = preg_replace( "/\s*style='[^']*'/i", '', $tag ) ?? $tag;
+				$tag = preg_replace( '/\s*class="[^"]*"/i', '', $tag ) ?? $tag;
+				$tag = preg_replace( "/\s*class='[^']*'/i", '', $tag ) ?? $tag;
+				$tag = preg_replace( '/\s*data-[a-z-]+="[^"]*"/i', '', $tag ) ?? $tag;
+				return preg_replace( "/\s*data-[a-z-]+='[^']*'/i", '', $tag ) ?? $tag;
+			},
+			$html
+		) ?? $html;
 		$html = preg_replace( '/<!--.*?-->/s', '', $html ) ?? $html;
 
 		return $html;

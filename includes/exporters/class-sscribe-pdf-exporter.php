@@ -21,6 +21,26 @@ require_once SSCRIBE_PLUGIN_DIR . 'includes/exporters/interface-sscribe-exporter
 class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 
 	/**
+	 * CSS length properties the PDF engine parses as numbers.
+	 *
+	 * A value with no digit at all (auto, fit-content, initial...) makes the
+	 * engine throw "Invalid value", which used to lose the whole page's PDF.
+	 *
+	 * @var string[]
+	 */
+	private const LENGTH_PROPERTIES = array( 'width', 'height', 'min-width', 'min-height', 'max-width', 'max-height', 'text-indent', 'word-spacing', 'line-height', 'top', 'right', 'bottom', 'left' );
+
+	/**
+	 * Widest image, in pixels, that fits the text column of an A4 page as is.
+	 */
+	private const MAX_INLINE_IMAGE_WIDTH_PX = 600;
+
+	/**
+	 * Matches a LENGTH_PROPERTIES declaration with no digit in its value inside a style block.
+	 */
+	private const NON_NUMERIC_LENGTH_PATTERN = '/(^|[{;\s])(?:(?:min-|max-)?(?:width|height)|text-indent|word-spacing|line-height|top|right|bottom|left)\s*:\s*[^;{}0-9]*(?:;|(?=\}))/i';
+
+	/**
 	 * HTML exporter for generating page content.
 	 *
 	 * @var SScribe_HTML_Exporter
@@ -225,16 +245,42 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 			$pdf->AddPage();
 
 			$base_css  = 'html, body, div, p, span, h1, h2, h3, h4, h5, h6, table, tr, td, th, ul, ol, li, blockquote, q, cite, a { font-family: dejavusans; }';
-			$base_css .= ' img { max-width: 100%; height: auto; }';
+			// No "height: auto" here: the PDF engine only accepts numeric lengths
+			// and throws "Invalid value: auto" on every page that has an image.
+			$base_css .= ' img { max-width: 100%; }';
 			$base_css .= ' table { width: 100%; border-collapse: collapse; }';
 			$base_css .= ' td, th { word-wrap: break-word; }';
 			$base_css .= ' a { color: #2C6E8A; text-decoration: none; }';
 			$base_css .= ' h1, h2, h3, h4, h5, h6 { color: #122119; }';
 			if ( $is_rtl ) {
-				$base_css .= ' html, body, table { direction: rtl; } body { text-align: right; }';
+				$base_css .= ' html, body, table { direction: rtl; } body, dt, dd { text-align: right; }';
 			}
 
-			$pdf->writeHTML( '<style>' . $base_css . '</style>' . $html_content, true, false, true, false, $is_rtl ? 'R' : 'L' );
+			try {
+				$pdf->writeHTML( '<style>' . $base_css . '</style>' . $html_content, true, false, true, false, $is_rtl ? 'R' : 'L' );
+			} catch ( \Throwable $style_error ) {
+				// The engine rejects some CSS values the sanitizer does not know
+				// about. Render the page once more without author styles so the
+				// user still gets a readable PDF instead of a missing file.
+				$this->logger->warning(
+					'PDF render retried without page styles',
+					array(
+						'error'   => $style_error->getMessage(),
+						'page_id' => $page_id,
+					)
+				);
+				$pdf = $this->create_tcpdf_document( $is_rtl );
+				if ( $pdf instanceof SScribe_Result ) {
+					return $pdf;
+				}
+				$pdf->setTitle( wp_strip_all_tags( $title ) );
+				$pdf->setAuthor( wp_strip_all_tags( $author ) );
+				$pdf->setCreator( 'SScribe Export Plugin v' . SSCRIBE_VERSION );
+				$pdf->setSubject( wp_strip_all_tags( $this->normalize_scalar( $seo['meta_description'] ?? '' ) ) );
+				$pdf->setKeywords( wp_strip_all_tags( $this->normalize_scalar( $seo['focus_keyword'] ?? '' ) ) );
+				$pdf->AddPage();
+				$pdf->writeHTML( '<style>' . $base_css . '</style>' . $this->strip_author_styles( $html_content ), true, false, true, false, $is_rtl ? 'R' : 'L' );
+			}
 			$pdf->Output( $output_path, 'F' );
 
 			if ( is_link( $output_path ) || ! is_file( $output_path ) ) {
@@ -532,11 +578,32 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 				}
 				$tag = str_replace( $source_match[0], 'src="' . esc_attr( $canonical ) . '"', $tag );
 				$tag = preg_replace( '/\\s+srcset\\s*=\\s*(?:"[^"]*"|\'[^\']*\'|[^\\s>]+)/i', '', $tag ) ?? $tag;
-				return $tag;
+				return self::fit_image_tag_to_page( $tag, $canonical );
 			},
 			$html_content
 		);
 		return is_string( $cleaned ) ? $cleaned : '';
+	}
+
+	/**
+	 * Keep a wide image inside the page margins.
+	 *
+	 * The PDF engine ignores max-width unless a width is set, so an image
+	 * wider than the text column ran off the right edge. Images wider than
+	 * the column get width="100%" and lose any fixed height so they scale
+	 * with their aspect ratio. Smaller images keep their size.
+	 *
+	 * @param string $tag       The img tag.
+	 * @param string $file_path Local image file.
+	 * @return string The img tag.
+	 */
+	private static function fit_image_tag_to_page( string $tag, string $file_path ): string {
+		$size = @getimagesize( $file_path ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged -- Unreadable images are left as they are.
+		if ( ! is_array( $size ) || (int) $size[0] <= self::MAX_INLINE_IMAGE_WIDTH_PX ) {
+			return $tag;
+		}
+		$tag = preg_replace( '/\\s(?:width|height)\\s*=\\s*(?:"[^"]*"|\'[^\']*\'|[^\\s>]+)/i', '', $tag ) ?? $tag;
+		return (string) preg_replace( '/^<img\\b/i', '<img width="100%"', $tag );
 	}
 
 	/**
@@ -570,7 +637,22 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 		if ( in_array( $page_size, array( 'Letter', 'Legal' ), true ) ) {
 			$page_size = strtoupper( $page_size );
 		}
-		$pdf = new \SScribeVendor_TCPDF( 'P', 'mm', $page_size, true, 'UTF-8', false );
+		// The PDF engine reads local files only from its own allowlist: the
+		// system temp dir, its package folder and the running script's folder.
+		// On a web request that is wp-admin/, so every image in the uploads
+		// folder was dropped from the PDF without an error. Images reach this
+		// point only after validate_local_path() confirmed they are inside
+		// uploads, or after optimization into SScribe's private staging folder.
+		$pdf = new class( 'P', 'mm', $page_size, true, 'UTF-8', false ) extends \SScribeVendor_TCPDF {
+			/**
+			 * Local folders the engine may read images from.
+			 *
+			 * @return array<int, string>
+			 */
+			protected function fileAllowedPaths(): array {
+				return SScribe_PDF_Exporter::add_image_read_paths( parent::fileAllowedPaths() );
+			}
+		};
 		$pdf->setPrintHeader( false );
 		$pdf->setPrintFooter( '1' === (string) $this->get_format_option( 'sscribe_pdf_include_page_numbers', '1' ) );
 		$pdf->SetMargins( 15, 15, 15 );
@@ -580,6 +662,27 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 		$pdf->setRTL( $is_rtl );
 		$pdf->SetFont( 'dejavusans', '', 10, '', true );
 		return $pdf;
+	}
+
+	/**
+	 * Add the folders page images are read from to the PDF engine allowlist.
+	 *
+	 * @param array<int, string> $paths Paths the engine already allows.
+	 * @return array<int, string>
+	 */
+	public static function add_image_read_paths( array $paths ): array {
+		$uploads = wp_upload_dir( null, false );
+		$extra   = array(
+			empty( $uploads['error'] ) ? (string) ( $uploads['basedir'] ?? '' ) : '',
+			SScribe_Private_Storage::get_subdirectory( 'image-staging' ),
+		);
+		foreach ( $extra as $path ) {
+			$real = '' !== $path ? realpath( $path ) : false;
+			if ( false !== $real ) {
+				$paths[] = $real;
+			}
+		}
+		return array_values( array_unique( $paths ) );
 	}
 
 	/**
@@ -619,11 +722,42 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 				$css = preg_replace( '/url\\s*\\([^)]*\\)/i', 'none', $css ) ?? $css;
 				$css = preg_replace( '/(?<![-a-z])font-family\\s*:[^;}]+;?/i', '', $css ) ?? $css;
 				$css = preg_replace( '/(?<![-a-z])font\\s*:[^;}]+;?/i', '', $css ) ?? $css;
+				$css = preg_replace( self::NON_NUMERIC_LENGTH_PATTERN, '$1', $css ) ?? $css;
 				return '<style' . (string) $matches[1] . '>' . $css . '</style>';
 			},
 			$html_content
 		);
+		// width="auto" and similar attributes throw in the engine too.
+		$html_content = (string) preg_replace( '/\\s(?:width|height)\\s*=\\s*("[^"0-9]*"|\'[^\'0-9]*\')/i', '', $html_content );
+		if ( $is_rtl ) {
+			// In right-to-left text the engine moves a link to the far edge
+			// of the line and draws it over the words around it. Keep the
+			// link's look (color and underline) as plain text so the
+			// sentence stays readable.
+			$html_content = (string) preg_replace( '/<a\\b[^>]*>(.*?)<\\/a>/is', '<span style="color:#2C6E8A;text-decoration:underline">$1</span>', $html_content );
+			// The engine always places <dd> text on the left, even in RTL,
+			// which split the page details box into two columns. Paragraphs
+			// follow the page direction.
+			$html_content = (string) preg_replace(
+				array( '/<dl\\b([^>]*)>/i', '/<\\/dl>/i', '/<dt\\b[^>]*>/i', '/<\\/dt>/i', '/<dd\\b[^>]*>/i', '/<\\/dd>/i' ),
+				array( '<div$1>', '</div>', '<p><strong>', '</strong></p>', '<p>', '</p>' ),
+				$html_content
+			);
+		}
 		return $html_content;
+	}
+
+	/**
+	 * Remove every style attribute and style block from the page HTML.
+	 *
+	 * Used only for the fallback render after the engine rejected a style.
+	 *
+	 * @param string $html_content Page HTML.
+	 * @return string HTML without author styles.
+	 */
+	private function strip_author_styles( string $html_content ): string {
+		$html_content = (string) preg_replace( '/<style\\b[^>]*>.*?<\\/style>/is', '', $html_content );
+		return (string) preg_replace( '/\\s(?:style|width|height)\\s*=\\s*("[^"]*"|\'[^\']*\')/i', '', $html_content );
 	}
 
 	/**
@@ -696,6 +830,7 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 			if (
 				in_array( $property, $allowed, true )
 				&& '' !== $value
+				&& ! ( in_array( $property, self::LENGTH_PROPERTIES, true ) && 1 !== preg_match( '/[0-9]/', $value ) )
 				&& 1 !== preg_match( '/(?:url\\s*\\(|expression\\s*\\(|javascript:|data:|@import)/i', $value )
 			) {
 				$kept[] = $property . ':' . $value;
