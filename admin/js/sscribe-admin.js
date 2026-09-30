@@ -2103,6 +2103,47 @@
 					});
 			});
 		},
+		/**
+		 * Add the export's recorded problems to a recovered export record.
+		 *
+		 * The recent-exports list has no error details, so an export found
+		 * that way after a lost finalize response would look complete even
+		 * when pages or formats are missing. Read them from its export log.
+		 *
+		 * @param {Object}   exportData Recovered export record.
+		 * @param {Function} done       Called with the record.
+		 */
+		attachExportIssues: function (exportData, done) {
+			if (!exportData || !exportData.filename) {
+				done(exportData);
+				return;
+			}
+			$.ajax({
+				url: sscribe_data.ajaxurl,
+				type: 'POST',
+				timeout: 15000,
+				data: {
+					action: 'sscribe_get_export_log',
+					nonce: sscribe_data.download_nonce,
+					file: exportData.filename,
+					limit: 1,
+				},
+				success: function (resp) {
+					const log = resp && resp.success && resp.data ? resp.data.log : null;
+					if (log && Array.isArray(log.errors)) {
+						exportData.errors = log.errors
+							.map(function (entry) {
+								return entry && typeof entry.message === 'string' ? entry.message : '';
+							})
+							.filter(Boolean);
+					}
+					done(exportData);
+				},
+				error: function () {
+					done(exportData);
+				},
+			});
+		},
 		findExportInRecentExports: function (resultData, callback) {
 			const selfSessionId = resultData.session_id || null;
 			const selfStartTime = resultData.created_at || 0;
@@ -2197,7 +2238,9 @@
 									matched.processed = 0;
 									matched.total = 0;
 									self.updateProgress(100);
-									self.exportComplete(matched, false);
+									self.attachExportIssues(matched, function (withIssues) {
+										self.exportComplete(withIssues, false);
+									});
 								} else {
 									self.isProcessing = false;
 									self.showError(
@@ -2240,7 +2283,9 @@
 									matched.processed = 0;
 									matched.total = 0;
 									self.updateProgress(100);
-									self.exportComplete(matched, false);
+									self.attachExportIssues(matched, function (withIssues) {
+										self.exportComplete(withIssues, false);
+									});
 								} else {
 									self.showError(
 										sscribe_data.strings.err_zip ||

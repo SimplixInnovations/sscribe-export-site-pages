@@ -12,3 +12,10 @@ test('language cards leave radio checking to the browser so change fires', () =>
  assert.doesNotMatch(source, /input\[type="radio"\]'\)\.prop\('checked',\s*true\)/);
  assert.match(source, /input\[name="sscribe_language"\]'\)\.on\('change\.sscribe',\s*\$\.proxy\(this\.onLanguageChange/);
 });
+// A finished export recovered from the recent-exports list (after a lost
+// finalize response) must still show pages or formats that failed.
+test('recovered exports load their recorded issues before the finish screen', () => {
+ assert.match(source, /attachExportIssues: function/);
+ assert.equal((source.match(/self\.attachExportIssues\(matched,/g) || []).length, 2);
+ assert.match(source, /action: 'sscribe_get_export_log',\s*nonce: sscribe_data\.download_nonce,\s*file: exportData\.filename/);
+});

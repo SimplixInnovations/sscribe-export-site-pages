@@ -559,7 +559,16 @@ trait SScribe_Batch_Step_Handler {
 
 						if ( $this->export_log ) {
 							if ( $export_success ) {
-								$this->export_log->log_page_success( $page_id, $successful_formats );
+								$format_errors = array();
+								foreach ( $export_errors as $export_error ) {
+									$format_errors[ (string) $export_error['format'] ] = (string) ( $export_error['message'] ?? '' );
+								}
+								$this->export_log->log_page_partial(
+									$page_id,
+									$successful_formats,
+									$format_errors,
+									$error_msg . ' ' . implode( ', ', $string_export_errors )
+								);
 							} else {
 								$this->export_log->log_page_failure( $page_id, implode( '; ', $string_export_errors ), $formats );
 							}
