@@ -1131,4 +1131,19 @@ final class SScribe_Private_Storage_Branches_Test extends TestCase {
 			unlink( $link );
 		}
 	}
+
+	public function test_cached_export_dir_restores_missing_guard_files(): void {
+		$dir = \SScribe_Private_Storage::get_export_dir();
+		$this::assertNotSame( '', $dir );
+
+		// Keep the directory (and the cached lookup) but lose its guard files.
+		foreach ( array( '.htaccess', 'index.php' ) as $guard ) {
+			@chmod( $dir . '/' . $guard, 0644 );
+			unlink( $dir . '/' . $guard );
+		}
+
+		$this::assertSame( $dir, \SScribe_Private_Storage::get_export_dir() );
+		$this::assertFileExists( $dir . '/.htaccess' );
+		$this::assertFileExists( $dir . '/index.php' );
+	}
 }
