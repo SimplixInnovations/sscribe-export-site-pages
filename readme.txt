@@ -3,7 +3,7 @@ Contributors: simplixinnovations
 Tags: export, docx, pdf, html, markdown
 Requires at least: 6.1
 Tested up to: 7.1
-Stable tag: 2.0.4
+Stable tag: 2.0.0
 Requires PHP: 8.2
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -119,36 +119,17 @@ Build transformations are documented in docs/BUILD_TRANSFORMATIONS.md.
 
 == Changelog ==
 
-= 2.0.4 =
-* Added Polylang and TranslatePress language support.
-* Fixed exports on sites without a multilingual plugin or with an SEO plugin, and PDFs that failed on images or left them out.
-* Fixed the All status, block tables in DOCX, code samples, Markdown captions, and Arabic PDF links.
-* Choosing a language now updates the page counts, so Generate always matches the selection.
-* The finished export now lists any page or format that failed.
-* Added meta description, canonical, and robots tags to HTML exports.
-* Fixed SQLite upgrades, large-site caching, admin accessibility, and release packaging.
-
-= 2.0.3 =
-* Fixed activation on managed hosting and containers without weakening path or symlink protections.
-* Removed a global shutdown lock flagged by Plugin Check.
-* Hardened export finalization, admin output escaping, database portability, and lock handling.
-* Fixed session, cancellation, cleanup, and privacy-erasure races.
-* Fixed exports of public custom post types.
-
-= 2.0.2 =
-* Release-system hardening plus runtime reliability fixes, including storage/activation compatibility and export-path corrections.
-
-= 2.0.1 =
-* Release-evidence and tag-policy corrections only; runtime unchanged from 2.0.0.
-
 = 2.0.0 =
+* Added Polylang and TranslatePress language support alongside WPML.
+* Added meta description, canonical, and robots tags to HTML exports.
+* The finished export now lists any page or format that failed, and the export log records it.
 * Moved archives, logs, and working files from public uploads to site-isolated private storage, with verified migration of legacy data.
-* Persisted complete page-ID queues in non-autoloaded expiring options so exports with hundreds of pages can resume reliably.
-* Hardened path validation, permissions, symlink handling, cleanup, uninstall, archive ownership, and download containment.
-* Bounded PDF font discovery to supported font extensions and dedicated directories.
-* Added responsive 375 px, 768 px, and desktop layouts, RTL keyboard behavior, and explicit support-panel busy states.
-* Updated release gates for PHP 8.2 through 8.5, locked dependency audits, strict WordPress Plugin Check, readme limits, ZIP limits, and SHA-256 output.
-* Loosened the private-storage ownership check so shared-host installs where /tmp is owned by root but world-writable can activate the plugin; admins can still pin a stricter rule with the new `sscribe_private_storage_allow_foreign_owner` filter.
+* Large exports resume reliably, with memory and time sized per batch.
+* Hardened path validation, permissions, symlink handling, cleanup, uninstall, download containment, admin output escaping, and session and lock handling.
+* Fixed PDFs with images, block tables in DOCX, code samples, Markdown captions, Arabic PDF links, the All status filter, and custom post type exports.
+* Fixed activation on managed hosting and containers, SQLite upgrades, and large-site caching.
+* Added responsive layouts, RTL keyboard support, and accessibility fixes in the admin screens.
+* Supports PHP 8.2 to 8.5 and WordPress 6.1 and later, and passes WordPress Plugin Check.
 
 = 1.9.0 =
 * Rebuilt the WordPress admin screens and corrected export, history, accessibility, and download-flow defects.
@@ -161,17 +142,5 @@ Build transformations are documented in docs/BUILD_TRANSFORMATIONS.md.
 
 == Upgrade Notice ==
 
-= 2.0.4 =
-Adds Polylang and TranslatePress, and fixes PDF, DOCX, Markdown, and status-filter export problems. No manual migration is required.
-
-= 2.0.3 =
-Fixes private-storage activation compatibility, Plugin Check compliance, export finalization reliability, custom post type exports, session concurrency safety, and admin-output hardening. No manual data migration is required.
-
-= 2.0.2 =
-Release hardening and runtime reliability fixes; no manual migration action is required.
-
-= 2.0.1 =
-Release-system corrections only. No behavioural, security, or compatibility changes for end users. Historical v2.0.0 was not shipped to WordPress.org; v2.0.1 contained release-system corrections only.
-
 = 2.0.0 =
-Moves export data to private storage with verified legacy migration, makes large multilingual exports durable, and fixes shared-host activation when the temp directory is root-owned but world-writable.
+Adds Polylang and TranslatePress, moves export data to private storage with verified migration, and fixes PDF, DOCX, Markdown, and status-filter export problems. No manual migration is required.
