@@ -29,13 +29,14 @@ and pinned at the PHPUnit boundary by
 
 ## Baseline SHA
 
-The UI refactor freeze takes effect from the v1.9.0 release tag:
+The UI refactor freeze takes effect from `713bd7fb`, the earliest commit on
+`main` whose admin surface matches the v1.9.0 release exactly:
 
 ```
-BASELINE_SHA = 1aa940d7
+BASELINE_SHA = 713bd7fb
 ```
 
-Any commit at or after `1aa940d7` is bound by this discipline.
+Any commit at or after `713bd7fb` is bound by this discipline.
 
 ## File-count lock
 
@@ -111,11 +112,11 @@ Each backlog item must be reviewed against the v2.0.0 contract gates
 composer test:ui-refactor-discipline
 
 # 2. Cross-check the file count.
-git ls-tree -r 1aa940d7 -- admin/css/ admin/js/ admin/partials/ admin/*.php | wc -l
+git ls-tree -r 713bd7fb -- admin/css/ admin/js/ admin/partials/ admin/*.php | wc -l
 git ls-tree -r HEAD -- admin/css/ admin/js/ admin/partials/ admin/*.php | wc -l
 
 # 3. Cross-check that no admin file was renamed since the freeze.
-git diff --name-status 1aa940d7 HEAD -- admin/
+git diff --name-status 713bd7fb HEAD -- admin/
 
 # 4. Read this doc.
 cat docs/UI_REFACTOR_DISCIPLINE_v2.0.0.md
@@ -140,3 +141,6 @@ A green `composer test:ui-refactor-discipline` + zero `R` / non-zero
 
 - 2026-09-03: Initial discipline doc + verifier + PHPUnit pin.
   Baseline `1aa940d7` (v1.9.0). File-count lock recorded.
+- 2026-10-02: Re-pinned the baseline to `713bd7fb` on `main`. The original
+  `1aa940d7` was reachable only through the deleted v1.9.0 tag, so CI could
+  no longer fetch it. Both commits have the same admin file list.

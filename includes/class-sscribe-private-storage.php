@@ -101,6 +101,14 @@ final class SScribe_Private_Storage {
 				&& self::prepare_managed_path( $cached_path, $cached_base, false )
 				&& ( ! $create || wp_is_writable( $cached_real ) )
 			) {
+				// The directory can outlive its guard files (manual cleanup, a
+				// host purge, or an earlier step in the same request), so a
+				// creating lookup restores them before handing the path back.
+				if ( $create && ( ! is_file( $cached_path . '/.htaccess' ) || ! is_file( $cached_path . '/index.php' ) ) ) {
+					SScribe_Security::protect_directory( $cached_path );
+					self::harden_file( $cached_path . '/.htaccess' );
+					self::harden_file( $cached_path . '/index.php' );
+				}
 				return $cached_path;
 			}
 			unset( $resolved_paths[ $cache_key ] );

@@ -1131,4 +1131,47 @@ final class SScribe_Private_Storage_Branches_Test extends TestCase {
 			unlink( $link );
 		}
 	}
+
+	public function test_cached_export_dir_restores_missing_guard_files(): void {
+		$dir = \SScribe_Private_Storage::get_export_dir();
+		$this::assertNotSame( '', $dir );
+
+		// Keep the directory (and the cached lookup) but lose its guard files.
+		foreach ( array( '.htaccess', 'index.php' ) as $guard ) {
+			@chmod( $dir . '/' . $guard, 0644 );
+			unlink( $dir . '/' . $guard );
+		}
+
+		$this::assertSame( $dir, \SScribe_Private_Storage::get_export_dir() );
+		$this::assertFileExists( $dir . '/.htaccess' );
+		$this::assertFileExists( $dir . '/index.php' );
+	}
+
+	public function test_restoring_guard_files_never_writes_through_symlinks(): void {
+		$dir = \SScribe_Private_Storage::get_export_dir();
+		$this::assertNotSame( '', $dir );
+
+		$target = sys_get_temp_dir() . '/sscribe-guard-target-' . bin2hex( random_bytes( 4 ) );
+		file_put_contents( $target, 'outside' );
+
+		foreach ( array( '.htaccess', 'index.php' ) as $guard ) {
+			@chmod( $dir . '/' . $guard, 0644 );
+			unlink( $dir . '/' . $guard );
+		}
+		if ( ! @symlink( $target, $dir . '/.htaccess' ) ) {
+			unlink( $target );
+			$this->markTestSkipped( 'Symlinks are not available on this filesystem.' );
+		}
+		symlink( $target . '-missing', $dir . '/index.php' );
+
+		\SScribe_Private_Storage::get_export_dir();
+
+		$this::assertSame( 'outside', file_get_contents( $target ) );
+		$this::assertFileDoesNotExist( $target . '-missing' );
+		$this::assertFalse( is_link( $dir . '/.htaccess' ) );
+		$this::assertFalse( is_link( $dir . '/index.php' ) );
+		$this::assertFileExists( $dir . '/.htaccess' );
+		$this::assertFileExists( $dir . '/index.php' );
+		unlink( $target );
+	}
 }
