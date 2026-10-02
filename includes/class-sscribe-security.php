@@ -33,6 +33,20 @@ class SScribe_Security {
 			}
 		}
 
+		// The writers below follow symlinks, so a linked guard file would let
+		// this call overwrite whatever the link points at. Remove the link entry
+		// itself and write a real file in its place.
+		foreach ( array( '.htaccess', 'index.php' ) as $guard_name ) {
+			$guard_path = $dir . '/' . $guard_name;
+			if ( is_link( $guard_path ) ) {
+				wp_delete_file( $guard_path );
+				clearstatcache( true, $guard_path );
+				if ( is_link( $guard_path ) ) {
+					throw new \RuntimeException( 'Unable to replace a linked SScribe guard file.' );
+				}
+			}
+		}
+
 		$htaccess_path = $dir . '/.htaccess';
 		$content       = "Options -Indexes\n";
 		$content      .= "<Files \"*\">\n";

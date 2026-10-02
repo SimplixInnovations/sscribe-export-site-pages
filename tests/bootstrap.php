@@ -2083,7 +2083,8 @@ if ( ! function_exists( 'disabled' ) ) {
 
 if ( ! function_exists( 'wp_delete_file' ) ) {
 	function wp_delete_file( $sscribe_file ) {
-		if ( file_exists( $sscribe_file ) ) {
+		// Like core, remove a symlink entry even when its target is missing.
+		if ( file_exists( $sscribe_file ) || is_link( $sscribe_file ) ) {
 			// @-suppress: Windows file locks from the test's own write
 			// can leave the just-created index.php handle open for a
 			// tick; the production code never hits this. PHPUnit's
