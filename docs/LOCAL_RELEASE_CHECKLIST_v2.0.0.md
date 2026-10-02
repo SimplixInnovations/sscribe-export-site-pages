@@ -505,7 +505,7 @@ composer release:tag
 ```
 
 For this release that helper must resolve the version from
-`SSCRIBE_VERSION` (currently 2.0.4), re-run the strict certification gates as a
+`SSCRIBE_VERSION` (currently 2.0.0), re-run the strict certification gates as a
 fail-closed admission guard, create `v{VERSION}` on the exact certified
 `origin/main` HEAD, and push it without force. When GitHub Actions is available, the tag-triggered
 `.github/workflows/release.yml` must complete verify → audit → test →
