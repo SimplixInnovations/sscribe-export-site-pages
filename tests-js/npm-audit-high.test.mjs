@@ -101,3 +101,69 @@ test('defaultExec subprocess env strips inherited allow-scripts overrides', asyn
     'defaultExec must use cmd.exe /d /s /c wrapper on Windows to avoid spawnSync EINVAL on .cmd shims'
   );
 });
+
+function bracesReport(extra = {}) {
+  const via = {
+    source: 1240992,
+    name: 'braces',
+    dependency: 'braces',
+    title: 'braces vulnerable to stack-exhaustion denial of service through deeply nested patterns',
+    url: 'https://github.com/advisories/GHSA-vfj7-8cjw-p6xm',
+    severity: 'high',
+    range: '<=3.0.3',
+  };
+  return {
+    auditReportVersion: 2,
+    vulnerabilities: {
+      braces: { name: 'braces', severity: 'high', via: [via] },
+      micromatch: { name: 'micromatch', severity: 'high', via: ['braces'] },
+      stylelint: { name: 'stylelint', severity: 'high', via: ['micromatch'] },
+      ...extra,
+    },
+    metadata: {
+      vulnerabilities: {
+        info: 0,
+        low: 0,
+        moderate: 0,
+        high: 3 + Object.keys(extra).length,
+        critical: 0,
+        total: 3 + Object.keys(extra).length,
+      },
+    },
+  };
+}
+
+const ALLOW = [{ id: 'GHSA-vfj7-8cjw-p6xm', reason: 'test', reviewBy: '2026-11-03' }];
+
+test('allowlisted advisory and the packages it reaches pass the gate', () => {
+  const result = classifyAuditPayload(bracesReport(), {
+    allowlist: ALLOW,
+    now: new Date('2026-10-03T00:00:00Z'),
+  });
+  assert.equal(result.kind, 'clean');
+  assert.equal(result.high, 0);
+  assert.equal(result.allowed, 3);
+});
+
+test('an allowlist entry lapses after its review date', () => {
+  const result = classifyAuditPayload(bracesReport(), {
+    allowlist: ALLOW,
+    now: new Date('2026-11-04T00:00:00Z'),
+  });
+  assert.equal(result.kind, 'vulnerable');
+  assert.equal(result.high, 3);
+});
+
+test('a package with any non-allowlisted advisory still fails', () => {
+  const other = {
+    name: 'globby',
+    severity: 'high',
+    via: ['braces', { url: 'https://github.com/advisories/GHSA-aaaa-bbbb-cccc', severity: 'high' }],
+  };
+  const result = classifyAuditPayload(bracesReport({ globby: other }), {
+    allowlist: ALLOW,
+    now: new Date('2026-10-03T00:00:00Z'),
+  });
+  assert.equal(result.kind, 'vulnerable');
+  assert.equal(result.high, 1);
+});

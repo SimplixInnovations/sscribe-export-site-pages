@@ -34,6 +34,7 @@ Never commit onto a tag, delete/recreate a tag, or rebuild a certified artifact.
 ## Playwright
 
 - Smoke: `npm run test:e2e:smoke`. Full incl. a11y: `npm run test:e2e:full`. Runtime contract: `npm run test:e2e:runtime-contract`.
+  `audit:js` fails on any high or critical npm advisory except the reviewed entries in `ALLOWED_ADVISORIES` (`scripts/npm-audit-high.mjs`); each entry carries a review date and stops applying after it.
 - JS hygiene: `npm run lint`, `npm run format:check`, `npm run audit:js`.
 
 ## Security expectations
