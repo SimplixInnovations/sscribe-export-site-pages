@@ -4,7 +4,49 @@ import { pathToFileURL } from 'node:url';
 
 const DEFAULT_ATTEMPTS = 3;
 
-export function classifyAuditPayload(payload) {
+// Advisories accepted on purpose. Each entry must name the advisory, say why
+// it is safe, and carry a review date: after that date the exception lapses
+// and the advisory fails the gate again. Keep this list as short as possible.
+export const ALLOWED_ADVISORIES = [
+  {
+    id: 'GHSA-vfj7-8cjw-p6xm',
+    reason:
+      'braces <=3.0.3 stack-exhaustion DoS, no patched release yet. Reached only through ' +
+      'dev tooling (stylelint, csso-cli) that never ships in the plugin ZIP.',
+    reviewBy: '2026-11-03',
+  },
+];
+
+function advisoryId(via) {
+  const url = typeof via?.url === 'string' ? via.url : '';
+  const match = url.match(/GHSA-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{4}/i);
+  return match ? match[0].toUpperCase() : '';
+}
+
+// A finding is allowed only when every advisory behind it, directly or
+// through the packages it depends on, is on the active allowlist.
+function allowedPackages(vulnerabilities, activeIds) {
+  const memo = new Map();
+  const isAllowed = (name, seen) => {
+    if (memo.has(name)) {
+      return memo.get(name);
+    }
+    const entry = vulnerabilities[name];
+    if (!entry || !Array.isArray(entry.via) || entry.via.length === 0 || seen.has(name)) {
+      return false;
+    }
+    seen.add(name);
+    const allowed = entry.via.every((via) =>
+      typeof via === 'string' ? isAllowed(via, seen) : activeIds.has(advisoryId(via))
+    );
+    seen.delete(name);
+    memo.set(name, allowed);
+    return allowed;
+  };
+  return Object.keys(vulnerabilities).filter((name) => isAllowed(name, new Set()));
+}
+
+export function classifyAuditPayload(payload, { allowlist = ALLOWED_ADVISORIES, now = new Date() } = {}) {
   if (!payload || typeof payload !== 'object') {
     return { kind: 'transient', message: 'npm audit did not return a JSON report' };
   }
@@ -23,16 +65,35 @@ export function classifyAuditPayload(payload) {
     return { kind: 'transient', message: 'npm audit JSON report is missing vulnerability metadata' };
   }
 
-  const high = Number(vulnerabilities.high || 0);
-  const critical = Number(vulnerabilities.critical || 0);
+  let high = Number(vulnerabilities.high || 0);
+  let critical = Number(vulnerabilities.critical || 0);
   const moderate = Number(vulnerabilities.moderate || 0);
   const low = Number(vulnerabilities.low || 0);
+  let allowed = 0;
 
-  if (high > 0 || critical > 0) {
-    return { kind: 'vulnerable', high, critical, moderate, low };
+  const findings = payload.vulnerabilities;
+  if ((high > 0 || critical > 0) && findings && typeof findings === 'object') {
+    const today = now.toISOString().slice(0, 10);
+    const activeIds = new Set(
+      allowlist.filter((entry) => today <= entry.reviewBy).map((entry) => entry.id.toUpperCase())
+    );
+    for (const name of allowedPackages(findings, activeIds)) {
+      const severity = findings[name]?.severity;
+      if (severity === 'high' && high > 0) {
+        high -= 1;
+        allowed += 1;
+      } else if (severity === 'critical' && critical > 0) {
+        critical -= 1;
+        allowed += 1;
+      }
+    }
   }
 
-  return { kind: 'clean', high, critical, moderate, low };
+  if (high > 0 || critical > 0) {
+    return { kind: 'vulnerable', high, critical, moderate, low, allowed };
+  }
+
+  return { kind: 'clean', high, critical, moderate, low, allowed };
 }
 
 function parsePayload(stdout) {
@@ -113,7 +174,7 @@ export async function runAuditWithRetry({
 
     if (classification.kind === 'clean') {
       logger.log(
-        `npm audit high-severity gate passed (high=${classification.high}, critical=${classification.critical}, moderate=${classification.moderate}, low=${classification.low}).`
+        `npm audit high-severity gate passed (high=${classification.high}, critical=${classification.critical}, moderate=${classification.moderate}, low=${classification.low}, allowlisted=${classification.allowed}).`
       );
       return classification;
     }
