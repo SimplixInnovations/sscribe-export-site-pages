@@ -1837,6 +1837,41 @@ if ( ! function_exists( 'remove_filter' ) ) {
 	}
 }
 
+if ( ! function_exists( 'has_filter' ) ) {
+	/**
+	 * Test-bench counterpart of WordPress's has_filter(). Without a callback
+	 * it reports the lowest registered priority for the hook (or false when
+	 * nothing is registered); with a callback it reports that callback's
+	 * priority or false, matching WP's return contract.
+	 */
+	function has_filter( $sscribe_hook, $sscribe_callback = false ) {
+		global $sscribe_test_filters;
+
+		if ( ! is_array( $sscribe_test_filters ) ) {
+			return false;
+		}
+
+		$sscribe_match_priority = false;
+		foreach ( $sscribe_test_filters as $sscribe_filter ) {
+			if ( $sscribe_filter['hook'] !== $sscribe_hook ) {
+				continue;
+			}
+			if ( false === $sscribe_callback ) {
+				$sscribe_priority       = (int) $sscribe_filter['priority'];
+				$sscribe_match_priority = ( false === $sscribe_match_priority )
+					? $sscribe_priority
+					: min( (int) $sscribe_match_priority, $sscribe_priority );
+				continue;
+			}
+			if ( $sscribe_filter['callback'] === $sscribe_callback ) {
+				return (int) $sscribe_filter['priority'];
+			}
+		}
+
+		return $sscribe_match_priority;
+	}
+}
+
 if ( ! function_exists( 'apply_filters' ) ) {
 	function apply_filters( $hook_name, $value ) {
 		global $sscribe_test_filters;

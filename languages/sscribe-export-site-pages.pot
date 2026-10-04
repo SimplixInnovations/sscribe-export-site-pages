@@ -3,35 +3,35 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: SScribe Export Site Pages 2.0.0\n"
-"Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/sscribe-test\n"
+"Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/sscribe-export-site-pages\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-09-30T14:55:41+00:00\n"
+"POT-Creation-Date: 2026-10-04T15:43:07+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.12.0\n"
 "X-Domain: sscribe-export-site-pages\n"
 
 #. Plugin Name of the plugin
-#: sscribe-export-site-pages.php
+#: sscribe-export-site-pages.php:3
 #: includes/class-sscribe-privacy.php:72
 msgid "SScribe Export Site Pages"
 msgstr ""
 
 #. Description of the plugin
-#: sscribe-export-site-pages.php
+#: sscribe-export-site-pages.php:4
 msgid "Export WordPress pages to professional DOCX, PDF, HTML, or Markdown files with multilingual RTL support and secure ZIP download."
 msgstr ""
 
 #. Author of the plugin
-#: sscribe-export-site-pages.php
+#: sscribe-export-site-pages.php:8
 msgid "Simplix Innovations"
 msgstr ""
 
 #. Author URI of the plugin
-#: sscribe-export-site-pages.php
+#: sscribe-export-site-pages.php:9
 msgid "https://simplixi.com"
 msgstr ""
 
@@ -370,7 +370,7 @@ msgid "s"
 msgstr ""
 
 #: admin/class-sscribe-admin.php:319
-#: includes/traits/trait-sscribe-batch-step-handler.php:838
+#: includes/traits/trait-sscribe-batch-step-handler.php:847
 msgid "Packaging files into ZIP archive..."
 msgstr ""
 
@@ -1660,8 +1660,12 @@ msgstr ""
 msgid "Activation could not complete the required setup. Reinstall the plugin package or contact your site administrator. Reference: %s"
 msgstr ""
 
+#: includes/class-sscribe-activator.php:558
+msgid "SScribe could not create its private storage directory. Exports stay disabled until a writable location is available. Make the WordPress uploads directory writable, or define SSCRIBE_PRIVATE_STORAGE_DIR."
+msgstr ""
+
 #. translators: %s: legacy directory name.
-#: includes/class-sscribe-activator.php:559
+#: includes/class-sscribe-activator.php:572
 #, php-format
 msgid "SScribe could not move every legacy public artifact into private storage. Review permissions on %s and the SScribe Diagnostics screen, then re-run Migration from the Tools menu."
 msgstr ""
@@ -3136,48 +3140,48 @@ msgid "Failed to generate exports for \"%s\"."
 msgstr ""
 
 #. translators: %d: Number of additional errors not stored.
-#: includes/traits/trait-sscribe-batch-step-handler.php:685
+#: includes/traits/trait-sscribe-batch-step-handler.php:694
 #, php-format
 msgid "... and %d more errors occurred (see export log for full details)."
 msgstr ""
 
 #. translators: %d: Number of additional errors not stored.
-#: includes/traits/trait-sscribe-batch-step-handler.php:706
+#: includes/traits/trait-sscribe-batch-step-handler.php:715
 #, php-format
 msgid "... and %d more errors occurred."
 msgstr ""
 
-#: includes/traits/trait-sscribe-batch-step-handler.php:777
+#: includes/traits/trait-sscribe-batch-step-handler.php:786
 msgid "Export progress could not be saved. The batch can be retried safely."
 msgstr ""
 
-#: includes/traits/trait-sscribe-batch-step-handler.php:819
+#: includes/traits/trait-sscribe-batch-step-handler.php:828
 msgid "Export completion state could not be saved. Please retry this step."
 msgstr ""
 
 #. translators: 1: Current page number, 2: Total pages.
-#: includes/traits/trait-sscribe-batch-step-handler.php:909
+#: includes/traits/trait-sscribe-batch-step-handler.php:918
 #, php-format
 msgid "Processing %1$d of %2$d pages... (Paused briefly to manage memory - will resume automatically)"
 msgstr ""
 
 #. translators: 1: Current page number, 2: Total pages.
-#: includes/traits/trait-sscribe-batch-step-handler.php:916
+#: includes/traits/trait-sscribe-batch-step-handler.php:925
 #, php-format
 msgid "Processing %1$d of %2$d pages... (Paused to prevent timeout - will resume automatically)"
 msgstr ""
 
 #. translators: 1: Current page number, 2: Total pages.
-#: includes/traits/trait-sscribe-batch-step-handler.php:922
+#: includes/traits/trait-sscribe-batch-step-handler.php:931
 #, php-format
 msgid "Processing %1$d of %2$d pages..."
 msgstr ""
 
-#: includes/traits/trait-sscribe-batch-step-handler.php:934
+#: includes/traits/trait-sscribe-batch-step-handler.php:943
 msgid "The export paused briefly to manage server memory. It will resume automatically. No action needed."
 msgstr ""
 
-#: includes/traits/trait-sscribe-batch-step-handler.php:936
+#: includes/traits/trait-sscribe-batch-step-handler.php:945
 msgid "The export paused briefly to prevent a server timeout. It will resume automatically. No action needed."
 msgstr ""
 
@@ -3350,6 +3354,7 @@ msgid "Update WordPress from Dashboard → Updates before activating this plugin
 msgstr ""
 
 #: sscribe-export-site-pages.php:116
+#: sscribe-export-site-pages.php:182
 msgid "SScribe Export Site Pages:"
 msgstr ""
 
@@ -3368,7 +3373,7 @@ msgid "SScribe Export Site Pages could not finish loading."
 msgstr ""
 
 #. translators: %s: diagnostic reference code.
-#: sscribe-export-site-pages.php:175
+#: sscribe-export-site-pages.php:204
 #, php-format
 msgid "The plugin could not start. Check the server error log and include reference %s when requesting support."
 msgstr ""

@@ -238,6 +238,13 @@ class SScribe_Security {
 			if ( ! is_link( $uploads_base . 'sscribe' ) ) {
 				$base_dirs[] = $uploads_base . 'sscribe/mpdf-tmp';
 			}
+			// Hardened private-storage fallback layout (see
+			// SScribe_Private_Storage::resolve_hardened_uploads_dir). Named
+			// here so guard-file writes on that tree never depend on the
+			// resolver recursion below succeeding first.
+			if ( ! is_link( $uploads_base . 'sscribe-export-site-pages' ) ) {
+				$base_dirs[] = $uploads_base . 'sscribe-export-site-pages';
+			}
 		}
 		if ( class_exists( 'SScribe_Private_Storage' ) ) {
 			$private_dir = SScribe_Private_Storage::get_export_dir( false );

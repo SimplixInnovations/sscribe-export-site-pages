@@ -159,6 +159,35 @@ add_action(
 );
 
 add_action(
+	'admin_notices',
+	static function (): void {
+		if ( ! current_user_can( 'manage_options' ) ) {
+			return;
+		}
+
+		foreach ( array( 'sscribe_storage_warning', 'sscribe_migration_warning' ) as $warning_key ) {
+			$warning = get_transient( $warning_key );
+			if ( ! is_array( $warning ) || empty( $warning['message'] ) ) {
+				continue;
+			}
+
+			$message = is_scalar( $warning['message'] ) && ! is_bool( $warning['message'] ) ? (string) $warning['message'] : '';
+			$time    = isset( $warning['time'] ) && is_scalar( $warning['time'] ) && ! is_bool( $warning['time'] ) ? (string) $warning['time'] : '';
+			if ( '' === $message ) {
+				continue;
+			}
+
+			printf(
+				'<div class="notice notice-warning is-dismissible"><p><strong>%1$s</strong> %2$s</p>%3$s</div>',
+				esc_html__( 'SScribe Export Site Pages:', 'sscribe-export-site-pages' ),
+				esc_html( $message ),
+				$time ? '<p><small>' . esc_html( $time ) . '</small></p>' : ''
+			);
+		}
+	}
+);
+
+add_action(
 	'plugins_loaded',
 	static function () {
 		delete_transient( 'sscribe_boot_error' );

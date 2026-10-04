@@ -436,6 +436,7 @@ parent's gray chip. */
 .sscribe-language-cards.sscribe-cards-row {
 	display: flex;
 	flex-wrap: wrap;
+	align-items: stretch;
 	gap: var(--ss-space-3);
 	min-width: 0;
 }
@@ -443,6 +444,7 @@ parent's gray chip. */
 .sscribe-status-cards.sscribe-cards-row {
 	display: flex;
 	flex-wrap: wrap;
+	align-items: stretch;
 	gap: var(--ss-space-3);
 	min-width: 0;
 }
@@ -512,6 +514,7 @@ parent's gray chip. */
 
 .sscribe-format-card-inner {
 	min-width: 152px;
+	height: 100%;
 }
 
 .sscribe-post-type-card-inner {
@@ -519,7 +522,9 @@ parent's gray chip. */
 }
 
 .sscribe-status-card-inner {
-	min-width: 0;
+	/* Grow to fit the longest label instead of squeezing the name column
+	   into mid-word wraps ("Publishe/d"). The row wraps whole cards. */
+	min-width: max-content;
 	padding-inline: var(--ss-space-2);
 }
 
@@ -592,7 +597,9 @@ parent's gray chip. */
 	color: var(--ss-text-primary);
 	line-height: var(--ss-leading-snug);
 	white-space: normal;
-	overflow-wrap: anywhere;
+	word-break: normal;
+	overflow-wrap: normal;
+	hyphens: manual;
 }
 
 .sscribe-post-type-count,

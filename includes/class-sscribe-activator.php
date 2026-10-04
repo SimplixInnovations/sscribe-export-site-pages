@@ -543,13 +543,26 @@ class SScribe_Activator {
 	 * stay in place so the operator can clean them up by hand when file
 	 * permissions or ownership prevent the plugin from moving them.
 	 *
-	 * @throws \RuntimeException When no safe private storage directory is available.
+	 * An unresolvable private-storage location is also non-fatal: activation
+	 * completes with a persistent admin warning and export endpoints keep
+	 * failing closed at runtime. Hard-aborting activation here left live
+	 * sites with a dead plugin screen over a recoverable filesystem
+	 * condition.
 	 */
 	private static function create_export_directory(): void {
 		$export_path = SScribe_Private_Storage::get_export_dir();
 		if ( '' === $export_path ) {
-			throw new \RuntimeException( 'SScribe could not create a safe private storage directory during activation.' );
+			set_transient(
+				'sscribe_storage_warning',
+				array(
+					'message' => __( 'SScribe could not create its private storage directory. Exports stay disabled until a writable location is available. Make the WordPress uploads directory writable, or define SSCRIBE_PRIVATE_STORAGE_DIR.', 'sscribe-export-site-pages' ),
+					'time'    => gmdate( 'Y-m-d H:i:s \\U\\T\\C' ),
+				),
+				DAY_IN_SECONDS
+			);
+			return;
 		}
+		delete_transient( 'sscribe_storage_warning' );
 		if ( ! SScribe_Private_Storage::migrate_legacy_storage() ) {
 			set_transient(
 				'sscribe_migration_warning',
