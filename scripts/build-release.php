@@ -34,7 +34,7 @@ $config = array(
 
 	'base_excludes'    => array(
 		'dist', 'vendor', '.git', '.gitignore', '.distignore', '.cache', '.phpunit.cache',
-		'.sisyphus', '.wp-env', '.playground-cache', 'wordpress', 'wordpress-tests-lib',
+		'.sisyphus', '.wp-env', '.playground-cache', '.kilo', 'wordpress', 'wordpress-tests-lib',
 		'package.json', 'package-lock.json', 'opencode.json', 'CONTRIBUTING.md', 'CHANGELOG.md',
 		'phpunit.xml', 'phpunit.xml.dist', 'phpunit-coverage*.xml', 'phpstan.neon', 'phpstan.neon.dist',
 		'phpcs.xml', 'phpstan-bootstrap.php', '.editorconfig', '.wp-env.json',

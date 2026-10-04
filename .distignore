@@ -192,6 +192,7 @@ opencode.json
 .continue/
 .codeium/
 .playwright-mcp/
+.kilo/
 
 # WP Playground scratch artifacts (local testing only — never shipped)
 playground-blueprint.json
