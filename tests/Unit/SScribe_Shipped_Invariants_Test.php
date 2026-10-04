@@ -799,9 +799,9 @@ final class SScribe_Shipped_Invariants_Test extends TestCase {
 		$stylesheet = (string) file_get_contents( self::$plugin_root . '/admin/css/sscribe-admin.css' );
 
 		$this->assertMatchesRegularExpression(
-			'/\.sscribe-status-card-inner\s*\{[^}]*min-width:\s*0;[^}]*padding-inline:\s*var\(--ss-space-2\);/s',
+			'/\.sscribe-status-card-inner\s*\{[^}]*min-width:\s*max-content;[^}]*padding-inline:\s*var\(--ss-space-2\);/s',
 			$stylesheet,
-			'Status card interiors must shrink inside their grid tracks so the inherited column-gap remains visible.'
+			'Status card interiors must size to their longest word so labels never break mid-character; whole cards wrap instead.'
 		);
 
 		$this->assertMatchesRegularExpression(
@@ -811,9 +811,9 @@ final class SScribe_Shipped_Invariants_Test extends TestCase {
 		);
 
 		$this->assertMatchesRegularExpression(
-			'/\.sscribe-status-name\s*\{[^}]*white-space:\s*normal;[^}]*overflow-wrap:\s*anywhere;/s',
+			'/\.sscribe-status-name\s*\{[^}]*white-space:\s*normal;[^}]*word-break:\s*normal;[^}]*overflow-wrap:\s*normal;/s',
 			$stylesheet,
-			'Status names must wrap inside compact desktop tracks when translations are longer than English.'
+			'Status names wrap only at word boundaries; the card grows to fit long translations instead of breaking words mid-character.'
 		);
 	}
 	public function test_admin_html_escaping_is_safe_for_quoted_attribute_contexts(): void {
