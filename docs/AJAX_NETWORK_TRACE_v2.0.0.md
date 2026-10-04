@@ -46,6 +46,7 @@ action without updating this doc fails the
 | `wp_ajax_sscribe_get_recent_exports`         | `ajax_get_recent_exports`     | `sscribe_export`   | `sscribe_batch`       | `status_read`     | `success{exports}`     |
 | `wp_ajax_sscribe_get_support_info`           | `ajax_get_support_info`       | `sscribe_health`   | `sscribe_health_nonce`| `health_read`     | `success{info}`        |
 | `wp_ajax_sscribe_check_active_session`       | `ajax_check_active_session`   | `sscribe_export`   | `sscribe_batch`       | `status_read`     | `success{session}`     |
+| `wp_ajax_sscribe_refresh_nonce`              | `ajax_refresh_nonce`          | `sscribe_export` or `sscribe_health` | — (nonce mint: deliberately unauthenticated by nonce because it exists to replace an expired one) | `export_read` | `success{nonce,download_nonce,health_nonce}` |
 | `wp_ajax_sscribe_debug_save_settings`        | `ajax_debug_save_settings`    | `manage_options`   | `sscribe_debug`       | `debug_write`     | `success{}`            |
 | `wp_ajax_sscribe_debug_fetch_logs`           | `ajax_debug_fetch_logs`       | `manage_options`   | `sscribe_debug`       | `debug_read`      | `success{logs}`        |
 | `wp_ajax_sscribe_debug_clear_logs`           | `ajax_debug_clear_logs`       | `manage_options`   | `sscribe_debug`       | `debug_write`     | `success{}`            |
@@ -68,10 +69,19 @@ runs (in order):
    browser).
 5. `wp_send_json_success( $payload )` or `wp_send_json_error( $message )`.
 
+One documented exception exists: `wp_ajax_sscribe_refresh_nonce` is a
+**nonce mint** — its purpose is to reissue nonces after the caller's nonce
+expired, so it cannot verify that same nonce. It still enforces login,
+`current_user_can()` (export or health capability) and the `export_read`
+rate-limit bucket inside `ajax_refresh_nonce()`, and only ever returns
+fresh nonces to their authenticated owner. The Phase 49 inventory encodes
+this as an explicit `nonce-mint` exception list, not an unchecked gap.
+
 The Phase 49 AJAX security inventory contract asserts that every shipped AJAX
-action flows through this guard. The Phase 66 network-trace contract asserts
-the SAME set of actions is enumerated in this doc — a regression that adds
-a new AJAX handler without adding a row to the trace table fails CI.
+action flows through this guard (or the documented nonce-mint exception). The
+Phase 66 network-trace contract asserts the SAME set of actions is enumerated
+in this doc — a regression that adds a new AJAX handler without adding a row
+to the trace table fails CI.
 
 ## What this contract does NOT cover
 

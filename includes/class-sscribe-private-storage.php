@@ -928,6 +928,11 @@ final class SScribe_Private_Storage {
 	 * @return bool True when every entry migrated.
 	 */
 	private static function move_directory_contents( string $source, string $target ): bool {
+		// path_exists() also accepts plain files; scanning one would emit a
+		// PHP warning and poison strict test runs.
+		if ( ! is_dir( $source ) || is_link( $source ) ) {
+			return false;
+		}
 		$entries = scandir( $source );
 		if ( false === $entries ) {
 			return false;

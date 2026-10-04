@@ -222,7 +222,6 @@ trait SScribe_Session_AJAX {
 		}
 
 		$user_id = get_current_user_id();
-		$force   = SScribe_AJAX_Guard::post_boolean( 'force' );
 		if ( $user_id <= 0 ) {
 			SScribe_AJAX_Guard::error(
 				array(
@@ -257,7 +256,7 @@ trait SScribe_Session_AJAX {
 		}
 
 		$this->get_logger()->debug(
-			$force ? 'Force clear session request completed' : 'Clear session request completed',
+			'Clear session request completed',
 			array(
 				'user_id'       => $user_id,
 				'deleted_count' => $deleted,

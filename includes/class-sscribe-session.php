@@ -1387,7 +1387,16 @@ class SScribe_Session {
 		$processed = (int) ( $data['processed'] ?? 0 );
 		$total     = (int) ( $data['total'] ?? 0 );
 
-		if ( $processed >= $total || ! empty( $data['cancelled'] ) ) {
+		if ( ! empty( $data['cancelled'] ) ) {
+			return false;
+		}
+
+		// Finalizing/completing sessions still own resources (temp tree,
+		// lock, ZIP assembly) even once every page is processed; the page
+		// count only guards the processing phase. Without this, a second
+		// export could start while the first is assembling its archive.
+		$is_finalizing = in_array( $status, array( 'finalizing', 'completing' ), true );
+		if ( ! $is_finalizing && $processed >= $total ) {
 			return false;
 		}
 
@@ -1633,18 +1642,19 @@ class SScribe_Session {
 			return $stored;
 		}
 
-		if ( defined( 'AUTH_SALT' ) && '' !== AUTH_SALT ) {
-			if ( $this->bootstrap_signing_key( AUTH_SALT ) ) {
-				return AUTH_SALT;
+		foreach ( array( 'AUTH_SALT', 'SECURE_AUTH_KEY', 'NONCE_SALT' ) as $salt_name ) {
+			if ( ! defined( $salt_name ) || '' === (string) constant( $salt_name ) ) {
+				continue;
 			}
-		} elseif ( defined( 'SECURE_AUTH_KEY' ) && '' !== SECURE_AUTH_KEY ) {
-			if ( $this->bootstrap_signing_key( SECURE_AUTH_KEY ) ) {
-				return SECURE_AUTH_KEY;
+			if ( $this->bootstrap_signing_key( (string) constant( $salt_name ) ) ) {
+				// Resolve to the stored value: a concurrent first use may
+				// have persisted different key material, and signing with a
+				// key that was never stored invalidates every later check.
+				$stored_after = (string) get_option( 'sscribe_session_signing_key', '' );
+
+				return '' !== $stored_after ? $stored_after : (string) constant( $salt_name );
 			}
-		} elseif ( defined( 'NONCE_SALT' ) && '' !== NONCE_SALT ) {
-			if ( $this->bootstrap_signing_key( NONCE_SALT ) ) {
-				return NONCE_SALT;
-			}
+			break;
 		}
 
 		try {

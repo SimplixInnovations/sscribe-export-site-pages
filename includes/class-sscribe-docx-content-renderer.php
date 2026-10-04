@@ -231,6 +231,13 @@ class SScribe_DOCX_Content_Renderer {
 		$scheme = strtolower( ( false === $parsed_scheme || null === $parsed_scheme ) ? '' : $parsed_scheme );
 
 		if ( in_array( $scheme, array( 'http', 'https', 'mailto', 'tel' ), true ) ) {
+			// Reject credential-bearing URLs (https://user:pass@host/...) the
+			// same way SScribe_Exporter::validate_url() does: embedding them
+			// leaks the credentials into the exported document.
+			$parsed_url = wp_parse_url( $url );
+			if ( is_array( $parsed_url ) && ( isset( $parsed_url['user'] ) || isset( $parsed_url['pass'] ) ) ) {
+				return '';
+			}
 			return esc_url_raw( $url );
 		}
 

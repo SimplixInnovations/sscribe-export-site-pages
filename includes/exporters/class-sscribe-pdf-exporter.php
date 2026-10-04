@@ -158,7 +158,17 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 			require_once SSCRIBE_PLUGIN_DIR . 'includes/class-sscribe-rtl-helper.php';
 			require_once SSCRIBE_PLUGIN_DIR . 'includes/class-sscribe-image-processor.php';
 
-			$is_rtl              = SScribe_RTL_Helper::is_rtl( $language );
+			$is_rtl = SScribe_RTL_Helper::is_rtl( $language );
+
+			// Memory guard BEFORE image processing: downloading and GD
+			// decoding content images (up to 25 MP each) is the largest
+			// allocation in this method, and the historical order checked
+			// only after paying that cost.
+			$pre_image_memory_pressure = $this->check_memory_pressure();
+			if ( $pre_image_memory_pressure instanceof SScribe_Result ) {
+				return $pre_image_memory_pressure;
+			}
+
 			$include_images      = '1' === (string) $this->get_format_option( 'sscribe_pdf_include_images', '1' );
 			$processed_page_data = $include_images ? $this->process_images_in_page_data( $page_data ) : $page_data;
 			$temp_image_paths    = $this->collect_temp_image_paths( $processed_page_data );
@@ -508,8 +518,11 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 					function ( array $matches ) use ( &$attempts, $max_content_images, &$temp_paths ): string {
 
 						$url = $matches[2] ?? ( $matches[3] ?? '' );
-						if ( '' === $url || $attempts >= $max_content_images ) {
+						if ( '' === $url ) {
 							return $matches[0];
+						}
+						if ( $attempts >= $max_content_images ) {
+							return self::missing_image_marker( $matches[0] );
 						}
 
 						if ( str_starts_with( $url, 'data:' ) || str_starts_with( $url, '#' ) || str_starts_with( $url, 'file://' ) ) {
@@ -529,7 +542,7 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 							return $replacement;
 						}
 
-						return $matches[0];
+						return self::missing_image_marker( $matches[0] );
 					},
 					$content
 				);
@@ -574,7 +587,9 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 				$source    = rawurldecode( html_entity_decode( $source, ENT_QUOTES | ENT_HTML5, 'UTF-8' ) );
 				$canonical = SScribe_Image_Processor::validate_local_path( $source );
 				if ( '' === $canonical ) {
-					return '';
+					// Unresolvable images leave a visible marker instead of a
+					// silent hole, matching the DOCX renderer's behaviour.
+					return self::missing_image_marker( $tag );
 				}
 				$tag = str_replace( $source_match[0], 'src="' . esc_attr( $canonical ) . '"', $tag );
 				$tag = preg_replace( '/\\s+srcset\\s*=\\s*(?:"[^"]*"|\'[^\']*\'|[^\\s>]+)/i', '', $tag ) ?? $tag;
@@ -583,6 +598,27 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 			$html_content
 		);
 		return is_string( $cleaned ) ? $cleaned : '';
+	}
+
+	/**
+	 * Build the visible replacement for an image that cannot be embedded.
+	 *
+	 * Matches the DOCX renderer's `[MISSING IMAGE]` convention so no format
+	 * silently drops content the reader expects to see.
+	 *
+	 * @param string $tag Original <img> tag (used for the alt text).
+	 * @return string Inline placeholder markup.
+	 */
+	private static function missing_image_marker( string $tag ): string {
+		$alt = '';
+		if ( 1 === preg_match( '/\balt\s*=\s*(?:"([^"]*)"|\'([^\']*)\')/i', $tag, $alt_match ) ) {
+			$alt = (string) ( $alt_match[1] !== '' ? $alt_match[1] : ( $alt_match[2] ?? '' ) );
+		}
+		if ( '' === $alt ) {
+			$alt = __( 'No Alt Text Provided', 'sscribe-export-site-pages' );
+		}
+
+		return '<em>' . esc_html( __( '[MISSING IMAGE] ', 'sscribe-export-site-pages' ) . $alt ) . '</em>';
 	}
 
 	/**

@@ -9,7 +9,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-10-04T17:55:38+00:00\n"
+"POT-Creation-Date: 2026-10-04T21:39:15+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.12.0\n"
 "X-Domain: sscribe-export-site-pages\n"
@@ -40,6 +40,7 @@ msgid "Invalid security token."
 msgstr ""
 
 #: admin/class-sscribe-admin-debug.php:155
+#: includes/class-sscribe-export-query-controller.php:798
 msgid "Insufficient permissions."
 msgstr ""
 
@@ -136,91 +137,91 @@ msgstr ""
 msgid "SScribe Export"
 msgstr ""
 
-#: admin/class-sscribe-admin.php:270
+#: admin/class-sscribe-admin.php:273
 msgid "Starting export..."
 msgstr ""
 
-#: admin/class-sscribe-admin.php:271
+#: admin/class-sscribe-admin.php:274
 msgid "Processing..."
 msgstr ""
 
-#: admin/class-sscribe-admin.php:272
+#: admin/class-sscribe-admin.php:275
 msgid "Export complete!"
 msgstr ""
 
-#: admin/class-sscribe-admin.php:273
+#: admin/class-sscribe-admin.php:276
 msgid "An error occurred. Please try again."
 msgstr ""
 
-#: admin/class-sscribe-admin.php:274
+#: admin/class-sscribe-admin.php:277
 #: admin/partials/sscribe-admin-display.php:788
 msgid "Download ZIP"
 msgstr ""
 
-#: admin/class-sscribe-admin.php:275
+#: admin/class-sscribe-admin.php:278
 msgid "Generating documents..."
 msgstr ""
 
-#: admin/class-sscribe-admin.php:276
+#: admin/class-sscribe-admin.php:279
 msgid "Start exporting pages?"
 msgstr ""
 
-#: admin/class-sscribe-admin.php:277
+#: admin/class-sscribe-admin.php:280
 msgid "Delete this export file?"
 msgstr ""
 
-#: admin/class-sscribe-admin.php:278
+#: admin/class-sscribe-admin.php:281
 msgid "This file will be automatically deleted in 72 hours for security."
 msgstr ""
 
-#: admin/class-sscribe-admin.php:279
-#: admin/class-sscribe-admin.php:361
+#: admin/class-sscribe-admin.php:282
+#: admin/class-sscribe-admin.php:364
 #: admin/partials/sscribe-admin-display.php:743
 msgid "Cancel Export"
 msgstr ""
 
-#: admin/class-sscribe-admin.php:280
+#: admin/class-sscribe-admin.php:283
 msgid "Cancelling..."
 msgstr ""
 
-#: admin/class-sscribe-admin.php:281
+#: admin/class-sscribe-admin.php:284
 #: admin/partials/sscribe-admin-display.php:1089
 msgid "Loading log..."
 msgstr ""
 
-#: admin/class-sscribe-admin.php:282
+#: admin/class-sscribe-admin.php:285
 msgid "Log not found."
 msgstr ""
 
-#: admin/class-sscribe-admin.php:283
+#: admin/class-sscribe-admin.php:286
 msgid "Failed to load log."
 msgstr ""
 
-#: admin/class-sscribe-admin.php:284
+#: admin/class-sscribe-admin.php:287
 msgid "Failed to delete export."
 msgstr ""
 
-#: admin/class-sscribe-admin.php:285
+#: admin/class-sscribe-admin.php:288
 #: includes/class-sscribe-batch-file-handler.php:300
 msgid "Export deleted."
 msgstr ""
 
-#: admin/class-sscribe-admin.php:286
+#: admin/class-sscribe-admin.php:289
 msgid "Your recent export packages will appear here."
 msgstr ""
 
-#: admin/class-sscribe-admin.php:287
+#: admin/class-sscribe-admin.php:290
 #: admin/partials/sscribe-admin-display.php:896
 msgid "Recent export packages"
 msgstr ""
 
-#: admin/class-sscribe-admin.php:288
+#: admin/class-sscribe-admin.php:291
 #: admin/partials/sscribe-admin-display.php:899
 msgid "Select"
 msgstr ""
 
-#: admin/class-sscribe-admin.php:289
-#: admin/class-sscribe-admin.php:364
+#: admin/class-sscribe-admin.php:292
+#: admin/class-sscribe-admin.php:367
 #: admin/partials/sscribe-admin-display.php:190
 #: admin/partials/sscribe-admin-display.php:900
 #: admin/js/sscribe-debug-console.js:1504
@@ -228,31 +229,31 @@ msgstr ""
 msgid "Export"
 msgstr ""
 
-#: admin/class-sscribe-admin.php:290
+#: admin/class-sscribe-admin.php:293
 #: admin/partials/sscribe-admin-display.php:901
 msgid "Actions"
 msgstr ""
 
 #. translators: %s: export filename
-#: admin/class-sscribe-admin.php:292
+#: admin/class-sscribe-admin.php:295
 #: admin/partials/sscribe-admin-display.php:921
 #, php-format
 msgid "Select export %s"
 msgstr ""
 
-#: admin/class-sscribe-admin.php:293
+#: admin/class-sscribe-admin.php:296
 #: admin/partials/sscribe-admin-display.php:880
 #: admin/partials/sscribe-admin-display.php:962
 msgid "Download"
 msgstr ""
 
-#: admin/class-sscribe-admin.php:294
+#: admin/class-sscribe-admin.php:297
 #: admin/partials/sscribe-admin-display.php:966
 msgid "Log"
 msgstr ""
 
-#: admin/class-sscribe-admin.php:295
-#: admin/class-sscribe-admin.php:365
+#: admin/class-sscribe-admin.php:298
+#: admin/class-sscribe-admin.php:368
 #: admin/partials/sscribe-admin-display.php:883
 #: admin/partials/sscribe-admin-display.php:969
 #: admin/js/sscribe-debug-console.js:1505
@@ -263,50 +264,50 @@ msgstr ""
 msgid "Delete"
 msgstr ""
 
-#: admin/class-sscribe-admin.php:296
-#: admin/class-sscribe-admin.php:375
+#: admin/class-sscribe-admin.php:299
+#: admin/class-sscribe-admin.php:378
 msgid "Estimated time:"
 msgstr ""
 
-#: admin/class-sscribe-admin.php:297
+#: admin/class-sscribe-admin.php:300
 msgid "minutes"
 msgstr ""
 
-#: admin/class-sscribe-admin.php:298
+#: admin/class-sscribe-admin.php:301
 msgid "minute"
 msgstr ""
 
-#: admin/class-sscribe-admin.php:299
+#: admin/class-sscribe-admin.php:302
 msgid "seconds"
 msgstr ""
 
-#: admin/class-sscribe-admin.php:300
+#: admin/class-sscribe-admin.php:303
 msgid "sec remaining"
 msgstr ""
 
 #. translators: %1$d: minutes, %2$d: seconds
-#: admin/class-sscribe-admin.php:302
+#: admin/class-sscribe-admin.php:305
 #, php-format
 msgid "%1$d min %2$d sec remaining"
 msgstr ""
 
-#: admin/class-sscribe-admin.php:303
+#: admin/class-sscribe-admin.php:306
 msgid "h"
 msgstr ""
 
-#: admin/class-sscribe-admin.php:304
+#: admin/class-sscribe-admin.php:307
 msgid "m"
 msgstr ""
 
-#: admin/class-sscribe-admin.php:305
+#: admin/class-sscribe-admin.php:308
 msgid "Total:"
 msgstr ""
 
-#: admin/class-sscribe-admin.php:306
+#: admin/class-sscribe-admin.php:309
 msgid "pages"
 msgstr ""
 
-#: admin/class-sscribe-admin.php:307
+#: admin/class-sscribe-admin.php:310
 #: admin/partials/sscribe-admin-display.php:370
 #: admin/partials/sscribe-admin-display.php:599
 msgid "page"
@@ -314,621 +315,621 @@ msgid_plural "pages"
 msgstr[0] ""
 msgstr[1] ""
 
-#: admin/class-sscribe-admin.php:308
+#: admin/class-sscribe-admin.php:311
 msgid "Success:"
 msgstr ""
 
-#: admin/class-sscribe-admin.php:309
+#: admin/class-sscribe-admin.php:312
 msgid "Failed:"
 msgstr ""
 
-#: admin/class-sscribe-admin.php:310
+#: admin/class-sscribe-admin.php:313
 msgid "Page Details"
 msgstr ""
 
-#: admin/class-sscribe-admin.php:311
+#: admin/class-sscribe-admin.php:314
 msgid "ID"
 msgstr ""
 
-#: admin/class-sscribe-admin.php:312
+#: admin/class-sscribe-admin.php:315
 msgid "Title"
 msgstr ""
 
-#: admin/class-sscribe-admin.php:313
+#: admin/class-sscribe-admin.php:316
 #: includes/class-sscribe-privacy.php:181
 #: includes/class-sscribe-privacy.php:233
 msgid "Status"
 msgstr ""
 
-#: admin/class-sscribe-admin.php:314
+#: admin/class-sscribe-admin.php:317
 msgid "Time"
 msgstr ""
 
-#: admin/class-sscribe-admin.php:315
+#: admin/class-sscribe-admin.php:318
 #: admin/partials/sscribe-admin-display.php:769
 #: includes/class-sscribe-privacy.php:197
 msgid "Formats"
 msgstr ""
 
-#: admin/class-sscribe-admin.php:316
-#: includes/class-sscribe-diagnostics.php:280
-#: includes/class-sscribe-diagnostics.php:281
-#: includes/class-sscribe-diagnostics.php:282
+#: admin/class-sscribe-admin.php:319
 #: includes/class-sscribe-diagnostics.php:283
+#: includes/class-sscribe-diagnostics.php:284
+#: includes/class-sscribe-diagnostics.php:285
+#: includes/class-sscribe-diagnostics.php:286
 #: includes/class-sscribe-page-collector.php:965
 #: includes/class-sscribe-page-collector.php:1052
 #: includes/exporters/class-sscribe-markdown-exporter.php:207
 msgid "Unknown"
 msgstr ""
 
-#: admin/class-sscribe-admin.php:317
+#: admin/class-sscribe-admin.php:320
 msgid "Errors"
 msgstr ""
 
-#: admin/class-sscribe-admin.php:318
+#: admin/class-sscribe-admin.php:321
 msgid "s"
 msgstr ""
 
-#: admin/class-sscribe-admin.php:319
-#: includes/traits/trait-sscribe-batch-step-handler.php:847
+#: admin/class-sscribe-admin.php:322
+#: includes/traits/trait-sscribe-batch-step-handler.php:881
 msgid "Packaging files into ZIP archive..."
 msgstr ""
 
-#: admin/class-sscribe-admin.php:320
+#: admin/class-sscribe-admin.php:323
 #: admin/partials/sscribe-admin-display.php:961
 msgid "Download this export"
 msgstr ""
 
 #. translators: %s: export filename
-#: admin/class-sscribe-admin.php:321
+#: admin/class-sscribe-admin.php:324
 #: admin/partials/sscribe-admin-display.php:965
 msgid "View export log"
 msgstr ""
 
-#: admin/class-sscribe-admin.php:322
+#: admin/class-sscribe-admin.php:325
 #: admin/partials/sscribe-admin-display.php:968
 msgid "Delete this export"
 msgstr ""
 
-#: admin/class-sscribe-admin.php:323
+#: admin/class-sscribe-admin.php:326
 msgid "Support Information"
 msgstr ""
 
-#: admin/class-sscribe-admin.php:324
+#: admin/class-sscribe-admin.php:327
 msgid "Your WordPress user role does not have the required capability (sscribe_export). Please contact your site administrator to grant export permissions, or log in with an Administrator account."
 msgstr ""
 
-#: admin/class-sscribe-admin.php:325
+#: admin/class-sscribe-admin.php:328
 msgid "The export session was lost : this typically happens when the PHP session or database connection timed out. Click \"Try Again\" to start a fresh export. If this keeps happening, ask your hosting provider to increase the PHP max_execution_time (recommended: 120s or higher)."
 msgstr ""
 
-#: admin/class-sscribe-admin.php:326
+#: admin/class-sscribe-admin.php:329
 msgid "The encrypted export session data could not be verified. Clear the session and start a new export. If this repeats, check database health and available storage."
 msgstr ""
 
-#: admin/class-sscribe-admin.php:327
+#: admin/class-sscribe-admin.php:330
 msgid "You have exceeded the request rate limit. Please wait about 1 minute and then try again."
 msgstr ""
 
-#: admin/class-sscribe-admin.php:328
+#: admin/class-sscribe-admin.php:331
 msgid "No pages match the selected language and status combination. Go back and verify your selection. If using WPML or Polylang, ensure the selected language has pages assigned to it."
 msgstr ""
 
-#: admin/class-sscribe-admin.php:329
+#: admin/class-sscribe-admin.php:332
 msgid "The server could not create the ZIP archive. Verify that private temporary storage is writable, sufficient disk space is available, and the PHP ZIP extension is installed."
 msgstr ""
 
-#: admin/class-sscribe-admin.php:330
+#: admin/class-sscribe-admin.php:333
 msgid "The server took too long to respond. This usually happens with large pages or slow server hardware. The plugin processes pages individually and will resume from where it left off. If this keeps happening, ask your hosting provider to increase max_execution_time to at least 120 seconds."
 msgstr ""
 
-#: admin/class-sscribe-admin.php:331
+#: admin/class-sscribe-admin.php:334
 msgid "The server ran out of PHP memory during export. Ask your hosting provider to increase the WordPress memory limit (WP_MEMORY_LIMIT) to at least 256M. You can also try exporting fewer pages at a time by selecting a specific language."
 msgstr ""
 
-#: admin/class-sscribe-admin.php:332
+#: admin/class-sscribe-admin.php:335
 msgid "The connection to your server was interrupted. Check your internet connection and try again. If you are behind a proxy or CDN (e.g., Cloudflare), ensure AJAX requests are not being blocked or cached."
 msgstr ""
 
-#: admin/class-sscribe-admin.php:333
+#: admin/class-sscribe-admin.php:336
 msgid "The selected language code is not recognized by your multilingual plugin. Go back to step 1 and select a valid language. If you recently changed your language settings, refresh this page first."
 msgstr ""
 
-#: admin/class-sscribe-admin.php:334
+#: admin/class-sscribe-admin.php:337
 msgid "A previous export session is still active. Click \"Try Again\" to force-clear it and start fresh."
 msgstr ""
 
-#: admin/class-sscribe-admin.php:335
+#: admin/class-sscribe-admin.php:338
 msgid "Your server encountered an internal error (HTTP 500). Check your server's PHP error log for details. Common causes: a conflicting plugin, PHP memory limit too low, or a corrupted .htaccess file."
 msgstr ""
 
-#: admin/class-sscribe-admin.php:336
+#: admin/class-sscribe-admin.php:339
 msgid "The server rejected the request (HTTP 403 Forbidden). This is usually caused by a security plugin (e.g., Wordfence, Sucuri, iThemes Security) or server-level firewall blocking AJAX requests. Whitelist the SScribe AJAX actions in your security plugin settings."
 msgstr ""
 
-#: admin/class-sscribe-admin.php:337
+#: admin/class-sscribe-admin.php:340
 msgid "Click \"Try Again\" to retry the export. If the problem continues: refresh the page, check your browser's developer console (F12), or contact your hosting provider to review PHP error logs."
 msgstr ""
 
-#: admin/class-sscribe-admin.php:338
+#: admin/class-sscribe-admin.php:341
 msgid "Connection lost : the server did not respond. Please check your internet connection and try again."
 msgstr ""
 
-#: admin/class-sscribe-admin.php:339
+#: admin/class-sscribe-admin.php:342
 msgid "Access denied (HTTP 403). A security plugin or firewall may be blocking this request."
 msgstr ""
 
-#: admin/class-sscribe-admin.php:340
+#: admin/class-sscribe-admin.php:343
 msgid "Internal server error (HTTP 500). The server encountered a problem : check your PHP error log for details."
 msgstr ""
 
-#: admin/class-sscribe-admin.php:341
+#: admin/class-sscribe-admin.php:344
 msgid "Bad gateway (HTTP 502). Your server or reverse proxy (Nginx/Cloudflare) is unavailable. Please wait a moment and try again."
 msgstr ""
 
-#: admin/class-sscribe-admin.php:342
+#: admin/class-sscribe-admin.php:345
 msgid "Service unavailable (HTTP 503). Your server is temporarily overloaded or under maintenance. Please wait a moment and try again."
 msgstr ""
 
-#: admin/class-sscribe-admin.php:343
+#: admin/class-sscribe-admin.php:346
 msgid "Gateway timeout (HTTP 504). The request took too long to process. Ask your hosting provider to increase the PHP max_execution_time."
 msgstr ""
 
-#: admin/class-sscribe-admin.php:344
+#: admin/class-sscribe-admin.php:347
 msgid "Request timed out : the server took too long to respond. This may happen with large exports. Please try again."
 msgstr ""
 
 #. translators: %d: HTTP status code
-#: admin/class-sscribe-admin.php:346
+#: admin/class-sscribe-admin.php:349
 #, php-format
 msgid "A network error occurred (HTTP %d). Please check your connection and try again."
 msgstr ""
 
-#: admin/class-sscribe-admin.php:347
+#: admin/class-sscribe-admin.php:350
 msgid "Loading support information..."
 msgstr ""
 
-#: admin/class-sscribe-admin.php:348
+#: admin/class-sscribe-admin.php:351
 msgid "Unable to load support information right now."
 msgstr ""
 
-#: admin/class-sscribe-admin.php:349
+#: admin/class-sscribe-admin.php:352
 msgid "Copy failed. Try selecting the text manually."
 msgstr ""
 
-#: admin/class-sscribe-admin.php:350
+#: admin/class-sscribe-admin.php:353
 msgid "Copy support info"
 msgstr ""
 
-#: admin/class-sscribe-admin.php:351
+#: admin/class-sscribe-admin.php:354
 msgid "Support information copied."
 msgstr ""
 
-#: admin/class-sscribe-admin.php:352
+#: admin/class-sscribe-admin.php:355
 msgid "Refresh"
 msgstr ""
 
-#: admin/class-sscribe-admin.php:353
+#: admin/class-sscribe-admin.php:356
 #: admin/partials/sscribe-admin-display.php:777
 msgid "Generated"
 msgstr ""
 
-#: admin/class-sscribe-admin.php:354
+#: admin/class-sscribe-admin.php:357
 msgid "Debug mode may expose extra detail intended for administrators only."
 msgstr ""
 
-#: admin/class-sscribe-admin.php:355
-#: admin/class-sscribe-admin.php:756
+#: admin/class-sscribe-admin.php:358
+#: admin/class-sscribe-admin.php:759
 #: includes/class-sscribe-export-query-controller.php:602
 #: includes/class-sscribe-exporter.php:1381
 msgid "All Languages"
 msgstr ""
 
-#: admin/class-sscribe-admin.php:356
+#: admin/class-sscribe-admin.php:359
 #: admin/partials/sscribe-admin-display.php:581
 msgid "All formats"
 msgstr ""
 
-#: admin/class-sscribe-admin.php:357
+#: admin/class-sscribe-admin.php:360
 msgid "Export Readiness Check"
 msgstr ""
 
-#: admin/class-sscribe-admin.php:358
+#: admin/class-sscribe-admin.php:361
 msgid "Critical Issues"
 msgstr ""
 
-#: admin/class-sscribe-admin.php:359
+#: admin/class-sscribe-admin.php:362
 msgid "Recommendations"
 msgstr ""
 
-#: admin/class-sscribe-admin.php:360
+#: admin/class-sscribe-admin.php:363
 msgid "Continue Anyway"
 msgstr ""
 
-#: admin/class-sscribe-admin.php:362
+#: admin/class-sscribe-admin.php:365
 #: admin/partials/sscribe-admin-display.php:679
 #: admin/partials/sscribe-admin-display.php:1093
 msgid "Close"
 msgstr ""
 
-#: admin/class-sscribe-admin.php:363
+#: admin/class-sscribe-admin.php:366
 #: admin/js/sscribe-debug-console.js:1503
 msgid "View"
 msgstr ""
 
-#: admin/class-sscribe-admin.php:366
+#: admin/class-sscribe-admin.php:369
 #: admin/js/sscribe-debug-console.js:1506
 msgid "View rotated log"
 msgstr ""
 
-#: admin/class-sscribe-admin.php:367
+#: admin/class-sscribe-admin.php:370
 #: admin/js/sscribe-debug-console.js:1507
 msgid "Export rotated log"
 msgstr ""
 
-#: admin/class-sscribe-admin.php:368
+#: admin/class-sscribe-admin.php:371
 #: admin/js/sscribe-debug-console.js:1508
 msgid "Delete rotated log"
 msgstr ""
 
-#: admin/class-sscribe-admin.php:369
+#: admin/class-sscribe-admin.php:372
 #: admin/partials/sscribe-admin-display.php:674
 msgid "Generating preview..."
 msgstr ""
 
-#: admin/class-sscribe-admin.php:370
+#: admin/class-sscribe-admin.php:373
 msgid "Preview is generated from the first page and may differ from the final export."
 msgstr ""
 
-#: admin/class-sscribe-admin.php:371
+#: admin/class-sscribe-admin.php:374
 msgid "Total pages:"
 msgstr ""
 
-#: admin/class-sscribe-admin.php:372
+#: admin/class-sscribe-admin.php:375
 msgid "Format:"
 msgstr ""
 
-#: admin/class-sscribe-admin.php:373
+#: admin/class-sscribe-admin.php:376
 msgid "Language:"
 msgstr ""
 
-#: admin/class-sscribe-admin.php:374
+#: admin/class-sscribe-admin.php:377
 msgid "Status:"
 msgstr ""
 
-#: admin/class-sscribe-admin.php:376
+#: admin/class-sscribe-admin.php:379
 msgid "Est. file size:"
 msgstr ""
 
-#: admin/class-sscribe-admin.php:377
+#: admin/class-sscribe-admin.php:380
 msgid "Sample:"
 msgstr ""
 
-#: admin/class-sscribe-admin.php:378
+#: admin/class-sscribe-admin.php:381
 msgid "Only the first few pages are shown in the preview."
 msgstr ""
 
-#: admin/class-sscribe-admin.php:379
+#: admin/class-sscribe-admin.php:382
 msgid "See Preview for adaptive estimate"
 msgstr ""
 
-#: admin/class-sscribe-admin.php:380
+#: admin/class-sscribe-admin.php:383
 msgid "Loading page counts..."
 msgstr ""
 
-#: admin/class-sscribe-admin.php:381
+#: admin/class-sscribe-admin.php:384
 msgid "Diagnostics"
 msgstr ""
 
-#: admin/class-sscribe-admin.php:382
+#: admin/class-sscribe-admin.php:385
 msgid "Technical details"
 msgstr ""
 
-#: admin/class-sscribe-admin.php:383
+#: admin/class-sscribe-admin.php:386
 #: admin/partials/sscribe-admin-display.php:828
 msgid "Show technical details"
 msgstr ""
 
-#: admin/class-sscribe-admin.php:384
+#: admin/class-sscribe-admin.php:387
 msgid "Hide technical details"
 msgstr ""
 
-#: admin/class-sscribe-admin.php:385
+#: admin/class-sscribe-admin.php:388
 #: includes/class-sscribe-error.php:608
 msgid "Steps to fix:"
 msgstr ""
 
-#: admin/class-sscribe-admin.php:386
+#: admin/class-sscribe-admin.php:389
 msgid "Export progress:"
 msgstr ""
 
-#: admin/class-sscribe-admin.php:387
+#: admin/class-sscribe-admin.php:390
 #: includes/class-sscribe-export-format.php:33
 msgid "Word Document (DOCX)"
 msgstr ""
 
-#: admin/class-sscribe-admin.php:388
+#: admin/class-sscribe-admin.php:391
 #: includes/class-sscribe-export-format.php:34
 msgid "PDF Document"
 msgstr ""
 
-#: admin/class-sscribe-admin.php:389
+#: admin/class-sscribe-admin.php:392
 #: includes/class-sscribe-export-format.php:35
 msgid "HTML Page"
 msgstr ""
 
-#: admin/class-sscribe-admin.php:390
+#: admin/class-sscribe-admin.php:393
 #: admin/partials/sscribe-admin-display.php:431
 #: includes/class-sscribe-export-format.php:36
 msgid "Markdown"
 msgstr ""
 
-#: admin/class-sscribe-admin.php:391
+#: admin/class-sscribe-admin.php:394
 msgid "Failed to clear the export session after multiple attempts. Please refresh the page and try again."
 msgstr ""
 
-#: admin/class-sscribe-admin.php:392
+#: admin/class-sscribe-admin.php:395
 #: includes/traits/trait-sscribe-session-ajax.php:158
 msgid "Export cancelled."
 msgstr ""
 
-#: admin/class-sscribe-admin.php:393
+#: admin/class-sscribe-admin.php:396
 msgid "An export is in progress. Cancel it to start a new one."
 msgstr ""
 
-#: admin/class-sscribe-admin.php:394
+#: admin/class-sscribe-admin.php:397
 msgid "Export complete! You can start a new export now."
 msgstr ""
 
-#: admin/class-sscribe-admin.php:395
+#: admin/class-sscribe-admin.php:398
 msgid "Click again"
 msgstr ""
 
-#: admin/class-sscribe-admin.php:396
+#: admin/class-sscribe-admin.php:399
 #: admin/partials/sscribe-admin-display.php:876
 msgid "selected"
 msgstr ""
 
-#: admin/class-sscribe-admin.php:397
+#: admin/class-sscribe-admin.php:400
 msgid "Calculating..."
 msgstr ""
 
-#: admin/class-sscribe-admin.php:398
+#: admin/class-sscribe-admin.php:401
 msgid "Dismiss notification"
 msgstr ""
 
-#: admin/class-sscribe-admin.php:399
+#: admin/class-sscribe-admin.php:402
 msgid "Failed to generate preview."
 msgstr ""
 
-#: admin/class-sscribe-admin.php:400
+#: admin/class-sscribe-admin.php:403
 msgid "Download unavailable."
 msgstr ""
 
 #. translators: %d: Number of problems.
-#: admin/class-sscribe-admin.php:402
+#: admin/class-sscribe-admin.php:405
 #, php-format
 msgid "%d problem during this export"
 msgstr ""
 
 #. translators: %d: Number of problems.
-#: admin/class-sscribe-admin.php:404
+#: admin/class-sscribe-admin.php:407
 #, php-format
 msgid "%d problems during this export"
 msgstr ""
 
 #. translators: %d: Number of problems not listed.
-#: admin/class-sscribe-admin.php:406
+#: admin/class-sscribe-admin.php:409
 #, php-format
 msgid "...and %d more"
 msgstr ""
 
 #. translators: %1$d: current page number, %2$d: total pages
-#: admin/class-sscribe-admin.php:408
+#: admin/class-sscribe-admin.php:411
 #, php-format
 msgid "Processing %1$d of %2$d pages"
 msgstr ""
 
-#: admin/class-sscribe-admin.php:409
+#: admin/class-sscribe-admin.php:412
 msgid "Could not confirm cancellation : the server may still be processing. Reload the page before starting a new export."
 msgstr ""
 
-#: admin/class-sscribe-admin.php:411
+#: admin/class-sscribe-admin.php:414
 msgid "Delete all selected exports? This cannot be undone."
 msgstr ""
 
-#: admin/class-sscribe-admin.php:412
+#: admin/class-sscribe-admin.php:415
 msgid "Delete selected"
 msgstr ""
 
-#: admin/class-sscribe-admin.php:413
+#: admin/class-sscribe-admin.php:416
 msgid "Delete selected exports?"
 msgstr ""
 
-#: admin/class-sscribe-admin.php:414
+#: admin/class-sscribe-admin.php:417
 msgid "All selected exports will be permanently removed from the server. ZIP files in your downloads folder will not be affected."
 msgstr ""
 
-#: admin/class-sscribe-admin.php:415
+#: admin/class-sscribe-admin.php:418
 msgid "Bulk delete cancelled."
 msgstr ""
 
-#: admin/class-sscribe-admin.php:416
+#: admin/class-sscribe-admin.php:419
 msgid "Deleting selected exports..."
 msgstr ""
 
 #. translators: 1: count, 2: pluralized "export"/"exports"
-#: admin/class-sscribe-admin.php:418
+#: admin/class-sscribe-admin.php:421
 #, php-format
 msgid "Delete %1$d %2$s"
 msgstr ""
 
 #. translators: 1: count, 2: pluralized "export"/"exports"
-#: admin/class-sscribe-admin.php:420
+#: admin/class-sscribe-admin.php:423
 #, php-format
 msgid "Delete %1$d %2$s?"
 msgstr ""
 
-#: admin/class-sscribe-admin.php:421
+#: admin/class-sscribe-admin.php:424
 #: admin/js/sscribe-debug-console.js:1024
 msgid "Retry"
 msgstr ""
 
-#: admin/class-sscribe-admin.php:422
+#: admin/class-sscribe-admin.php:425
 msgid "Cancel this export?"
 msgstr ""
 
-#: admin/class-sscribe-admin.php:423
+#: admin/class-sscribe-admin.php:426
 msgid "Cancel the current export? Partial progress will be discarded."
 msgstr ""
 
-#: admin/class-sscribe-admin.php:424
+#: admin/class-sscribe-admin.php:427
 msgid "Cancellation aborted."
 msgstr ""
 
-#: admin/class-sscribe-admin.php:425
+#: admin/class-sscribe-admin.php:428
 msgid "Preparing your export..."
 msgstr ""
 
-#: admin/class-sscribe-admin.php:426
+#: admin/class-sscribe-admin.php:429
 msgid "Select a post status"
 msgstr ""
 
-#: admin/class-sscribe-admin.php:427
+#: admin/class-sscribe-admin.php:430
 msgid "Select a format"
 msgstr ""
 
-#: admin/class-sscribe-admin.php:428
+#: admin/class-sscribe-admin.php:431
 msgid "Select a post type"
 msgstr ""
 
-#: admin/class-sscribe-admin.php:429
+#: admin/class-sscribe-admin.php:432
 msgid "Select a language"
 msgstr ""
 
-#: admin/class-sscribe-admin.php:430
+#: admin/class-sscribe-admin.php:433
 msgid "No diagnostic data available."
 msgstr ""
 
-#: admin/class-sscribe-admin.php:431
+#: admin/class-sscribe-admin.php:434
 msgid "Click again within 3s to confirm"
 msgstr ""
 
-#: admin/class-sscribe-admin.php:433
-#: admin/class-sscribe-admin.php:495
+#: admin/class-sscribe-admin.php:436
+#: admin/class-sscribe-admin.php:498
 #: admin/partials/sscribe-admin-display.php:559
 #: admin/partials/sscribe-admin-display.php:765
 msgid "Pages"
 msgstr ""
 
-#: admin/class-sscribe-admin.php:434
-#: admin/class-sscribe-admin.php:498
+#: admin/class-sscribe-admin.php:437
+#: admin/class-sscribe-admin.php:501
 msgid "Posts"
 msgstr ""
 
-#: admin/class-sscribe-admin.php:435
-#: admin/class-sscribe-admin.php:464
-#: admin/class-sscribe-admin.php:575
+#: admin/class-sscribe-admin.php:438
+#: admin/class-sscribe-admin.php:467
+#: admin/class-sscribe-admin.php:578
 msgid "All types"
 msgstr ""
 
-#: admin/class-sscribe-admin.php:437
+#: admin/class-sscribe-admin.php:440
 #: admin/partials/sscribe-admin-display.php:340
 #: admin/partials/sscribe-admin-display.php:564
 #: includes/class-sscribe-exporter.php:1755
 #: includes/class-sscribe-page-collector.php:1502
-#: includes/exporters/class-sscribe-html-exporter.php:454
+#: includes/exporters/class-sscribe-html-exporter.php:458
 msgid "Published"
 msgstr ""
 
-#: admin/class-sscribe-admin.php:438
+#: admin/class-sscribe-admin.php:441
 #: admin/partials/sscribe-admin-display.php:341
 #: includes/class-sscribe-page-collector.php:1503
 msgid "Draft"
 msgstr ""
 
-#: admin/class-sscribe-admin.php:439
+#: admin/class-sscribe-admin.php:442
 #: admin/partials/sscribe-admin-display.php:342
 #: includes/class-sscribe-page-collector.php:1504
 msgid "Private"
 msgstr ""
 
-#: admin/class-sscribe-admin.php:440
+#: admin/class-sscribe-admin.php:443
 #: admin/partials/sscribe-admin-display.php:343
 #: includes/class-sscribe-page-collector.php:1505
 msgid "Scheduled"
 msgstr ""
 
-#: admin/class-sscribe-admin.php:441
+#: admin/class-sscribe-admin.php:444
 #: admin/partials/sscribe-admin-display.php:344
 msgid "Pending"
 msgstr ""
 
-#: admin/class-sscribe-admin.php:442
+#: admin/class-sscribe-admin.php:445
 #: admin/partials/sscribe-admin-display.php:300
 #: admin/partials/sscribe-admin-display.php:345
 msgid "All"
 msgstr ""
 
 #. translators: 1: page count, 2: "pages" label
-#: admin/class-sscribe-admin.php:445
+#: admin/class-sscribe-admin.php:448
 #, php-format
 msgid "%1$d %2$s ready for export"
 msgstr ""
 
-#: admin/class-sscribe-admin.php:446
+#: admin/class-sscribe-admin.php:449
 msgid "No pages match selected options. Export button is disabled."
 msgstr ""
 
 #. translators: 1: prefix (e.g. "Export progress:"), 2: percentage
-#: admin/class-sscribe-admin.php:448
+#: admin/class-sscribe-admin.php:451
 #, php-format
 msgid "%1$s %2$d%%"
 msgstr ""
 
-#: admin/class-sscribe-admin.php:812
+#: admin/class-sscribe-admin.php:815
 msgid "A multilingual plugin is active but no languages are configured."
 msgstr ""
 
-#: admin/class-sscribe-admin.php:813
+#: admin/class-sscribe-admin.php:816
 msgid "Add at least one secondary language in your multilingual plugin settings before exporting to produce a multilingual package."
 msgstr ""
 
-#: admin/class-sscribe-admin.php:822
+#: admin/class-sscribe-admin.php:825
 msgid "No published pages are available to export."
 msgstr ""
 
-#: admin/class-sscribe-admin.php:823
+#: admin/class-sscribe-admin.php:826
 msgid "Publish at least one page, or expand the post-type filter on the left to include drafts and private posts."
 msgstr ""
 
-#: admin/class-sscribe-admin.php:832
+#: admin/class-sscribe-admin.php:835
 msgid "The exports directory could not be created."
 msgstr ""
 
-#: admin/class-sscribe-admin.php:833
+#: admin/class-sscribe-admin.php:836
 msgid "Check that private temporary storage is writable, then refresh this page."
 msgstr ""
 
 #. translators: %s: current PHP memory_limit (e.g. "128M")
-#: admin/class-sscribe-admin.php:842
+#: admin/class-sscribe-admin.php:845
 #, php-format
 msgid "PHP memory limit is %s; large exports may run out of memory."
 msgstr ""
 
-#: admin/class-sscribe-admin.php:850
+#: admin/class-sscribe-admin.php:853
 msgid "Ask your host to raise memory_limit to at least 256M for sites with hundreds of pages or images."
 msgstr ""
 
-#: admin/class-sscribe-admin.php:859
+#: admin/class-sscribe-admin.php:862
 msgid "WP_DEBUG is enabled on this site."
 msgstr ""
 
-#: admin/class-sscribe-admin.php:860
+#: admin/class-sscribe-admin.php:863
 msgid "Keep WP_DEBUG disabled on production sites except while actively troubleshooting."
 msgstr ""
 
-#: admin/class-sscribe-admin.php:994
+#: admin/class-sscribe-admin.php:997
 msgid "Export Pages"
 msgstr ""
 
@@ -1670,14 +1671,14 @@ msgstr ""
 msgid "SScribe could not move every legacy public artifact into private storage. Review permissions on %s and the SScribe Diagnostics screen, then re-run Migration from the Tools menu."
 msgstr ""
 
-#: includes/class-sscribe-ajax-guard.php:477
+#: includes/class-sscribe-ajax-guard.php:508
 #: includes/class-sscribe-batch-file-handler.php:230
 #: includes/class-sscribe-export-query-controller.php:360
 #: includes/class-sscribe-export-query-controller.php:729
 msgid "Security check failed."
 msgstr ""
 
-#: includes/class-sscribe-ajax-guard.php:486
+#: includes/class-sscribe-ajax-guard.php:517
 #: includes/class-sscribe-batch-file-handler.php:82
 #: includes/class-sscribe-batch-file-handler.php:240
 #: includes/class-sscribe-batch-file-handler.php:282
@@ -1789,7 +1790,7 @@ msgid "More than %d readable pages are available. This export includes the first
 msgstr ""
 
 #. translators: %s: image alt text.
-#: includes/class-sscribe-content-parser.php:986
+#: includes/class-sscribe-content-parser.php:991
 #, php-format
 msgid "[Image: %s]"
 msgstr ""
@@ -1800,10 +1801,10 @@ msgstr ""
 
 #: includes/class-sscribe-diagnostics.php:153
 #: includes/class-sscribe-diagnostics.php:182
-#: includes/class-sscribe-diagnostics.php:248
-#: includes/class-sscribe-diagnostics.php:272
-#: includes/class-sscribe-diagnostics.php:273
-#: includes/class-sscribe-diagnostics.php:274
+#: includes/class-sscribe-diagnostics.php:251
+#: includes/class-sscribe-diagnostics.php:275
+#: includes/class-sscribe-diagnostics.php:276
+#: includes/class-sscribe-diagnostics.php:277
 msgid "Unavailable"
 msgstr ""
 
@@ -1820,12 +1821,12 @@ msgid "Disabled"
 msgstr ""
 
 #: includes/class-sscribe-diagnostics.php:211
-#: includes/class-sscribe-diagnostics.php:251
+#: includes/class-sscribe-diagnostics.php:254
 msgid "Yes"
 msgstr ""
 
 #: includes/class-sscribe-diagnostics.php:211
-#: includes/class-sscribe-diagnostics.php:251
+#: includes/class-sscribe-diagnostics.php:254
 msgid "No"
 msgstr ""
 
@@ -1833,309 +1834,311 @@ msgstr ""
 msgid "Environment"
 msgstr ""
 
-#: includes/class-sscribe-diagnostics.php:237
-#: includes/class-sscribe-diagnostics.php:238
-#: includes/class-sscribe-diagnostics.php:239
 #: includes/class-sscribe-diagnostics.php:240
 #: includes/class-sscribe-diagnostics.php:241
+#: includes/class-sscribe-diagnostics.php:242
+#: includes/class-sscribe-diagnostics.php:243
+#: includes/class-sscribe-diagnostics.php:244
 msgid "Available"
 msgstr ""
 
-#: includes/class-sscribe-diagnostics.php:237
-#: includes/class-sscribe-diagnostics.php:238
-#: includes/class-sscribe-diagnostics.php:239
 #: includes/class-sscribe-diagnostics.php:240
 #: includes/class-sscribe-diagnostics.php:241
+#: includes/class-sscribe-diagnostics.php:242
+#: includes/class-sscribe-diagnostics.php:243
+#: includes/class-sscribe-diagnostics.php:244
 msgid "Missing"
 msgstr ""
 
-#: includes/class-sscribe-diagnostics.php:246
+#: includes/class-sscribe-diagnostics.php:249
 msgid "Paths"
 msgstr ""
 
-#: includes/class-sscribe-diagnostics.php:256
+#: includes/class-sscribe-diagnostics.php:259
 msgid "Usage"
 msgstr ""
 
-#: includes/class-sscribe-diagnostics.php:278
+#: includes/class-sscribe-diagnostics.php:281
 msgid "Health"
 msgstr ""
 
-#: includes/class-sscribe-diagnostics.php:439
-#: includes/class-sscribe-diagnostics.php:451
+#: includes/class-sscribe-diagnostics.php:442
+#: includes/class-sscribe-diagnostics.php:454
 msgid "PHP Version"
 msgstr ""
 
 #. translators: 1: current PHP version, 2: minimum required PHP version.
-#: includes/class-sscribe-diagnostics.php:443
+#: includes/class-sscribe-diagnostics.php:446
 #, php-format
 msgid "PHP %1$s (minimum: %2$s)"
 msgstr ""
 
 #. translators: 1: current PHP version, 2: minimum required PHP version.
-#: includes/class-sscribe-diagnostics.php:455
+#: includes/class-sscribe-diagnostics.php:458
 #, php-format
 msgid "PHP %1$s detected. Minimum required: %2$s. Contact your hosting provider to upgrade."
 msgstr ""
 
-#: includes/class-sscribe-diagnostics.php:459
+#: includes/class-sscribe-diagnostics.php:462
 msgid "Upgrade PHP to 8.2 or higher"
 msgstr ""
 
-#: includes/class-sscribe-diagnostics.php:474
-#: includes/class-sscribe-diagnostics.php:588
+#: includes/class-sscribe-diagnostics.php:477
+#: includes/class-sscribe-diagnostics.php:591
 msgid "Memory"
 msgstr ""
 
-#: includes/class-sscribe-diagnostics.php:476
+#: includes/class-sscribe-diagnostics.php:479
 msgid "PHP memory limit is unlimited."
 msgstr ""
 
-#: includes/class-sscribe-diagnostics.php:507
-#: includes/class-sscribe-diagnostics.php:539
-#: includes/class-sscribe-diagnostics.php:559
+#: includes/class-sscribe-diagnostics.php:510
+#: includes/class-sscribe-diagnostics.php:542
+#: includes/class-sscribe-diagnostics.php:562
 msgid "Memory Forecast"
 msgstr ""
 
 #. translators: 1: memory limit in MB, 2: used memory in MB.
-#: includes/class-sscribe-diagnostics.php:511
+#: includes/class-sscribe-diagnostics.php:514
 #, php-format
 msgid "No memory available for export (limit: %1$dMB, used: %2$dMB). Increase memory_limit in php.ini."
 msgstr ""
 
-#: includes/class-sscribe-diagnostics.php:515
-#: includes/class-sscribe-diagnostics.php:530
+#: includes/class-sscribe-diagnostics.php:518
+#: includes/class-sscribe-diagnostics.php:533
 msgid "Add define( \"WP_MEMORY_LIMIT\", \"256M\" ); to wp-config.php"
 msgstr ""
 
-#: includes/class-sscribe-diagnostics.php:523
+#: includes/class-sscribe-diagnostics.php:526
 msgid "Memory Limit"
 msgstr ""
 
 #. translators: %d: memory limit in MB.
-#: includes/class-sscribe-diagnostics.php:527
+#: includes/class-sscribe-diagnostics.php:530
 #, php-format
 msgid "Memory limit: %dMB. Minimum required: 128MB. Increase memory_limit in php.ini."
 msgstr ""
 
 #. translators: 1: estimated memory need per export batch in MB, 2: available memory in MB, 3: recommended memory in MB.
-#: includes/class-sscribe-diagnostics.php:543
+#: includes/class-sscribe-diagnostics.php:546
 #, php-format
 msgid "Each export batch needs ~%1$dMB but only %2$dMB is available. Increase memory to %3$dMB+."
 msgstr ""
 
 #. translators: %d: recommended memory limit in MB.
-#: includes/class-sscribe-diagnostics.php:550
+#: includes/class-sscribe-diagnostics.php:553
 #, php-format
 msgid "Add define( \"WP_MEMORY_LIMIT\", \"%dM\" ); to wp-config.php."
 msgstr ""
 
 #. translators: 1: estimated memory use per export batch in MB, 2: available memory in MB, 3: percentage of available memory.
-#: includes/class-sscribe-diagnostics.php:563
+#: includes/class-sscribe-diagnostics.php:566
 #, php-format
 msgid "Each export batch will use ~%1$dMB of %2$dMB available (%3$d%%). Consider increasing memory for safety."
 msgstr ""
 
-#: includes/class-sscribe-diagnostics.php:568
+#: includes/class-sscribe-diagnostics.php:571
 msgid "Increase memory_limit to provide more headroom for large exports"
 msgstr ""
 
-#: includes/class-sscribe-diagnostics.php:574
+#: includes/class-sscribe-diagnostics.php:577
 msgid "Available Memory"
 msgstr ""
 
 #. translators: 1: available memory in MB, 2: used memory in MB, 3: memory limit in MB.
-#: includes/class-sscribe-diagnostics.php:578
+#: includes/class-sscribe-diagnostics.php:581
 #, php-format
 msgid "Only %1$dMB available (%2$dMB used of %3$dMB limit). Large exports may fail."
 msgstr ""
 
-#: includes/class-sscribe-diagnostics.php:583
+#: includes/class-sscribe-diagnostics.php:586
 msgid "Increase memory_limit or reduce batch size"
 msgstr ""
 
 #. translators: 1: available memory in MB, 2: memory limit in MB, 3: used memory in MB, 4: estimated memory need per export batch in MB.
-#: includes/class-sscribe-diagnostics.php:592
+#: includes/class-sscribe-diagnostics.php:595
 #, php-format
 msgid "%1$dMB available (limit: %2$dMB, used: %3$dMB, estimated need per batch: %4$dMB)"
 msgstr ""
 
-#: includes/class-sscribe-diagnostics.php:617
-#: includes/class-sscribe-diagnostics.php:629
+#: includes/class-sscribe-diagnostics.php:620
+#: includes/class-sscribe-diagnostics.php:632
 msgid "Execution Time"
 msgstr ""
 
 #. translators: %d: max execution time in seconds.
-#: includes/class-sscribe-diagnostics.php:621
+#: includes/class-sscribe-diagnostics.php:624
 #, php-format
 msgid "max_execution_time: %ds. Short timeout may interrupt large exports."
 msgstr ""
 
-#: includes/class-sscribe-diagnostics.php:624
+#: includes/class-sscribe-diagnostics.php:627
 msgid "Increase max_execution_time or rely on batch processing"
 msgstr ""
 
 #. translators: 1: max execution time in seconds, 2: estimated execution time per export batch in seconds.
-#: includes/class-sscribe-diagnostics.php:634
+#: includes/class-sscribe-diagnostics.php:637
 #, php-format
 msgid "max_execution_time: %1$ds (estimated need per batch: %2$ds)"
 msgstr ""
 
 #. translators: %d: estimated execution time per export batch in seconds.
-#: includes/class-sscribe-diagnostics.php:640
+#: includes/class-sscribe-diagnostics.php:643
 #, php-format
 msgid "max_execution_time: unlimited (estimated need per batch: %ds)"
 msgstr ""
 
-#: includes/class-sscribe-diagnostics.php:655
-#: includes/class-sscribe-diagnostics.php:664
-#: includes/class-sscribe-diagnostics.php:707
+#: includes/class-sscribe-diagnostics.php:658
+#: includes/class-sscribe-diagnostics.php:667
+#: includes/class-sscribe-diagnostics.php:710
 msgid "Private Storage"
 msgstr ""
 
-#: includes/class-sscribe-diagnostics.php:657
+#: includes/class-sscribe-diagnostics.php:660
 msgid "A safe private export directory could not be created."
 msgstr ""
 
-#: includes/class-sscribe-diagnostics.php:658
+#: includes/class-sscribe-diagnostics.php:661
 msgid "Make the system temporary directory writable, or configure SSCRIBE_PRIVATE_STORAGE_DIR to a writable path outside the web root."
 msgstr ""
 
 #. translators: %s: export directory name.
-#: includes/class-sscribe-diagnostics.php:668
+#: includes/class-sscribe-diagnostics.php:671
 #, php-format
 msgid "Export directory is not writable: %s"
 msgstr ""
 
-#: includes/class-sscribe-diagnostics.php:671
+#: includes/class-sscribe-diagnostics.php:674
 msgid "Set the private storage directory to owner-writable permissions."
 msgstr ""
 
-#: includes/class-sscribe-diagnostics.php:677
-#: includes/class-sscribe-diagnostics.php:686
-#: includes/class-sscribe-diagnostics.php:695
+#: includes/class-sscribe-diagnostics.php:680
+#: includes/class-sscribe-diagnostics.php:689
+#: includes/class-sscribe-diagnostics.php:698
 msgid "Disk Space"
 msgstr ""
 
-#: includes/class-sscribe-diagnostics.php:679
+#: includes/class-sscribe-diagnostics.php:682
 msgid "Disk space check is not available on this server configuration (S3, NFS, or restricted hosting)."
 msgstr ""
 
-#: includes/class-sscribe-diagnostics.php:688
+#: includes/class-sscribe-diagnostics.php:691
 msgid "Disk space check not available on this server configuration."
 msgstr ""
 
 #. translators: %d: free disk space in MB.
-#: includes/class-sscribe-diagnostics.php:699
+#: includes/class-sscribe-diagnostics.php:702
 #, php-format
 msgid "Only %dMB free disk space. Large exports may fail."
 msgstr ""
 
-#: includes/class-sscribe-diagnostics.php:702
+#: includes/class-sscribe-diagnostics.php:705
 msgid "Free up disk space on the server"
 msgstr ""
 
 #. translators: %d: free disk space in MB.
-#: includes/class-sscribe-diagnostics.php:711
+#: includes/class-sscribe-diagnostics.php:714
 #, php-format
 msgid "Writable. Free space: %dMB"
 msgstr ""
 
 #. translators: %d: number of pages being exported.
-#: includes/class-sscribe-diagnostics.php:949
+#: includes/class-sscribe-diagnostics.php:952
 #, php-format
 msgid "Exporting %d pages. Recommended memory: 512MB+. This will take several minutes."
 msgstr ""
 
-#: includes/class-sscribe-diagnostics.php:958
+#: includes/class-sscribe-diagnostics.php:961
 msgid "Increase PHP memory_limit to prevent export failures."
 msgstr ""
 
-#: includes/class-sscribe-diagnostics.php:965
+#: includes/class-sscribe-diagnostics.php:968
 msgid "Consider setting up a server-side cron for WP-Cron."
 msgstr ""
 
-#: includes/class-sscribe-diagnostics.php:998
+#: includes/class-sscribe-diagnostics.php:1001
 msgid "Add define( \"WP_MEMORY_LIMIT\", \"512M\" ); to wp-config.php"
 msgstr ""
 
-#: includes/class-sscribe-diagnostics.php:999
+#: includes/class-sscribe-diagnostics.php:1002
 msgid "Reduce export batch size"
 msgstr ""
 
-#: includes/class-sscribe-diagnostics.php:1000
+#: includes/class-sscribe-diagnostics.php:1003
 msgid "Export fewer formats at once"
 msgstr ""
 
-#: includes/class-sscribe-diagnostics.php:1010
+#: includes/class-sscribe-diagnostics.php:1013
 msgid "Increase max_execution_time in php.ini"
 msgstr ""
 
-#: includes/class-sscribe-diagnostics.php:1011
+#: includes/class-sscribe-diagnostics.php:1014
 msgid "Reduce page content complexity"
 msgstr ""
 
-#: includes/class-sscribe-diagnostics.php:1012
+#: includes/class-sscribe-diagnostics.php:1015
 msgid "Export in smaller batches"
 msgstr ""
 
-#: includes/class-sscribe-diagnostics.php:1017
+#: includes/class-sscribe-diagnostics.php:1020
 msgid "Enable the zip extension in php.ini"
 msgstr ""
 
-#: includes/class-sscribe-diagnostics.php:1018
+#: includes/class-sscribe-diagnostics.php:1021
 msgid "Contact hosting provider to enable ZipArchive"
 msgstr ""
 
-#: includes/class-sscribe-diagnostics.php:1023
+#: includes/class-sscribe-diagnostics.php:1026
 msgid "Check owner permissions on the private storage directory"
 msgstr ""
 
-#: includes/class-sscribe-diagnostics.php:1024
+#: includes/class-sscribe-diagnostics.php:1027
 msgid "Check that the PHP process can write to the configured private storage base"
 msgstr ""
 
-#: includes/class-sscribe-diagnostics.php:1029
+#: includes/class-sscribe-diagnostics.php:1032
 msgid "Reinstall the complete plugin package to restore the bundled TCPDF renderer"
 msgstr ""
 
-#: includes/class-sscribe-diagnostics.php:1030
+#: includes/class-sscribe-diagnostics.php:1033
 msgid "Check that the page content does not contain invalid HTML"
 msgstr ""
 
-#: includes/class-sscribe-diagnostics.php:1035
+#: includes/class-sscribe-diagnostics.php:1038
 msgid "Run composer install to ensure PHPWord is installed"
 msgstr ""
 
-#: includes/class-sscribe-diagnostics.php:1036
+#: includes/class-sscribe-diagnostics.php:1039
 msgid "Check page content for complex elements that may not convert well"
 msgstr ""
 
-#: includes/class-sscribe-diagnostics.php:1252
+#: includes/class-sscribe-diagnostics.php:1255
 msgid "None detected"
 msgstr ""
 
-#: includes/class-sscribe-docx-content-renderer.php:404
+#: includes/class-sscribe-docx-content-renderer.php:411
 msgid "Content"
 msgstr ""
 
-#: includes/class-sscribe-docx-content-renderer.php:810
+#: includes/class-sscribe-docx-content-renderer.php:817
 msgid "Click Here"
 msgstr ""
 
-#: includes/class-sscribe-docx-content-renderer.php:825
+#: includes/class-sscribe-docx-content-renderer.php:832
 msgid "DESTINATION URL:"
 msgstr ""
 
-#: includes/class-sscribe-docx-content-renderer.php:920
+#: includes/class-sscribe-docx-content-renderer.php:927
+#: includes/exporters/class-sscribe-pdf-exporter.php:618
 msgid "No Alt Text Provided"
 msgstr ""
 
-#: includes/class-sscribe-docx-content-renderer.php:922
+#: includes/class-sscribe-docx-content-renderer.php:929
+#: includes/exporters/class-sscribe-pdf-exporter.php:621
 msgid "[MISSING IMAGE] "
 msgstr ""
 
-#: includes/class-sscribe-docx-content-renderer.php:1032
+#: includes/class-sscribe-docx-content-renderer.php:1039
 msgid "IMAGE ASSET SOURCE URL:"
 msgstr ""
 
@@ -2593,47 +2596,47 @@ msgstr ""
 msgid "The export will continue automatically."
 msgstr ""
 
-#: includes/class-sscribe-export-error-handler.php:268
+#: includes/class-sscribe-export-error-handler.php:308
 msgid "The server ran out of memory during export. Large PDF renders often need a higher PHP memory limit."
 msgstr ""
 
-#: includes/class-sscribe-export-error-handler.php:269
+#: includes/class-sscribe-export-error-handler.php:309
 msgid "The export is hitting a server time limit before rendering can finish. Reduce load or increase execution time."
 msgstr ""
 
-#: includes/class-sscribe-export-error-handler.php:270
+#: includes/class-sscribe-export-error-handler.php:310
 msgid "mPDF could not render the page successfully. Review the technical details for HTML size, memory usage, and libxml parsing problems."
 msgstr ""
 
-#: includes/class-sscribe-export-error-handler.php:271
+#: includes/class-sscribe-export-error-handler.php:311
 msgid "The mPDF library is missing from the plugin install, so PDF export cannot start."
 msgstr ""
 
-#: includes/class-sscribe-export-error-handler.php:272
+#: includes/class-sscribe-export-error-handler.php:312
 msgid "The PDF was generated but could not be written to disk. Review filesystem access and output path details."
 msgstr ""
 
-#: includes/class-sscribe-export-error-handler.php:273
+#: includes/class-sscribe-export-error-handler.php:313
 msgid "The server does not have permission to write required export files. Check private storage access."
 msgstr ""
 
-#: includes/class-sscribe-export-error-handler.php:274
+#: includes/class-sscribe-export-error-handler.php:314
 msgid "ZIP creation failed because the server is missing ZIP support or the archive step could not complete."
 msgstr ""
 
-#: includes/class-sscribe-export-error-handler.php:275
+#: includes/class-sscribe-export-error-handler.php:315
 msgid "The export finished processing pages but failed while packaging the ZIP archive."
 msgstr ""
 
-#: includes/class-sscribe-export-error-handler.php:276
+#: includes/class-sscribe-export-error-handler.php:316
 msgid "DOCX generation failed for at least one page. Complex content or resource pressure may be involved."
 msgstr ""
 
-#: includes/class-sscribe-export-error-handler.php:277
+#: includes/class-sscribe-export-error-handler.php:317
 msgid "A low-level PHP error interrupted the export. Review the technical context and server logs for the failing component."
 msgstr ""
 
-#: includes/class-sscribe-export-error-handler.php:278
+#: includes/class-sscribe-export-error-handler.php:318
 msgid "Review the diagnostics below and your server error log for the most specific failure details."
 msgstr ""
 
@@ -2666,6 +2669,10 @@ msgstr ""
 
 #: includes/class-sscribe-export-query-controller.php:765
 msgid "Unable to load support information right now. Please try again later."
+msgstr ""
+
+#: includes/class-sscribe-export-query-controller.php:786
+msgid "You must be logged in to refresh security tokens."
 msgstr ""
 
 #. translators: 1: Estimated memory needed per export batch (MB), 2: Available memory (MB), 3: Recommended memory limit (MB)
@@ -2751,17 +2758,17 @@ msgid "URL"
 msgstr ""
 
 #: includes/class-sscribe-exporter.php:1754
-#: includes/exporters/class-sscribe-html-exporter.php:450
+#: includes/exporters/class-sscribe-html-exporter.php:454
 msgid "Author"
 msgstr ""
 
 #: includes/class-sscribe-exporter.php:1756
-#: includes/exporters/class-sscribe-html-exporter.php:458
+#: includes/exporters/class-sscribe-html-exporter.php:462
 msgid "Last Modified"
 msgstr ""
 
 #: includes/class-sscribe-exporter.php:1757
-#: includes/exporters/class-sscribe-html-exporter.php:462
+#: includes/exporters/class-sscribe-html-exporter.php:466
 msgid "Word Count"
 msgstr ""
 
@@ -2996,48 +3003,48 @@ msgid "Unable to generate the HTML file. Please try again."
 msgstr ""
 
 #. translators: %1$s: site name, %2$s: date and time
-#: includes/exporters/class-sscribe-html-exporter.php:351
+#: includes/exporters/class-sscribe-html-exporter.php:355
 #, php-format
 msgid "Exported from %1$s on %2$s"
 msgstr ""
 
-#: includes/exporters/class-sscribe-html-exporter.php:485
+#: includes/exporters/class-sscribe-html-exporter.php:489
 msgid "SEO Metadata"
 msgstr ""
 
-#: includes/exporters/class-sscribe-html-exporter.php:488
+#: includes/exporters/class-sscribe-html-exporter.php:492
 msgid "Source:"
 msgstr ""
 
-#: includes/exporters/class-sscribe-html-exporter.php:489
+#: includes/exporters/class-sscribe-html-exporter.php:493
 msgid "Meta Title:"
 msgstr ""
 
-#: includes/exporters/class-sscribe-html-exporter.php:490
+#: includes/exporters/class-sscribe-html-exporter.php:494
 msgid "Meta Description:"
 msgstr ""
 
-#: includes/exporters/class-sscribe-html-exporter.php:491
+#: includes/exporters/class-sscribe-html-exporter.php:495
 msgid "Focus Keyword:"
 msgstr ""
 
-#: includes/exporters/class-sscribe-html-exporter.php:492
+#: includes/exporters/class-sscribe-html-exporter.php:496
 msgid "Open Graph Title:"
 msgstr ""
 
-#: includes/exporters/class-sscribe-html-exporter.php:493
+#: includes/exporters/class-sscribe-html-exporter.php:497
 msgid "Open Graph Description:"
 msgstr ""
 
-#: includes/exporters/class-sscribe-html-exporter.php:503
+#: includes/exporters/class-sscribe-html-exporter.php:507
 msgid "Canonical URL:"
 msgstr ""
 
-#: includes/exporters/class-sscribe-html-exporter.php:504
+#: includes/exporters/class-sscribe-html-exporter.php:508
 msgid "Open Graph Image:"
 msgstr ""
 
-#: includes/exporters/class-sscribe-html-exporter.php:520
+#: includes/exporters/class-sscribe-html-exporter.php:524
 msgid "Robots:"
 msgstr ""
 
@@ -3051,33 +3058,33 @@ msgstr ""
 msgid "Unable to generate the Markdown file. Please try again."
 msgstr ""
 
-#: includes/exporters/class-sscribe-pdf-exporter.php:172
-#: includes/exporters/class-sscribe-pdf-exporter.php:632
+#: includes/exporters/class-sscribe-pdf-exporter.php:182
+#: includes/exporters/class-sscribe-pdf-exporter.php:668
 msgid "PDF export is not available because the bundled PDF renderer is missing. Please reinstall the plugin."
 msgstr ""
 
 #. translators: %s: HTML size.
-#: includes/exporters/class-sscribe-pdf-exporter.php:188
+#: includes/exporters/class-sscribe-pdf-exporter.php:198
 #, php-format
 msgid "PDF render skipped because the HTML content is too large (%s). Try exporting to DOCX or reduce page complexity."
 msgstr ""
 
-#: includes/exporters/class-sscribe-pdf-exporter.php:213
+#: includes/exporters/class-sscribe-pdf-exporter.php:223
 msgid "Insufficient time remaining to render PDF."
 msgstr ""
 
-#: includes/exporters/class-sscribe-pdf-exporter.php:227
-#: includes/exporters/class-sscribe-pdf-exporter.php:288
-#: includes/exporters/class-sscribe-pdf-exporter.php:300
+#: includes/exporters/class-sscribe-pdf-exporter.php:237
+#: includes/exporters/class-sscribe-pdf-exporter.php:298
+#: includes/exporters/class-sscribe-pdf-exporter.php:310
 msgid "Failed to write PDF file."
 msgstr ""
 
-#: includes/exporters/class-sscribe-pdf-exporter.php:330
+#: includes/exporters/class-sscribe-pdf-exporter.php:340
 msgid "Unable to generate the PDF. Please try again or use another export format."
 msgstr ""
 
 #. translators: 1: Free memory, 2: Memory limit.
-#: includes/exporters/class-sscribe-pdf-exporter.php:407
+#: includes/exporters/class-sscribe-pdf-exporter.php:417
 #, php-format
 msgid "PDF export aborted : only %1$s free of %2$s PHP memory limit. Try exporting to DOCX instead, or increase the memory_limit."
 msgstr ""
@@ -3109,93 +3116,93 @@ msgstr ""
 msgid "Export session expired during lock acquisition."
 msgstr ""
 
-#: includes/traits/trait-sscribe-batch-step-handler.php:177
+#: includes/traits/trait-sscribe-batch-step-handler.php:183
 msgid "Export was cancelled."
 msgstr ""
 
-#: includes/traits/trait-sscribe-batch-step-handler.php:213
-#: includes/traits/trait-sscribe-batch-step-handler.php:238
+#: includes/traits/trait-sscribe-batch-step-handler.php:219
+#: includes/traits/trait-sscribe-batch-step-handler.php:244
 msgid "Private export storage is unavailable."
 msgstr ""
 
-#: includes/traits/trait-sscribe-batch-step-handler.php:226
-#: includes/traits/trait-sscribe-batch-step-handler.php:267
+#: includes/traits/trait-sscribe-batch-step-handler.php:232
+#: includes/traits/trait-sscribe-batch-step-handler.php:273
 msgid "Export session corrupted (invalid temp directory path). Please start again."
 msgstr ""
 
 #. translators: %d: Page ID.
-#: includes/traits/trait-sscribe-batch-step-handler.php:425
+#: includes/traits/trait-sscribe-batch-step-handler.php:431
 #, php-format
 msgid "Failed to collect data for page ID %d."
 msgstr ""
 
 #. translators: %d: Page ID.
-#: includes/traits/trait-sscribe-batch-step-handler.php:472
+#: includes/traits/trait-sscribe-batch-step-handler.php:478
 #, php-format
 msgid "Skipped page %d - insufficient memory to proceed."
 msgstr ""
 
-#. translators: %s: Error message.
-#: includes/traits/trait-sscribe-batch-step-handler.php:502
+#. translators: %d: Page ID.
+#: includes/traits/trait-sscribe-batch-step-handler.php:521
 #, php-format
-msgid "Critical error: %s"
+msgid "Critical error while exporting page %d. See the export log for details."
 msgstr ""
 
 #. translators: %s: Page title.
-#: includes/traits/trait-sscribe-batch-step-handler.php:541
+#: includes/traits/trait-sscribe-batch-step-handler.php:560
 #, php-format
 msgid "Some formats could not be created for \"%s\"."
 msgstr ""
 
 #. translators: %s: Page title.
-#: includes/traits/trait-sscribe-batch-step-handler.php:546
+#: includes/traits/trait-sscribe-batch-step-handler.php:565
 #, php-format
 msgid "Failed to generate exports for \"%s\"."
 msgstr ""
 
 #. translators: %d: Number of additional errors not stored.
-#: includes/traits/trait-sscribe-batch-step-handler.php:694
+#: includes/traits/trait-sscribe-batch-step-handler.php:728
 #, php-format
 msgid "... and %d more errors occurred (see export log for full details)."
 msgstr ""
 
 #. translators: %d: Number of additional errors not stored.
-#: includes/traits/trait-sscribe-batch-step-handler.php:715
+#: includes/traits/trait-sscribe-batch-step-handler.php:749
 #, php-format
 msgid "... and %d more errors occurred."
 msgstr ""
 
-#: includes/traits/trait-sscribe-batch-step-handler.php:786
+#: includes/traits/trait-sscribe-batch-step-handler.php:820
 msgid "Export progress could not be saved. The batch can be retried safely."
 msgstr ""
 
-#: includes/traits/trait-sscribe-batch-step-handler.php:828
+#: includes/traits/trait-sscribe-batch-step-handler.php:862
 msgid "Export completion state could not be saved. Please retry this step."
 msgstr ""
 
 #. translators: 1: Current page number, 2: Total pages.
-#: includes/traits/trait-sscribe-batch-step-handler.php:918
+#: includes/traits/trait-sscribe-batch-step-handler.php:952
 #, php-format
 msgid "Processing %1$d of %2$d pages... (Paused briefly to manage memory - will resume automatically)"
 msgstr ""
 
 #. translators: 1: Current page number, 2: Total pages.
-#: includes/traits/trait-sscribe-batch-step-handler.php:925
+#: includes/traits/trait-sscribe-batch-step-handler.php:959
 #, php-format
 msgid "Processing %1$d of %2$d pages... (Paused to prevent timeout - will resume automatically)"
 msgstr ""
 
 #. translators: 1: Current page number, 2: Total pages.
-#: includes/traits/trait-sscribe-batch-step-handler.php:931
+#: includes/traits/trait-sscribe-batch-step-handler.php:965
 #, php-format
 msgid "Processing %1$d of %2$d pages..."
 msgstr ""
 
-#: includes/traits/trait-sscribe-batch-step-handler.php:943
+#: includes/traits/trait-sscribe-batch-step-handler.php:977
 msgid "The export paused briefly to manage server memory. It will resume automatically. No action needed."
 msgstr ""
 
-#: includes/traits/trait-sscribe-batch-step-handler.php:945
+#: includes/traits/trait-sscribe-batch-step-handler.php:979
 msgid "The export paused briefly to prevent a server timeout. It will resume automatically. No action needed."
 msgstr ""
 
@@ -3326,19 +3333,19 @@ msgstr ""
 msgid "Session already cleared."
 msgstr ""
 
-#: includes/traits/trait-sscribe-session-ajax.php:230
+#: includes/traits/trait-sscribe-session-ajax.php:229
 msgid "Unable to identify the current user."
 msgstr ""
 
-#: includes/traits/trait-sscribe-session-ajax.php:242
+#: includes/traits/trait-sscribe-session-ajax.php:241
 msgid "Another export session operation is in progress. Please retry."
 msgstr ""
 
-#: includes/traits/trait-sscribe-session-ajax.php:272
+#: includes/traits/trait-sscribe-session-ajax.php:271
 msgid "The current export is still processing. Please retry shortly."
 msgstr ""
 
-#: includes/traits/trait-sscribe-session-ajax.php:281
+#: includes/traits/trait-sscribe-session-ajax.php:280
 msgid "Session cleared."
 msgstr ""
 

@@ -320,6 +320,10 @@ class SScribe {
 		$this->loader->add_guarded_lazy_ajax_action( 'wp_ajax_sscribe_get_recent_exports', $batch_resolver, 'ajax_get_recent_exports', $cap );
 		$this->loader->add_guarded_lazy_ajax_action( 'wp_ajax_sscribe_get_support_info', $batch_resolver, 'ajax_get_support_info', $health_cap, 'sscribe_health_nonce' );
 		$this->loader->add_guarded_lazy_ajax_action( 'wp_ajax_sscribe_check_active_session', $batch_resolver, 'ajax_check_active_session', $cap );
+		// Nonce-free by design: recovers users whose nonce expired mid-run.
+		// Authorization is enforced inside the handler (login + capability +
+		// rate limit). See SScribe_Export_Query_Controller::ajax_refresh_nonce().
+		$this->loader->add_action( 'wp_ajax_sscribe_refresh_nonce', $batch_resolver, 'ajax_refresh_nonce' );
 	}
 
 	/**

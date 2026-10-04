@@ -471,8 +471,24 @@ class SScribe_Zip_Handler {
 			$removed = array();
 
 			if ( count( $index ) > 50 ) {
-				$removed = array_slice( $index, 0, count( $index ) - 50 );
-				$index   = array_slice( $index, -50 );
+				// Evict only the publishing user's oldest archives. The pool
+				// is shared between users, and the historical FIFO slice
+				// destroyed other users' history whenever one user exported
+				// in bulk. The 72-hour retention in cleanup_expired() still
+				// bounds the whole pool.
+				$overflow   = count( $index ) - 50;
+				$older      = array_slice( $index, 0, $overflow );
+				$owner_id   = (int) $row['user_id'];
+				$evictable  = array();
+				foreach ( $older as $candidate ) {
+					$candidate_row = get_option( 'sscribe_export_row_' . md5( (string) $candidate ), array() );
+					$candidate_user = is_array( $candidate_row ) ? (int) ( $candidate_row['user_id'] ?? 0 ) : 0;
+					if ( $candidate_user === $owner_id ) {
+						$evictable[] = $candidate;
+					}
+				}
+				$removed = array_slice( $evictable, 0, $overflow );
+				$index   = array_values( array_diff( $index, $removed ) );
 			}
 
 			// Commit the replacement bounded index before destroying any history

@@ -230,8 +230,39 @@ class SScribe_AJAX_Guard {
 			}
 		}
 
+		// Every error payload carries a machine-readable `code` so the client
+		// guidance table can match specific recovery steps instead of falling
+		// back to generic text. Callers may override with a precise code; only
+		// the status-derived default is filled here. Applied after the
+		// operational-logger block so the server-side log keeps its pinned
+		// 'ajax_5xx' fallback bucket for caller-uncoded failures.
+		if ( is_array( $data ) && ( ! isset( $data['code'] ) || ! is_string( $data['code'] ) || '' === $data['code'] ) ) {
+			$data['code'] = self::default_code_for_status( (int) ( $status_code ?? 0 ) );
+		}
+
 		wp_send_json_error( $data, $status_code );
 		exit;
+	}
+
+	/**
+	 * Derive a stable machine-readable code from an HTTP status code.
+	 *
+	 * @param int $status_code HTTP status (0 when unset).
+	 * @return string Default error code.
+	 */
+	private static function default_code_for_status( int $status_code ): string {
+		return match ( true ) {
+			400 === $status_code => 'bad_request',
+			401 === $status_code => 'unauthorized',
+			403 === $status_code => 'forbidden',
+			404 === $status_code => 'not_found',
+			409 === $status_code => 'conflict',
+			429 === $status_code => 'rate_limited',
+			499 === $status_code => 'cancelled',
+			503 === $status_code => 'service_unavailable',
+			500 <= $status_code => 'server_error',
+			default              => 'request_failed',
+		};
 	}
 
 	/**

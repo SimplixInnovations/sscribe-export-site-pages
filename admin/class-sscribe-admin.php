@@ -264,6 +264,9 @@ class SScribe_Admin {
 			'nonce'           => wp_create_nonce( 'sscribe_export_nonce' ),
 			'download_nonce'  => $this->get_download_nonce(),
 			'health_nonce'    => current_user_can( SScribe_Capabilities::get_health_required() ) ? wp_create_nonce( 'sscribe_health_nonce' ) : '',
+			// Enables in-place nonce recovery (refreshNonceAnd) instead of a
+			// full page reload when a nonce expires mid-operation.
+			'refresh_nonce_url' => admin_url( 'admin-ajax.php' ),
 
 			'refresh_interval' => min( 300000, max( 5000, (int) apply_filters( 'sscribe_debug_refresh_interval_ms', 10000 ) ) ),
 			'strings'        => array(

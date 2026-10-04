@@ -1310,6 +1310,10 @@
 				error: function (xhr) {
 					const data = xhr && xhr.responseJSON && xhr.responseJSON.data ? xhr.responseJSON.data : {};
 					const decision = SScribe.getAjaxFailureDecision(xhr, data);
+					if (decision.action === 'cancelled') {
+						SScribe.showCancelled(decision.message);
+						return;
+					}
 					if (decision.action === 'retry') {
 						setTimeout(function () {
 							self.runPreflightCheck(language, postStatus, postType, formats);
@@ -1546,7 +1550,6 @@
 				data: {
 					action: 'sscribe_clear_session',
 					nonce: sscribe_data.nonce,
-					force: true,
 				},
 				success: function () {
 					self.doStartExport(language, postStatus, postType, formats);
@@ -1560,6 +1563,10 @@
 					const decision = SScribe.getAjaxFailureDecision(xhr, responseData, {
 						jitterSeed: 0.5,
 					});
+					if (decision.action === 'cancelled') {
+						SScribe.showCancelled(decision.message);
+						return;
+					}
 					// Phase 10: terminal failure decision stops immediately.
 					// Previously any 4xx/5xx was retried up to maxAttempts,
 					// which amplified 4xx noise (e.g. invalid_session_id).
@@ -1684,6 +1691,10 @@
 					const decision = SScribe.getAjaxFailureDecision(xhr, errData, {
 						jitterSeed: 0.5,
 					});
+					if (decision.action === 'cancelled') {
+						SScribe.showCancelled(decision.message);
+						return;
+					}
 					if (decision.action === 'retry' || decision.action === 'conflict') {
 						if (!self._startExportRetries || self._startExportRetries < 3) {
 							self._startExportRetries = (self._startExportRetries || 0) + 1;
@@ -1838,6 +1849,10 @@
 						} else if (data.status === 'finalizing') {
 							const finalizeDelay = SScribe.finalizePollInterval || 2000;
 							SScribe.pollFinalize(SScribe.sessionId, 0, finalizeDelay);
+						} else if (data.cancelled === true) {
+							// Mid-batch cancellation arrives as a normal 200
+							// status update; never schedule the next batch.
+							SScribe.showCancelled(data.message);
 						} else {
 							SScribe.pollBackoff = 0;
 							SScribe.scheduleNextBatch(0, false);
@@ -1877,6 +1892,12 @@
 					const decision = SScribe.getAjaxFailureDecision(xhr, responseData, {
 						jitterSeed: 0.5,
 					});
+					if (decision.action === 'cancelled') {
+						self._batchInProgress = false;
+						self._batchXHR = null;
+						SScribe.showCancelled(decision.message);
+						return;
+					}
 					if (decision.action === 'retry' || decision.action === 'conflict') {
 						// Honor server-driven timing exactly. The decision
 						// helper clamps the lower bound so a 1s client
@@ -2309,6 +2330,10 @@
 						const decision = SScribe.getAjaxFailureDecision(xhr, responseData, {
 							jitterSeed: 0.5,
 						});
+						if (decision.action === 'cancelled') {
+							SScribe.showCancelled(decision.message);
+							return;
+						}
 						if (decision.action === 'retry' || decision.action === 'conflict') {
 							if (attempt < maxAttempts) {
 								self.pollFinalize(sessionId, attempt + 1, decision.delayMs);
@@ -4476,6 +4501,20 @@
 			const data = response || {};
 			const code = typeof data.code === 'string' ? data.code : '';
 			const message = typeof data.message === 'string' ? data.message : null;
+
+			// A cancellation is a completed outcome on any transport status
+			// (including the legacy HTTP 499 or a proxy-stripped status):
+			// never retry it into a bogus "session expired" failure.
+			if (data.cancelled === true || code === 'cancelled') {
+				return {
+					action: 'cancelled',
+					delayMs: 0,
+					reason: 'cancelled',
+					message: message,
+					code: 'cancelled',
+					messageKey: null,
+				};
+			}
 			const serverDelay = Number(data.retry_in);
 			const hasServerDelay = isFinite(serverDelay) && serverDelay > 0;
 			// Phase 4: HTTP `Retry-After` header is the second-priority
@@ -4689,6 +4728,12 @@
 					success: function (response) {
 						if (response && response.success && response.data && response.data.nonce) {
 							sscribe_data.nonce = response.data.nonce;
+							if (response.data.download_nonce) {
+								sscribe_data.download_nonce = response.data.download_nonce;
+							}
+							if (response.data.health_nonce) {
+								sscribe_data.health_nonce = response.data.health_nonce;
+							}
 							if (typeof after === 'function') {
 								after();
 							}

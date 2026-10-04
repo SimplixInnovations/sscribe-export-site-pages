@@ -100,6 +100,14 @@ trait SScribe_Logger_Common {
 			'ip_address',
 			'client_ip',
 			'remote_addr',
+			// Personal data (GDPR): keep correlation value via HMAC, never
+			// the identifying string itself. Debug logs are not covered by
+			// the privacy eraser, so they must not carry raw identifiers.
+			'request_uri',
+			'user_agent',
+			'useragent',
+			'username',
+			'user_name',
 		);
 
 		$sensitive_parts = array_merge(

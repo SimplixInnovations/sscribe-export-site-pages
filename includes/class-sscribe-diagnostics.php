@@ -230,7 +230,10 @@ class SScribe_Diagnostics {
 			'span'  => 'full',
 			'items' => array(
 				'wordpress_version'  => get_bloginfo( 'version' ),
-				'php_version'        => PHP_VERSION,
+				// Masked at the source so the JSON `sections` (which the
+				// admin renders directly) match the copy-text policy and
+				// never disclose the exact PHP patch version.
+				'php_version'        => $this->format_support_value( 'php_version', PHP_VERSION ),
 				'locale'             => get_locale(),
 				'memory_limit'       => (string) ini_get( 'memory_limit' ),
 				'max_execution_time' => (string) ini_get( 'max_execution_time' ),

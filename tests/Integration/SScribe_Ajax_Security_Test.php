@@ -114,8 +114,8 @@ final class SScribe_Ajax_Security_Test extends TestCase {
 		$payload = json_decode( (string) file_get_contents( self::plugin_root() . '/' . self::MANIFEST_PATH ), true );
 		foreach ( $payload['rows'] as $row ) {
 			$this::assertTrue(
-				$row['guarded_loader'] || $row['local_authz'],
-				$row['action'] . ' must be guarded via a guarded loader registration or verify_request_authorization().'
+				$row['guarded_loader'] || $row['local_authz'] || ! empty( $row['nonce_mint'] ),
+				$row['action'] . ' must be guarded via a guarded loader registration, verify_request_authorization(), or be a documented nonce-mint endpoint.'
 			);
 		}
 	}

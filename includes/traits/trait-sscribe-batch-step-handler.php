@@ -172,12 +172,18 @@ trait SScribe_Batch_Step_Handler {
 				$this->cleanup_cancelled_export( $session );
 				$this->session->delete( $session_id );
 				$this->release_lock( $session_id, $lock_token );
+				// Cancellation is a completed outcome, not a transport
+				// failure: HTTP 200 with success:false routes into the
+				// client's cancelled branch. The historical HTTP 499 made
+				// jQuery treat it as an error and retry into "session
+				// expired" instead of showing the cancelled state.
 				SScribe_AJAX_Guard::error(
 					array(
+						'code'      => 'cancelled',
 						'message'   => __( 'Export was cancelled.', 'sscribe-export-site-pages' ),
 						'cancelled' => true,
 					),
-					499
+					200
 				);
 			}
 
@@ -328,6 +334,7 @@ trait SScribe_Batch_Step_Handler {
 			$processed_in_this_batch = 0;
 			$current_batch_page_id   = null;
 			$paused_reason           = '';
+			$lock_lost               = false;
 
 			$batch_time_limit = (int) apply_filters( 'sscribe_max_execution_time', 150 );
 			if ( function_exists( 'set_time_limit' ) ) {
@@ -497,10 +504,23 @@ trait SScribe_Batch_Step_Handler {
 						$export_errors                  = $dispatch_result['export_errors'];
 					} catch ( \Throwable $e ) {
 
+						// Raw exception messages can embed server paths and
+						// library internals; they go to the server-side log
+						// only. The user sees a translated, actionable summary.
+						$this->logger->error(
+							'Critical error while exporting page',
+							array(
+								'page_id'        => $page_id,
+								'exception'      => get_class( $e ),
+								'error_message'  => $e->getMessage(),
+								'memory_usage'   => size_format( memory_get_usage( true ) ),
+								'memory_peak'    => size_format( memory_get_peak_usage( true ) ),
+							)
+						);
 						$error_msg = sprintf(
-							/* translators: %s: Error message. */
-							__( 'Critical error: %s', 'sscribe-export-site-pages' ),
-							$e->getMessage()
+							/* translators: %d: Page ID. */
+							__( 'Critical error while exporting page %d. See the export log for details.', 'sscribe-export-site-pages' ),
+							$page_id
 						);
 						$export_errors[] = array(
 							'format'   => 'SYSTEM',
@@ -627,6 +647,22 @@ trait SScribe_Batch_Step_Handler {
 						gc_collect_cycles();
 					}
 
+					// Keep the session lock fresh across long batches: without
+					// renewal a slow page can age the lease past the stale
+					// threshold, letting cancel or another request take over
+					// mid-write and tear down the temp tree under us.
+					if ( ! $this->get_lock_manager()->renew_lock( $session_id, $lock_token, $lock_ttl ) ) {
+						$this->logger->warning(
+							'Session lock ownership lost mid-batch; stopping to avoid racing the new owner',
+							array(
+								'session_id' => $session_id,
+								'processed'  => $processed,
+							)
+						);
+						$lock_lost = true;
+						break;
+					}
+
 					$latest_session = $this->session->get( $session_id );
 					if ( null === $latest_session || ! empty( $latest_session['cancelled'] ) ) {
 						$this->logger->debug(
@@ -729,7 +765,7 @@ trait SScribe_Batch_Step_Handler {
 					);
 				}
 
-				$paused_reason = $memory_paused ? 'memory' : ( $timeout_paused ? 'timeout' : '' );
+				$paused_reason = $lock_lost ? 'lock_lost' : ( $memory_paused ? 'memory' : ( $timeout_paused ? 'timeout' : '' ) );
 
 				$update_data = array(
 					'processed'         => $processed,

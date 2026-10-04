@@ -203,8 +203,12 @@ class SScribe_Export_Rate_Limiter {
 			// Phase 14: incr on the scalar :count key.
 			$incremented = wp_cache_incr( $count_key, 1, self::DATA_CACHE_GROUP );
 			if ( false === $incremented ) {
-				wp_cache_set( $count_key, 1, self::DATA_CACHE_GROUP, $cache_ttl );
-				$new_count = 1;
+				// The backend cannot atomically increment. We still hold the
+				// micro-lock, so increment the value just read instead of
+				// resetting to 1: a reset made every request look like the
+				// first one and the quota could never trip.
+				$new_count = (int) $data['count'] + 1;
+				wp_cache_set( $count_key, $new_count, self::DATA_CACHE_GROUP, $cache_ttl );
 			} else {
 				$new_count = (int) $incremented;
 			}

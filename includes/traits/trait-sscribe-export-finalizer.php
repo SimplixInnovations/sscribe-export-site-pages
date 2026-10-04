@@ -387,7 +387,8 @@ trait SScribe_Export_Finalizer {
 							'message'  => __( 'Failed to create ZIP package.', 'sscribe-export-site-pages' ),
 							'category' => 'zip_creation',
 							'context'  => array(
-								'temp_dir'       => $session['temp_dir'],
+								// temp_dir is server-internal state: log it,
+								// never ship it in the wire payload.
 								'expected_files' => $files_before,
 							),
 						),
@@ -398,7 +399,6 @@ trait SScribe_Export_Finalizer {
 							'zip',
 							'Failed to create ZIP package.',
 							array(
-								'temp_dir'       => $session['temp_dir'],
 								'expected_files' => $files_before,
 							)
 						),

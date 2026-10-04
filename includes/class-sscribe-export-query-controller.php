@@ -768,4 +768,50 @@ class SScribe_Export_Query_Controller {
 			);
 		}
 	}
+
+	/**
+	 * Reissue AJAX nonces for the authenticated export user.
+	 *
+	 * Intentionally nonce-free: the endpoint exists precisely to recover
+	 * from an expired nonce mid-operation. Authorization is login plus the
+	 * export/health capability plus the read rate limit; the response only
+	 * ever returns nonces to their own authenticated owner, so a cross-site
+	 * request can neither read nor use them.
+	 */
+	public function ajax_refresh_nonce(): void {
+		if ( ! is_user_logged_in() ) {
+			SScribe_AJAX_Guard::error(
+				array(
+					'code'    => 'unauthorized',
+					'message' => __( 'You must be logged in to refresh security tokens.', 'sscribe-export-site-pages' ),
+				),
+				401
+			);
+		}
+
+		$export_cap = SScribe_Capabilities::get_required();
+		$health_cap = SScribe_Capabilities::get_health_required();
+		if ( ! current_user_can( $export_cap ) && ! current_user_can( $health_cap ) ) {
+			SScribe_AJAX_Guard::error(
+				array(
+					'code'    => 'forbidden',
+					'message' => __( 'Insufficient permissions.', 'sscribe-export-site-pages' ),
+				),
+				403
+			);
+		}
+
+		$decision = $this->rate_limiter->check_rate_limit_decision( $export_cap, 'export_read' );
+		if ( ! $decision->allowed ) {
+			\SScribe_Rate_Limit_Response::emit( $decision );
+		}
+
+		SScribe_AJAX_Guard::success(
+			array(
+				'nonce'          => wp_create_nonce( 'sscribe_export_nonce' ),
+				'download_nonce' => wp_create_nonce( 'sscribe_download' ),
+				'health_nonce'   => current_user_can( $health_cap ) ? wp_create_nonce( 'sscribe_health_nonce' ) : '',
+			)
+		);
+	}
 }

@@ -208,7 +208,7 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 		$md       .= 'published: "' . $this->escape_yaml_string( $this->normalize_scalar( $page_data['date_published'] ?? '' ) ) . "\"\n";
 		$md       .= 'modified: "' . $this->escape_yaml_string( $this->normalize_scalar( $page_data['date_modified'] ?? '' ) ) . "\"\n";
 		$md       .= 'word_count: ' . ( isset( $page_data['word_count'] ) && is_numeric( $page_data['word_count'] ) ? max( 0, (int) $page_data['word_count'] ) : 0 ) . "\n";
-		$md       .= 'reading_time: ' . ( isset( $page_data['reading_time'] ) && is_numeric( $page_data['reading_time'] ) ? max( 1, (int) $page_data['reading_time'] ) : 1 ) . "\n";
+		$md       .= 'reading_time: ' . ( isset( $page_data['reading_time'] ) && is_numeric( $page_data['reading_time'] ) ? max( 0, (int) $page_data['reading_time'] ) : 0 ) . "\n";
 		$md .= 'language: "' . $this->escape_yaml_string( $language ) . "\"\n";
 		$md .= 'direction: "' . $this->escape_yaml_string( $direction ) . "\"\n";
 
@@ -940,7 +940,12 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 		return preg_replace_callback(
 			'/<blockquote[^>]*>(.*?)<\/blockquote>/is',
 			function ( $matches ) {
-				$content   = wp_strip_all_tags( $matches[1] );
+				// Preserve inline emphasis and links inside quotes (the
+				// historical flatten-to-plain-text destroyed them), then
+				// strip whatever markup is left.
+				$inner   = $this->convert_links( (string) $matches[1] );
+				$inner   = $this->convert_formatting( $inner );
+				$content = wp_strip_all_tags( $inner );
 				$lines_raw = preg_split( '/\r?\n/', trim( $content ) );
 				$lines     = is_array( $lines_raw ) ? $lines_raw : array();
 				$result    = "\n";
@@ -964,7 +969,7 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 	 */
 	private function convert_paragraphs( string $html ): string {
 
-		$html = preg_replace( '/<p[^>]*>(.*?)<\/p>/i', "\n$1\n", $html ) ?? $html;
+		$html = preg_replace( '/<p[^>]*>(.*?)<\/p>/is', "\n$1\n", $html ) ?? $html;
 		$html = preg_replace( '/<br\s*\/?>/i', "\n", $html ) ?? $html;
 		return $html;
 	}

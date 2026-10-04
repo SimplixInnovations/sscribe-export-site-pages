@@ -719,21 +719,17 @@ final class SScribe_Private_Storage_Branches_Test extends TestCase {
 	// ------------------------------------------------------------------
 
 	public function test_move_directory_contents_handles_missing_source(): void {
-		// Direct invocation with a non-existent source directory makes
-		// scandir() raise a warning and return false; lines 515-517 then
-		// early-return false. On some Windows builds scandir() returns an
-		// empty array for a missing path — both outcomes prove the function
-		// ran. The expected scandir() warning is captured and asserted
-		// (proves the branch was actually reached) without suppressing it.
-		$result = $this->expect_warning(
-			fn () => $this->call_private(
-				'move_directory_contents',
-				sys_get_temp_dir() . '/never-was-source-' . uniqid(),
-				\SScribe_Private_Storage::get_export_dir()
-			),
-			'scandir'
+		// Missing (and non-directory) sources short-circuit with false and
+		// never reach scandir(). The historical scandir() warning doubled as
+		// reachability proof here, but warnings-as-control-flow poisoned
+		// strict failOnWarning runs whenever a legacy path pointed at a
+		// plain file — silence plus the false return is the contract now.
+		$result = $this->call_private(
+			'move_directory_contents',
+			sys_get_temp_dir() . '/never-was-source-' . uniqid(),
+			\SScribe_Private_Storage::get_export_dir()
 		);
-		$this::assertIsBool( $result );
+		$this::assertFalse( $result );
 	}
 
 	public function test_move_directory_contents_returns_false_for_unsupported_entry(): void {

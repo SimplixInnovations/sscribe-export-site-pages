@@ -257,7 +257,12 @@ class SScribe_Content_Parser {
 	private function normalize_html( string $html ): string {
 		$html = $this->strip_all_styles( $html );
 
-		$html = $this->safe_replace( '/<(script|noscript|svg)\b[^>]*>.*?<\/\1>/is', '', $html );
+		$html = $this->safe_replace( '/<(script|noscript)\b[^>]*>.*?<\/\1>/is', '', $html );
+
+		// Inline SVG cannot be represented faithfully in the document
+		// formats; leave a visible marker instead of silently deleting the
+		// whole block (the Markdown exporter already used such a marker).
+		$html = $this->safe_replace( '/<svg\b[^>]*>.*?<\/svg>/is', '[SVG image]', $html );
 
 		$html = $this->safe_replace( '/<!--.*?-->/s', '', $html );
 

@@ -60,6 +60,20 @@ $pattern_guarded_arg      = '#add_guarded_(?:lazy_)?ajax_action\s*\(\s*[\'"](wp_
 $pattern_verify_authz     = '#verify_request_authorization\s*\(#';
 $pattern_canonical_nonce  = '#check_ajax_referer\s*\(\s*[\'"]sscribe_export_nonce[\'"]#';
 
+/**
+ * Nonce-mint actions: endpoints whose entire purpose is to reissue nonces
+ * after the caller's nonce expired, so they cannot verify that same nonce.
+ * Each entry must still enforce login + capability + rate limiting inside
+ * its handler, and only ever returns fresh nonces to their authenticated
+ * owner (a cross-site request can neither read nor use them). Keep this
+ * list empty unless an endpoint is a nonce mint by design.
+ *
+ * @var array<string,string> slug => justification
+ */
+$nonce_mint_actions = array(
+	'sscribe_refresh_nonce' => 'Nonce mint: recovers operations whose nonce expired mid-run; login + capability + rate limit enforced in SScribe_Export_Query_Controller::ajax_refresh_nonce().',
+);
+
 $inventory          = array(); // slug => registration rows + has_local_authz + guarded_via_loader
 $nopriv_seen        = array();
 $canonical_nonce_ok = false;
@@ -138,8 +152,12 @@ foreach ( $files as $file ) {
 ksort( $inventory );
 
 // Every registered action must be either guarded via the loader OR have
-// local authorization in the file.
+// local authorization in the file — except documented nonce-mint actions,
+// which cannot verify the very nonce they exist to replace.
 foreach ( $inventory as $slug => $row ) {
+	if ( isset( $nonce_mint_actions[ $slug ] ) ) {
+		continue;
+	}
 	if ( ! $row['guarded_loader'] && ! $row['has_local_authz'] ) {
 		$files_list = implode( ', ', array_unique( array_column( $row['registration'], 'file' ) ) );
 		$errors[]   = sprintf(
@@ -170,7 +188,8 @@ foreach ( $inventory as $slug => $row ) {
 		'action'          => $slug,
 		'guarded_loader'  => $row['guarded_loader'],
 		'local_authz'     => $row['has_local_authz'],
-		'passes'          => $row['guarded_loader'] || $row['has_local_authz'],
+		'nonce_mint'      => isset( $nonce_mint_actions[ $slug ] ),
+		'passes'          => $row['guarded_loader'] || $row['has_local_authz'] || isset( $nonce_mint_actions[ $slug ] ),
 		'registration'    => $row['registration'],
 	);
 }
@@ -211,7 +230,7 @@ echo sprintf( "Canonical nonce used:  %s\n", $canonical_nonce_ok ? 'yes' : 'NO' 
 echo "\n";
 foreach ( $rows as $row ) {
 	$status = $row['passes'] ? '✓' : '✗';
-	$mode   = $row['guarded_loader'] ? 'guarded' : ( $row['local_authz'] ? 'local' : 'UNGUARDED' );
+	$mode   = $row['guarded_loader'] ? 'guarded' : ( $row['local_authz'] ? 'local' : ( ! empty( $row['nonce_mint'] ) ? 'nonce-mint' : 'UNGUARDED' ) );
 	echo sprintf( "  %s  %-44s [%s]\n", $status, $row['action'], $mode );
 }
 echo "\nErrors: " . count( $errors ) . "\n";

@@ -171,10 +171,50 @@ class SScribe_Export_Error_Handler {
 				'memory_limits'      => array_unique( $memory_limits ),
 				'exceptions'         => array_unique( $exception_types ),
 				'libxml_error_count' => $libxml_count,
-				'entries'            => $technical_items,
+				'entries'            => array_map( array( $this, 'sanitize_payload_entry' ), $technical_items ),
 			),
-			'entries'      => $diagnostics,
+			'entries'      => array_map( array( $this, 'sanitize_payload_entry' ), $diagnostics ),
 		);
+	}
+
+	/**
+	 * Redact path-bearing context keys in a diagnostics payload entry.
+	 *
+	 * Absolute filesystem paths reveal the WordPress layout and violate the
+	 * plugin's no-internal-details policy; raw context keeps flowing to the
+	 * server-side log, only the wire payload is scrubbed.
+	 *
+	 * @param array $entry Payload entry with optional context/technical arrays.
+	 * @return array Sanitized entry.
+	 */
+	private function sanitize_payload_entry( array $entry ): array {
+		foreach ( array( 'context', 'technical' ) as $key ) {
+			if ( isset( $entry[ $key ] ) && is_array( $entry[ $key ] ) ) {
+				$entry[ $key ] = $this->sanitize_technical_context( $entry[ $key ] );
+			}
+		}
+
+		return $entry;
+	}
+
+	/**
+	 * Recursively replace path-like values with a marker.
+	 *
+	 * @param array $context Context array.
+	 * @return array Redacted context.
+	 */
+	private function sanitize_technical_context( array $context ): array {
+		foreach ( $context as $key => $value ) {
+			if ( is_array( $value ) ) {
+				$context[ $key ] = $this->sanitize_technical_context( $value );
+				continue;
+			}
+			if ( preg_match( '/(^|_)(path|file|dir|folder|tmp|temp)(_|$)/i', (string) $key ) ) {
+				$context[ $key ] = is_string( $value ) && '' !== $value ? '[redacted]' : $value;
+			}
+		}
+
+		return $context;
 	}
 
 	/**
