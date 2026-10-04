@@ -612,7 +612,7 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 	private static function missing_image_marker( string $tag ): string {
 		$alt = '';
 		if ( 1 === preg_match( '/\balt\s*=\s*(?:"([^"]*)"|\'([^\']*)\')/i', $tag, $alt_match ) ) {
-			$alt = (string) ( $alt_match[1] !== '' ? $alt_match[1] : ( $alt_match[2] ?? '' ) );
+			$alt = (string) ( '' !== $alt_match[1] ? $alt_match[1] : ( $alt_match[2] ?? '' ) );
 		}
 		if ( '' === $alt ) {
 			$alt = __( 'No Alt Text Provided', 'sscribe-export-site-pages' );
