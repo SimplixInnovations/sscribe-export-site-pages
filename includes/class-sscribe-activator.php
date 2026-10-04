@@ -707,12 +707,19 @@ class SScribe_Activator {
 			return;
 		}
 
-		if ( ! $admin_role->has_cap( 'sscribe_export' ) ) {
-			$admin_role->add_cap( 'sscribe_export' );
+		// Grant the *effective* capability names: when the capability
+		// filters map export/health onto another allow-listed capability,
+		// granting the hardcoded defaults would leave administrators
+		// without access to their own plugin.
+		$export_cap = SScribe_Capabilities::get_required();
+		$health_cap = SScribe_Capabilities::get_health_required();
+
+		if ( ! $admin_role->has_cap( $export_cap ) ) {
+			$admin_role->add_cap( $export_cap );
 		}
 
-		if ( ! $admin_role->has_cap( 'sscribe_health' ) ) {
-			$admin_role->add_cap( 'sscribe_health' );
+		if ( ! $admin_role->has_cap( $health_cap ) ) {
+			$admin_role->add_cap( $health_cap );
 		}
 	}
 }

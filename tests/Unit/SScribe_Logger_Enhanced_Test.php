@@ -60,6 +60,21 @@ class SScribe_Logger_Enhanced_Test extends TestCase {
 		$this->assertIsInt( $result );
 	}
 
+	public function test_get_db_logs_supports_offset_filter(): void {
+		$result = $this->logger->get_db_logs( array( 'user_id' => 1, 'offset' => 10 ), 5 );
+		$this->assertIsArray( $result );
+	}
+
+	public function test_delete_db_logs_for_user_returns_integer(): void {
+		$result = $this->logger->delete_db_logs_for_user( 123 );
+		$this->assertIsInt( $result );
+	}
+
+	public function test_delete_db_logs_for_user_rejects_invalid_ids(): void {
+		$this->assertSame( 0, $this->logger->delete_db_logs_for_user( 0 ) );
+		$this->assertSame( 0, $this->logger->delete_db_logs_for_user( -1 ) );
+	}
+
 	public function test_log_accepts_all_levels(): void {
 		$levels = array( 'debug', 'info', 'notice', 'warning', 'error', 'critical', 'alert', 'emergency' );
 

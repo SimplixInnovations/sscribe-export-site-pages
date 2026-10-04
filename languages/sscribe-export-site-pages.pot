@@ -9,7 +9,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-10-04T15:43:07+00:00\n"
+"POT-Creation-Date: 2026-10-04T17:55:38+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.12.0\n"
 "X-Domain: sscribe-export-site-pages\n"
@@ -520,7 +520,7 @@ msgstr ""
 #: admin/class-sscribe-admin.php:355
 #: admin/class-sscribe-admin.php:756
 #: includes/class-sscribe-export-query-controller.php:602
-#: includes/class-sscribe-exporter.php:1405
+#: includes/class-sscribe-exporter.php:1381
 msgid "All Languages"
 msgstr ""
 
@@ -668,7 +668,7 @@ msgid "Failed to clear the export session after multiple attempts. Please refres
 msgstr ""
 
 #: admin/class-sscribe-admin.php:392
-#: includes/traits/trait-sscribe-session-ajax.php:155
+#: includes/traits/trait-sscribe-session-ajax.php:158
 msgid "Export cancelled."
 msgstr ""
 
@@ -835,9 +835,9 @@ msgstr ""
 #: admin/class-sscribe-admin.php:437
 #: admin/partials/sscribe-admin-display.php:340
 #: admin/partials/sscribe-admin-display.php:564
-#: includes/class-sscribe-exporter.php:1779
+#: includes/class-sscribe-exporter.php:1755
 #: includes/class-sscribe-page-collector.php:1502
-#: includes/exporters/class-sscribe-html-exporter.php:449
+#: includes/exporters/class-sscribe-html-exporter.php:454
 msgid "Published"
 msgstr ""
 
@@ -1731,59 +1731,59 @@ msgid "The export could not be deleted."
 msgstr ""
 
 #. translators: 1: Format, 2: Actual size, 3: Minimum size.
-#: includes/class-sscribe-batch-processor.php:302
+#: includes/class-sscribe-batch-processor.php:310
 #, php-format
 msgid "%1$s file appears empty or corrupted (size: %2$d bytes, minimum: %3$d bytes)."
 msgstr ""
 
-#: includes/class-sscribe-batch-processor.php:1000
+#: includes/class-sscribe-batch-processor.php:1014
 #: includes/class-sscribe-export-query-controller.php:120
 #: includes/class-sscribe-export-query-controller.php:522
 msgid "Invalid or inactive language."
 msgstr ""
 
 #. translators: %s: Submitted post type.
-#: includes/class-sscribe-batch-processor.php:1059
+#: includes/class-sscribe-batch-processor.php:1073
 #, php-format
 msgid "Invalid post type \"%s\"."
 msgstr ""
 
-#: includes/class-sscribe-batch-processor.php:1083
+#: includes/class-sscribe-batch-processor.php:1097
 msgid "You already have an export in progress. Please wait for it to complete or refresh the page."
 msgstr ""
 
-#: includes/class-sscribe-batch-processor.php:1095
+#: includes/class-sscribe-batch-processor.php:1109
 msgid "Invalid language code specified."
 msgstr ""
 
-#: includes/class-sscribe-batch-processor.php:1132
+#: includes/class-sscribe-batch-processor.php:1146
 msgid "No pages found matching the selected criteria."
 msgstr ""
 
-#: includes/class-sscribe-batch-processor.php:1153
+#: includes/class-sscribe-batch-processor.php:1167
 msgid "Failed to initialize export directory. Please try again."
 msgstr ""
 
-#: includes/class-sscribe-batch-processor.php:1196
+#: includes/class-sscribe-batch-processor.php:1210
 msgid "Failed to create export session. Please try again."
 msgstr ""
 
-#: includes/class-sscribe-batch-processor.php:1211
+#: includes/class-sscribe-batch-processor.php:1225
 msgid "Failed to store the export page list. Please try again."
 msgstr ""
 
-#: includes/class-sscribe-batch-processor.php:1237
+#: includes/class-sscribe-batch-processor.php:1251
 msgid "Another export was started. Please try again."
 msgstr ""
 
 #. translators: %d: Number of pages found.
-#: includes/class-sscribe-batch-processor.php:1267
+#: includes/class-sscribe-batch-processor.php:1281
 #, php-format
 msgid "Found %d pages. Starting export..."
 msgstr ""
 
 #. translators: %d: Maximum number of pages included in one export.
-#: includes/class-sscribe-batch-processor.php:1278
+#: includes/class-sscribe-batch-processor.php:1292
 #, php-format
 msgid "More than %d readable pages are available. This export includes the first batch only; run additional exports to cover the remainder."
 msgstr ""
@@ -2115,27 +2115,27 @@ msgstr ""
 msgid "None detected"
 msgstr ""
 
-#: includes/class-sscribe-docx-content-renderer.php:401
+#: includes/class-sscribe-docx-content-renderer.php:404
 msgid "Content"
 msgstr ""
 
-#: includes/class-sscribe-docx-content-renderer.php:807
+#: includes/class-sscribe-docx-content-renderer.php:810
 msgid "Click Here"
 msgstr ""
 
-#: includes/class-sscribe-docx-content-renderer.php:822
+#: includes/class-sscribe-docx-content-renderer.php:825
 msgid "DESTINATION URL:"
 msgstr ""
 
-#: includes/class-sscribe-docx-content-renderer.php:917
+#: includes/class-sscribe-docx-content-renderer.php:920
 msgid "No Alt Text Provided"
 msgstr ""
 
-#: includes/class-sscribe-docx-content-renderer.php:919
+#: includes/class-sscribe-docx-content-renderer.php:922
 msgid "[MISSING IMAGE] "
 msgstr ""
 
-#: includes/class-sscribe-docx-content-renderer.php:1029
+#: includes/class-sscribe-docx-content-renderer.php:1032
 msgid "IMAGE ASSET SOURCE URL:"
 msgstr ""
 
@@ -2651,7 +2651,7 @@ msgstr[1] ""
 
 #. translators: %d: Number of minutes.
 #: includes/class-sscribe-export-query-controller.php:563
-#: includes/class-sscribe-exporter.php:1789
+#: includes/class-sscribe-exporter.php:1765
 #, php-format
 msgid "%d minute"
 msgid_plural "%d minutes"
@@ -2690,118 +2690,118 @@ msgid "Untitled"
 msgstr ""
 
 #. translators: %s: site permalink of the exported page.
-#: includes/class-sscribe-exporter.php:1123
+#: includes/class-sscribe-exporter.php:1099
 #, php-format
 msgid "Exported from %s"
 msgstr ""
 
 #. translators: %s: site name
-#: includes/class-sscribe-exporter.php:1330
+#: includes/class-sscribe-exporter.php:1306
 #, php-format
 msgid "%s | PAGE EXPORT"
 msgstr ""
 
-#: includes/class-sscribe-exporter.php:1396
+#: includes/class-sscribe-exporter.php:1372
 msgid "DOCUMENT DETAILS"
 msgstr ""
 
 #. translators: %s: language code
-#: includes/class-sscribe-exporter.php:1409
+#: includes/class-sscribe-exporter.php:1385
 #, php-format
 msgid "Target Language: %s"
 msgstr ""
 
 #. translators: %s: export date
-#: includes/class-sscribe-exporter.php:1421
+#: includes/class-sscribe-exporter.php:1397
 #, php-format
 msgid "Extracted Date: %s"
 msgstr ""
 
 #. translators: %s: breadcrumb path
-#: includes/class-sscribe-exporter.php:1446
+#: includes/class-sscribe-exporter.php:1422
 #, php-format
 msgid "Site Path: %s"
 msgstr ""
 
-#: includes/class-sscribe-exporter.php:1478
+#: includes/class-sscribe-exporter.php:1454
 msgid "TABLE OF CONTENTS"
 msgstr ""
 
-#: includes/class-sscribe-exporter.php:1512
+#: includes/class-sscribe-exporter.php:1488
 msgid "[Table of Contents could not be generated]"
 msgstr ""
 
 #. translators: Instructions for updating the Table of Contents field in Microsoft Word and LibreOffice.
-#: includes/class-sscribe-exporter.php:1526
+#: includes/class-sscribe-exporter.php:1502
 msgid "To update the Table of Contents: Microsoft Word: right-click, then select Update Field. LibreOffice: press F9 or select Tools, Update, All Fields."
 msgstr ""
 
 #. translators: %s: page-number field token expanded by the word processor (e.g. "Page 1 / 10").
-#: includes/class-sscribe-exporter.php:1593
+#: includes/class-sscribe-exporter.php:1569
 #, php-format
 msgid "Page %1$s"
 msgstr ""
 
-#: includes/class-sscribe-exporter.php:1745
+#: includes/class-sscribe-exporter.php:1721
 msgid "Page Information"
 msgstr ""
 
-#: includes/class-sscribe-exporter.php:1777
+#: includes/class-sscribe-exporter.php:1753
 msgid "URL"
 msgstr ""
 
-#: includes/class-sscribe-exporter.php:1778
-#: includes/exporters/class-sscribe-html-exporter.php:445
+#: includes/class-sscribe-exporter.php:1754
+#: includes/exporters/class-sscribe-html-exporter.php:450
 msgid "Author"
 msgstr ""
 
-#: includes/class-sscribe-exporter.php:1780
-#: includes/exporters/class-sscribe-html-exporter.php:453
+#: includes/class-sscribe-exporter.php:1756
+#: includes/exporters/class-sscribe-html-exporter.php:458
 msgid "Last Modified"
 msgstr ""
 
-#: includes/class-sscribe-exporter.php:1781
-#: includes/exporters/class-sscribe-html-exporter.php:457
+#: includes/class-sscribe-exporter.php:1757
+#: includes/exporters/class-sscribe-html-exporter.php:462
 msgid "Word Count"
 msgstr ""
 
-#: includes/class-sscribe-exporter.php:1785
+#: includes/class-sscribe-exporter.php:1761
 msgid "Reading Time"
 msgstr ""
 
-#: includes/class-sscribe-exporter.php:1792
+#: includes/class-sscribe-exporter.php:1768
 msgid "Under 1 minute"
 msgstr ""
 
-#: includes/class-sscribe-exporter.php:1826
+#: includes/class-sscribe-exporter.php:1802
 msgid "SEO Information"
 msgstr ""
 
 #. translators: %s: SEO plugin name
-#: includes/class-sscribe-exporter.php:1832
+#: includes/class-sscribe-exporter.php:1808
 #, php-format
 msgid "Source: %s"
 msgstr ""
 
-#: includes/class-sscribe-exporter.php:1866
+#: includes/class-sscribe-exporter.php:1842
 msgid "Meta Title"
 msgstr ""
 
-#: includes/class-sscribe-exporter.php:1867
+#: includes/class-sscribe-exporter.php:1843
 msgid "Meta Description"
 msgstr ""
 
-#: includes/class-sscribe-exporter.php:1868
+#: includes/class-sscribe-exporter.php:1844
 msgid "Focus Keyword"
 msgstr ""
 
 #. translators: %s: breadcrumb path
-#: includes/class-sscribe-exporter.php:1916
+#: includes/class-sscribe-exporter.php:1892
 #, php-format
 msgid "Path: %s"
 msgstr ""
 
-#: includes/class-sscribe-exporter.php:1947
+#: includes/class-sscribe-exporter.php:1923
 msgid "Child Pages"
 msgstr ""
 
@@ -2854,6 +2854,7 @@ msgid "Event"
 msgstr ""
 
 #: includes/class-sscribe-privacy.php:142
+#: includes/class-sscribe-privacy.php:255
 msgid "Timestamp"
 msgstr ""
 
@@ -2870,6 +2871,7 @@ msgid "Request URI"
 msgstr ""
 
 #: includes/class-sscribe-privacy.php:158
+#: includes/class-sscribe-privacy.php:267
 msgid "Context"
 msgstr ""
 
@@ -2906,7 +2908,7 @@ msgid "SScribe export sessions"
 msgstr ""
 
 #: includes/class-sscribe-privacy.php:225
-#: includes/class-sscribe-privacy.php:255
+#: includes/class-sscribe-privacy.php:289
 msgid "Created at"
 msgstr ""
 
@@ -2914,19 +2916,31 @@ msgstr ""
 msgid "Updated at"
 msgstr ""
 
-#: includes/class-sscribe-privacy.php:247
+#: includes/class-sscribe-privacy.php:251
+msgid "SScribe export diagnostics log"
+msgstr ""
+
+#: includes/class-sscribe-privacy.php:259
+msgid "Level"
+msgstr ""
+
+#: includes/class-sscribe-privacy.php:263
+msgid "Message"
+msgstr ""
+
+#: includes/class-sscribe-privacy.php:281
 msgid "SScribe export archives"
 msgstr ""
 
-#: includes/class-sscribe-privacy.php:251
+#: includes/class-sscribe-privacy.php:285
 msgid "Archive filename"
 msgstr ""
 
-#: includes/class-sscribe-privacy.php:319
+#: includes/class-sscribe-privacy.php:354
 msgid "Some export sessions could not be removed. Please run the eraser again."
 msgstr ""
 
-#: includes/class-sscribe-privacy.php:343
+#: includes/class-sscribe-privacy.php:379
 msgid "Some export archives could not be removed because another export operation is using the archive index. Please run the eraser again."
 msgstr ""
 
@@ -2987,43 +3001,43 @@ msgstr ""
 msgid "Exported from %1$s on %2$s"
 msgstr ""
 
-#: includes/exporters/class-sscribe-html-exporter.php:480
+#: includes/exporters/class-sscribe-html-exporter.php:485
 msgid "SEO Metadata"
 msgstr ""
 
-#: includes/exporters/class-sscribe-html-exporter.php:483
+#: includes/exporters/class-sscribe-html-exporter.php:488
 msgid "Source:"
 msgstr ""
 
-#: includes/exporters/class-sscribe-html-exporter.php:484
+#: includes/exporters/class-sscribe-html-exporter.php:489
 msgid "Meta Title:"
 msgstr ""
 
-#: includes/exporters/class-sscribe-html-exporter.php:485
+#: includes/exporters/class-sscribe-html-exporter.php:490
 msgid "Meta Description:"
 msgstr ""
 
-#: includes/exporters/class-sscribe-html-exporter.php:486
+#: includes/exporters/class-sscribe-html-exporter.php:491
 msgid "Focus Keyword:"
 msgstr ""
 
-#: includes/exporters/class-sscribe-html-exporter.php:487
+#: includes/exporters/class-sscribe-html-exporter.php:492
 msgid "Open Graph Title:"
 msgstr ""
 
-#: includes/exporters/class-sscribe-html-exporter.php:488
+#: includes/exporters/class-sscribe-html-exporter.php:493
 msgid "Open Graph Description:"
 msgstr ""
 
-#: includes/exporters/class-sscribe-html-exporter.php:498
+#: includes/exporters/class-sscribe-html-exporter.php:503
 msgid "Canonical URL:"
 msgstr ""
 
-#: includes/exporters/class-sscribe-html-exporter.php:499
+#: includes/exporters/class-sscribe-html-exporter.php:504
 msgid "Open Graph Image:"
 msgstr ""
 
-#: includes/exporters/class-sscribe-html-exporter.php:515
+#: includes/exporters/class-sscribe-html-exporter.php:520
 msgid "Robots:"
 msgstr ""
 
@@ -3083,7 +3097,7 @@ msgstr ""
 #: includes/traits/trait-sscribe-batch-step-handler.php:119
 #: includes/traits/trait-sscribe-export-finalizer.php:78
 #: includes/traits/trait-sscribe-session-ajax.php:139
-#: includes/traits/trait-sscribe-session-ajax.php:166
+#: includes/traits/trait-sscribe-session-ajax.php:169
 msgid "Invalid session access."
 msgstr ""
 
@@ -3308,23 +3322,23 @@ msgstr ""
 msgid "Session not found."
 msgstr ""
 
-#: includes/traits/trait-sscribe-session-ajax.php:161
+#: includes/traits/trait-sscribe-session-ajax.php:164
 msgid "Session already cleared."
 msgstr ""
 
-#: includes/traits/trait-sscribe-session-ajax.php:227
+#: includes/traits/trait-sscribe-session-ajax.php:230
 msgid "Unable to identify the current user."
 msgstr ""
 
-#: includes/traits/trait-sscribe-session-ajax.php:239
+#: includes/traits/trait-sscribe-session-ajax.php:242
 msgid "Another export session operation is in progress. Please retry."
 msgstr ""
 
-#: includes/traits/trait-sscribe-session-ajax.php:269
+#: includes/traits/trait-sscribe-session-ajax.php:272
 msgid "The current export is still processing. Please retry shortly."
 msgstr ""
 
-#: includes/traits/trait-sscribe-session-ajax.php:278
+#: includes/traits/trait-sscribe-session-ajax.php:281
 msgid "Session cleared."
 msgstr ""
 

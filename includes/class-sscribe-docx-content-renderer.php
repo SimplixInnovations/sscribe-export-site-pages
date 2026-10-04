@@ -171,8 +171,11 @@ class SScribe_DOCX_Content_Renderer {
 		$text = str_replace( array( "\r\n", "\r" ), "\n", $text );
 		$text = str_replace( "\x0C", '', $text );
 
-		if ( SScribe_Helpers::mb_strlen( $text ) > 2048 && false === SScribe_Helpers::mb_strpos( $text, ' ', 0 ) ) {
-			$text = SScribe_Helpers::mb_substr( $text, 0, 2048 );
+		if ( SScribe_Helpers::mb_strlen( $text ) > 100000 ) {
+			// Body runs are human content: prose, CJK paragraphs and code
+			// blocks must never be silently amputated. A hard ceiling remains
+			// purely as a memory guard against pathological payloads.
+			$text = SScribe_Helpers::mb_substr( $text, 0, 100000 );
 		}
 
 		return $text;

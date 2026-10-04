@@ -2172,7 +2172,10 @@
 								break;
 							}
 						}
-						callback(matched || recentResp.data.exports[0]);
+						// Never fall back to an arbitrary older export: the
+						// recovery paths must show the error state instead of
+						// presenting someone else's ZIP as this export's result.
+						callback(matched);
 					} else {
 						callback(null);
 					}
@@ -3803,7 +3806,7 @@
 					.writeText(text)
 					.then(done)
 					.catch(function () {
-						self.fallbackCopy(text, done);
+						SScribe.fallbackCopy(text, done);
 					});
 			} else {
 				this.fallbackCopy(text, done);

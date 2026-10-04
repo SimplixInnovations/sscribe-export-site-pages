@@ -369,13 +369,14 @@ class SScribe_Logger_Enhanced extends SScribe_Logger {
 	 * Note: returns raw database row objects, not formatted strings.
 	 * For formatted string output, use get_logs() which calls fetch_logs() internally.
 	 *
-	 * @param array $filters Filter criteria (level, user_id, date_from, date_to).
+	 * @param array $filters Filter criteria (level, user_id, date_from, date_to, offset).
 	 * @param int   $limit   Maximum number of entries.
-	 * @return object[] Array of raw database row objects with timestamp, level, message, context, session_id, request_id properties.
+	 * @return array<int, object{id: int|string, timestamp: string, level: string, message: string, context: string, session_id: string|null, request_id: string|null, user_id: int|string|null}> Raw database row objects.
 	 */
 	public function get_db_logs( array $filters = array(), int $limit = 100 ): array {
 		global $wpdb;
-		$limit = max( 1, min( 1000, $limit ) );
+		$limit  = max( 1, min( 1000, $limit ) );
+		$offset = isset( $filters['offset'] ) ? max( 0, (int) $filters['offset'] ) : 0;
 
 		if ( ! $this->table_exists() ) {
 			return array();
@@ -406,14 +407,14 @@ class SScribe_Logger_Enhanced extends SScribe_Logger {
 
 		$where_clause = implode( ' AND ', $where );
 		$args[]       = $limit;
+		$sql          = "SELECT id, timestamp, level, message, context, session_id, request_id, user_id FROM {$this->table_name} WHERE {$where_clause} ORDER BY timestamp DESC LIMIT %d"; // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name from $wpdb->prefix (trusted), WHERE clause built from controlled filter keys with placeholders
+		if ( $offset > 0 ) {
+			$sql     .= ' OFFSET %d';
+			$args[]   = $offset;
+		}
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, PluginCheck.Security.DirectDB.UnescapedDBParameter
-		return $wpdb->get_results(
-			$wpdb->prepare(
-				"SELECT id, timestamp, level, message, context, session_id, request_id, user_id FROM {$this->table_name} WHERE {$where_clause} ORDER BY timestamp DESC LIMIT %d", // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name from $wpdb->prefix (trusted), WHERE clause built from controlled filter keys with placeholders
-				...$args
-			)
-		);
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, PluginCheck.Security.DirectDB.UnescapedDBParameter, WordPress.DB.PreparedSQL.NotPrepared -- Table name from $wpdb->prefix (trusted), WHERE clause built from controlled filter keys with placeholders; LIMIT/OFFSET placeholders bound via $args.
+		return $wpdb->get_results( $wpdb->prepare( $sql, ...$args ) );
 	}
 
 	/**
@@ -437,6 +438,31 @@ class SScribe_Logger_Enhanced extends SScribe_Logger {
 			$wpdb->prepare(
 				'DELETE FROM ' . esc_sql( $this->table_name ) . ' WHERE timestamp < %s',
 				$cutoff
+			)
+		);
+	}
+
+	/**
+	 * Delete all database log entries belonging to a user.
+	 *
+	 * Used by the privacy eraser: rows carry a user_id and must disappear
+	 * when the owner exercises their right to erasure.
+	 *
+	 * @param int $user_id User ID.
+	 * @return int Number of rows deleted.
+	 */
+	public function delete_db_logs_for_user( int $user_id ): int {
+		global $wpdb;
+
+		if ( ! $this->table_exists() || $user_id <= 0 ) {
+			return 0;
+		}
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		return $wpdb->query(
+			$wpdb->prepare(
+				'DELETE FROM ' . esc_sql( $this->table_name ) . ' WHERE user_id = %d',
+				$user_id
 			)
 		);
 	}

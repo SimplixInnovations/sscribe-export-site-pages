@@ -164,9 +164,19 @@ final class SScribe_Session_Extra_Coverage_Test extends TestCase {
 	public function test_update_appends_to_append_keys(): void {
 		$s   = $this->new_session();
 		$sid = $this->make_session( 1 );
-		// Append structured_errors twice; both should remain.
+		// Array payloads replace wholesale: production callers (the batch
+		// step handler) pass the complete accumulated structured_errors list,
+		// so the historical append-merge duplicated entries exponentially
+		// across batches. Two sequential writes therefore leave the second
+		// payload as the stored truth.
 		$s->update( $sid, array( 'structured_errors' => array( array( 'code' => 'A' ) ) ) );
 		$s->update( $sid, array( 'structured_errors' => array( array( 'code' => 'B' ) ) ) );
+		$reloaded = $s->get( $sid );
+		$this::assertCount( 1, $reloaded['structured_errors'] ?? array() );
+		$this::assertSame( 'B', $reloaded['structured_errors'][0]['code'] ?? '' );
+
+		// Passing the full accumulated list must not duplicate entries.
+		$s->update( $sid, array( 'structured_errors' => array( array( 'code' => 'B' ), array( 'code' => 'C' ) ) ) );
 		$reloaded = $s->get( $sid );
 		$this::assertCount( 2, $reloaded['structured_errors'] ?? array() );
 	}

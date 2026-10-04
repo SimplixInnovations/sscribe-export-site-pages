@@ -170,7 +170,9 @@ final class SScribe_Rate_Limit_Bucket_Audit_Test extends TestCase {
 			array( '/includes/traits/trait-sscribe-batch-step-handler.php',    'ajax_process_batch',     'export_batch' ),
 			array( '/includes/traits/trait-sscribe-export-finalizer.php',      'ajax_finalize_export',   'export_finalize' ),
 			array( '/includes/traits/trait-sscribe-session-ajax.php',          'ajax_check_active_session','export_read' ),
-			array( '/includes/traits/trait-sscribe-session-ajax.php',          'ajax_cancel_export',     'export_start' ),
+			// Cancel is a safety/consent action with its own quota so a user
+			// who exhausted export_start can still stop a running export.
+			array( '/includes/traits/trait-sscribe-session-ajax.php',          'ajax_cancel_export',     'export_cancel' ),
 			array( '/includes/traits/trait-sscribe-session-ajax.php',          'ajax_clear_session',     'export_start' ),
 
 			// Debug admin: every handler explicitly named.

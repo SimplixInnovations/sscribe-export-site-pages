@@ -451,40 +451,16 @@ final class SScribe_Exporter {
 	 * (URL, base64 blob, hash) that should be truncated, rather than natural
 	 * human text in a script that does not use spaces (Arabic, Hebrew, CJK)?
 	 *
-	 * Signals that increase the score: contains a space, contains a high
-	 * proportion of ASCII letters/digits/symbols, or contains a URL scheme
-	 * (http://, https://, data:). Returns true only if the string is
-	 * predominantly Latin/machine content.
+	 * Delegates to SScribe_Helpers::is_machine_style_string(): spaced text is
+	 * always human, spaceless CJK/Arabic-style scripts are preserved, and
+	 * only URL-scheme or high-ASCII-ratio spaceless strings classify as
+	 * machine payloads.
 	 *
 	 * @param string $text Text to test.
 	 * @return bool True if it looks like a machine-style string suitable for truncation.
 	 */
 	private function is_machine_style_string( string $text ): bool {
-
-		if ( false !== SScribe_Helpers::mb_strpos( $text, ' ', 0 ) ) {
-			return true;
-		}
-
-		// Refuse to classify anything containing CJK / Hangul / Kana / other
-		// non-Latin scripts as machine-style. Truncating a long CJK URL or a
-		// Japanese title mid-character corrupts the export; the user-visible
-		// loss outweighs the memory savings.
-		if ( preg_match( '/[\x{3040}-\x{309F}\x{30A0}-\x{30FF}\x{3400}-\x{4DBF}\x{4E00}-\x{9FFF}\x{AC00}-\x{D7AF}\x{F900}-\x{FAFF}\x{FF00}-\x{FFEF}]/u', $text ) ) {
-			return false;
-		}
-
-		if ( preg_match( '#^[a-z][a-z0-9+.\-]*://#i', $text ) ) {
-			return true;
-		}
-
-		$ascii_machine_count = preg_match_all( '/[A-Za-z0-9=\/\+_\-:.;?&%@#]/', $text );
-		$total_length        = SScribe_Helpers::mb_strlen( $text );
-
-		if ( $total_length > 0 && ( $ascii_machine_count / $total_length ) > 0.6 ) {
-			return true;
-		}
-
-		return false;
+		return SScribe_Helpers::is_machine_style_string( $text );
 	}
 
 	/**

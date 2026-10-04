@@ -404,7 +404,12 @@ class SScribe_HTML_Exporter implements SScribe_Exporter_Interface {
 	 * @return string Image HTML or empty string.
 	 */
 	private function get_featured_image_html( array $page_data ): string {
-		$src = esc_url( $this->normalize_scalar( $page_data['featured_image_url'] ?? '' ) );
+		$raw_src = $this->normalize_scalar( $page_data['featured_image_url'] ?? '' );
+		// PDF rendering substitutes a validated local file path for the
+		// featured image URL. esc_url() rejects filesystem paths (drive
+		// letters parse as unknown schemes) and would silently drop the
+		// image, so existing local files are attribute-escaped instead.
+		$src = ( '' !== $raw_src && file_exists( $raw_src ) ) ? esc_attr( $raw_src ) : esc_url( $raw_src );
 
 		if ( '' === $src ) {
 			return '';

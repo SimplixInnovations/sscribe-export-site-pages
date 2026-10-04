@@ -237,6 +237,40 @@ class SScribe_Privacy {
 				);
 		}
 
+		$export_logger = new SScribe_Logger_Enhanced( array( 'enable_file' => false ) );
+		$db_logs       = $export_logger->get_db_logs(
+			array(
+				'user_id' => $user_id,
+				'offset'  => $offset,
+			),
+			$items_limit
+		);
+		foreach ( $db_logs as $log ) {
+			$export_items[] = array(
+				'group_id'    => 'sscribe-export-logs',
+				'group_label' => esc_html__( 'SScribe export diagnostics log', 'sscribe-export-site-pages' ),
+				'item_id'     => 'sscribe-export-log-' . absint( $log->id ),
+				'data'        => array(
+					array(
+						'name'  => esc_html__( 'Timestamp', 'sscribe-export-site-pages' ),
+						'value' => (string) $log->timestamp,
+					),
+					array(
+						'name'  => esc_html__( 'Level', 'sscribe-export-site-pages' ),
+						'value' => (string) $log->level,
+					),
+					array(
+						'name'  => esc_html__( 'Message', 'sscribe-export-site-pages' ),
+						'value' => (string) $log->message,
+					),
+					array(
+						'name'  => esc_html__( 'Context', 'sscribe-export-site-pages' ),
+						'value' => (string) $log->context,
+					),
+				),
+			);
+		}
+
 		if ( 1 === $page ) {
 			foreach ( $this->zip_handler->list_export_entries() as $filename => $entry ) {
 				if ( (int) ( $entry['user_id'] ?? 0 ) !== $user_id ) {
@@ -262,7 +296,8 @@ class SScribe_Privacy {
 
 		$has_more = count( $audit_logs ) >= $items_limit
 			|| count( $export_stats ) >= $items_limit
-			|| count( $session_page ) > $items_limit;
+			|| count( $session_page ) > $items_limit
+			|| count( $db_logs ) >= $items_limit;
 
 		return array(
 			'data' => $export_items,
@@ -324,6 +359,7 @@ class SScribe_Privacy {
 
 		$removed_items += $this->audit_trail->erase_user_data( $user_id );
 		$removed_items += $this->export_stats->erase_user_data( $user_id );
+		$removed_items += ( new SScribe_Logger_Enhanced( array( 'enable_file' => false ) ) )->delete_db_logs_for_user( $user_id );
 
 		foreach ( $this->zip_handler->list_export_entries() as $filename => $entry ) {
 			if ( (int) ( $entry['user_id'] ?? 0 ) !== $user_id ) {

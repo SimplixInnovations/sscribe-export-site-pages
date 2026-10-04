@@ -54,6 +54,7 @@ class SScribe_Export_Rate_Limiter {
 		'export_start',
 		'export_batch',
 		'export_finalize',
+		'export_cancel',
 		'export_read',
 		'debug_read',
 		'debug_write',

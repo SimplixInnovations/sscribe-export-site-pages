@@ -445,4 +445,40 @@ class SScribe_Helpers {
 	public static function mb_strtoupper( string $string ): string {
 		return function_exists( 'mb_strtoupper' ) ? (string) mb_strtoupper( $string ) : strtoupper( $string );
 	}
+
+	/**
+	 * Heuristic: does this string look like a machine-generated payload
+	 * (URL, base64 blob, hash) that is safe to truncate for memory reasons,
+	 * rather than natural human text?
+	 *
+	 * Natural language contains spaces, so spaced text is never machine
+	 * classified. Spaceless strings are machine classified only when they
+	 * carry a URL scheme or a high ratio of ASCII machine characters; CJK
+	 * and other spaceless human scripts are explicitly preserved.
+	 *
+	 * @param string $text Text to test.
+	 * @return bool True when the string looks like a machine payload.
+	 */
+	public static function is_machine_style_string( string $text ): bool {
+		// Prose contains spaces; machine payloads (URLs, base64, hashes)
+		// do not. A space is proof of human text, never machine content.
+		if ( false !== self::mb_strpos( $text, ' ', 0 ) ) {
+			return false;
+		}
+
+		// CJK / Hangul / Kana / full-width forms need no spaces either;
+		// truncating them mid-character corrupts the export.
+		if ( preg_match( '/[\x{3040}-\x{309F}\x{30A0}-\x{30FF}\x{3400}-\x{4DBF}\x{4E00}-\x{9FFF}\x{AC00}-\x{D7AF}\x{F900}-\x{FAFF}\x{FF00}-\x{FFEF}]/u', $text ) ) {
+			return false;
+		}
+
+		if ( preg_match( '#^[a-z][a-z0-9+.\-]*://#i', $text ) ) {
+			return true;
+		}
+
+		$ascii_machine_count = preg_match_all( '/[A-Za-z0-9=\/\+_\-:.;?&%@#]/', $text );
+		$total_length        = self::mb_strlen( $text );
+
+		return $total_length > 0 && ( $ascii_machine_count / $total_length ) > 0.6;
+	}
 }

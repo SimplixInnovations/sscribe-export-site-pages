@@ -282,6 +282,14 @@ final class SScribe_Batch_Processor {
 
 		$result_data = $result->get_data();
 		if ( ! $result->is_success() ) {
+			// A failed export may still have left a partial file at the
+			// output path; remove it so it cannot reach the deliverable ZIP.
+			$failed_path = is_array( $result_data )
+				? (string) ( $result_data['path'] ?? ( $result_data['file_path'] ?? '' ) )
+				: '';
+			if ( '' !== $failed_path && file_exists( $failed_path ) ) {
+				wp_delete_file( $failed_path );
+			}
 			return array(
 				'is_valid' => false,
 				'error'    => $result->get_error(),
@@ -304,6 +312,12 @@ final class SScribe_Batch_Processor {
 				$actual_size,
 				$min_size
 			);
+			// Never leave a rejected artifact behind: the finalize step packs
+			// every file it finds in the session tree, so a corrupt file that
+			// survives here would ship inside the deliverable ZIP.
+			if ( '' !== $file_path && file_exists( $file_path ) ) {
+				wp_delete_file( $file_path );
+			}
 			return array(
 				'is_valid' => false,
 				'error'    => $size_error,

@@ -24,7 +24,7 @@ SScribe reads languages from one multilingual plugin at a time. When several are
 
 ### `sscribe_max_execution_time`
 
-Maximum batch-export execution time in seconds. Default: `120`.
+Maximum batch-export execution time in seconds. Default: `150`.
 
 ### `sscribe_pdf_max_execution_time`
 
@@ -48,9 +48,13 @@ Parameters: `(array $format_options, int $page_id, string $session_id)`.
 
 Pages processed per AJAX request. Values are bounded from `1` through `20`. Default: `5`.
 
+### `sscribe_min_export_file_sizes`
+
+Per-format minimum export file size, in bytes, used to detect empty or corrupted artifacts before they can ship. Keys: `docx`, `pdf`, `html`, `markdown`. Defaults: `8192`, `8192`, `512`, `50`.
+
 ### `sscribe_rate_limit_admin`
 
-Hourly export-request limit for users with `manage_options`. Default: `1000`.
+Per-60-second export-request limit. Default: `500` for users with `manage_options`, `200` otherwise.
 
 ### `sscribe_pdf_memory_soft_margin_bytes`
 
@@ -173,6 +177,10 @@ Scheduled hook that removes expired export files.
 ### `sscribe_cleanup_sessions`
 
 Scheduled hook that removes stale sessions and durable page queues.
+
+### `sscribe_cleanup_audit_trail`
+
+Scheduled hook that removes expired audit-trail rows.
 
 ## Public classes
 

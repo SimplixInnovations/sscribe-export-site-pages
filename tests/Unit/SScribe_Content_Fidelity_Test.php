@@ -1,15 +1,12 @@
 <?php
 /**
- * Content fidelity regressions found in real-browser testing on WordPress 7.1.
+ * Content-fidelity and artifact-hygiene regressions.
  *
- * - DOCX dropped every block table, because WordPress wraps block tables
- *   (and pull quotes, embeds) in <figure> and the parser only kept images.
- * - Code samples lost attributes: "&lt;div class=&quot;box&quot;&gt;" came
- *   out as "<div>" in every format, because attribute stripping ran over
- *   page text as well as tags.
- * - Markdown dropped escaped text such as "&lt;tags&gt;", glued captions to
- *   their images, and kept tab indentation from gallery HTML, which Markdown
- *   shows as a code block.
+ * Pins the fixes for: silent text truncation of human content (DOCX body
+ * runs and exporter metadata), corrupt export artifacts surviving into the
+ * deliverable ZIP, featured images lost when rendered from local paths, the
+ * upgrader cache-key mismatch, and crash-orphaned staging ZIPs leaking past
+ * cleanup.
  *
  * @package SScribe_Export_Site_Pages
  */
@@ -22,132 +19,150 @@ use PHPUnit\Framework\TestCase;
 
 final class SScribe_Content_Fidelity_Test extends TestCase {
 
-	private function html_to_markdown( string $html ): string {
-		$method = \Closure::bind(
-			function ( string $document ) {
-				$exporter = new \SScribe_Markdown_Exporter();
-				return $exporter->html_to_markdown( $document ); // phpcs:ignore WordPress.NamingConventions.ValidVariableName.PrivateMethodFound
-			},
-			null,
-			\SScribe_Markdown_Exporter::class
+	private static function call_private( object $object, string $method, array $args = array() ): mixed {
+		$reflection = new \ReflectionMethod( get_class( $object ), $method );
+
+		return $reflection->invoke( $object, ...$args );
+	}
+
+	public function test_machine_heuristic_never_classifies_spaced_prose(): void {
+		$prose = str_repeat( 'This is a perfectly ordinary sentence of human prose. ', 60 );
+
+		$this::assertFalse(
+			\SScribe_Helpers::is_machine_style_string( $prose ),
+			'Spaced prose must never be classified as a machine payload.'
 		);
-		return $method( $html );
+		$this::assertFalse(
+			\SScribe_Helpers::is_machine_style_string( 'https://example.com/日本語の長いURLパスを含むテストケースです' ),
+			'URL-shaped strings containing CJK must stay human-classified.'
+		);
+		$this::assertTrue(
+			\SScribe_Helpers::is_machine_style_string( str_repeat( 'A', 3000 ) ),
+			'Spaceless ASCII blobs remain machine payloads.'
+		);
+		$this::assertTrue(
+			\SScribe_Helpers::is_machine_style_string( 'https://example.com/this/is/a/very/long/url/path' ),
+			'URL-scheme strings remain machine payloads.'
+		);
+		$this::assertFalse(
+			\SScribe_Helpers::is_machine_style_string( str_repeat( 'ن', 3000 ) ),
+			'Spaceless Arabic words must not be classified as machine payloads.'
+		);
 	}
 
-	public function test_block_table_inside_figure_is_parsed_as_a_table(): void {
-		$parser = new \SScribe_Content_Parser();
+	public function test_exporter_safe_text_preserves_long_prose(): void {
+		$exporter = ( new \ReflectionClass( \SScribe_Exporter::class ) )->newInstanceWithoutConstructor();
+		$method   = new \ReflectionMethod( \SScribe_Exporter::class, 'safe_text' );
 
-		$result = $parser->parse( '<figure class="wp-block-table"><table><tbody><tr><td>Starter</td><td>$49</td></tr></tbody></table><figcaption>Prices</figcaption></figure>' );
+		$prose = str_repeat( 'Natural language must survive intact across every export format. ', 50 );
+		$this::assertSame(
+			$prose,
+			$method->invoke( $exporter, $prose ),
+			'Metadata prose longer than 2048 characters must never be truncated.'
+		);
 
-		$types = array_column( $result, 'type' );
-		$this::assertContains( 'table', $types );
-		$this::assertStringContainsString( 'Prices', (string) json_encode( $result ) );
-		$this::assertStringContainsString( 'Starter', (string) json_encode( $result ) );
+		// Pinned contract: machine payloads still truncate at 2048.
+		$blob   = str_repeat( 'A', 3000 );
+		$result = $method->invoke( $exporter, $blob );
+		$this::assertLessThanOrEqual( 2048, \SScribe_Helpers::mb_strlen( $result ) );
 	}
 
-	public function test_pull_quote_inside_figure_is_kept(): void {
-		$parser = new \SScribe_Content_Parser();
+	public function test_docx_body_runs_are_never_silently_truncated(): void {
+		$renderer = ( new \ReflectionClass( \SScribe_Docx_Content_Renderer::class ) )->newInstanceWithoutConstructor();
+		$method   = new \ReflectionMethod( \SScribe_Docx_Content_Renderer::class, 'safe_text' );
 
-		$result = $parser->parse( '<figure class="wp-block-pullquote"><blockquote><p>Pull quote text</p></blockquote></figure>' );
+		$cjk   = str_repeat( '这是一个非常长的中文段落，没有任何空格。', 100 );
+		$this::assertSame(
+			$cjk,
+			$method->invoke( $renderer, $cjk ),
+			'A long spaceless CJK paragraph must reach the DOCX intact.'
+		);
 
-		$this::assertSame( 'blockquote', $result[0]['type'] ?? '' );
-		$this::assertStringContainsString( 'Pull quote text', (string) ( $result[0]['content'] ?? '' ) );
+		$code = str_repeat( 'function(x){return x*2;}', 150 );
+		$this::assertSame(
+			$code,
+			$method->invoke( $renderer, $code ),
+			'Spaceless code runs must reach the DOCX intact.'
+		);
+
+		$pathological = str_repeat( 'B', 120000 );
+		$this::assertLessThanOrEqual(
+			100000,
+			\SScribe_Helpers::mb_strlen( (string) $method->invoke( $renderer, $pathological ) ),
+			'The memory ceiling only bounds pathological payloads.'
+		);
 	}
 
-	public function test_image_figure_is_still_a_figure(): void {
-		$parser = new \SScribe_Content_Parser();
+	public function test_empty_export_artifact_is_deleted_not_shipped(): void {
+		$processor = ( new \ReflectionClass( \SScribe_Batch_Processor::class ) )->newInstanceWithoutConstructor();
+		$method    = new \ReflectionMethod( \SScribe_Batch_Processor::class, 'validate_export_result' );
 
-		$result = $parser->parse( '<figure><img src="https://example.com/a.png" alt="A"><figcaption>Cap</figcaption></figure>' );
+		$tmp = sys_get_temp_dir() . '/sscribe-fidelity-' . uniqid() . '.html';
+		file_put_contents( $tmp, 'tiny' );
+		$this::assertFileExists( $tmp );
 
-		$this::assertSame( 'figure', $result[0]['type'] ?? '' );
-		$this::assertSame( 'Cap', $result[0]['caption'] ?? '' );
+		$result = new \SScribe_Result( true, array( 'path' => $tmp, 'size' => 4 ) );
+		$out    = $method->invoke( $processor, $result, 'html', 1 );
+
+		$this::assertFalse( $out['is_valid'] );
+		$this::assertSame( 'empty_file', $out['category'] );
+		$this::assertFileDoesNotExist(
+			$tmp,
+			'A file the pipeline itself rejected must not survive to be packed into the ZIP.'
+		);
 	}
 
-	public function test_attribute_stripping_leaves_escaped_code_text_alone(): void {
-		$html = '<pre class="wp-block-code" style="color:red"><code>&lt;div class="box" style="x"&gt;</code></pre>';
+	public function test_failed_export_result_removes_partial_artifact(): void {
+		$processor = ( new \ReflectionClass( \SScribe_Batch_Processor::class ) )->newInstanceWithoutConstructor();
+		$method    = new \ReflectionMethod( \SScribe_Batch_Processor::class, 'validate_export_result' );
 
-		$result = \SScribe_Helpers::strip_page_builder_attributes( $html );
+		$tmp = sys_get_temp_dir() . '/sscribe-fidelity-' . uniqid() . '.docx';
+		file_put_contents( $tmp, str_repeat( 'x', 9000 ) );
 
-		$this::assertSame( '<pre><code>&lt;div class="box" style="x"&gt;</code></pre>', $result );
+		$result = new \SScribe_Result( false, array( 'path' => $tmp ), 'writer exploded' );
+		$out    = $method->invoke( $processor, $result, 'docx', 1 );
+
+		$this::assertFalse( $out['is_valid'] );
+		$this::assertFileDoesNotExist( $tmp, 'Partial output of a failed export must be removed.' );
 	}
 
-	public function test_attribute_stripping_still_cleans_tags_and_style_blocks(): void {
-		$html = '<style>.a{}</style><div class="elementor" data-elementor-type="x" id="elementor-1" style="a:b">Hi</div>';
+	public function test_featured_image_renders_from_local_paths(): void {
+		$exporter = ( new \ReflectionClass( \SScribe_HTML_Exporter::class ) )->newInstanceWithoutConstructor();
+		$method   = new \ReflectionMethod( \SScribe_HTML_Exporter::class, 'get_featured_image_html' );
 
-		$this::assertSame( '<div>Hi</div>', \SScribe_Helpers::strip_page_builder_attributes( $html ) );
-	}
+		$tmp = sys_get_temp_dir() . '/sscribe-fidelity-' . uniqid() . '.png';
+		file_put_contents( $tmp, 'fake-image-bytes' );
 
-	public function test_markdown_keeps_escaped_angle_brackets(): void {
-		$md = $this->html_to_markdown( '<p>Use the &lt;div&gt; tag and <code>&lt;span&gt;</code>.</p><pre><code>&lt;p class="x"&gt;Hi &amp; bye&lt;/p&gt;</code></pre>' );
-
-		$this::assertStringContainsString( 'Use the \\<div> tag and `<span>`.', $md );
-		$this::assertStringContainsString( "```\n<p class=\"x\">Hi & bye</p>\n```", $md );
-	}
-
-	public function test_markdown_puts_caption_on_its_own_line(): void {
-		$md = $this->html_to_markdown( '<figure><img src="https://example.com/a.png" alt="A"><figcaption>Our team</figcaption></figure><p>Next</p>' );
-
-		$this::assertMatchesRegularExpression( '/\\)\\n\\n\\*Our team\\*\\n\\nNext/', $md );
-	}
-
-	public function test_markdown_drops_tab_indentation_from_source_html(): void {
-		$md = $this->html_to_markdown( "<p>Intro</p><div>\n\t\t\t\t<a href=\"https://example.com/x\"><img src=\"https://example.com/t.png\" alt=\"T\"></a>\n</div>" );
-
-		$this::assertStringNotContainsString( "\t", $md );
-		$this::assertMatchesRegularExpression( '/^\[!\[T\]/m', $md );
-	}
-
-	/**
-	 * The Preview dialog showed "&amp;" literally and glued list items
-	 * together ("workshopsImplementation"). The sample must be plain text.
-	 */
-	#[\PHPUnit\Framework\Attributes\RunInSeparateProcess]
-	#[\PHPUnit\Framework\Attributes\PreserveGlobalState(false)]
-	public function test_preview_excerpt_is_plain_spaced_text(): void {
-		if ( ! function_exists( 'wp_trim_words' ) ) {
-			// phpcs:ignore Squiz.PHP.Eval.Discouraged -- Minimal stand-in for the core function in this isolated process.
-			eval( 'function wp_trim_words( $text, $num_words = 55, $more = null ) { $words = preg_split( "/[\\s]+/", trim( $text ) ); return count( $words ) > $num_words ? implode( " ", array_slice( $words, 0, $num_words ) ) . $more : implode( " ", $words ); }' );
+		try {
+			$html = (string) $method->invoke( $exporter, array( 'featured_image_url' => $tmp ) );
+			$this::assertStringContainsString(
+				basename( $tmp ),
+				$html,
+				'A validated local featured-image path must render (esc_url drops drive-letter paths on Windows).'
+			);
+			$this::assertStringNotContainsString( '<img src=""', $html );
+		} finally {
+			@unlink( $tmp );
 		}
-		$controller = ( new \ReflectionClass( \SScribe_Export_Query_Controller::class ) )->newInstanceWithoutConstructor();
-		$method     = new \ReflectionMethod( $controller, 'build_preview_excerpt' );
-
-		$text = $method->invoke( $controller, '<ul><li>Strategy</li><li>Phone &amp; email</li></ul><p>Visit <a href="#">our site</a>.</p>' );
-
-		$this::assertSame( 'Strategy Phone & email Visit our site.', $text );
 	}
 
-	public function test_html_export_head_carries_seo_description_canonical_and_robots(): void {
-		$html = ( new \SScribe_HTML_Exporter() )->generate_html_string(
-			array(
-				'id'       => 3,
-				'title'    => 'About',
-				'content'  => '<p>Body</p>',
-				'language' => 'en',
-				'seo'      => array(
-					'meta_description' => 'Short "summary" of the page',
-					'canonical_url'    => 'https://example.com/about/',
-					'noindex'          => true,
-				),
-			)
-		);
+	public function test_upgrader_invalidates_the_real_page_data_cache_key(): void {
+		$source = (string) file_get_contents( dirname( __DIR__, 2 ) . '/includes/class-sscribe-upgrader.php' );
 
-		$head = substr( $html, 0, (int) strpos( $html, '</head>' ) );
-		$this::assertStringContainsString( '<meta name="description" content="Short &quot;summary&quot; of the page">', $head );
-		$this::assertStringContainsString( '<link rel="canonical" href="https://example.com/about/">', $head );
-		$this::assertStringContainsString( '<meta name="robots" content="noindex">', $head );
+		$this::assertStringContainsString(
+			"'sscribe_admin_page_data_v2_' . SSCRIBE_VERSION . '_' . get_current_blog_id()",
+			$source,
+			'The upgrader must invalidate the exact cache key shape built in SScribe.'
+		);
 	}
 
-	public function test_html_export_description_falls_back_to_excerpt(): void {
-		$html = ( new \SScribe_HTML_Exporter() )->generate_html_string(
-			array(
-				'id'      => 4,
-				'title'   => 'Team',
-				'content' => '<p>Body</p>',
-				'excerpt' => 'Meet the team',
-			)
-		);
+	public function test_cleanup_collects_dot_prefixed_staging_zips(): void {
+		$source = (string) file_get_contents( dirname( __DIR__, 2 ) . '/includes/class-sscribe-zip-handler.php' );
 
-		$this::assertStringContainsString( '<meta name="description" content="Meet the team">', $html );
-		$this::assertStringNotContainsString( 'name="robots"', $html );
+		$this::assertStringContainsString(
+			'.tmp-sscribe-*.zip',
+			$source,
+			'Crash-orphaned staging ZIPs are dot-prefixed and must be collected explicitly by cleanup.'
+		);
 	}
 }

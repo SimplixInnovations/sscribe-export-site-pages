@@ -62,6 +62,12 @@ class SScribe_Upgrader {
 			try {
 				self::run_migrations( $installed_version );
 
+				// Invalidate the admin page-data cache with the exact key
+				// shape built in SScribe::load_admin_page_data(). A key that
+				// matches nothing leaves stale renderings visible after the
+				// upgrade until some unrelated event bumps the generation.
+				delete_transient( 'sscribe_admin_page_data_v2_' . SSCRIBE_VERSION . '_' . get_current_blog_id() );
+				delete_transient( 'sscribe_admin_page_data_v2_' . $installed_version . '_' . get_current_blog_id() );
 				delete_transient( 'sscribe_admin_page_data_v2_' . $installed_version );
 				delete_transient( 'sscribe_wpml_languages' );
 				update_option( self::SCHEMA_VERSION_OPTION, SSCRIBE_VERSION, false );

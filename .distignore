@@ -36,6 +36,7 @@ psalm.xml.dist
 .php-cs-fixer.dist.php
 coverage/
 .phpunit.cache/
+.cache/
 clover.xml
 .phpunit.result.cache
 

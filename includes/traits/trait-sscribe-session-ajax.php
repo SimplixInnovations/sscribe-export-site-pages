@@ -142,7 +142,10 @@ trait SScribe_Session_AJAX {
 			);
 		}
 
-		$decision = $this->check_rate_limit_decision( 'export_start' );
+		// Cancel is a safety/consent action: it must never share the
+		// "start a new export" quota, or a user who exhausted that budget
+		// could no longer stop their own running export.
+		$decision = $this->check_rate_limit_decision( 'export_cancel' );
 		if ( ! $decision->allowed ) {
 			\SScribe_Rate_Limit_Response::emit( $decision );
 		}

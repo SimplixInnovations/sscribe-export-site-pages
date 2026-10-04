@@ -591,15 +591,12 @@ class SScribe_Session {
 			$max_keys = array( 'processed', 'success', 'failed' );
 			foreach ( $data as $key => $value ) {
 				if ( isset( $existing[ $key ] ) && is_array( $existing[ $key ] ) && is_array( $value ) ) {
-					$append_keys = array( 'structured_errors', 'page_log', 'error_categories' );
-					if ( in_array( $key, $append_keys, true ) ) {
-						$merged[ $key ] = array_slice(
-							array_merge( $existing[ $key ], $value ),
-							-500
-						);
-					} else {
-						$merged[ $key ] = $value;
-					}
+					// Arrays replace wholesale: every production caller passes
+					// the complete accumulated value (e.g. structured_errors
+					// is maintained per batch). The historical append-merge
+					// duplicated those entries exponentially across batches
+					// until the 500-entry cap evicted genuine errors.
+					$merged[ $key ] = $value;
 				} elseif ( in_array( $key, $max_keys, true ) && is_int( $value ) && isset( $existing[ $key ] ) && is_int( $existing[ $key ] ) ) {
 					$merged[ $key ] = max( $existing[ $key ], $value );
 				} else {

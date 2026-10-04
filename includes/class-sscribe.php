@@ -396,6 +396,10 @@ class SScribe {
 			require_once SSCRIBE_PLUGIN_DIR . 'includes/class-sscribe-export-log.php';
 			SScribe_Export_Log::cleanup_old_logs( 72 );
 
+			// The optional database log (SSCRIBE_DB_LOGGING) carries user_id
+			// rows that must expire like every other log family.
+			( new SScribe_Logger_Enhanced( array( 'enable_file' => false ) ) )->cleanup_db_logs( 30 );
+
 			$lock_manager->cleanup_expired_locks();
 		} finally {
 			$lock_manager->release_lock( $lock_name, $lock_token );

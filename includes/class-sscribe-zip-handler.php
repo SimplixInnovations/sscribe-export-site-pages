@@ -961,6 +961,10 @@ class SScribe_Zip_Handler {
 		try {
 			$cleaned  = 0;
 			$files    = glob( $this->export_dir . '/*.zip' ) ?: array();
+			// Crash-orphaned staging files are dot-prefixed and never appear
+			// in the export index. POSIX glob('*') does not match a leading
+			// dot, so collect them explicitly or they leak on disk forever.
+			$files    = array_merge( $files, glob( $this->export_dir . '/.tmp-sscribe-*.zip' ) ?: array() );
 			$max_age  = 3 * DAY_IN_SECONDS;
 			$now      = time();
 			$exports  = get_option( 'sscribe_export_index', array() );
