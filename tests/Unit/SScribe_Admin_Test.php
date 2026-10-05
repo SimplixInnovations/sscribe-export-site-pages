@@ -24,11 +24,26 @@ final class SScribe_Admin_Test_Double extends SScribe_Admin {
 
 class SScribe_Admin_Test extends TestCase {
 
+	/** @var array<string, mixed>|null */
+	private ?array $saved_registry = null;
+
 	protected function setUp(): void {
 		parent::setUp();
 
 		global $sscribe_test_filters, $sscribe_test_menu_pages, $sscribe_test_styles, $sscribe_test_scripts, $sscribe_test_localized, $sscribe_test_script_translations;
 		global $sscribe_test_transients, $sscribe_test_options, $sscribe_test_current_user_can, $sscribe_test_is_admin, $sscribe_test_doing_ajax;
+
+		// Snapshot-and-restore instead of a blanket clear: the filter
+		// registry is shared process state, and clobbering it poisoned
+		// later tests that had registered their own filters.
+		$this->saved_registry = array(
+			'filters'       => $sscribe_test_filters,
+			'transients'    => $sscribe_test_transients,
+			'options'       => $sscribe_test_options,
+			'user_can'      => $sscribe_test_current_user_can,
+			'is_admin'      => $sscribe_test_is_admin,
+			'doing_ajax'    => $sscribe_test_doing_ajax,
+		);
 
 		$sscribe_test_filters          = array();
 		$sscribe_test_menu_pages       = array();
@@ -42,6 +57,21 @@ class SScribe_Admin_Test extends TestCase {
 		$sscribe_test_is_admin         = true;
 		$sscribe_test_doing_ajax       = false;
 		$_GET                          = array();
+	}
+
+	protected function tearDown(): void {
+		global $sscribe_test_filters, $sscribe_test_transients, $sscribe_test_options, $sscribe_test_current_user_can, $sscribe_test_is_admin, $sscribe_test_doing_ajax;
+
+		if ( is_array( $this->saved_registry ) ) {
+			$sscribe_test_filters       = $this->saved_registry['filters'];
+			$sscribe_test_transients    = $this->saved_registry['transients'];
+			$sscribe_test_options       = $this->saved_registry['options'];
+			$sscribe_test_current_user_can = $this->saved_registry['user_can'];
+			$sscribe_test_is_admin      = $this->saved_registry['is_admin'];
+			$sscribe_test_doing_ajax    = $this->saved_registry['doing_ajax'];
+			$this->saved_registry       = null;
+		}
+		parent::tearDown();
 	}
 
 	public function test_add_admin_menu_registers_top_level_page(): void {

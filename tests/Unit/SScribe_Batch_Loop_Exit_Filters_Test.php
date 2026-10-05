@@ -35,6 +35,8 @@ declare( strict_types=1 );
 
 namespace SScribe\Tests\Unit;
 
+use PHPUnit\Framework\Attributes\PreserveGlobalState;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use PHPUnit\Framework\TestCase;
 
 if ( ! trait_exists( '\\SScribe_Batch_Step_Handler', false ) ) {
@@ -43,6 +45,8 @@ if ( ! trait_exists( '\\SScribe_Batch_Step_Handler', false ) ) {
 
 require_once __DIR__ . '/wp-suspend-cache-invalidation-stub.php';
 
+#[RunTestsInSeparateProcesses]
+#[PreserveGlobalState( false )]
 final class SScribe_Batch_Loop_Exit_Filters_Test extends TestCase {
 
 	private Batch_Loop_Host $host;

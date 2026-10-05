@@ -4,6 +4,19 @@ Status: living document. Recorded 2026-10-04 after the 2.0.0 deep audit and
 "All gates green" release certification (26/26, source `def9daa`, ZIP SHA-256
 `bb9fb7c0ec4c3459c70dd3c619484795f804f6517076360ec04d99399128e71c`).
 
+**Phase A update (2026-10-05):** completed and shipped. A1, A2, A4, A5 and
+the A6 items below are fixed and regression-tested (see the Phase A commit
+for the full list); the A3 gap tests all landed (disk-full abort, batch
+loop-exit filters, upgrader legacy migrations, multisite activation and
+uninstall — 16 new tests). Two items are deliberately deferred with their
+designs intact: **A6-10** (`class`-stripping kills button/code-fence signals
+— extract signals before `strip_page_builder_attributes()`) and **A6-11**
+(session HMAC payload signing — needs a dual-accept migration for legacy
+plaintext rows). Both remain Phase B candidates and nothing else in Phase A
+is open. The suite is now process-isolated where it shares global stub
+state (`SScribe_Batch_Loop_Exit_Filters_Test`) and the admin-test registry
+is snapshot/restored instead of clobbered.
+
 Purpose: start the next phase immediately once 2.0.0 is approved, without
 re-deriving the audit. Every item below was verified during the deep audit
 (file:line evidence exists in the audit record); items marked [contract] are
