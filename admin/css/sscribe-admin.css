@@ -392,7 +392,7 @@ parent's gray chip. */
 	border-bottom: none;
 }
 
-.sscribe-section-title {
+.sscribe-master-container .sscribe-section-title {
 	display: flex;
 	align-items: center;
 	gap: var(--ss-space-2);
@@ -401,10 +401,12 @@ parent's gray chip. */
 	color: var(--ss-text-tertiary);
 	text-transform: uppercase;
 	letter-spacing: var(--ss-tracking-lg);
+	/* Scoped to out-rank the heading margin reset above (which would
+	   otherwise compute this to 0 and glue the title to the cards). */
 	margin: 0 0 var(--ss-space-4) 0;
 }
 
-.sscribe-config-section-header {
+.sscribe-master-container .sscribe-config-section-header {
 	display: flex;
 	align-items: center;
 	gap: var(--ss-space-2);
@@ -2260,7 +2262,9 @@ body.rtl .sscribe-progress-bar-fill {
 }
 
 .sscribe-support-copy-wrap {
-	padding: var(--ss-space-3);
+	/* Card-like inset: the snapshot block needs clear separation from the
+	   panel header above it, matching the spacing rhythm of the design. */
+	padding: var(--ss-space-5);
 }
 
 .sscribe-support-copy-text {
@@ -2270,7 +2274,7 @@ body.rtl .sscribe-progress-bar-fill {
 	color: var(--ss-text-primary);
 	font: var(--ss-text-small)/var(--ss-leading-relaxed) var(--ss-font-mono);
 	border: 1px solid var(--ss-border);
-	border-radius: var(--ss-radius-md);
+	border-radius: var(--ss-radius-lg);
 	padding: var(--ss-space-4);
 	resize: vertical;
 	box-shadow: inset 0 1px 2px var(--ss-color-shadow-04);
