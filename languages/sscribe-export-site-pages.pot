@@ -9,7 +9,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-10-04T21:39:15+00:00\n"
+"POT-Creation-Date: 2026-10-05T03:39:14+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.12.0\n"
 "X-Domain: sscribe-export-site-pages\n"
@@ -371,7 +371,7 @@ msgid "s"
 msgstr ""
 
 #: admin/class-sscribe-admin.php:322
-#: includes/traits/trait-sscribe-batch-step-handler.php:881
+#: includes/traits/trait-sscribe-batch-step-handler.php:883
 msgid "Packaging files into ZIP archive..."
 msgstr ""
 
@@ -1593,7 +1593,7 @@ msgid "Support information text"
 msgstr ""
 
 #: admin/partials/sscribe-admin-display.php:1038
-msgid "Click Refresh Data on the left to generate a redacted environment snapshot you can copy to share with support."
+msgid "The redacted environment snapshot loads automatically. Use Refresh Data to regenerate it, then copy it to share with support."
 msgstr ""
 
 #: admin/partials/sscribe-admin-display.php:1055
@@ -2129,12 +2129,12 @@ msgid "DESTINATION URL:"
 msgstr ""
 
 #: includes/class-sscribe-docx-content-renderer.php:927
-#: includes/exporters/class-sscribe-pdf-exporter.php:618
+#: includes/exporters/class-sscribe-pdf-exporter.php:639
 msgid "No Alt Text Provided"
 msgstr ""
 
 #: includes/class-sscribe-docx-content-renderer.php:929
-#: includes/exporters/class-sscribe-pdf-exporter.php:621
+#: includes/exporters/class-sscribe-pdf-exporter.php:642
 msgid "[MISSING IMAGE] "
 msgstr ""
 
@@ -2655,6 +2655,7 @@ msgstr[1] ""
 #. translators: %d: Number of minutes.
 #: includes/class-sscribe-export-query-controller.php:563
 #: includes/class-sscribe-exporter.php:1765
+#: includes/exporters/class-sscribe-html-exporter.php:477
 #, php-format
 msgid "%d minute"
 msgid_plural "%d minutes"
@@ -2773,6 +2774,7 @@ msgid "Word Count"
 msgstr ""
 
 #: includes/class-sscribe-exporter.php:1761
+#: includes/exporters/class-sscribe-html-exporter.php:473
 msgid "Reading Time"
 msgstr ""
 
@@ -3008,43 +3010,43 @@ msgstr ""
 msgid "Exported from %1$s on %2$s"
 msgstr ""
 
-#: includes/exporters/class-sscribe-html-exporter.php:489
+#: includes/exporters/class-sscribe-html-exporter.php:502
 msgid "SEO Metadata"
 msgstr ""
 
-#: includes/exporters/class-sscribe-html-exporter.php:492
+#: includes/exporters/class-sscribe-html-exporter.php:505
 msgid "Source:"
 msgstr ""
 
-#: includes/exporters/class-sscribe-html-exporter.php:493
+#: includes/exporters/class-sscribe-html-exporter.php:506
 msgid "Meta Title:"
 msgstr ""
 
-#: includes/exporters/class-sscribe-html-exporter.php:494
+#: includes/exporters/class-sscribe-html-exporter.php:507
 msgid "Meta Description:"
 msgstr ""
 
-#: includes/exporters/class-sscribe-html-exporter.php:495
+#: includes/exporters/class-sscribe-html-exporter.php:508
 msgid "Focus Keyword:"
 msgstr ""
 
-#: includes/exporters/class-sscribe-html-exporter.php:496
+#: includes/exporters/class-sscribe-html-exporter.php:509
 msgid "Open Graph Title:"
 msgstr ""
 
-#: includes/exporters/class-sscribe-html-exporter.php:497
+#: includes/exporters/class-sscribe-html-exporter.php:510
 msgid "Open Graph Description:"
 msgstr ""
 
-#: includes/exporters/class-sscribe-html-exporter.php:507
+#: includes/exporters/class-sscribe-html-exporter.php:520
 msgid "Canonical URL:"
 msgstr ""
 
-#: includes/exporters/class-sscribe-html-exporter.php:508
+#: includes/exporters/class-sscribe-html-exporter.php:521
 msgid "Open Graph Image:"
 msgstr ""
 
-#: includes/exporters/class-sscribe-html-exporter.php:524
+#: includes/exporters/class-sscribe-html-exporter.php:537
 msgid "Robots:"
 msgstr ""
 
@@ -3059,7 +3061,7 @@ msgid "Unable to generate the Markdown file. Please try again."
 msgstr ""
 
 #: includes/exporters/class-sscribe-pdf-exporter.php:182
-#: includes/exporters/class-sscribe-pdf-exporter.php:668
+#: includes/exporters/class-sscribe-pdf-exporter.php:689
 msgid "PDF export is not available because the bundled PDF renderer is missing. Please reinstall the plugin."
 msgstr ""
 
@@ -3074,17 +3076,17 @@ msgid "Insufficient time remaining to render PDF."
 msgstr ""
 
 #: includes/exporters/class-sscribe-pdf-exporter.php:237
-#: includes/exporters/class-sscribe-pdf-exporter.php:298
-#: includes/exporters/class-sscribe-pdf-exporter.php:310
+#: includes/exporters/class-sscribe-pdf-exporter.php:319
+#: includes/exporters/class-sscribe-pdf-exporter.php:331
 msgid "Failed to write PDF file."
 msgstr ""
 
-#: includes/exporters/class-sscribe-pdf-exporter.php:340
+#: includes/exporters/class-sscribe-pdf-exporter.php:361
 msgid "Unable to generate the PDF. Please try again or use another export format."
 msgstr ""
 
 #. translators: 1: Free memory, 2: Memory limit.
-#: includes/exporters/class-sscribe-pdf-exporter.php:417
+#: includes/exporters/class-sscribe-pdf-exporter.php:438
 #, php-format
 msgid "PDF export aborted : only %1$s free of %2$s PHP memory limit. Try exporting to DOCX instead, or increase the memory_limit."
 msgstr ""
@@ -3131,78 +3133,78 @@ msgid "Export session corrupted (invalid temp directory path). Please start agai
 msgstr ""
 
 #. translators: %d: Page ID.
-#: includes/traits/trait-sscribe-batch-step-handler.php:431
+#: includes/traits/trait-sscribe-batch-step-handler.php:432
 #, php-format
 msgid "Failed to collect data for page ID %d."
 msgstr ""
 
 #. translators: %d: Page ID.
-#: includes/traits/trait-sscribe-batch-step-handler.php:478
+#: includes/traits/trait-sscribe-batch-step-handler.php:479
 #, php-format
 msgid "Skipped page %d - insufficient memory to proceed."
 msgstr ""
 
 #. translators: %d: Page ID.
-#: includes/traits/trait-sscribe-batch-step-handler.php:521
+#: includes/traits/trait-sscribe-batch-step-handler.php:522
 #, php-format
 msgid "Critical error while exporting page %d. See the export log for details."
 msgstr ""
 
 #. translators: %s: Page title.
-#: includes/traits/trait-sscribe-batch-step-handler.php:560
+#: includes/traits/trait-sscribe-batch-step-handler.php:561
 #, php-format
 msgid "Some formats could not be created for \"%s\"."
 msgstr ""
 
 #. translators: %s: Page title.
-#: includes/traits/trait-sscribe-batch-step-handler.php:565
+#: includes/traits/trait-sscribe-batch-step-handler.php:566
 #, php-format
 msgid "Failed to generate exports for \"%s\"."
 msgstr ""
 
 #. translators: %d: Number of additional errors not stored.
-#: includes/traits/trait-sscribe-batch-step-handler.php:728
+#: includes/traits/trait-sscribe-batch-step-handler.php:730
 #, php-format
 msgid "... and %d more errors occurred (see export log for full details)."
 msgstr ""
 
 #. translators: %d: Number of additional errors not stored.
-#: includes/traits/trait-sscribe-batch-step-handler.php:749
+#: includes/traits/trait-sscribe-batch-step-handler.php:751
 #, php-format
 msgid "... and %d more errors occurred."
 msgstr ""
 
-#: includes/traits/trait-sscribe-batch-step-handler.php:820
+#: includes/traits/trait-sscribe-batch-step-handler.php:822
 msgid "Export progress could not be saved. The batch can be retried safely."
 msgstr ""
 
-#: includes/traits/trait-sscribe-batch-step-handler.php:862
+#: includes/traits/trait-sscribe-batch-step-handler.php:864
 msgid "Export completion state could not be saved. Please retry this step."
 msgstr ""
 
 #. translators: 1: Current page number, 2: Total pages.
-#: includes/traits/trait-sscribe-batch-step-handler.php:952
+#: includes/traits/trait-sscribe-batch-step-handler.php:954
 #, php-format
 msgid "Processing %1$d of %2$d pages... (Paused briefly to manage memory - will resume automatically)"
 msgstr ""
 
 #. translators: 1: Current page number, 2: Total pages.
-#: includes/traits/trait-sscribe-batch-step-handler.php:959
+#: includes/traits/trait-sscribe-batch-step-handler.php:961
 #, php-format
 msgid "Processing %1$d of %2$d pages... (Paused to prevent timeout - will resume automatically)"
 msgstr ""
 
 #. translators: 1: Current page number, 2: Total pages.
-#: includes/traits/trait-sscribe-batch-step-handler.php:965
+#: includes/traits/trait-sscribe-batch-step-handler.php:967
 #, php-format
 msgid "Processing %1$d of %2$d pages..."
 msgstr ""
 
-#: includes/traits/trait-sscribe-batch-step-handler.php:977
+#: includes/traits/trait-sscribe-batch-step-handler.php:979
 msgid "The export paused briefly to manage server memory. It will resume automatically. No action needed."
 msgstr ""
 
-#: includes/traits/trait-sscribe-batch-step-handler.php:979
+#: includes/traits/trait-sscribe-batch-step-handler.php:981
 msgid "The export paused briefly to prevent a server timeout. It will resume automatically. No action needed."
 msgstr ""
 

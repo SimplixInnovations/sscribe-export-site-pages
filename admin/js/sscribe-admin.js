@@ -2069,6 +2069,17 @@
 			this.pollBackoff = 0;
 			$('#sscribe-export-btn, #sscribe-preview-btn').removeClass('sscribe-btn-busy').removeAttr('aria-busy');
 			this.updateExportButton();
+			// Resolve any estimate chip the interrupted config-summary fetch
+			// left pending: starting an export aborts that XHR, so without
+			// this the chip freezes on "Calculating..." forever.
+			const $summaryTimeChip = $('#sscribe-summary-time');
+			if ($summaryTimeChip.hasClass('sscribe-summary-time-pending')) {
+				const timeHintDone =
+					(sscribe_data.strings && sscribe_data.strings.summary_time_hint) ||
+					'See Preview for adaptive estimate';
+				$summaryTimeChip.text(timeHintDone).removeClass('sscribe-summary-time-pending');
+				$summaryTimeChip.attr('aria-label', timeHintDone);
+			}
 			this._lastAnnouncedBucket = -1;
 			const progressFill = document.getElementById('sscribe-progress-bar');
 			if (progressFill) {

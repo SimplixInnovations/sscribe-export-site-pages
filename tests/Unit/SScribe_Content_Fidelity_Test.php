@@ -165,4 +165,63 @@ final class SScribe_Content_Fidelity_Test extends TestCase {
 			'Crash-orphaned staging ZIPs are dot-prefixed and must be collected explicitly by cleanup.'
 		);
 	}
+
+	public function test_pdf_export_survives_filename_sanitizing_titles(): void {
+		// Regression: the PDF engine writes sanitized filenames ("!" becomes
+		// "_"), the exporter then validated the ORIGINAL name and reported a
+		// phantom "Failed to write PDF file." while the artifact shipped
+		// under the sibling name. A title with "!" must succeed AND land
+		// under the intended, consistent name.
+		$exporter = new \SScribe_PDF_Exporter();
+		// The filesystem guard only permits writes under the private storage
+		// root, exactly like the real pipeline.
+		$out_dir = trailingslashit( (string) \SScribe_Private_Storage::get_export_dir() ) . 'pdf-bang-' . uniqid();
+		wp_mkdir_p( $out_dir );
+
+		try {
+			$result = $exporter->export(
+				array(
+					'id'              => 1,
+					'title'           => 'Hello world!',
+					'slug'            => 'hello-world',
+					'language'        => 'en',
+					'content'         => '<p>Welcome to WordPress. This is your first post.</p>',
+					'permalink'       => 'http://example.test/hello-world/',
+					'author'          => 'admin',
+					'date_published'  => '2026-10-05 00:00:00',
+					'date_modified'   => '2026-10-05 00:00:00',
+					'word_count'      => 7,
+					'reading_time'    => 1,
+					'featured_image_url' => '',
+					'seo'             => array(),
+				),
+				$out_dir,
+				1,
+				1
+			);
+
+			$this::assertTrue(
+				$result->is_success(),
+				'A PDF for a title containing "!" must not report a write failure. Error: ' . (string) $result->get_error()
+			);
+			$data = $result->get_data();
+			$path = is_array( $data ) ? (string) ( $data['path'] ?? '' ) : '';
+			$this::assertNotSame( '', $path );
+			$this::assertFileExists( $path );
+			$this::assertStringContainsString(
+				'Hello world!-1.pdf',
+				basename( $path ),
+				'The artifact must be normalized back to the intended filename after the engine sanitizes its own copy.'
+			);
+		} finally {
+			if ( is_dir( $out_dir ) ) {
+				foreach ( (array) glob( $out_dir . '/*' ) as $stale ) {
+					if ( is_string( $stale ) && is_file( $stale ) ) {
+						@unlink( $stale );
+					}
+				}
+				@rmdir( $out_dir );
+			}
+		}
+	}
 }

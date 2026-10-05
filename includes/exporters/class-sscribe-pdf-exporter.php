@@ -293,6 +293,27 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 			}
 			$pdf->Output( $output_path, 'F' );
 
+			// The PDF engine sanitizes written filenames (an exclamation
+			// mark becomes "_"), so the artifact can land under a sibling of
+			// the requested name. The TCPDF shim exposes the name it actually
+			// used: read it back and normalize to the intended path so a
+			// cosmetic rename can never surface as "Failed to write PDF
+			// file." while the artifact still ships.
+			if ( ! is_file( $output_path ) && method_exists( $pdf, 'getPDFFilename' ) ) {
+				$actual_name = (string) $pdf->getPDFFilename();
+				if ( '' !== $actual_name && $actual_name !== $filename ) {
+					$actual_path = trailingslashit( $output_dir ) . $actual_name;
+					if ( is_file( $actual_path ) && ! is_link( $actual_path ) ) {
+						if ( ! rename( $actual_path, $output_path ) ) {
+							// Keep the file we can prove exists rather than
+							// losing a successful render to a rename failure.
+							$output_path = $actual_path;
+							$filename    = $actual_name;
+						}
+					}
+				}
+			}
+
 			if ( is_link( $output_path ) || ! is_file( $output_path ) ) {
 				return SScribe_Result::failure(
 					__( 'Failed to write PDF file.', 'sscribe-export-site-pages' ),

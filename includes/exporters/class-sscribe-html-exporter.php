@@ -466,6 +466,19 @@ class SScribe_HTML_Exporter implements SScribe_Exporter_Interface {
 			$rows[] = '<dt>' . esc_html__( 'Word Count', 'sscribe-export-site-pages' ) . '</dt>'
 				. '<dd>' . esc_html( number_format_i18n( max( 0, (int) $page_data['word_count'] ) ) ) . '</dd>';
 		}
+		if ( isset( $page_data['reading_time'] ) && is_numeric( $page_data['reading_time'] ) ) {
+			// Same page-information block as the DOCX renderer so every
+			// format answers the same metadata questions.
+			$reading_minutes = max( 0, (int) $page_data['reading_time'] );
+			$rows[]          = '<dt>' . esc_html__( 'Reading Time', 'sscribe-export-site-pages' ) . '</dt>'
+				. '<dd>' . esc_html(
+					sprintf(
+						/* translators: %d: Number of minutes. */
+						_n( '%d minute', '%d minutes', $reading_minutes, 'sscribe-export-site-pages' ),
+						$reading_minutes
+					)
+				) . '</dd>';
+		}
 
 		if ( empty( $rows ) ) {
 			return '';

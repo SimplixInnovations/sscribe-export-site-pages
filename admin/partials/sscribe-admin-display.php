@@ -1035,7 +1035,7 @@ if ( ! function_exists( 'sscribe_humanize_export_filename' ) ) {
 							</div>
 							<div class="sscribe-support-copy-wrap">
 								<label class="screen-reader-text" for="sscribe-support-copy-text"><?php esc_html_e( 'Support information text', 'sscribe-export-site-pages' ); ?></label>
-								<textarea id="sscribe-support-copy-text" class="sscribe-support-copy-text" readonly inputmode="none" placeholder="<?php esc_attr_e( 'Click Refresh Data on the left to generate a redacted environment snapshot you can copy to share with support.', 'sscribe-export-site-pages' ); ?>"></textarea>
+								<textarea id="sscribe-support-copy-text" class="sscribe-support-copy-text" readonly inputmode="none" placeholder="<?php esc_attr_e( 'The redacted environment snapshot loads automatically. Use Refresh Data to regenerate it, then copy it to share with support.', 'sscribe-export-site-pages' ); ?>"></textarea>
 							</div>
 							<div id="sscribe-support-grid" class="sscribe-support-grid sscribe-support-grid-empty" aria-live="polite" aria-busy="false">
 								<div class="sscribe-support-empty">
