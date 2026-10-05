@@ -304,6 +304,7 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 				if ( '' !== $actual_name && $actual_name !== $filename ) {
 					$actual_path = trailingslashit( $output_dir ) . $actual_name;
 					if ( is_file( $actual_path ) && ! is_link( $actual_path ) ) {
+						// phpcs:ignore WordPress.WP.AlternativeFunctions.rename_rename -- Same-directory atomic normalization of the engine-written name; WP_Filesystem::move() is not atomic and would add a bootstrap dependency to the hot export path.
 						if ( ! rename( $actual_path, $output_path ) ) {
 							// Keep the file we can prove exists rather than
 							// losing a successful render to a rename failure.
