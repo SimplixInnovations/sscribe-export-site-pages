@@ -280,6 +280,26 @@
 					SScribe.closePreview();
 				}
 			});
+			// Theme follows the admin surface: sync now, and again whenever
+			// the admin repaints (scheme class changes) or the OS flips.
+			this.syncThemeContext();
+			if (window.MutationObserver && document.body) {
+				const themeObserver = new MutationObserver(function () {
+					SScribe.syncThemeContext();
+				});
+				themeObserver.observe(document.body, { attributes: true, attributeFilter: ['class', 'style'] });
+			}
+			if (window.matchMedia) {
+				const darkQuery = window.matchMedia('(prefers-color-scheme: dark)');
+				const onSchemeChange = function () {
+					SScribe.syncThemeContext();
+				};
+				if (typeof darkQuery.addEventListener === 'function') {
+					darkQuery.addEventListener('change', onSchemeChange);
+				} else if (typeof darkQuery.addListener === 'function') {
+					darkQuery.addListener(onSchemeChange);
+				}
+			}
 			const self = this;
 			$(document).on('keydown.sscribe', function (e) {
 				if (e.key === 'Escape' || e.key === 'Esc') {
@@ -4384,6 +4404,85 @@
 			this.resetUI();
 			this.exportModalSetState('config');
 			this.updateExportButton();
+		},
+
+		// ============================================================
+		// Context-adaptive theme detection
+		// ============================================================
+
+		/**
+		 * Parse a computed CSS color (rgb/rgba/hex) into [r, g, b, a].
+		 *
+		 * @param {string} value Computed color value.
+		 * @returns {number[]|null} Channel array or null when unparseable.
+		 */
+		parseCssColor: function (value) {
+			if (typeof value !== 'string') {
+				return null;
+			}
+			const v = value.trim();
+			const rgbMatch = v.match(
+				/rgba?\(\s*([\d.]+)[\s,]+([\d.]+)[\s,]+([\d.]+)(?:[\s,/]+([\d.]+%?))?\s*\)/i
+			);
+			if (rgbMatch) {
+				let alpha = 1;
+				if (typeof rgbMatch[4] === 'string') {
+					alpha = rgbMatch[4].endsWith('%') ? parseFloat(rgbMatch[4]) / 100 : parseFloat(rgbMatch[4]);
+				}
+				return [parseFloat(rgbMatch[1]), parseFloat(rgbMatch[2]), parseFloat(rgbMatch[3]), isNaN(alpha) ? 1 : alpha];
+			}
+			const hexMatch = v.match(/^#([0-9a-f]{3,8})$/i);
+			if (hexMatch) {
+				let s = hexMatch[1];
+				if (s.length === 3 || s.length === 4) {
+					s = s
+						.split('')
+						.map(function (c) {
+							return c + c;
+						})
+						.join('');
+				}
+				const alpha = s.length >= 8 ? parseInt(s.slice(6, 8), 16) / 255 : 1;
+				return [parseInt(s.slice(0, 2), 16), parseInt(s.slice(2, 4), 16), parseInt(s.slice(4, 6), 16), alpha];
+			}
+			return null;
+		},
+
+		/**
+		 * WCAG relative luminance of an [r, g, b] channel triple.
+		 *
+		 * @param {number[]} rgb Channel array.
+		 * @returns {number} Luminance in [0, 1].
+		 */
+		relativeLuminance: function (rgb) {
+			const linear = rgb.slice(0, 3).map(function (channel) {
+				const s = channel / 255;
+				return s <= 0.03928 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4);
+			});
+			return 0.2126 * linear[0] + 0.7152 * linear[1] + 0.0722 * linear[2];
+		},
+
+		/**
+		 * Detect whether the plugin should render its dark token set.
+		 * The only authority is the WordPress admin background itself:
+		 * whatever surface our UI sits on decides the theme, so the plugin
+		 * matches the admin in every color scheme and every third-party
+		 * dark-mode setup — no guessing from OS preferences alone.
+		 */
+		syncThemeContext: function () {
+			let probe = document.getElementById('wpbody-content') || document.body;
+			let dark = false;
+			while (probe && probe !== document.documentElement) {
+				const rgb = this.parseCssColor(window.getComputedStyle(probe).backgroundColor);
+				if (rgb && rgb[3] > 0) {
+					dark = this.relativeLuminance(rgb) < 0.35;
+					break;
+				}
+				probe = probe.parentElement;
+			}
+			document.documentElement.classList.toggle('sscribe-dark', dark);
+			// Native controls, scrollbars and form chrome follow this hint.
+			document.documentElement.style.colorScheme = dark ? 'dark' : 'light';
 		},
 
 		closeModal: function (e) {

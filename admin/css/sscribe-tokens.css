@@ -179,3 +179,70 @@
 	-moz-osx-font-smoothing: grayscale;
 	box-sizing: border-box;
 }
+
+/* ============================================================
+   Context-adaptive dark tokens
+   ------------------------------------------------------------
+   The plugin never guesses: SScribe.syncThemeContext() measures the
+   REAL WordPress admin background (any color scheme, any dark-admin
+   plugin, any OS-level flip the admin chooses to honor) and toggles
+   .sscribe-dark on <html> accordingly. These values mirror the
+   WordPress admin dark palette (#1d2327 / #2c3338 family) so the
+   plugin matches the admin it is embedded in instead of inventing
+   its own look.
+   ============================================================ */
+
+:root {
+	/* Canvas is transparent so the plugin background is always exactly
+	   contiguous with the WP admin background in every theme. */
+	--ss-bg: transparent;
+}
+
+.sscribe-dark {
+	--ss-surface: #2c3338;
+	--ss-surface-2: #32373c;
+	--ss-surface-3: #3c434a;
+	--ss-border: #50575e;
+	--ss-border-strong: #646970;
+	--ss-text-primary: #f0f0f1;
+	--ss-text-secondary: #dfe2e5;
+	--ss-text-tertiary: #c7cbd0;
+	--ss-text-muted: #b3b8bd;
+	--ss-text-inverse: #1d2327;
+
+	--ss-brand: #74c49b;
+	--ss-brand-hover: #8ed3ae;
+	--ss-brand-active: #5eb386;
+	--ss-brand-soft: #24453a;
+	--ss-brand-tint: #1e3a31;
+	--ss-brand-mark: #74c49b;
+
+	--ss-success: #69d39d;
+	--ss-success-bg: #123227;
+	--ss-success-border: #2c5c48;
+	--ss-success-hover: #82dfae;
+
+	--ss-warning: #f0b46b;
+	--ss-warning-bg: #3a2a12;
+	--ss-warning-border: #6b4a1d;
+
+	--ss-error: #f28b82;
+	--ss-error-bg: #3a1b18;
+	--ss-error-border: #6b2a24;
+	--ss-error-hover: #f5a29b;
+
+	--ss-info: #8ab4f8;
+	--ss-info-bg: #16243c;
+	--ss-info-border: #2a4470;
+
+	--ss-color-overlay: rgb(9 9 11 / 72%);
+	--ss-color-shadow-02: rgb(0 0 0 / 14%);
+	--ss-color-shadow-04: rgb(0 0 0 / 22%);
+	--ss-color-shadow-06: rgb(0 0 0 / 32%);
+
+	/* Glyph assets ship light-safe fills; dark surfaces need light glyphs. */
+	--ss-icon-caret-down: url("data:image/svg+xml;charset=utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 16 16' fill='%23c3c4c7'%3E%3Cpath d='M8 11L3 6h10z'/%3E%3C/svg%3E");
+	--ss-icon-chevron-down: url("data:image/svg+xml;charset=utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 16 16' fill='none' stroke='%23c3c4c7' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m4 6 4 4 4-4'/%3E%3C/svg%3E");
+	--ss-icon-check-inverse: url("data:image/svg+xml;charset=utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%231d2327' stroke-width='2.25' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3.5 8.5l3 3 6-6.5'/%3E%3C/svg%3E");
+	--ss-icon-minus-inverse: url("data:image/svg+xml;charset=utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%231d2327' stroke-width='2.25' stroke-linecap='round'%3E%3Cpath d='M4 8h8'/%3E%3C/svg%3E");
+}

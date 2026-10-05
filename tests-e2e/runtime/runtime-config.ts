@@ -27,7 +27,11 @@ export function resolveRuntimePaths(): RuntimePaths {
   if (!/^\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?$/.test(v)) {
     throw new Error(`Invalid package.json version for E2E runtime: "${v}"`);
   }
-  const sscribeZipPath = join(distDir, `sscribe-export-site-pages-${v}.zip`);
+    // SSCRIBE_E2E_ZIP lets verification runs exercise a development
+    // artifact without touching the release ZIP in dist/.
+    const sscribeZipPath =
+      (process.env.SSCRIBE_E2E_ZIP || '').trim() ||
+      join(distDir, `sscribe-export-site-pages-${v}.zip`);
   if (!existsSync(sscribeZipPath)) {
     throw new Error(
       `Canonical SScribe release ZIP not found at ${sscribeZipPath}. ` +

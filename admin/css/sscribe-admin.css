@@ -4679,6 +4679,7 @@ body.rtl .sscribe-progress-bar-fill {
 	display: inline-flex;
 	align-items: center;
 	gap: var(--ss-space-2);
+	color: var(--ss-text-primary);
 }
 
 .sscribe-support-panel-header .sscribe-icon {
@@ -5951,4 +5952,52 @@ body.rtl .sscribe-progress-bar-fill {
 	.sscribe-modal-content-export .sscribe-success-actions {
 		animation: none;
 	}
+}
+
+/* ============================================================
+   Theme-inheritance firewall
+   ------------------------------------------------------------
+   WordPress color schemes (and third-party admin dark modes) set
+   colors on core elements and body text. Plugin markup that did not
+   paint its own color inherited those values — producing dark-on-dark
+   text and invisible glyphs when the admin went dark.
+
+   The firewall works by INHERITANCE, not by per-element overrides:
+   each plugin surface declares the token text color once and every
+   descendant (including class-less spans inside colored buttons)
+   inherits it unless a component class says otherwise. Form controls
+   are pinned explicitly because WP schemes style them directly.
+   ============================================================ */
+
+.sscribe-master-container,
+.sscribe-confirm-dialog {
+	color: var(--ss-text-primary);
+	/* The page canvas stays transparent so the plugin background is
+	   exactly the WP admin background in any theme. Floating surfaces
+	   keep their own opaque backgrounds (they sit over overlays). */
+	background-color: transparent;
+}
+
+/* The toast intentionally inverts (dark chip in light, light chip in
+   dark) via its own color rule — it must not be firewall-pinned. */
+.sscribe-modal-content {
+	color: var(--ss-text-primary);
+}
+
+.sscribe-master-container input:not([type='checkbox']):not([type='radio']),
+.sscribe-master-container select,
+.sscribe-master-container textarea,
+.sscribe-modal-content input:not([type='checkbox']):not([type='radio']),
+.sscribe-modal-content select,
+.sscribe-modal-content textarea,
+.sscribe-toast input,
+.sscribe-toast select,
+.sscribe-toast textarea {
+	background-color: var(--ss-surface);
+	color: var(--ss-text-primary);
+	border-color: var(--ss-border);
+}
+
+:where(.sscribe-master-container, .sscribe-modal-content, .sscribe-toast) :where(svg, img, video) {
+	color: inherit;
 }
