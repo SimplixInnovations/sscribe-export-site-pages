@@ -29,6 +29,10 @@ import { test, expect } from '../../fixtures/shared';
 test.describe('e2e / export / download-token-auth', () => {
   test('invalid and missing download requests preserve their HTTP error status', async ({ adminPage }) => {
     await adminPage.goto('/wp-admin/admin.php?page=sscribe-export');
+    await adminPage.locator('#sscribe-open-export-modal-btn').click();
+    await expect(adminPage.locator('#sscribe-export-modal')).toBeVisible();
+    await adminPage.locator('#sscribe-open-export-modal-btn').click();
+    await expect(adminPage.locator('#sscribe-export-modal')).toBeVisible();
     await expect(adminPage.locator('#sscribe-export-btn')).toBeEnabled({ timeout: 30_000 });
 
     const responses = await adminPage.evaluate(async () => {
@@ -53,6 +57,10 @@ test.describe('e2e / export / download-token-auth', () => {
 
   test('download token is single-use: replay returns 403', async ({ adminPage }) => {
     await adminPage.goto('/wp-admin/admin.php?page=sscribe-export');
+    await adminPage.locator('#sscribe-open-export-modal-btn').click();
+    await expect(adminPage.locator('#sscribe-export-modal')).toBeVisible();
+    await adminPage.locator('#sscribe-open-export-modal-btn').click();
+    await expect(adminPage.locator('#sscribe-export-modal')).toBeVisible();
 
     // Wait until the export button reports enabled. The button enables
     // only after the counts success handler runs (admin/js/sscribe-admin.js:

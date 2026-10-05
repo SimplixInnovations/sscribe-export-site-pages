@@ -12,6 +12,10 @@ const isPreflight = (postData: string | null | undefined): boolean =>
 test.describe('e2e / export / preflight-contract', () => {
 	test('hard preflight errors block export and never expose Continue Anyway', async ({ adminPage }) => {
 		await adminPage.goto('/wp-admin/admin.php?page=sscribe-export');
+		await adminPage.locator('#sscribe-open-export-modal-btn').click();
+		await expect(adminPage.locator('#sscribe-export-modal')).toBeVisible();
+		await adminPage.locator('#sscribe-open-export-modal-btn').click();
+		await expect(adminPage.locator('#sscribe-export-modal')).toBeVisible();
 		await adminPage.route('**/admin-ajax.php*', async (route) => {
 			if (!isPreflight(route.request().postData())) return route.continue();
 			return route.fulfill(
@@ -50,6 +54,10 @@ test.describe('e2e / export / preflight-contract', () => {
 
 	test('warning preflight requires explicit continuation before export starts', async ({ adminPage }) => {
 		await adminPage.goto('/wp-admin/admin.php?page=sscribe-export');
+		await adminPage.locator('#sscribe-open-export-modal-btn').click();
+		await expect(adminPage.locator('#sscribe-export-modal')).toBeVisible();
+		await adminPage.locator('#sscribe-open-export-modal-btn').click();
+		await expect(adminPage.locator('#sscribe-export-modal')).toBeVisible();
 		await adminPage.route('**/admin-ajax.php*', async (route) => {
 			if (!isPreflight(route.request().postData())) return route.continue();
 			return route.fulfill(
@@ -97,6 +105,10 @@ test.describe('e2e / export / preflight-contract', () => {
 
 	test('preflight cancel returns keyboard focus to the invoking element', async ({ adminPage }) => {
 		await adminPage.goto('/wp-admin/admin.php?page=sscribe-export');
+		await adminPage.locator('#sscribe-open-export-modal-btn').click();
+		await expect(adminPage.locator('#sscribe-export-modal')).toBeVisible();
+		await adminPage.locator('#sscribe-open-export-modal-btn').click();
+		await expect(adminPage.locator('#sscribe-export-modal')).toBeVisible();
 		await adminPage.route('**/admin-ajax.php*', async (route) => {
 			if (!isPreflight(route.request().postData())) return route.continue();
 			return route.fulfill(
@@ -132,6 +144,10 @@ test.describe('e2e / export / preflight-contract', () => {
 
 	test('toast exposes a keyboard-operable dismiss button', async ({ adminPage }) => {
 		await adminPage.goto('/wp-admin/admin.php?page=sscribe-export');
+		await adminPage.locator('#sscribe-open-export-modal-btn').click();
+		await expect(adminPage.locator('#sscribe-export-modal')).toBeVisible();
+		await adminPage.locator('#sscribe-open-export-modal-btn').click();
+		await expect(adminPage.locator('#sscribe-export-modal')).toBeVisible();
 		await adminPage.evaluate(() => {
 			(window as any).SScribe.showToast('Keyboard toast', 'info', 0);
 		});
@@ -146,6 +162,10 @@ test.describe('e2e / export / preflight-contract', () => {
 
 	test('all-languages sentinel has a user-facing localized label', async ({ adminPage }) => {
 		await adminPage.goto('/wp-admin/admin.php?page=sscribe-export');
+		await adminPage.locator('#sscribe-open-export-modal-btn').click();
+		await expect(adminPage.locator('#sscribe-export-modal')).toBeVisible();
+		await adminPage.locator('#sscribe-open-export-modal-btn').click();
+		await expect(adminPage.locator('#sscribe-export-modal')).toBeVisible();
 		const label = await adminPage.evaluate(() => (window as any).SScribe.getLanguageLabel('__all__'));
 		expect(label).toBe('All Languages');
 	});

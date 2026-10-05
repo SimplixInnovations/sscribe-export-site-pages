@@ -16,6 +16,8 @@ test.describe('00-smoke — stack canary', () => {
 
     // 2. Admin page goto (login flow happens via fixture)
     const response = await adminPage.goto('/wp-admin/admin.php?page=sscribe-export');
+    await adminPage.locator('#sscribe-open-export-modal-btn').click();
+    await expect(adminPage.locator('#sscribe-export-modal')).toBeVisible();
     const status = response?.status() ?? 0;
     console.log('ADMIN_STATUS:', status);
 

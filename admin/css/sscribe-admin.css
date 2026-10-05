@@ -5698,3 +5698,257 @@ body.rtl .sscribe-progress-bar-fill {
 		justify-content: space-between;
 	}
 }
+
+/* ============================================================
+   Export configuration modal + entry hero
+   ============================================================ */
+
+.sscribe-export-hero-body {
+	display: flex;
+	align-items: center;
+	gap: var(--ss-space-5);
+	padding: var(--ss-space-6);
+}
+
+.sscribe-export-hero-icon {
+	flex: 0 0 auto;
+	width: 52px;
+	height: 52px;
+	border-radius: var(--ss-radius-lg);
+	background: var(--ss-bg);
+	border: 1px solid var(--ss-border);
+	color: var(--ss-brand);
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.sscribe-export-hero-copy {
+	flex: 1 1 auto;
+	min-width: 0;
+}
+
+.sscribe-export-hero-copy h2 {
+	font-size: var(--ss-text-large);
+	font-weight: var(--ss-font-semibold);
+	color: var(--ss-text-primary);
+	margin: 0 0 var(--ss-space-1);
+}
+
+.sscribe-export-hero-copy p {
+	margin: 0;
+	max-width: 68ch;
+	color: var(--ss-text-secondary);
+	line-height: var(--ss-leading-relaxed);
+}
+
+.sscribe-export-hero .sscribe-button {
+	flex: 0 0 auto;
+	cursor: pointer;
+}
+
+/* The nested Preview dialog must stack above this modal. */
+.sscribe-modal-export {
+	z-index: 100000;
+}
+
+#sscribe-preview-panel {
+	z-index: 100100;
+}
+
+.sscribe-modal-content-export {
+	max-width: 1040px;
+	width: min(1040px, 100%);
+	max-height: calc(100vh - 64px);
+}
+
+.sscribe-modal-header-copy {
+	min-width: 0;
+}
+
+.sscribe-modal-header-copy h3 {
+	font-size: var(--ss-text-title);
+	font-weight: var(--ss-font-semibold);
+	color: var(--ss-text-primary);
+}
+
+.sscribe-modal-header-copy p {
+	margin: var(--ss-space-1) 0 0;
+	color: var(--ss-text-secondary);
+}
+
+.sscribe-export-modal-body {
+	padding: 0;
+	overflow-y: auto;
+	overscroll-behavior: contain;
+}
+
+.sscribe-export-modal-body .sscribe-config-section {
+	padding: var(--ss-space-5) var(--ss-space-6);
+}
+
+.sscribe-export-modal-body .sscribe-config-section:first-child {
+	padding-top: var(--ss-space-6);
+}
+
+.sscribe-export-modal-body .sscribe-export-bar {
+	position: sticky;
+	bottom: 0;
+	z-index: 2;
+	margin: 0;
+	padding: var(--ss-space-4) var(--ss-space-6);
+	background: var(--ss-surface);
+	border-top: 1px solid var(--ss-border);
+	box-shadow: 0 -8px 24px var(--ss-color-shadow-02);
+}
+
+.sscribe-export-modal-body .sscribe-status-alert {
+	margin: var(--ss-space-6);
+}
+
+.sscribe-export-modal-body .sscribe-button {
+	cursor: pointer;
+}
+
+.sscribe-modal-close[data-close-blocked='true'] {
+	opacity: 0.35;
+	cursor: not-allowed;
+}
+
+@media (max-width: 782px) {
+	.sscribe-export-hero-body {
+		flex-direction: column;
+		align-items: flex-start;
+	}
+
+	.sscribe-modal-content-export {
+		max-height: calc(100vh - 24px);
+	}
+
+	.sscribe-export-modal-body .sscribe-config-section {
+		padding: var(--ss-space-4);
+	}
+
+	.sscribe-export-modal-body .sscribe-export-bar {
+		padding: var(--ss-space-3) var(--ss-space-4);
+	}
+}
+
+/* ============================================================
+   Success flourish (completion celebration)
+   ============================================================ */
+
+.sscribe-success-flourish {
+	position: relative;
+	flex: 0 0 auto;
+	width: 72px;
+	height: 72px;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.sscribe-success-check {
+	width: 72px;
+	height: 72px;
+	display: block;
+}
+
+.sscribe-success-check-circle {
+	fill: var(--ss-surface);
+	stroke: var(--ss-brand);
+	stroke-width: 2.5;
+	opacity: 0.9;
+}
+
+.sscribe-success-check-mark {
+	fill: none;
+	stroke: var(--ss-brand);
+	stroke-width: 4.5;
+	stroke-linecap: round;
+	stroke-linejoin: round;
+	stroke-dasharray: 36;
+	stroke-dashoffset: 36;
+	animation: sscribe-success-draw 420ms 120ms var(--ss-easing, ease) forwards;
+}
+
+.sscribe-success-ring {
+	position: absolute;
+	inset: 0;
+	border-radius: var(--ss-radius-full);
+	border: 2px solid var(--ss-brand);
+	opacity: 0;
+	animation: sscribe-success-ring 900ms 80ms var(--ss-easing, ease) forwards;
+}
+
+.sscribe-success-ring-delay {
+	animation-delay: 260ms;
+}
+
+@keyframes sscribe-success-draw {
+	to {
+		stroke-dashoffset: 0;
+	}
+}
+
+@keyframes sscribe-success-ring {
+	0% {
+		opacity: 0.55;
+		transform: scale(0.72);
+	}
+
+	100% {
+		opacity: 0;
+		transform: scale(1.35);
+	}
+}
+
+.sscribe-modal-content-export .sscribe-status-success {
+	background: linear-gradient(
+		180deg,
+		var(--ss-surface) 0%,
+		var(--ss-bg) 100%
+	);
+	border-color: var(--ss-border);
+}
+
+.sscribe-modal-content-export .sscribe-status-success .sscribe-status-heading {
+	font-size: var(--ss-text-title);
+	letter-spacing: var(--ss-tracking-tight, normal);
+}
+
+.sscribe-modal-content-export .sscribe-success-meta {
+	animation: sscribe-success-rise 320ms 160ms var(--ss-easing, ease) both;
+}
+
+.sscribe-modal-content-export .sscribe-success-actions {
+	animation: sscribe-success-rise 320ms 260ms var(--ss-easing, ease) both;
+}
+
+@keyframes sscribe-success-rise {
+	from {
+		opacity: 0;
+		transform: translateY(8px);
+	}
+
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.sscribe-success-check-mark {
+		animation: none;
+		stroke-dashoffset: 0;
+	}
+
+	.sscribe-success-ring {
+		display: none;
+	}
+
+	.sscribe-modal-content-export .sscribe-success-meta,
+	.sscribe-modal-content-export .sscribe-success-actions {
+		animation: none;
+	}
+}

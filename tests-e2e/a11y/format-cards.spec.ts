@@ -22,6 +22,10 @@ test.describe('a11y / format-cards', () => {
     // "problem" state from the first paint.
     await adminPage.setViewportSize({ width: 880, height: 800 });
     await adminPage.goto('/wp-admin/admin.php?page=sscribe-export');
+    await adminPage.locator('#sscribe-open-export-modal-btn').click();
+    await expect(adminPage.locator('#sscribe-export-modal')).toBeVisible();
+    await adminPage.locator('#sscribe-open-export-modal-btn').click();
+    await expect(adminPage.locator('#sscribe-export-modal')).toBeVisible();
 
     const formatCards = adminPage.locator('#sscribe-format-cards');
     await expect(formatCards).toBeVisible();

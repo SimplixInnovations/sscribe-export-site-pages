@@ -138,6 +138,10 @@ async function bootExport(
   adminPage.on('response', responseHandler);
 
   await adminPage.goto('/wp-admin/admin.php?page=sscribe-export');
+  await adminPage.locator('#sscribe-open-export-modal-btn').click();
+  await expect(adminPage.locator('#sscribe-export-modal')).toBeVisible();
+  await adminPage.locator('#sscribe-open-export-modal-btn').click();
+  await expect(adminPage.locator('#sscribe-export-modal')).toBeVisible();
 
   // Wait for check_active_session to land with has_active=false.
   for (let attempt = 0; attempt < 30; attempt += 1) {

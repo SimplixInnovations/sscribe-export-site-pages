@@ -274,6 +274,7 @@ class SScribe_Admin {
 				'processing'             => __( 'Processing...', 'sscribe-export-site-pages' ),
 				'complete'               => __( 'Export complete!', 'sscribe-export-site-pages' ),
 				'error'                  => __( 'An error occurred. Please try again.', 'sscribe-export-site-pages' ),
+				'export_modal_blocked'   => __( 'An export is running. Use Cancel Export to stop it before closing.', 'sscribe-export-site-pages' ),
 				'download'               => __( 'Download ZIP', 'sscribe-export-site-pages' ),
 				'generating'             => __( 'Generating documents...', 'sscribe-export-site-pages' ),
 				'confirm_export'         => __( 'Start exporting pages?', 'sscribe-export-site-pages' ),

@@ -234,9 +234,13 @@
 			$(document).on('click.sscribe', '#sscribe-preview-close', $.proxy(this.closePreview, this));
 			$(document).on('click.sscribe', '#sscribe-preview-dismiss-btn', $.proxy(this.closePreview, this));
 			$(document).on('click.sscribe', '#sscribe-preview-start-btn', $.proxy(this.startExportFromPreview, this));
-			$(document).on('click.sscribe', '#sscribe-new-export-btn', function (e) {
-				e.preventDefault();
-				window.location.reload();
+			$(document).on('click.sscribe', '#sscribe-new-export-btn', $.proxy(this.exportModalStartOver, this));
+			$(document).on('click.sscribe', '#sscribe-open-export-modal-btn', $.proxy(this.exportModalOpen, this));
+			$(document).on('click.sscribe', '#sscribe-export-modal-close', $.proxy(this.exportModalClose, this));
+			$(document).on('click.sscribe', '#sscribe-export-modal', function (e) {
+				if (e.target === this) {
+					SScribe.exportModalClose(e);
+				}
 			});
 			$(document).on('click.sscribe', '#sscribe-view-history-btn', $.proxy(this.openHistoryFromSuccess, this));
 			$(document).on('click.sscribe', '#sscribe-error-try-again', $.proxy(this.retry, this));
@@ -279,6 +283,11 @@
 			const self = this;
 			$(document).on('keydown.sscribe', function (e) {
 				if (e.key === 'Escape' || e.key === 'Esc') {
+					if ($('#sscribe-export-modal').is(':visible')) {
+						e.preventDefault();
+						SScribe.exportModalClose(e);
+						return;
+					}
 					const $preflight = $('.sscribe-preflight-banner');
 					if ($preflight.length) {
 						e.preventDefault();
@@ -1805,6 +1814,11 @@
 			if (this._batchInProgress) {
 				return;
 			}
+			// Every batch — first run, resume after reload, or retry — means
+			// the export is live: show the running view and lock the modal
+			// (the only exit is Cancel Export).
+			this.exportModalOpen();
+			this.exportModalSetState('running');
 			this._batchInProgress = true;
 			const self = this;
 			this._batchXHR = $.ajax({
@@ -2069,6 +2083,7 @@
 			this.pollBackoff = 0;
 			$('#sscribe-export-btn, #sscribe-preview-btn').removeClass('sscribe-btn-busy').removeAttr('aria-busy');
 			this.updateExportButton();
+			this.exportModalSetState('complete');
 			// Resolve any estimate chip the interrupted config-summary fetch
 			// left pending: starting an export aborts that XHR, so without
 			// this the chip freezes on "Calculating..." forever.
@@ -2592,6 +2607,26 @@
 			}
 			html += '</tbody></table>';
 			$table.html(html);
+			// Re-apply the active search filter and re-sync the bulk bar so a
+			// re-render can never leave stale "N selected" state or unfiltered
+			// rows behind.
+			this.applyHistoryFilter();
+			this.updateBulkBar();
+		},
+		applyHistoryFilter: function () {
+			const $input = $('#sscribe-history-search');
+			const needle = String(($input.val() || '')).toLowerCase().trim();
+			const $rows = $('#sscribe-history-table .sscribe-history-row');
+			let visible = 0;
+			$rows.each(function () {
+				if (needle === '' || $(this).text().toLowerCase().indexOf(needle) !== -1) {
+					$(this).removeClass('sscribe-history-row-hidden');
+					visible++;
+				} else {
+					$(this).addClass('sscribe-history-row-hidden');
+				}
+			});
+			return visible;
 		},
 		updateBulkBar: function () {
 			const $checks = $('.sscribe-history-check:checked').not(
@@ -2617,7 +2652,8 @@
 				}
 				$('#sscribe-bulk-download-btn, #sscribe-bulk-delete-btn').prop('disabled', false);
 			} else {
-				$bar.attr('data-active', 'false');
+				$bar.addClass('sscribe-hidden').attr('data-active', 'false');
+				$('#sscribe-bulk-count').text('');
 				$('.sscribe-history-row').removeClass('sscribe-row-selected');
 				$('#sscribe-bulk-select-all').prop('checked', false).prop('indeterminate', false);
 				$('#sscribe-bulk-download-btn, #sscribe-bulk-delete-btn').prop('disabled', true);
@@ -3454,6 +3490,7 @@
 			}
 			$('#sscribe-error-area').stop(true, true).addClass('sscribe-hidden');
 			this.setErrorDetails(null);
+			this.exportModalSetState('config');
 			const $config = $('.sscribe-config-panel').first();
 			const offset = $config.offset();
 			if (!$config.length || !offset) {
@@ -3512,22 +3549,7 @@
 		filterHistory: function (e) {
 			const raw = (e && e.target && e.target.value) || '';
 			const needle = String(raw).toLowerCase().trim();
-			const $rows = $('#sscribe-history-table .sscribe-history-row');
-			let visible = 0;
-			$rows.each(function () {
-				if (needle === '') {
-					$(this).removeClass('sscribe-history-row-hidden');
-					visible++;
-					return;
-				}
-				const text = $(this).text().toLowerCase();
-				if (text.indexOf(needle) !== -1) {
-					$(this).removeClass('sscribe-history-row-hidden');
-					visible++;
-				} else {
-					$(this).addClass('sscribe-history-row-hidden');
-				}
-			});
+			const visible = this.applyHistoryFilter();
 			this.updateBulkBar();
 			if (needle !== '' && visible === 0) {
 				this.announce(
@@ -3540,6 +3562,7 @@
 				e.preventDefault();
 			}
 			this.activateTab('export', true);
+			this.exportModalOpen();
 			const target = document.getElementById('sscribe-main-content');
 			if (target && typeof target.focus === 'function') {
 				target.focus();
@@ -4256,6 +4279,113 @@
 			}
 			$content.html(html);
 		},
+		// ============================================================
+		// Export configuration modal controller
+		// ============================================================
+
+		/**
+		 * True while an export is actively running (batch in flight or a
+		 * live running state in the modal). The modal is close-locked in
+		 * this window: only Cancel Export may end it.
+		 */
+		isExportRunning: function () {
+			if (this.isProcessing || this._batchInProgress) {
+				return true;
+			}
+			const $running = $('#sscribe-export-state-running');
+			return $running.length > 0 && !$running.hasClass('sscribe-hidden') && this.sessionId !== null;
+		},
+
+		exportModalOpen: function (e) {
+			if (e) {
+				e.preventDefault();
+			}
+			const $modal = $('#sscribe-export-modal');
+			if (!$modal.length || $modal.is(':visible')) {
+				return;
+			}
+			this._exportModalReturnFocus = document.activeElement;
+			$modal
+				.removeClass('sscribe-hidden')
+				.prop('hidden', false)
+				.attr('aria-hidden', 'false')
+				.hide()
+				.fadeIn(160);
+			document.body.style.overflow = 'hidden';
+			this.focusFirstInteractive($modal[0], '#sscribe-export-modal-close');
+		},
+
+		exportModalClose: function (e) {
+			if (e) {
+				e.preventDefault();
+			}
+			if (this.isExportRunning()) {
+				this.announceExportModalBlocked();
+				return false;
+			}
+			const $modal = $('#sscribe-export-modal');
+			if (!$modal.length) {
+				return true;
+			}
+			$modal.attr('aria-hidden', 'true').addClass('sscribe-hidden').prop('hidden', true).fadeOut(160);
+			this.releaseFocusTrap($modal[0]);
+			if (this._exportModalReturnFocus && this._exportModalReturnFocus.focus) {
+				this._exportModalReturnFocus.focus();
+			} else {
+				this.restoreFocus();
+			}
+			document.body.style.overflow = '';
+			return true;
+		},
+
+		exportModalSetState: function (state) {
+			const states = ['config', 'running', 'complete', 'error'];
+			const self = this;
+			const changed = this._exportModalState !== state;
+			this._exportModalState = state;
+			states.forEach(function (name) {
+				$('#sscribe-export-state-' + name).toggleClass('sscribe-hidden', name !== state);
+			});
+
+			// While running, the close affordance is inert: the only exit is
+			// Cancel Export. It reactivates the moment the run settles.
+			const running = state === 'running';
+			$('#sscribe-export-modal-close')
+				.attr('data-close-blocked', running ? 'true' : 'false')
+				.attr('aria-disabled', running ? 'true' : 'false');
+
+			const $modal = $('#sscribe-export-modal');
+			if (changed && $modal.is(':visible')) {
+				const $body = $modal.find('.sscribe-export-modal-body');
+				if ($body.length) {
+					$body.scrollTop(0);
+				}
+			}
+			self.updateExportButton();
+		},
+
+		announceExportModalBlocked: function () {
+			const text =
+				(sscribe_data.strings && sscribe_data.strings.export_modal_blocked) ||
+				'An export is running. Use Cancel Export to stop it before closing.';
+			const live = document.getElementById('sscribe-live-region');
+			if (live) {
+				live.textContent = text;
+			}
+			this.showToast(text, 'info');
+			const $close = $('#sscribe-export-modal-close');
+			$close.attr('data-close-blocked', 'true');
+		},
+
+		exportModalStartOver: function (e) {
+			if (e) {
+				e.preventDefault();
+			}
+			this.resetUI();
+			this.exportModalSetState('config');
+			this.updateExportButton();
+		},
+
 		closeModal: function (e) {
 			if (e) {
 				e.preventDefault();
@@ -4297,6 +4427,16 @@
 			const href = $link.attr('href') || '';
 			const safeHref = this.getSafeSameOriginUrl(href);
 			if (safeHref) {
+				// Download links are single-use server-side: once the browser
+				// starts this download the token is consumed, so rotate the
+				// row links shortly after. Without this a later re-download of
+				// the same row fails with "link already used" until a manual
+				// refresh — the exact flow that broke after deleting a file.
+				const self = this;
+				clearTimeout(this._downloadRefreshTimer);
+				this._downloadRefreshTimer = setTimeout(function () {
+					self.refreshRecentExports();
+				}, 1500);
 				return;
 			}
 
@@ -4352,6 +4492,10 @@
 				.prop('disabled', false)
 				.text(sscribe_data.strings.cancel || 'Cancel Export');
 			this.showToast(cancelledMessage, 'info');
+			// Cancelling is the sanctioned exit while running: settle the
+			// modal back to its configuration state and release it.
+			this.exportModalSetState('config');
+			this.exportModalClose();
 		},
 		/**
 		 * @param {string} code Stable server error code.
@@ -4424,6 +4568,10 @@
 				document.title = this._originalTitle;
 			}
 			$('#sscribe-progress-area').fadeOut(200);
+			// Surface the failure inside the export modal, opening it when the
+			// failure arrived outside an open one (e.g. a resume race).
+			this.exportModalOpen();
+			this.exportModalSetState('error');
 			const alertRegion = document.getElementById('sscribe-alert-region');
 			if (alertRegion) {
 				alertRegion.textContent =

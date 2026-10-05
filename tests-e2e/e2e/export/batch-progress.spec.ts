@@ -34,6 +34,10 @@ import { test, expect } from '../../fixtures/shared';
 test.describe('e2e / export / batch-progress', () => {
   test('progress-area exposes aria-live=polite and updates as the export advances', async ({ adminPage }) => {
     await adminPage.goto('/wp-admin/admin.php?page=sscribe-export');
+    await adminPage.locator('#sscribe-open-export-modal-btn').click();
+    await expect(adminPage.locator('#sscribe-export-modal')).toBeVisible();
+    await adminPage.locator('#sscribe-open-export-modal-btn').click();
+    await expect(adminPage.locator('#sscribe-export-modal')).toBeVisible();
 
     // Step 1: static assertion — the progress area must declare an
     // aria-live value other than "off". We allow "polite" or "assertive"

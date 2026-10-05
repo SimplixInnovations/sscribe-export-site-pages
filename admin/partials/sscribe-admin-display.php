@@ -215,16 +215,37 @@ if ( ! function_exists( 'sscribe_humanize_export_filename' ) ) {
 
 		<div class="sscribe-tab-content sscribe-tab-active" id="sscribe-tab-export" role="tabpanel" aria-labelledby="sscribe-tab-btn-export" aria-hidden="false" tabindex="0">
 
-<section class="sscribe-panel sscribe-config-panel">
-			<div class="sscribe-panel-header">
-				<div class="sscribe-panel-title">
+<section class="sscribe-panel sscribe-export-hero">
+			<div class="sscribe-export-hero-body">
+				<span class="sscribe-export-hero-icon" aria-hidden="true">
 					<?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- SVG sanitized in get_icon().
 					?>
-					<?php echo wp_kses_post( SScribe_Helpers::get_icon( 'settings', 20, 'sscribe-icon-img' ) ); ?>
-					<h2><?php esc_html_e( 'Export Configuration', 'sscribe-export-site-pages' ); ?></h2>
+					<?php echo wp_kses_post( SScribe_Helpers::get_icon( 'settings', 24 ) ); ?>
+				</span>
+				<div class="sscribe-export-hero-copy">
+					<h2><?php esc_html_e( 'Design your export package', 'sscribe-export-site-pages' ); ?></h2>
+					<p><?php esc_html_e( 'Choose what to export, pick your formats, and generate a private downloadable archive. Packages auto-delete after 72 hours.', 'sscribe-export-site-pages' ); ?></p>
 				</div>
+				<button type="button" id="sscribe-open-export-modal-btn" class="sscribe-button sscribe-button-primary sscribe-btn-lg" aria-haspopup="dialog">
+					<?php echo wp_kses( SScribe_Helpers::get_icon_inline( 'download', 16 ), SScribe_Helpers::get_svg_kses_allowed_html() ); ?>
+					<span><?php esc_html_e( 'New Export', 'sscribe-export-site-pages' ); ?></span>
+				</button>
 			</div>
+		</section>
 
+		<div id="sscribe-export-modal" class="sscribe-modal sscribe-modal-export sscribe-hidden" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="sscribe-export-modal-title" hidden>
+			<div class="sscribe-modal-content sscribe-modal-content-export" role="document">
+				<div class="sscribe-modal-header">
+					<div class="sscribe-modal-header-copy">
+						<h3 id="sscribe-export-modal-title"><?php esc_html_e( 'New Export', 'sscribe-export-site-pages' ); ?></h3>
+						<p id="sscribe-export-modal-subtitle"><?php esc_html_e( 'Pick what to export, choose formats, then generate your package.', 'sscribe-export-site-pages' ); ?></p>
+					</div>
+					<button type="button" class="sscribe-modal-close" id="sscribe-export-modal-close" aria-label="<?php esc_attr_e( 'Close', 'sscribe-export-site-pages' ); ?>">
+						<?php echo wp_kses( SScribe_Helpers::get_icon_inline( 'x', 16 ), SScribe_Helpers::get_svg_kses_allowed_html() ); ?>
+					</button>
+				</div>
+				<div class="sscribe-modal-body sscribe-export-modal-body">
+					<div id="sscribe-export-state-config">
 			<div class="sscribe-panel-body sscribe-flat-body">
 				<div class="sscribe-config-grid">
 					<div class="sscribe-config-section">
@@ -685,7 +706,9 @@ if ( ! function_exists( 'sscribe_humanize_export_filename' ) ) {
 						<span id="sscribe-preview-desc" class="screen-reader-text"><?php esc_html_e( 'Export readiness preview showing selected configuration and expected output', 'sscribe-export-site-pages' ); ?></span>
 					</div>
 				</div>
-		</section>
+			</div>
+					</div>
+					<div id="sscribe-export-state-running">
 
 		<div id="sscribe-progress-area" class="sscribe-status-alert sscribe-status-processing sscribe-hidden" role="status" aria-live="polite" aria-labelledby="sscribe-status-text">
 			<div class="sscribe-spinner" aria-hidden="true">
@@ -744,14 +767,19 @@ if ( ! function_exists( 'sscribe_humanize_export_filename' ) ) {
 					</button>
 				</div>
 				<span id="sscribe-cancel-hint" class="screen-reader-text"><?php esc_html_e( 'Stop the current export process and discard progress', 'sscribe-export-site-pages' ); ?></span>
-			</div>
+					</div>
 		</div>
+					</div>
+					<div id="sscribe-export-state-complete">
 
 		<div id="sscribe-download-area" class="sscribe-status-alert sscribe-status-success sscribe-hidden" role="alert" aria-live="assertive">
-			<div class="sscribe-status-icon" aria-hidden="true">
-				<?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- SVG sanitized in get_icon().
-				?>
-				<?php echo wp_kses_post( SScribe_Helpers::get_icon( 'check-circle', 32 ) ); ?>
+			<div class="sscribe-success-flourish" aria-hidden="true">
+				<span class="sscribe-success-ring"></span>
+				<span class="sscribe-success-ring sscribe-success-ring-delay"></span>
+				<svg class="sscribe-success-check" viewBox="0 0 52 52" focusable="false" aria-hidden="true">
+					<circle class="sscribe-success-check-circle" cx="26" cy="26" r="23"></circle>
+					<path class="sscribe-success-check-mark" d="M15 27.5l7.5 7.5L37 20.5"></path>
+				</svg>
 			</div>
 			<div class="sscribe-status-info">
 				<h4 class="sscribe-status-heading">
@@ -800,6 +828,8 @@ if ( ! function_exists( 'sscribe_humanize_export_filename' ) ) {
 				</div>
 			</div>
 		</div>
+					</div>
+					<div id="sscribe-export-state-error">
 
 		<div id="sscribe-error-area" class="sscribe-status-alert sscribe-status-error sscribe-hidden" role="alert" aria-live="assertive">
 			<div class="sscribe-status-icon" aria-hidden="true">
@@ -831,6 +861,10 @@ if ( ! function_exists( 'sscribe_humanize_export_filename' ) ) {
 				</div>
 				<div id="sscribe-error-technical-details" class="sscribe-debug-details sscribe-hidden" hidden>
 					<pre class="sscribe-debug-pre" aria-label="<?php esc_attr_e( 'Technical error details', 'sscribe-export-site-pages' ); ?>"></pre>
+				</div>
+			</div>
+		</div>
+					</div>
 				</div>
 			</div>
 		</div>
