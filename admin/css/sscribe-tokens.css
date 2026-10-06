@@ -18,7 +18,9 @@
  * borders. Promoting the tokens to :root fixes this once for all
  * floating plugin UI. */
 :root {
-	--ss-bg: #f0f0f1;
+	/* Canvas is transparent so the plugin background is always exactly
+	   contiguous with the WP admin background in every theme. */
+	--ss-bg: transparent;
 	--ss-surface: #fff;
 	--ss-surface-2: #f4f4f5;
 	--ss-surface-3: #e4e4e7;
@@ -192,11 +194,6 @@
    its own look.
    ============================================================ */
 
-:root {
-	/* Canvas is transparent so the plugin background is always exactly
-	   contiguous with the WP admin background in every theme. */
-	--ss-bg: transparent;
-}
 
 .sscribe-dark {
 	--ss-surface: #2c3338;
@@ -209,32 +206,26 @@
 	--ss-text-tertiary: #c7cbd0;
 	--ss-text-muted: #b3b8bd;
 	--ss-text-inverse: #1d2327;
-
 	--ss-brand: #74c49b;
 	--ss-brand-hover: #8ed3ae;
 	--ss-brand-active: #5eb386;
 	--ss-brand-soft: #24453a;
 	--ss-brand-tint: #1e3a31;
 	--ss-brand-mark: #74c49b;
-
 	--ss-success: #69d39d;
 	--ss-success-bg: #123227;
 	--ss-success-border: #2c5c48;
 	--ss-success-hover: #82dfae;
-
 	--ss-warning: #f0b46b;
 	--ss-warning-bg: #3a2a12;
 	--ss-warning-border: #6b4a1d;
-
 	--ss-error: #f28b82;
 	--ss-error-bg: #3a1b18;
 	--ss-error-border: #6b2a24;
 	--ss-error-hover: #f5a29b;
-
 	--ss-info: #8ab4f8;
 	--ss-info-bg: #16243c;
 	--ss-info-border: #2a4470;
-
 	--ss-color-overlay: rgb(9 9 11 / 72%);
 	--ss-color-shadow-02: rgb(0 0 0 / 14%);
 	--ss-color-shadow-04: rgb(0 0 0 / 22%);

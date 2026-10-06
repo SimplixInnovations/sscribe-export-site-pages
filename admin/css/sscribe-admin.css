@@ -401,6 +401,7 @@ parent's gray chip. */
 	color: var(--ss-text-tertiary);
 	text-transform: uppercase;
 	letter-spacing: var(--ss-tracking-lg);
+
 	/* Scoped to out-rank the heading margin reset above (which would
 	   otherwise compute this to 0 and glue the title to the cards). */
 	margin: 0 0 var(--ss-space-4) 0;
@@ -5816,7 +5817,7 @@ body.rtl .sscribe-progress-bar-fill {
 	cursor: not-allowed;
 }
 
-@media (max-width: 782px) {
+@media (width <= 782px) {
 	.sscribe-export-hero-body {
 		flex-direction: column;
 		align-items: flex-start;
@@ -5972,6 +5973,7 @@ body.rtl .sscribe-progress-bar-fill {
 .sscribe-master-container,
 .sscribe-confirm-dialog {
 	color: var(--ss-text-primary);
+
 	/* The page canvas stays transparent so the plugin background is
 	   exactly the WP admin background in any theme. Floating surfaces
 	   keep their own opaque backgrounds (they sit over overlays). */
@@ -5980,14 +5982,14 @@ body.rtl .sscribe-progress-bar-fill {
 
 /* The toast intentionally inverts (dark chip in light, light chip in
    dark) via its own color rule — it must not be firewall-pinned. */
-.sscribe-modal-content {
+:where(.sscribe-modal-content) {
 	color: var(--ss-text-primary);
 }
 
-.sscribe-master-container input:not([type='checkbox']):not([type='radio']),
+.sscribe-master-container input:not([type='checkbox'], [type='radio']),
 .sscribe-master-container select,
 .sscribe-master-container textarea,
-.sscribe-modal-content input:not([type='checkbox']):not([type='radio']),
+.sscribe-modal-content input:not([type='checkbox'], [type='radio']),
 .sscribe-modal-content select,
 .sscribe-modal-content textarea,
 .sscribe-toast input,
