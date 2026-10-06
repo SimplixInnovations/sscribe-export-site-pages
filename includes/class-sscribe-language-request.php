@@ -34,7 +34,7 @@ final class SScribe_Language_Request {
 	/**
 	 * Normalize the current Preview/Start request in both PHP request arrays.
 	 *
-	 * Non-string values are deliberately left untouched so the guarded endpoint
+	 * Non-string values are left untouched so the guarded endpoint
 	 * validator can reject malformed input rather than receiving a coerced value.
 	 */
 	public static function normalize_current_request(): void {

@@ -453,7 +453,7 @@ class SScribe_Session {
 		// WordPress caches negative lookups in the shared `notoptions`
 		// bucket. Without purging it, one lookup that raced a write pins the
 		// session as "absent" for every later request on hosts with a
-		// persistent object cache — resume then reports "session expired"
+		// persistent object cache - resume then reports "session expired"
 		// while the row is still in the database. Clear the negative entry
 		// exactly like core's update_option() does.
 		$notoptions = wp_cache_get( 'notoptions', 'options' );
@@ -604,7 +604,7 @@ class SScribe_Session {
 				if ( isset( $existing[ $key ] ) && is_array( $existing[ $key ] ) && is_array( $value ) ) {
 					// Arrays replace wholesale: every production caller passes
 					// the complete accumulated value (e.g. structured_errors
-					// is maintained per batch). The historical append-merge
+					// is maintained per batch). The old append-merge
 					// duplicated those entries exponentially across batches
 					// until the 500-entry cap evicted genuine errors.
 					$merged[ $key ] = $value;
@@ -1008,7 +1008,7 @@ class SScribe_Session {
 	/**
 	 * Determine whether a decoded session is old enough for cleanup.
 	 *
-	 * The decision is deliberately recomputed after the per-session lock is
+	 * The decision is recomputed after the per-session lock is
 	 * acquired so a stale database scan cannot delete a session that another
 	 * request refreshed immediately before cleanup obtained ownership.
 	 *

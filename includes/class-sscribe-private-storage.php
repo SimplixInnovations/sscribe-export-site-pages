@@ -181,7 +181,7 @@ final class SScribe_Private_Storage {
 	 * Whether the hardened uploads fallback may be consulted at all.
 	 *
 	 * Explicit operator configuration (SSCRIBE_PRIVATE_STORAGE_DIR or the
-	 * sscribe_private_storage_base_candidates filter) keeps the historical
+	 * sscribe_private_storage_base_candidates filter) keeps the original
 	 * fail-closed posture: an operator-chosen location is never silently
 	 * replaced with a different tree.
 	 */

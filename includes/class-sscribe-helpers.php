@@ -23,7 +23,6 @@ class SScribe_Helpers {
 	 *
 	 * @var string
 	 */
-	private static string $icons_dir = 'assets/icons/';
 
 	/**
 	 * Cache of rendered icon HTML.
@@ -32,265 +31,53 @@ class SScribe_Helpers {
 	 */
 	private static array $icon_cache = array();
 
-	/**
-	 * Get the URL for an icon file.
-	 *
-	 * @param string $name Icon name without extension.
-	 * @return string
-	 */
-	public static function icon_url( string $name ): string {
-		if ( 1 !== preg_match( '/^[a-z0-9-]{1,50}$/D', $name ) ) {
-			return '';
-		}
-		return SSCRIBE_PLUGIN_URL . self::$icons_dir . $name . '.svg';
-	}
+	private const KNOWN_ICONS = array( 'check', 'chevron-down', 'clock', 'download', 'download-package', 'eye', 'file-doc', 'file-html', 'file-log', 'file-md', 'file-pdf', 'file-search', 'file-text', 'globe', 'info', 'refresh-cw', 'search', 'settings', 'warning-circle', 'x', 'loader' );
 
+	
+	
 	/**
-	 * Get an icon as inline HTML.
+	 * Render an icon glyph from the embedded icon font.
 	 *
-	 * @param string $name      Icon name.
-	 * @param int    $size      Icon size in pixels.
+	 * Icons draw in currentColor so they inherit the surrounding text
+	 * color (including the dark theme) and size via font-size.
+	 *
+	 * @param string $name      Icon name (see KNOWN_ICONS).
+	 * @param int    $size      Glyph size in pixels.
 	 * @param string $css_class Additional CSS classes.
-	 * @return string
+	 * @return string Markup, or an empty string for unknown names.
 	 */
 	public static function get_icon( string $name, int $size = 20, string $css_class = '' ): string {
 		if ( 1 !== preg_match( '/^[a-z0-9-]{1,50}$/D', $name ) ) {
 			return '';
 		}
+		if ( ! in_array( $name, self::KNOWN_ICONS, true ) ) {
+			return '';
+		}
+
 		$size      = max( 1, min( 256, $size ) );
 		$cache_key = $name . ':' . $size . ':' . $css_class;
 		if ( isset( self::$icon_cache[ $cache_key ] ) ) {
 			return self::$icon_cache[ $cache_key ];
 		}
 
-		$file_path = SSCRIBE_PLUGIN_DIR . self::$icons_dir . $name . '.svg';
-
-		if ( ! file_exists( $file_path ) ) {
-			if ( SSCRIBE_DEBUG ) {
-				$logger = SScribe_Logger::instance( true );
-				$logger->warning(
-					'Icon file not found',
-					array(
-						'icon_name' => $name,
-						'file_path' => $file_path,
-					)
-				);
-			}
-			return '';
-		}
-
 		$icon_class = 'sscribe-icon sscribe-icon-' . sanitize_html_class( $name );
 		if ( '' !== $css_class ) {
-			$parts_raw  = preg_split( '/\s+/', trim( $css_class ), -1, PREG_SPLIT_NO_EMPTY );
-			$parts      = is_array( $parts_raw ) ? $parts_raw : array();
-			$sanitized  = array();
-			foreach ( $parts as $part ) {
-				$cleaned = sanitize_html_class( $part );
+			$extra = preg_split( '/\s+/', trim( $css_class ), -1, PREG_SPLIT_NO_EMPTY );
+			foreach ( is_array( $extra ) ? $extra : array() as $part ) {
+				$cleaned = sanitize_html_class( (string) $part );
 				if ( '' !== $cleaned ) {
-					$sanitized[] = $cleaned;
+					$icon_class .= ' ' . $cleaned;
 				}
-			}
-			if ( ! empty( $sanitized ) ) {
-				$icon_class .= ' ' . implode( ' ', $sanitized );
 			}
 		}
 
-		$icon_url = esc_url( SSCRIBE_PLUGIN_URL . self::$icons_dir . $name . '.svg' );
-
 		$html                           = sprintf(
-			'<img src="%s" width="%d" height="%d" class="%s" aria-hidden="true">',
-			$icon_url,
-			absint( $size ),
-			absint( $size ),
-			esc_attr( $icon_class )
+			'<i class="%s" style="font-size:%dpx" aria-hidden="true"></i>',
+			esc_attr( $icon_class ),
+			absint( $size )
 		);
 		self::$icon_cache[ $cache_key ] = $html;
 		return $html;
-	}
-
-	/**
-	 * Get an icon as inline SVG so currentColor resolves correctly.
-	 *
-	 * Use this when an icon must inherit its color from CSS (e.g. white
-	 * check on a colored selected-state circle). For most other uses,
-	 * get_icon() with the <img> tag is preferred.
-	 *
-	 * @param string $name      Icon name.
-	 * @param int    $size      Icon size in pixels.
-	 * @param string $css_class Additional CSS classes.
-	 * @return string
-	 */
-	public static function get_icon_inline( string $name, int $size = 20, string $css_class = '' ): string {
-		if ( 1 !== preg_match( '/^[a-z0-9-]{1,50}$/D', $name ) ) {
-			return '';
-		}
-		$size      = max( 1, min( 256, $size ) );
-		$cache_key = 'inline:' . $name . ':' . $size . ':' . $css_class;
-		if ( isset( self::$icon_cache[ $cache_key ] ) ) {
-			return self::$icon_cache[ $cache_key ];
-		}
-
-		$file_path = SSCRIBE_PLUGIN_DIR . self::$icons_dir . $name . '.svg';
-
-		if ( ! file_exists( $file_path ) ) {
-			return '';
-		}
-
-		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Reading a bundled SVG icon from the plugin's own directory; path is built from a strict-validated slug.
-		$raw = file_get_contents( $file_path );
-		if ( false === $raw || '' === $raw ) {
-			return '';
-		}
-
-		$raw = (string) $raw;
-
-		$classes = 'sscribe-icon sscribe-icon-' . sanitize_html_class( $name );
-		if ( '' !== $css_class ) {
-			$parts_raw = preg_split( '/\s+/', trim( $css_class ), -1, PREG_SPLIT_NO_EMPTY );
-			$parts     = is_array( $parts_raw ) ? $parts_raw : array();
-			$sanitized = array();
-			foreach ( $parts as $part ) {
-				$cleaned = sanitize_html_class( $part );
-				if ( '' !== $cleaned ) {
-					$sanitized[] = $cleaned;
-				}
-			}
-			if ( ! empty( $sanitized ) ) {
-				$classes .= ' ' . implode( ' ', $sanitized );
-			}
-		}
-
-		$abs_size = absint( $size );
-
-		if ( strpos( $raw, '<svg' ) !== false ) {
-			$raw = preg_replace( '/\s(width|height)="[^"]*"/i', '', $raw, 2 );
-		}
-
-		$svg  = preg_replace(
-			'/<svg\b/i',
-			'<svg width="' . $abs_size . '" height="' . $abs_size . '" class="' . esc_attr( $classes ) . '" aria-hidden="true"',
-			$raw,
-			1
-		);
-		if ( null === $svg ) {
-			$svg = $raw;
-		}
-
-		self::$icon_cache[ $cache_key ] = $svg;
-		return $svg;
-	}
-
-	/**
-	 * Get an inline SVG icon, escaped through an SVG-only kses allowlist.
-	 *
-	 * WordPress's `wp_kses_post()` strips `<svg>` and `<path>` elements on
-	 * many installs (the default `post` allowed-HTML context does not include
-	 * them in all WP versions, and several hardening plugins actively remove
-	 * them). Passing the output of `get_icon_inline()` through `wp_kses_post()`
-	 * therefore yields an empty string, which is why the radio-card check
-	 * icons and all other inline SVG icons were missing from the rendered
-	 * admin UI. This wrapper applies a tight allowlist that whitelists only
-	 * the SVG elements and attributes our shipped icons actually use, so
-	 * the inline SVG survives sanitization without weakening any other
-	 * escape path in the plugin.
-	 *
-	 * This method remains for non-template callers. Templates should escape
-	 * late with `wp_kses( ..., self::get_svg_kses_allowed_html() )` so the
-	 * output-site guarantee is explicit to both reviewers and static tools.
-	 *
-	 * @param string $name      Icon name (must exist in assets/icons/).
-	 * @param int    $size      Width/height attribute in pixels.
-	 * @param string $css_class Additional CSS classes.
-	 * @return string Sanitized inline SVG markup.
-	 */
-	public static function get_icon_inline_safe( string $name, int $size = 20, string $css_class = '' ): string {
-		$svg = self::get_icon_inline( $name, $size, $css_class );
-		if ( '' === $svg ) {
-			return '';
-		}
-		return wp_kses( $svg, self::get_svg_kses_allowed_html() );
-	}
-
-	/**
-	 * Get the strict allowlist used when outputting bundled SVG icons.
-	 *
-	 * Keeping this public lets templates perform the required late escaping at
-	 * the exact output site without falling back to the broader post allowlist.
-	 *
-	 * @return array<string, array<string, bool>> SVG elements and attributes.
-	 */
-	public static function get_svg_kses_allowed_html(): array {
-		return array(
-			'svg'  => array(
-				'class'             => true,
-				'aria-hidden'       => true,
-				'aria-label'        => true,
-				'role'              => true,
-				'width'             => true,
-				'height'            => true,
-				'viewbox'           => true,
-				'xmlns'             => true,
-				'fill'              => true,
-				'stroke'            => true,
-				'stroke-width'      => true,
-				'stroke-linecap'    => true,
-				'stroke-linejoin'   => true,
-			),
-			'g'    => array(
-				'fill'    => true,
-				'stroke'  => true,
-				'transform' => true,
-			),
-			'path' => array(
-				'd'                 => true,
-				'fill'              => true,
-				'stroke'            => true,
-				'stroke-width'      => true,
-				'stroke-linecap'    => true,
-				'stroke-linejoin'   => true,
-				'transform'         => true,
-			),
-			'circle' => array(
-				'cx'    => true,
-				'cy'    => true,
-				'r'     => true,
-				'fill'  => true,
-				'stroke' => true,
-			),
-			'rect'   => array(
-				'x'         => true,
-				'y'         => true,
-				'width'     => true,
-				'height'    => true,
-				'rx'        => true,
-				'ry'        => true,
-				'fill'      => true,
-				'stroke'    => true,
-				'transform' => true,
-			),
-			'line'   => array(
-				'x1'            => true,
-				'y1'            => true,
-				'x2'            => true,
-				'y2'            => true,
-				'stroke'        => true,
-				'stroke-width'  => true,
-				'stroke-linecap' => true,
-			),
-			'polyline' => array(
-				'points'          => true,
-				'fill'            => true,
-				'stroke'          => true,
-				'stroke-linecap'  => true,
-				'stroke-linejoin' => true,
-			),
-			'polygon' => array(
-				'points'          => true,
-				'fill'            => true,
-				'stroke'          => true,
-				'stroke-linejoin' => true,
-			),
-		);
 	}
 
 	/**

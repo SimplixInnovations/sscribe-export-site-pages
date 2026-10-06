@@ -314,7 +314,7 @@ class SScribe_HTML_Exporter implements SScribe_Exporter_Interface {
 		$content          = $this->normalize_scalar( $page_data['content'] ?? '' );
 		// Inline SVG stays outside the archival allowlist (it can carry
 		// script), but the block leaves a visible marker instead of being
-		// silently dropped — consistent with the DOCX and Markdown paths.
+		// silently dropped - consistent with the DOCX and Markdown paths.
 		$content          = (string) preg_replace( '/<svg\b[^>]*>.*?<\/svg>/is', '[SVG image]', $content );
 		$filtered_content = wp_kses( $content, $this->get_archival_allowlist() );
 		$permalink        = esc_url( $this->normalize_scalar( $page_data['permalink'] ?? '' ) );

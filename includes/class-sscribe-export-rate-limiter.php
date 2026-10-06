@@ -111,7 +111,7 @@ class SScribe_Export_Rate_Limiter {
 		$locked  = false;
 		$attempts = 0;
 		// Counter data may live in Redis/Memcached, but the serialization lock
-		// deliberately remains database-backed. WordPress's generic object-cache
+		// remains database-backed. WordPress's generic object-cache
 		// API has no compare-and-delete primitive, so a stale cache-lock owner
 		// cannot safely release without risking deletion of a successor. add_option()
 		// gives us atomic acquisition and the exact-value delete below gives us CAS

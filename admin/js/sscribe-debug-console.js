@@ -1107,12 +1107,12 @@
 								)
 							);
 					} else {
-						// State 5 of 5: no_entries (default — no filter
+						// State 5 of 5: no_entries (default - no filter
 						// active, log file exists but is genuinely empty).
 						this.$empty.find('p').text(this.defaultEmptyMessage);
 					}
 				} else {
-					// No extraData envelope — treat as the legacy
+					// No extraData envelope - treat as the legacy
 					// no_entries default.
 					this.$empty.find('p').text(this.defaultEmptyMessage);
 				}

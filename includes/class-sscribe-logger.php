@@ -246,15 +246,15 @@ class SScribe_Logger implements SScribe_Logger_Interface {
 			// testbench has already removed, or a long-lived process
 			// that reached WP shutdown after global state was cleared).
 			// The path validation IS the safety property for normal
-			// calls — but during teardown the only sensible response
+			// calls - but during teardown the only sensible response
 			// is to skip the write. Throwing here means the destructor
 			// chain bubbles InvalidArgumentException into a fatal,
 			// which is strictly worse than missing one log line that
 			// was already lost when its target dir disappeared.
 			//
-			// We deliberately do NOT mutate $this->storage_available
+			// Do not mutate $this->storage_available
 			// here: it's a `readonly` property that can only be set
-			// in the constructor. Returning '' is enough — flush()
+			// in the constructor. Returning '' is enough; flush()
 			// treats it as "no file, drop the buffer contents".
 			try {
 				SScribe_Security::protect_directory( $this->log_dir );

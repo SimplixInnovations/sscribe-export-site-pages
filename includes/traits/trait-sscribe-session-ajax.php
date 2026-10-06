@@ -216,9 +216,9 @@ trait SScribe_Session_AJAX {
 	 *
 	 * A batch renews the export lock on every page, so the lock is never
 	 * stale and a takeover would deadlock every cancellation. This path
-	 * raises the cancellation flag instead — the running batch observes it
+	 * raises the cancellation flag instead - the running batch observes it
 	 * at its between-page checkpoint, stops cleanly, and releases its own
-	 * lock. Tearing the temp tree away from a live writer is exactly what
+	 * lock. Tearing the temp tree away from a live writer is what
 	 * this design avoids; nothing here mutates or deletes the session
 	 * beyond setting the flag.
 	 *

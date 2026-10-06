@@ -104,7 +104,7 @@ final class SScribe_Operational_Logger {
 	 *
 	 * Phase 20: register the SHUTDOWN flush as early as possible so a fatal
 	 * error occurring AFTER init still has a durable persistence path.
-	 * Previously the init hook was the only safety net — but if init
+	 * The init hook alone is not enough: if init
 	 * already passed before the first record, the buffer was never
 	 * guaranteed to reach disk before PHP exited.
 	 */
@@ -321,7 +321,7 @@ final class SScribe_Operational_Logger {
 		if ( false === $written ) {
 			// Operational-logger self-report uses error_log() rather than the
 			// plugin's own SScribe_Logger because the failure path itself may
-			// have broken the very logger we're trying to report.
+			// would break the logger doing the reporting.
 			// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
 			error_log( '[SSCRIBE][OPS_LOGGER] Failed to append operational record to ' . basename( $log_file ) );
 			return;

@@ -689,7 +689,7 @@ class SScribe_Activator {
 	 * Grant the sscribe_export and sscribe_health capabilities to the
 	 * Administrator role.
 	 *
-	 * The two capabilities are deliberately separate: an editor who
+	 * The two capabilities stay separate: an editor who
 	 * has been granted `sscribe_export` to run exports should NOT
 	 * automatically be able to read the health diagnostics endpoint,
 	 * which surfaces PHP version, memory state, plugin versions and

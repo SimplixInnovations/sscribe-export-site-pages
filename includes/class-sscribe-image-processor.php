@@ -176,7 +176,7 @@ class SScribe_Image_Processor {
 	 * other HTTP errors and retried with a bounded budget. The remote
 	 * Retry-After header is honored up to a hard cap (default 30s) so
 	 * a misconfigured origin cannot stall an entire export. Other 4xx
-	 * and 5xx responses are surfaced as a single failure — retrying
+	 * and 5xx responses are surfaced as a single failure - retrying
 	 * 5xx would mask server-side bugs and retrying 4xx (other than
 	 * 429) is wasted work because the response is unlikely to change
 	 * within the export's lifetime.
@@ -225,7 +225,7 @@ class SScribe_Image_Processor {
 
 			// Phase 16: 429 is the one HTTP class we explicitly retry.
 			// Anything else outside 2xx is a terminal failure for this
-			// download — we don't want to retry a 500 and mask a server
+			// download - we don't want to retry a 500 and mask a server
 			// bug, and 4xx (other than 429) is unlikely to change
 			// within the export's lifetime.
 			if ( 429 === $code ) {
@@ -510,7 +510,7 @@ class SScribe_Image_Processor {
 
 		// A leading "-" is never valid: delta-seconds is per RFC 7231 an
 		// unsigned integer, and strtotime("-5") happily interprets it as
-		// "5 hours ago" — which would make us honor an absurd retry
+		// "5 hours ago" - which would make us honor an absurd retry
 		// delay. Reject explicitly so the parser cannot be tricked.
 		if ( str_starts_with( $value, '-' ) ) {
 			return 0;

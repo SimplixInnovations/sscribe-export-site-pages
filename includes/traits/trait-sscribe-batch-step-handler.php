@@ -182,7 +182,7 @@ trait SScribe_Batch_Step_Handler {
 				$this->release_lock( $session_id, $lock_token );
 				// Cancellation is a completed outcome, not a transport
 				// failure: HTTP 200 with success:false routes into the
-				// client's cancelled branch. The historical HTTP 499 made
+				// client's cancelled branch. HTTP 499 made
 				// jQuery treat it as an error and retry into "session
 				// expired" instead of showing the cancelled state.
 				SScribe_AJAX_Guard::error(

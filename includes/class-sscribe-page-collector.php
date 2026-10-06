@@ -279,7 +279,7 @@ class SScribe_Page_Collector {
 	 * The export capability controls access to SScribe itself; it must never
 	 * bypass a post type's own read/private/read_others permissions. Raw query
 	 * results may be shared through the short-lived ID cache, so filtering is
-	 * deliberately applied after cache retrieval on every request.
+	 * applied after cache retrieval on every request.
 	 *
 	 * @param array<int|string> $page_ids Candidate post IDs.
 	 * @return array<int> Readable post IDs.

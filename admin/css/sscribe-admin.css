@@ -242,23 +242,23 @@ applies even on elements the plugin appends to document.body.
 This badge styling is scoped to specific parent contexts (hero logo,
 hero stats, tab buttons, section headers). Radio card icons inside
 .sscribe-post-type-icon, .sscribe-status-icon, .sscribe-format-icon
-deliberately do NOT get this badge - they render at their natural
+do not get this badge - they render at their natural
 size with no chip background. */
-.sscribe-hero-logo > img.sscribe-icon,
-.sscribe-hero-stat > img.sscribe-icon,
-.sscribe-tab-btn > img.sscribe-icon,
-.sscribe-support-section-header > img.sscribe-icon,
-.sscribe-search-field > img.sscribe-icon,
-.sscribe-bulk-hint > img.sscribe-icon {
+.sscribe-hero-logo > .sscribe-icon,
+.sscribe-hero-stat > .sscribe-icon,
+.sscribe-tab-btn > .sscribe-icon,
+.sscribe-support-section-header > .sscribe-icon,
+.sscribe-search-field > .sscribe-icon,
+.sscribe-bulk-hint > .sscribe-icon {
 	background: var(--ss-surface-2);
 	border-radius: var(--ss-radius-sm);
 }
 
 /* Radio card icons render at their declared HTML size inside the
 parent's gray chip. */
-.sscribe-post-type-icon > img.sscribe-icon,
-.sscribe-status-icon > img.sscribe-icon,
-.sscribe-format-icon > img.sscribe-icon {
+.sscribe-post-type-icon > .sscribe-icon,
+.sscribe-status-icon > .sscribe-icon,
+.sscribe-format-icon > .sscribe-icon {
 	width: auto;
 	height: auto;
 	color: var(--ss-text-secondary);
@@ -1435,8 +1435,11 @@ so the user sees both at a glance. */
 
 
 .sscribe-status-processing {
-	background: var(--ss-info-bg);
-	border-color: var(--ss-info-border);
+	/* The running state belongs to the brand family (green), not the
+	   informational blue: the progress UI is brand-colored everywhere
+	   else and a blue panel read as a foreign accent. */
+	background: var(--ss-brand-soft);
+	border-color: var(--ss-brand);
 }
 
 
@@ -1478,26 +1481,6 @@ so the user sees both at a glance. */
 
 .sscribe-spinner {
 	flex-shrink: 0;
-}
-
-.sscribe-spinner-img {
-	width: 32px;
-	height: 32px;
-	display: block;
-	animation: sscribe-spin 1s linear infinite;
-	transform-origin: 50% 50%;
-}
-
-@keyframes sscribe-spin {
-	to {
-		transform: rotate(360deg);
-	}
-}
-
-@media (prefers-reduced-motion: reduce) {
-	.sscribe-spinner-img {
-		animation-duration: 3s;
-	}
 }
 
 .sscribe-status-info {
@@ -6028,4 +6011,135 @@ body.rtl .sscribe-progress-bar-fill {
 
 .sscribe-search-clear[hidden] {
 	display: none;
+}
+
+/* ============================================================
+   Icon glyphs (Phosphor Light subset, MIT - see
+   assets/fonts/PHOSPHOR-LICENSE.txt). Only the glyphs the plugin
+   uses are embedded (2.9 KB). Icons render as
+   <i class="sscribe-icon sscribe-icon-name"> and inherit `color`,
+   so light and dark themes recolor them automatically.
+   ============================================================ */
+
+@font-face {
+	font-family: 'SScribe Icons';
+	src: url('../assets/fonts/SScribeIcons-Light.woff2') format('woff2');
+	font-weight: normal;
+	font-style: normal;
+	font-display: block;
+}
+
+.sscribe-icon {
+	font-family: 'SScribe Icons', sans-serif;
+	font-weight: normal;
+	font-style: normal;
+	line-height: var(--ss-leading-none);
+	display: inline-block;
+	speak: never;
+	-webkit-font-smoothing: antialiased;
+	-moz-osx-font-smoothing: grayscale;
+	vertical-align: -0.125em;
+	color: inherit;
+	flex-shrink: 0;
+}
+
+.sscribe-icon-check::before {
+	content: '\e182';
+}
+
+.sscribe-icon-chevron-down::before {
+	content: '\e136';
+}
+
+.sscribe-icon-clock::before {
+	content: '\e19A';
+}
+
+.sscribe-icon-download::before {
+	content: '\e20C';
+}
+
+.sscribe-icon-download-package::before {
+	content: '\e00E';
+}
+
+.sscribe-icon-eye::before {
+	content: '\e220';
+}
+
+.sscribe-icon-file-doc::before {
+	content: '\eB1E';
+}
+
+.sscribe-icon-file-html::before {
+	content: '\eB38';
+}
+
+.sscribe-icon-file-log::before {
+	content: '\e23A';
+}
+
+.sscribe-icon-file-md::before {
+	content: '\eD50';
+}
+
+.sscribe-icon-file-pdf::before {
+	content: '\e702';
+}
+
+.sscribe-icon-file-search::before {
+	content: '\e238';
+}
+
+.sscribe-icon-file-text::before {
+	content: '\e23A';
+}
+
+.sscribe-icon-globe::before {
+	content: '\e288';
+}
+
+.sscribe-icon-info::before {
+	content: '\e2CE';
+}
+
+.sscribe-icon-refresh-cw::before {
+	content: '\e094';
+}
+
+.sscribe-icon-search::before {
+	content: '\e30C';
+}
+
+.sscribe-icon-settings::before {
+	content: '\e270';
+}
+
+.sscribe-icon-warning-circle::before {
+	content: '\e4E2';
+}
+
+.sscribe-icon-x::before {
+	content: '\e4F6';
+}
+
+.sscribe-icon-loader::before {
+	content: '\eB44';
+}
+
+.sscribe-icon-loader {
+	animation: sscribe-spin 900ms linear infinite;
+	transform-origin: center;
+}
+
+@keyframes scribe-spin {
+	to {
+		transform: rotate(360deg);
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.sscribe-icon-loader {
+		animation: none;
+	}
 }

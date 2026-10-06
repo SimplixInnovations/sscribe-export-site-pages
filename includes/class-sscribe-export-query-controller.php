@@ -280,7 +280,7 @@ class SScribe_Export_Query_Controller {
 
 	/**
 	 * Read the client_generation value the browser attached to the current
-	 * counts request. The server does not generate sequence numbers — it
+	 * counts request. The server does not generate sequence numbers - it
 	 * only echoes the value the originating JS code stamped onto the
 	 * request. Ordering across separate `admin-ajax.php` calls belongs to
 	 * the browser interaction, not the server.
@@ -310,7 +310,7 @@ class SScribe_Export_Query_Controller {
 	 * the JS exact-key lookup can find `languages['__all__']` in the
 	 * response. Real codes are validated against the active WPML list
 	 * via `normalize_language_code()` and invalid codes are dropped.
-	 * `__all__` is never fed through that validator — it is the canonical
+	 * `__all__` is never fed through that validator - it is the canonical
 	 * "no language restriction" sentinel and must be normalized to the
 	 * empty string only at the QUERY boundary (see the caller), not here.
 	 *

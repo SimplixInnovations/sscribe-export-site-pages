@@ -166,7 +166,7 @@ class SScribe_Security {
 	 *
 	 * WordPress normally provides wp-admin/includes/file.php. Test harnesses,
 	 * recovery contexts, and unusually stripped installations may not. In that
-	 * case callers deliberately use their bounded direct-operation fallback
+	 * case callers use their bounded direct-operation fallback
 	 * rather than fatalling while trying to load a file that does not exist.
 	 *
 	 * @return bool True when a usable global filesystem object is available.

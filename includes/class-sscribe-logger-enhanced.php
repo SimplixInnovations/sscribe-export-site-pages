@@ -290,7 +290,7 @@ class SScribe_Logger_Enhanced extends SScribe_Logger {
 	 * Get log file path.
 	 *
 	 * Returns the same path the base class computes; declared here
-	 * only to preserve the historical public API on Enhanced.
+	 * only to preserve the public API on Enhanced.
 	 *
 	 * @return string Log file path.
 	 */

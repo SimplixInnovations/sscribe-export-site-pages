@@ -336,7 +336,7 @@ class SScribe_Export_Lock_Manager {
 	/**
 	 * Remove a session lock during an explicit session cleanup.
 	 *
-	 * This deliberately bypasses token ownership and must only be used after
+	 * This bypasses token ownership and must only be used after
 	 * the corresponding session has been selected for deletion by trusted code.
 	 *
 	 * @param string $session_id Session identifier.

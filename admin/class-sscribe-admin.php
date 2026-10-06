@@ -794,7 +794,7 @@ class SScribe_Admin {
 	 *
 	 * Each warning row carries:
 	 *  - 'code'     short machine identifier
-	 *  - 'icon'     svg icon name from the assets/icons bundle
+	 *  - 'icon'     icon name from the icon font
 	 *  - 'severity' info | warning
 	 *  - 'message'  short heading
 	 *  - 'detail'   optional secondary line with remediation hint

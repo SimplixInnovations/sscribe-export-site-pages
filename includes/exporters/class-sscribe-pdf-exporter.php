@@ -162,7 +162,7 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 
 			// Memory guard BEFORE image processing: downloading and GD
 			// decoding content images (up to 25 MP each) is the largest
-			// allocation in this method, and the historical order checked
+			// allocation in this method; the previous order checked
 			// only after paying that cost.
 			$pre_image_memory_pressure = $this->check_memory_pressure();
 			if ( $pre_image_memory_pressure instanceof SScribe_Result ) {

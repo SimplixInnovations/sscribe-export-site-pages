@@ -333,7 +333,7 @@ class SScribe_Diagnostics {
 		// Pre-warm the prefixed vendor autoloader BEFORE the TCPDF / PHPWord
 		// checks below. The preflight runs over AJAX (admin-ajax.php), which
 		// never fires admin_notices; the only other path that calls
-		// check_vendor_dependencies(). Without this call, the very first
+		// check_vendor_dependencies(). Without this call, the first
 		// preflight on a fresh install reports a false-positive "TCPDF
 		// library not found" because the prefixed
 		// autoloader has never been registered in this request. Idempotent:

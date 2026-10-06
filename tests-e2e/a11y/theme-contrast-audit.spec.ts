@@ -147,15 +147,18 @@ async function walkContrast(page: Page, screen: string): Promise<ContrastViolati
 
       const bg = effectiveBg(el);
       const isSvg = el.tagName.toLowerCase() === 'svg';
+      // Font glyphs (Phosphor subset) render as <i class="sscribe-icon">
+      // and inherit color — they must clear the icon contrast floor too.
+      const isIcon = isSvg || (el.classList && el.classList.contains('sscribe-icon'));
       const hasText = directText.length > 0;
 
-      if (hasText || isSvg) {
+      if (hasText || isIcon) {
         const fg = parse(cs.color) || [0, 0, 0, 1];
         const fgBlend = fg[3] < 1 ? blendOver(fg, bg.concat([1])) : fg.slice(0, 3);
         const size = parseFloat(cs.fontSize);
         const weight = parseInt(cs.fontWeight, 10) || 400;
         const large = size >= 24 || (size >= 18.66 && weight >= 700);
-        const threshold = isSvg ? 3.0 : large ? 3.0 : 4.5;
+        const threshold = isIcon ? 3.0 : large ? 3.0 : 4.5;
         const r = ratio(fgBlend, bg);
         if (r < threshold) {
           violations.push({

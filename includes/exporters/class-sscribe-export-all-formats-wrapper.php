@@ -45,7 +45,7 @@ class SScribe_Export_All_Formats_Wrapper {
 	 *                                   apply_format_options() hook (same contract
 	 *                                   as SScribe_Batch_Processor::dispatch_formats()).
 	 *                                   Pass an empty array (the default) to keep
-	 *                                   the historical "no options" behaviour.
+	 *                                   the behaviour when no options are passed.
 	 * @return array<string, array{success: bool, result: SScribe_Result, error: ?string}>
 	 *                Per-format results keyed by format string.
 	 */

@@ -152,7 +152,7 @@ class SScribe_Batch_File_Handler {
 			// Single-use per-row download token: admin views reuse the current
 			// token until consume_dl_token atomically validates and rotates it.
 			// Replays then return 403 instead of the ZIP. Pass `response` to
-			// wp_die so the status sticks — wp_die's AJAX handler otherwise
+			// wp_die so the status sticks - wp_die's AJAX handler otherwise
 			// defaults to 200 and would silently overwrite our status_header().
 			$raw_token = isset( $_GET['token'] ) && is_string( $_GET['token'] ) ? sanitize_text_field( wp_unslash( $_GET['token'] ) ) : '';
 			if ( ! $this->zip_handler->consume_dl_token( $filename, $raw_token ) ) {

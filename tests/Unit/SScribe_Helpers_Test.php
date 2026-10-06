@@ -14,24 +14,6 @@ use SScribe_Helpers;
 
 class SScribe_Helpers_Test extends TestCase {
 
-
-
-	public function test_icon_url_returns_valid_url(): void {
-		$result = SScribe_Helpers::icon_url( 'test-icon' );
-		$this->assertIsString( $result );
-		$this->assertStringContainsString( 'assets/icons/', $result );
-		$this->assertStringEndsWith( '.svg', $result );
-	}
-
-
-
-	public function test_icon_url_appends_svg(): void {
-		$result = SScribe_Helpers::icon_url( 'check' );
-		$this->assertStringEndsWith( 'check.svg', $result );
-	}
-
-
-
 	public function test_get_icon_returns_html(): void {
 		$result = SScribe_Helpers::get_icon( 'check' );
 		$this->assertIsString( $result );
@@ -42,8 +24,12 @@ class SScribe_Helpers_Test extends TestCase {
 	public function test_get_icon_with_custom_size(): void {
 		$result = SScribe_Helpers::get_icon( 'check', 32 );
 		$this->assertIsString( $result );
-		$this->assertStringContainsString( 'width="32"', $result );
-		$this->assertStringContainsString( 'height="32"', $result );
+		// Icons render from the embedded icon font (Phosphor Light subset),
+		// so the requested size is the glyph's font-size — the historical
+		// width/height attributes belonged to the retired <img> pipeline.
+		$this->assertStringContainsString( 'font-size:32px', $result );
+		$this->assertStringContainsString( 'sscribe-icon-check', $result );
+		$this->assertStringContainsString( 'aria-hidden="true"', $result );
 	}
 
 
@@ -90,17 +76,12 @@ class SScribe_Helpers_Test extends TestCase {
 
 
 
-	public function test_icon_url_with_special_chars(): void {
-		$result = SScribe_Helpers::icon_url( 'icon-with-dash' );
-		$this->assertStringContainsString( 'icon-with-dash.svg', $result );
-	}
-
-
-
 	public function test_get_icon_returns_svg_tag(): void {
 		$result = SScribe_Helpers::get_icon( 'check' );
 		if ( '' !== $result ) {
-			$this->assertStringStartsWith( '<img', $result );
+			// Font-glyph markup (the icon font renders in currentColor so
+			// themes recolor icons); the legacy <img> pipeline is retired.
+			$this->assertStringStartsWith( '<i', $result );
 			$this->assertStringContainsString( 'sscribe-icon', $result );
 		}
 	}

@@ -472,7 +472,7 @@ class SScribe_Zip_Handler {
 
 			if ( count( $index ) > 50 ) {
 				// Evict only the publishing user's oldest archives. The pool
-				// is shared between users, and the historical FIFO slice
+				// is shared between users, and a FIFO slice
 				// destroyed other users' history whenever one user exported
 				// in bulk. The 72-hour retention in cleanup_expired() still
 				// bounds the whole pool.

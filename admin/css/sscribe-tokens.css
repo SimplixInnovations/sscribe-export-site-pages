@@ -112,6 +112,7 @@
 	--ss-space-12: 48px;
 	--ss-font: -apple-system, blinkmacsystemfont, 'Segoe UI', roboto, 'Helvetica Neue', arial, sans-serif;
 	--ss-font-mono: ui-monospace, 'SF Mono', menlo, consolas, 'Liberation Mono', monospace;
+	--ss-font-icons: 'SScribe Icons', sans-serif;
 	--ss-max-w: 1200px;
 	--ss-text-display: 28px;
 	--ss-text-display-lh: 1.2;
@@ -196,11 +197,11 @@
 
 
 .sscribe-dark {
-	--ss-surface: #2c3338;
-	--ss-surface-2: #32373c;
-	--ss-surface-3: #3c434a;
-	--ss-border: #50575e;
-	--ss-border-strong: #646970;
+	--ss-surface: #24282d;
+	--ss-surface-2: #2b3036;
+	--ss-surface-3: #333940;
+	--ss-border: #454c54;
+	--ss-border-strong: #59616a;
 	--ss-text-primary: #f0f0f1;
 	--ss-text-secondary: #dfe2e5;
 	--ss-text-tertiary: #c7cbd0;

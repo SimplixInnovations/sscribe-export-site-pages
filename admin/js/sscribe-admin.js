@@ -18,7 +18,7 @@
 		 * count/status requests. Every logical counts refresh increments
 		 * this BEFORE issuing requests, and any response whose echoed
 		 * `client_generation` does not EXACTLY equal the current value
-		 * is discarded. The server does not generate sequence numbers —
+		 * is discarded. The server does not generate sequence numbers -
 		 * it only echoes the value the browser originated.
 		 *
 		 * Replaces the previous PHP-side `$GLOBALS['__sscribe_request_seq']`
@@ -31,11 +31,11 @@
 		_countsRetries: 0,
 		/**
 		 * Single authoritative counts-state object. The DOM is a RENDERING
-		 * TARGET — runtime decisions must read from this object, never from
+		 * TARGET - runtime decisions must read from this object, never from
 		 * `.text()` parsing of rendered DOM.
 		 *
 		 * `loaded: true` means a successful authoritative response was
-		 * received for exactly the currently selected (postType, language,
+		 * received for the currently selected (postType, language,
 		 * status) tuple. Any refresh failure MUST reset loaded=false and
 		 * never promote stale values from a previous selection.
 		 *
@@ -631,7 +631,7 @@
 			// Bump the client-owned generation BEFORE any request is issued.
 			// Every response handler compares the echoed `client_generation`
 			// with EXACT equality to the CURRENT generation, not the value
-			// captured by its own request — a stale response must NEVER
+			// captured by its own request - a stale response must NEVER
 			// overwrite newer UI state just because its closure still has
 			// its own generation number.
 			self._countsRequestGeneration = (self._countsRequestGeneration || 0) + 1;
@@ -658,9 +658,9 @@
 				success: function (response) {
 					if (response.success && response.data) {
 						// Phase 4 (round 2): discard any response whose generation
-						// is not EXACTLY the most-recent one. Comparing against
-						// `self._countsRequestGeneration` (the LIVE current) — NOT
-						// against the closure-captured `generation` — means an old
+						// is not the most recent one. Comparing against
+						// `self._countsRequestGeneration` (the LIVE current) - NOT
+						// against the closure-captured `generation` - means an old
 						// Pages response can no longer overwrite newer Posts state.
 						if (
 							typeof response.data.client_generation === 'undefined' ||
@@ -669,7 +669,7 @@
 							return;
 						}
 						// Phase 4 (round 2): server must echo the controls we sent
-						// AND the live UI selection must still match — the user may
+						// AND the live UI selection must still match - the user may
 						// have switched Content Type / Language again while this
 						// response was in flight.
 						const livePostType = $('input[name="sscribe_post_type"]:checked').val() || 'page';
@@ -706,7 +706,7 @@
 								.text(selectedTypeTotal.toLocaleString())
 								.attr('data-count', selectedTypeTotal);
 						}
-						// Phase 3: authoritative countsState — written ONLY
+						// Phase 3: authoritative countsState - written ONLY
 						// on a successful response whose generation, post_type,
 						// and language all match the current selection.
 						self.countsState = self.countsState || {};
@@ -770,7 +770,7 @@
 					$('[data-sscribe-count-for]').removeClass('sscribe-loading-count');
 				},
 				error: function (xhr, textStatus) {
-					// Phase 4 (round 2): a deliberately aborted previous
+					// Phase 4 (round 2): an aborted previous
 					// request is NOT an error requiring retry. The browser
 					// already started a newer request that owns the UI;
 					// let that one complete instead of racing against it.
@@ -1069,7 +1069,7 @@
 		updateConfigSummary: function () {
 			const $selectedStatus = $('input[name="sscribe_post_status"]:checked');
 			let count = 0;
-			// Phase 3: read from the authoritative countsState object —
+			// Phase 3: read from the authoritative countsState object -
 			// not from .text() parsing of the rendered DOM. The DOM is a
 			// RENDERING TARGET. Stale numbers must never become input to
 			// downstream decisions.
@@ -1515,7 +1515,7 @@
 			// The export modal is portaled to the document root and overlays
 			// the workspace, so a banner injected into the workspace is
 			// visible yet unclickable beneath the overlay. Preflight runs
-			// from inside the modal — inject there, falling back to the
+			// from inside the modal - inject there, falling back to the
 			// workspace for any non-modal caller.
 			const $insertTarget = $('#sscribe-export-state-config').length
 				? $('#sscribe-export-state-config')
@@ -1829,7 +1829,7 @@
 				self.pollBackoff = 0;
 			}
 			// Phase 12: when the server supplies retry_in it is an ABSOLUTE
-			// minimum — only additive (positive-only) jitter may be applied.
+			// minimum - only additive (positive-only) jitter may be applied.
 			// When the delay is locally computed (±jitter is allowed).
 			if (delayFromServer) {
 				const positiveJitter = Math.floor(Math.random() * self.pollJitter);
@@ -1859,7 +1859,7 @@
 			if (this._batchInProgress) {
 				return;
 			}
-			// Every batch — first run, resume after reload, or retry — means
+			// Every batch - first run, resume after reload, or retry - means
 			// the export is live: show the running view and lock the modal
 			// (the only exit is Cancel Export).
 			this.exportModalOpen();
@@ -1975,7 +1975,7 @@
 						});
 						return;
 					}
-					// action === 'fail' — terminal. Clear in-progress
+					// action === 'fail' - terminal. Clear in-progress
 					// flags, clear timers, clear busy UI, preserve
 					// useful error details.
 					self._lastAnnouncedBucket = -1;
@@ -2098,7 +2098,7 @@
 			if (!$toggle.length) {
 				return;
 			}
-			// Auto-download is deliberately session-local and opt-in. A fresh
+			// Auto-download is session-local and opt-in. A fresh
 			// page load always begins OFF; only the checkbox the admin can see
 			// may enable an automatic download for this page load.
 			$toggle.prop('checked', false);
@@ -2425,7 +2425,7 @@
 							}
 							return;
 						}
-						// action === 'fail' — terminal. Phase 13: do NOT poll again on
+						// action === 'fail' - terminal. Phase 13: do NOT poll again on
 						// a terminal decision. The previous fall-through
 						// re-entered pollFinalize for up to maxAttempts
 						// attempts, masking the real failure and consuming
@@ -4536,7 +4536,7 @@
 		 * The only authority is the WordPress admin background itself:
 		 * whatever surface our UI sits on decides the theme, so the plugin
 		 * matches the admin in every color scheme and every third-party
-		 * dark-mode setup — no guessing from OS preferences alone.
+		 * dark-mode setup - no guessing from OS preferences alone.
 		 */
 		syncThemeContext: function () {
 			let probe = document.getElementById('wpbody-content') || document.body;
@@ -4599,7 +4599,7 @@
 				// starts this download the token is consumed, so rotate the
 				// row links shortly after. Without this a later re-download of
 				// the same row fails with "link already used" until a manual
-				// refresh — the exact flow that broke after deleting a file.
+				// refresh - the exact flow that broke after deleting a file.
 				const self = this;
 				clearTimeout(this._downloadRefreshTimer);
 				this._downloadRefreshTimer = setTimeout(function () {
@@ -4855,7 +4855,7 @@
 			// 'abort', 'parsererror', 'error'.
 			const textStatus = xhr && typeof xhr.statusText === 'string' ? xhr.statusText : '';
 
-			// 409 batch / lock conflict — use the helper `conflict` action
+			// 409 batch / lock conflict - use the helper `conflict` action
 			// name required by Phase 4. Server retry_in honored when present.
 			if (status === 409 || code === 'batch_in_progress' || code === 'batch_locked') {
 				const lower = hasServerDelay ? Math.max(500, serverDelay) : 5000;
@@ -4945,7 +4945,7 @@
 			}
 
 			if (status === 499) {
-				// Client closed request — bounded retry with jitter.
+				// Client closed request - bounded retry with jitter.
 				return {
 					action: 'retry',
 					delayMs: SScribe._jitteredDelay(1000, 3000, opts.jitterSeed),
@@ -4957,7 +4957,7 @@
 			}
 
 			if (status === 500) {
-				// Terminal — Phase 8 will route this through finishPreparationFailure
+				// Terminal - Phase 8 will route this through finishPreparationFailure
 				// for the start-export path; here it just means "no automatic retry".
 				return {
 					action: 'fail',

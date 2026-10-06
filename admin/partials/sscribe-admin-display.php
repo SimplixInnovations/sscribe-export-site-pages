@@ -162,7 +162,7 @@ if ( ! function_exists( 'sscribe_humanize_export_filename' ) ) {
 		<div class="sscribe-onboarding-inner">
 			<div class="sscribe-onboarding-icon" aria-hidden="true">
 				<?php
-				echo wp_kses( SScribe_Helpers::get_icon_inline( 'download-package', 22 ), SScribe_Helpers::get_svg_kses_allowed_html() );
+				echo wp_kses_post( SScribe_Helpers::get_icon( 'download-package', 22 ) );
 				?>
 			</div>
 			<div class="sscribe-onboarding-body">
@@ -227,7 +227,7 @@ if ( ! function_exists( 'sscribe_humanize_export_filename' ) ) {
 					<p><?php esc_html_e( 'Choose what to export, pick your formats, and generate a private downloadable archive. Packages auto-delete after 72 hours.', 'sscribe-export-site-pages' ); ?></p>
 				</div>
 				<button type="button" id="sscribe-open-export-modal-btn" class="sscribe-button sscribe-button-primary sscribe-btn-lg" aria-haspopup="dialog">
-					<?php echo wp_kses( SScribe_Helpers::get_icon_inline( 'download', 16 ), SScribe_Helpers::get_svg_kses_allowed_html() ); ?>
+					<?php echo wp_kses_post( SScribe_Helpers::get_icon( 'download', 16 ) ); ?>
 					<span><?php esc_html_e( 'New Export', 'sscribe-export-site-pages' ); ?></span>
 				</button>
 			</div>
@@ -241,7 +241,7 @@ if ( ! function_exists( 'sscribe_humanize_export_filename' ) ) {
 						<p id="sscribe-export-modal-subtitle"><?php esc_html_e( 'Pick what to export, choose formats, then generate your package.', 'sscribe-export-site-pages' ); ?></p>
 					</div>
 					<button type="button" class="sscribe-modal-close" id="sscribe-export-modal-close" aria-label="<?php esc_attr_e( 'Close', 'sscribe-export-site-pages' ); ?>">
-						<?php echo wp_kses( SScribe_Helpers::get_icon_inline( 'x', 16 ), SScribe_Helpers::get_svg_kses_allowed_html() ); ?>
+						<?php echo wp_kses_post( SScribe_Helpers::get_icon( 'x', 16 ) ); ?>
 					</button>
 				</div>
 				<div class="sscribe-modal-body sscribe-export-modal-body">
@@ -481,7 +481,7 @@ if ( ! function_exists( 'sscribe_humanize_export_filename' ) ) {
 
 						<div class="sscribe-format-option-panel" data-format="pdf" hidden>
 							<h3 class="sscribe-format-option-title">
-							<?php echo wp_kses( SScribe_Helpers::get_icon_inline( 'file-pdf', 14 ), SScribe_Helpers::get_svg_kses_allowed_html() ); ?>
+							<?php echo wp_kses_post( SScribe_Helpers::get_icon( 'file-pdf', 14 ) ); ?>
 								<?php esc_html_e( 'PDF Options', 'sscribe-export-site-pages' ); ?>
 							</h3>
 							<div class="sscribe-format-option-grid">
@@ -507,7 +507,7 @@ if ( ! function_exists( 'sscribe_humanize_export_filename' ) ) {
 
 						<div class="sscribe-format-option-panel" data-format="docx" hidden>
 							<h3 class="sscribe-format-option-title">
-							<?php echo wp_kses( SScribe_Helpers::get_icon_inline( 'file-doc', 14 ), SScribe_Helpers::get_svg_kses_allowed_html() ); ?>
+							<?php echo wp_kses_post( SScribe_Helpers::get_icon( 'file-doc', 14 ) ); ?>
 								<?php esc_html_e( 'DOCX Options', 'sscribe-export-site-pages' ); ?>
 							</h3>
 							<div class="sscribe-format-option-grid">
@@ -531,7 +531,7 @@ if ( ! function_exists( 'sscribe_humanize_export_filename' ) ) {
 
 						<div class="sscribe-format-option-panel" data-format="markdown" hidden>
 							<h3 class="sscribe-format-option-title">
-							<?php echo wp_kses( SScribe_Helpers::get_icon_inline( 'file-md', 14 ), SScribe_Helpers::get_svg_kses_allowed_html() ); ?>
+							<?php echo wp_kses_post( SScribe_Helpers::get_icon( 'file-md', 14 ) ); ?>
 								<?php esc_html_e( 'Markdown Options', 'sscribe-export-site-pages' ); ?>
 							</h3>
 							<div class="sscribe-format-option-grid">
@@ -552,7 +552,7 @@ if ( ! function_exists( 'sscribe_humanize_export_filename' ) ) {
 
 						<div class="sscribe-format-option-panel" data-format="html" hidden>
 							<h3 class="sscribe-format-option-title">
-							<?php echo wp_kses( SScribe_Helpers::get_icon_inline( 'file-html', 14 ), SScribe_Helpers::get_svg_kses_allowed_html() ); ?>
+							<?php echo wp_kses_post( SScribe_Helpers::get_icon( 'file-html', 14 ) ); ?>
 								<?php esc_html_e( 'HTML Options', 'sscribe-export-site-pages' ); ?>
 							</h3>
 							<div class="sscribe-format-option-grid">
@@ -682,7 +682,7 @@ if ( ! function_exists( 'sscribe_humanize_export_filename' ) ) {
 					<div class="sscribe-modal-content sscribe-modal-content-preview" role="document">
 						<div class="sscribe-modal-header">
 							<h3 id="sscribe-preview-title">
-							<?php echo wp_kses( SScribe_Helpers::get_icon_inline( 'eye', 16 ), SScribe_Helpers::get_svg_kses_allowed_html() ); ?>
+							<?php echo wp_kses_post( SScribe_Helpers::get_icon( 'eye', 16 ) ); ?>
 								<?php esc_html_e( 'Export Readiness', 'sscribe-export-site-pages' ); ?>
 							</h3>
 							<button type="button" id="sscribe-preview-close" class="sscribe-modal-close" aria-label="<?php esc_attr_e( 'Close preview', 'sscribe-export-site-pages' ); ?>">
@@ -712,7 +712,7 @@ if ( ! function_exists( 'sscribe_humanize_export_filename' ) ) {
 
 		<div id="sscribe-progress-area" class="sscribe-status-alert sscribe-status-processing sscribe-hidden" role="status" aria-live="polite" aria-labelledby="sscribe-status-text">
 			<div class="sscribe-spinner" aria-hidden="true">
-				<img src="<?php echo esc_url( SScribe_Helpers::icon_url( 'loader' ) ); ?>" width="40" height="40" alt="" class="sscribe-spinner-img">
+				<?php echo wp_kses_post( SScribe_Helpers::get_icon( 'loader', 40 ) ); ?>
 			</div>
 			<div class="sscribe-status-info">
 				<div class="sscribe-phase-steps" role="list" aria-label="<?php esc_attr_e( 'Export phases', 'sscribe-export-site-pages' ); ?>">
@@ -721,7 +721,7 @@ if ( ! function_exists( 'sscribe_humanize_export_filename' ) ) {
 						<span class="sscribe-phase-label"><?php esc_html_e( 'Reading pages', 'sscribe-export-site-pages' ); ?></span>
 						<span class="screen-reader-text sscribe-phase-completed-label" hidden><?php esc_html_e( 'Completed', 'sscribe-export-site-pages' ); ?></span>
 						<?php
-						echo wp_kses( SScribe_Helpers::get_icon_inline( 'check', 12, 'sscribe-phase-check' ), SScribe_Helpers::get_svg_kses_allowed_html() );
+						echo wp_kses_post( SScribe_Helpers::get_icon( 'check', 12, 'sscribe-phase-check' ) );
 						?>
 					</div>
 					<span class="sscribe-phase-connector" aria-hidden="true"></span>
@@ -730,7 +730,7 @@ if ( ! function_exists( 'sscribe_humanize_export_filename' ) ) {
 						<span class="sscribe-phase-label"><?php esc_html_e( 'Generating files', 'sscribe-export-site-pages' ); ?></span>
 						<span class="screen-reader-text sscribe-phase-completed-label" hidden><?php esc_html_e( 'Completed', 'sscribe-export-site-pages' ); ?></span>
 						<?php
-						echo wp_kses( SScribe_Helpers::get_icon_inline( 'check', 12, 'sscribe-phase-check' ), SScribe_Helpers::get_svg_kses_allowed_html() );
+						echo wp_kses_post( SScribe_Helpers::get_icon( 'check', 12, 'sscribe-phase-check' ) );
 						?>
 					</div>
 					<span class="sscribe-phase-connector" aria-hidden="true"></span>
@@ -739,7 +739,7 @@ if ( ! function_exists( 'sscribe_humanize_export_filename' ) ) {
 						<span class="sscribe-phase-label"><?php esc_html_e( 'Packaging ZIP', 'sscribe-export-site-pages' ); ?></span>
 						<span class="screen-reader-text sscribe-phase-completed-label" hidden><?php esc_html_e( 'Completed', 'sscribe-export-site-pages' ); ?></span>
 						<?php
-						echo wp_kses( SScribe_Helpers::get_icon_inline( 'check', 12, 'sscribe-phase-check' ), SScribe_Helpers::get_svg_kses_allowed_html() );
+						echo wp_kses_post( SScribe_Helpers::get_icon( 'check', 12, 'sscribe-phase-check' ) );
 						?>
 					</div>
 				</div>
@@ -817,7 +817,7 @@ if ( ! function_exists( 'sscribe_humanize_export_filename' ) ) {
 					</a>
 					<span id="sscribe-download-hint" class="screen-reader-text"><?php esc_html_e( 'Download the exported ZIP file to your computer', 'sscribe-export-site-pages' ); ?></span>
 					<button type="button" id="sscribe-view-history-btn" class="sscribe-button sscribe-button-outline" aria-describedby="sscribe-view-history-hint">
-						<?php echo wp_kses( SScribe_Helpers::get_icon_inline( 'clock', 16 ), SScribe_Helpers::get_svg_kses_allowed_html() ); ?>
+						<?php echo wp_kses_post( SScribe_Helpers::get_icon( 'clock', 16 ) ); ?>
 						<span><?php esc_html_e( 'View in History', 'sscribe-export-site-pages' ); ?></span>
 					</button>
 					<span id="sscribe-view-history-hint" class="screen-reader-text"><?php esc_html_e( 'Open the History tab to see this and past exports', 'sscribe-export-site-pages' ); ?></span>
@@ -847,14 +847,14 @@ if ( ! function_exists( 'sscribe_humanize_export_filename' ) ) {
 				</div>
 				<div class="sscribe-error-actions">
 					<button type="button" id="sscribe-error-try-again" class="sscribe-button sscribe-button-secondary" aria-describedby="sscribe-try-again-hint">
-						<?php echo wp_kses( SScribe_Helpers::get_icon_inline( 'refresh-cw', 16 ), SScribe_Helpers::get_svg_kses_allowed_html() ); ?>
+						<?php echo wp_kses_post( SScribe_Helpers::get_icon( 'refresh-cw', 16 ) ); ?>
 						<span><?php esc_html_e( 'Try Again', 'sscribe-export-site-pages' ); ?></span>
 					</button>
 					<button type="button" id="sscribe-error-change-config" class="sscribe-button sscribe-button-outline">
 						<?php esc_html_e( 'Change Configuration', 'sscribe-export-site-pages' ); ?>
 					</button>
 					<button type="button" id="sscribe-error-toggle-details" class="sscribe-button sscribe-button-ghost sscribe-button-toggle-details sscribe-hidden" aria-expanded="false" aria-controls="sscribe-error-technical-details" hidden>
-						<?php echo wp_kses( SScribe_Helpers::get_icon_inline( 'chevron-down', 14 ), SScribe_Helpers::get_svg_kses_allowed_html() ); ?>
+						<?php echo wp_kses_post( SScribe_Helpers::get_icon( 'chevron-down', 14 ) ); ?>
 						<span id="sscribe-error-toggle-details-label"><?php esc_html_e( 'Show technical details', 'sscribe-export-site-pages' ); ?></span>
 					</button>
 					<span id="sscribe-try-again-hint" class="screen-reader-text"><?php esc_html_e( 'Attempt the export again', 'sscribe-export-site-pages' ); ?></span>
@@ -893,7 +893,7 @@ if ( ! function_exists( 'sscribe_humanize_export_filename' ) ) {
 							?>
 							<input type="search" id="sscribe-history-search" placeholder="<?php esc_attr_e( 'Filter by name or size...', 'sscribe-export-site-pages' ); ?>" autocomplete="off">
 							<button type="button" id="sscribe-history-search-clear" class="sscribe-search-clear" hidden aria-label="<?php esc_attr_e( 'Clear filter', 'sscribe-export-site-pages' ); ?>">
-								<?php echo wp_kses( SScribe_Helpers::get_icon_inline( 'x', 12 ), SScribe_Helpers::get_svg_kses_allowed_html() ); ?>
+								<?php echo wp_kses_post( SScribe_Helpers::get_icon( 'x', 12 ) ); ?>
 							</button>
 						</label>
 						<p class="sscribe-bulk-hint" id="sscribe-bulk-hint">
@@ -1113,7 +1113,7 @@ if ( ! function_exists( 'sscribe_humanize_export_filename' ) ) {
 	<div class="sscribe-modal-content" role="document">
 		<div class="sscribe-modal-header">
 			<h3 id="sscribe-log-modal-title">
-			<?php echo wp_kses( SScribe_Helpers::get_icon_inline( 'file-log', 16 ), SScribe_Helpers::get_svg_kses_allowed_html() ); ?>
+			<?php echo wp_kses_post( SScribe_Helpers::get_icon( 'file-log', 16 ) ); ?>
 				<?php esc_html_e( 'Export Log', 'sscribe-export-site-pages' ); ?>
 			</h3>
 			<button type="button" class="sscribe-modal-close" id="sscribe-modal-close" aria-label="<?php esc_attr_e( 'Close modal', 'sscribe-export-site-pages' ); ?>">
@@ -1122,7 +1122,7 @@ if ( ! function_exists( 'sscribe_humanize_export_filename' ) ) {
 		</div>
 		<div class="sscribe-modal-body" id="sscribe-log-content" aria-live="polite">
 			<div class="sscribe-log-loading">
-				<img src="<?php echo esc_url( SScribe_Helpers::icon_url( 'loader' ) ); ?>" width="24" height="24" alt="" class="sscribe-spinner-img" aria-hidden="true">
+				<?php echo wp_kses_post( SScribe_Helpers::get_icon( 'loader', 24 ) ); ?>
 				<span><?php esc_html_e( 'Loading log...', 'sscribe-export-site-pages' ); ?></span>
 			</div>
 		</div>
