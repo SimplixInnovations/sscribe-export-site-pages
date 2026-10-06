@@ -41,6 +41,7 @@ clover.xml
 .phpunit.result.cache
 
 # IDE
+.kilo/
 .idea/
 .vscode/
 *.sublime-workspace
