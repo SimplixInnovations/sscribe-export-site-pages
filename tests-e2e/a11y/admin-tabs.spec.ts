@@ -25,6 +25,8 @@ import { test, expect } from '../fixtures/shared';
 test.describe('a11y / admin-tabs', () => {
   test('format-desc text contrast meets WCAG AA on light surface', async ({ adminPage }) => {
     await adminPage.goto('/wp-admin/admin.php?page=sscribe-export');
+    await adminPage.locator('#sscribe-open-export-modal-btn').click();
+    await expect(adminPage.locator('#sscribe-export-modal')).toBeVisible();
 
     // Real selector from SELECTORS.md §3 / production CSS line 606.
     const formatDesc = adminPage.locator('.sscribe-format-desc').first();
@@ -89,6 +91,8 @@ test.describe('a11y / admin-tabs', () => {
 
   test('lang-name text contrast meets WCAG AA on light surface', async ({ adminPage }) => {
     await adminPage.goto('/wp-admin/admin.php?page=sscribe-export');
+    await adminPage.locator('#sscribe-open-export-modal-btn').click();
+    await expect(adminPage.locator('#sscribe-export-modal')).toBeVisible();
 
     // Real selector from SELECTORS.md §4 / production CSS line 579.
     // The plugin only renders the language card when WPML is active, so we
@@ -205,6 +209,8 @@ test.describe('a11y / admin-tabs', () => {
 
   test('toast dismissal is a real keyboard-operable button', async ({ adminPage }) => {
     await adminPage.goto('/wp-admin/admin.php?page=sscribe-export');
+    await adminPage.locator('#sscribe-open-export-modal-btn').click();
+    await expect(adminPage.locator('#sscribe-export-modal')).toBeVisible();
 
     await adminPage.evaluate(() => {
       (window as any).SScribe.showToast('Keyboard dismiss probe', 'info', 0);
