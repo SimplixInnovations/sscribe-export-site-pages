@@ -152,7 +152,7 @@ trait SScribe_Session_AJAX {
 
 		$lock_token = $this->get_lock_manager()->acquire_lock( $session_id, 30, 25 );
 		if ( null === $lock_token ) {
-			\SScribe_Lock_Response::emit_conflict( $session_id, 5000 );
+			$this->acknowledge_cancel_without_lock( $session_id );
 		}
 
 		$response = array( 'message' => __( 'Export cancelled.', 'sscribe-export-site-pages' ) );
@@ -209,6 +209,41 @@ trait SScribe_Session_AJAX {
 		}
 
 		SScribe_AJAX_Guard::success( $response );
+	}
+
+	/**
+	 * Acknowledge a cancellation while a batch holds the export lock.
+	 *
+	 * A batch renews the export lock on every page, so the lock is never
+	 * stale and a takeover would deadlock every cancellation. This path
+	 * raises the cancellation flag instead — the running batch observes it
+	 * at its between-page checkpoint, stops cleanly, and releases its own
+	 * lock. Tearing the temp tree away from a live writer is exactly what
+	 * this design avoids; nothing here mutates or deletes the session
+	 * beyond setting the flag.
+	 *
+	 * @param string $session_id Session identifier.
+	 */
+	private function acknowledge_cancel_without_lock( string $session_id ): void {
+		$live_session = $this->get( $session_id );
+		if (
+			is_array( $live_session )
+			&& $this->validate_session_ownership( $live_session, $session_id )
+		) {
+			$live_session['cancelled'] = true;
+			$this->update( $session_id, $live_session );
+			$this->get_logger()->info(
+				'Cancel requested via flag while batch holds the lock',
+				array( 'session_id' => $session_id )
+			);
+			SScribe_AJAX_Guard::success(
+				array(
+					'message'          => __( 'Export cancellation requested — stopping after the current page.', 'sscribe-export-site-pages' ),
+					'cancel_requested' => true,
+				)
+			);
+		}
+		\SScribe_Lock_Response::emit_conflict( $session_id, 5000 );
 	}
 
 	/**

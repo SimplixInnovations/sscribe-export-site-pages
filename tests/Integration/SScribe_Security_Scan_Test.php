@@ -60,7 +60,7 @@ final class SScribe_Security_Scan_Test extends TestCase {
 		// text — the scanner doesn't try to lint).
 		$payload = "\nclass {$mutation_class_name} {\n{$mutation_body}\n}\n";
 		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
-		file_put_contents( $path, $backup . $payload );
+		sscribe_test_write_retry( $path, $backup . $payload );
 
 		try {
 			$descriptors = array(
@@ -80,7 +80,7 @@ final class SScribe_Security_Scan_Test extends TestCase {
 			return array( (int) $code, $stdout . $stderr );
 		} finally {
 			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
-			file_put_contents( $path, $backup );
+			sscribe_test_write_retry( $path, $backup );
 		}
 	}
 

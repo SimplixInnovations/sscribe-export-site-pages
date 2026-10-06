@@ -59,7 +59,7 @@ final class SScribe_Continue_On_Error_Test extends TestCase {
 				$abs        = self::plugin_root() . '/' . $path;
 				$backups[ $path ] = file_get_contents( $abs );
 				// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
-				file_put_contents( $abs, $new_contents );
+				sscribe_test_write_retry( $abs, $new_contents );
 			}
 
 			$descriptors = array(
@@ -81,7 +81,7 @@ final class SScribe_Continue_On_Error_Test extends TestCase {
 		} finally {
 			foreach ( $backups as $path => $contents ) {
 				// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
-				file_put_contents( self::plugin_root() . '/' . $path, $contents );
+				sscribe_test_write_retry( self::plugin_root() . '/' . $path, $contents );
 			}
 		}
 	}

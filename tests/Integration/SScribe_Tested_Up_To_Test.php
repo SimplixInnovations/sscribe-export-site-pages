@@ -45,7 +45,7 @@ final class SScribe_Tested_Up_To_Test extends TestCase {
 		$readme_path   = self::plugin_root() . '/readme.txt';
 		$backup        = file_get_contents( $readme_path );
 		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
-		file_put_contents( $readme_path, $readme );
+		sscribe_test_write_retry( $readme_path, $readme );
 
 		try {
 			$descriptors = array(
@@ -64,7 +64,7 @@ final class SScribe_Tested_Up_To_Test extends TestCase {
 			$code   = proc_close( $process );
 		} finally {
 			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
-			file_put_contents( $readme_path, $backup );
+			sscribe_test_write_retry( $readme_path, $backup );
 		}
 
 		return array( (int) $code, $stdout . $stderr );

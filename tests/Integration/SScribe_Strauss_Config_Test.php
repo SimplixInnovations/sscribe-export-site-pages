@@ -48,7 +48,7 @@ final class SScribe_Strauss_Config_Test extends TestCase {
 		$backup        = file_get_contents( $composer_path );
 		if ( null !== $composer_payload ) {
 			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
-			file_put_contents( $composer_path, $composer_payload );
+			sscribe_test_write_retry( $composer_path, $composer_payload );
 		}
 
 		try {
@@ -68,7 +68,7 @@ final class SScribe_Strauss_Config_Test extends TestCase {
 			$code   = proc_close( $process );
 		} finally {
 			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
-			file_put_contents( $composer_path, $backup );
+			sscribe_test_write_retry( $composer_path, $backup );
 		}
 
 		return array( (int) $code, $stdout . $stderr );

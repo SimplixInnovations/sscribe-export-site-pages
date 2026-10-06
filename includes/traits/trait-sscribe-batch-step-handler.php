@@ -58,6 +58,14 @@ trait SScribe_Batch_Step_Handler {
 			set_transient( 'sscribe_last_self_heal', time(), 120 );
 		}
 
+		// A client disconnect (page reload, closed tab) must never interrupt
+		// a half-written session row: PHP's default abort-on-output behavior
+		// lets a reload kill the process between a delete and its replacement
+		// write, silently losing the session and breaking resume. The
+		// download stream already pins this (SScribe_Batch_File_Handler);
+		// the state machine needs the same guarantee.
+		ignore_user_abort( true );
+
 		$max_time = (int) apply_filters( 'sscribe_max_execution_time', 150 );
 		if ( function_exists( 'set_time_limit' ) ) {
 				set_time_limit( $max_time ); // phpcs:ignore Squiz.PHP.DiscouragedFunctions.Discouraged

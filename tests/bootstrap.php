@@ -2262,3 +2262,28 @@ if ( 'cli' === php_sapi_name() && ! defined( 'SSCRIBE_TEST_BOOTSTRAP_QUIET' ) ) 
 		unset( $cmd, $null_device, $regen_script );
 	}
 }
+
+if ( ! function_exists( 'sscribe_test_write_retry' ) ) {
+	/**
+	 * file_put_contents() with short retries.
+	 *
+	 * The Windows test host intermittently denies writes to files another
+	 * process just touched (AV/indexing scanners hold a brief lock). A
+	 * mutation test's restore must never fail silently and leave tracked
+	 * files dirty, so restore writes retry briefly before giving up.
+	 *
+	 * @param string $path     Target path.
+	 * @param mixed  $contents Contents to write.
+	 * @return int|false Bytes written or false on persistent failure.
+	 */
+	function sscribe_test_write_retry( $path, $contents ) {
+		for ( $attempt = 0; $attempt < 6; $attempt++ ) {
+			$result = @file_put_contents( $path, $contents );
+			if ( false !== $result ) {
+				return $result;
+			}
+			usleep( 50000 );
+		}
+		return false;
+	}
+}

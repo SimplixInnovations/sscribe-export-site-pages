@@ -50,11 +50,11 @@ final class SScribe_E2E_Deps_Test extends TestCase {
 		$backup_cmp    = file_get_contents( $composer_path );
 		if ( null !== $package_payload ) {
 			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
-			file_put_contents( $package_path, $package_payload );
+			sscribe_test_write_retry( $package_path, $package_payload );
 		}
 		if ( null !== $composer_payload ) {
 			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
-			file_put_contents( $composer_path, $composer_payload );
+			sscribe_test_write_retry( $composer_path, $composer_payload );
 		}
 
 		try {
@@ -74,9 +74,9 @@ final class SScribe_E2E_Deps_Test extends TestCase {
 			$code   = proc_close( $process );
 		} finally {
 			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
-			file_put_contents( $package_path, $backup_pkg );
+			sscribe_test_write_retry( $package_path, $backup_pkg );
 			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
-			file_put_contents( $composer_path, $backup_cmp );
+			sscribe_test_write_retry( $composer_path, $backup_cmp );
 		}
 
 		return array( (int) $code, $stdout . $stderr );

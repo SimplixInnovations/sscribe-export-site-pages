@@ -102,7 +102,7 @@ final class SScribe_ZIP_Content_Rules_Test extends TestCase {
 		// pattern matches.
 		$mainfile_src = "<?php\n/**\n * Plugin Name: SScribe Export Site Pages\n * Version: 9.9.9-test\n */\n";
 		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
-		file_put_contents( $real_mainfile, $mainfile_src );
+		sscribe_test_write_retry( $real_mainfile, $mainfile_src );
 		// Create a sentinel ZIP so the verifier's "filename matches version"
 		// check has a real file to look at.
 		$zip_touch = fopen( $real_zip, 'w' );
@@ -153,13 +153,13 @@ final class SScribe_ZIP_Content_Rules_Test extends TestCase {
 			}
 			if ( null !== $backup_mainfile ) {
 				// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
-				file_put_contents( $real_mainfile, $backup_mainfile );
+				sscribe_test_write_retry( $real_mainfile, $backup_mainfile );
 			} else {
 				@unlink( $real_mainfile );
 			}
 			if ( null !== $backup_zip ) {
 				// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
-				file_put_contents( $real_zip, $backup_zip );
+				sscribe_test_write_retry( $real_zip, $backup_zip );
 			} else {
 				@unlink( $real_zip );
 			}
@@ -217,7 +217,7 @@ final class SScribe_ZIP_Content_Rules_Test extends TestCase {
 				mkdir( $dir, 0755, true );
 			}
 			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
-			file_put_contents( $path, (string) $content );
+			sscribe_test_write_retry( $path, (string) $content );
 		}
 	}
 
@@ -266,7 +266,7 @@ final class SScribe_ZIP_Content_Rules_Test extends TestCase {
 				mkdir( $pdir, 0755, true );
 			}
 			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
-			file_put_contents( $path, (string) $content );
+			sscribe_test_write_retry( $path, (string) $content );
 		}
 	}
 
@@ -299,7 +299,7 @@ final class SScribe_ZIP_Content_Rules_Test extends TestCase {
 					mkdir( $dir, 0755, true );
 				}
 				// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
-				file_put_contents( $path, (string) $content );
+				sscribe_test_write_retry( $path, (string) $content );
 			}
 		};
 		list( $code, $output ) = $this->run_against_dist( array( 'tree_builder' => $builder ) );
@@ -333,7 +333,7 @@ final class SScribe_ZIP_Content_Rules_Test extends TestCase {
 					mkdir( $dir, 0755, true );
 				}
 				// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
-				file_put_contents( $path, (string) $content );
+				sscribe_test_write_retry( $path, (string) $content );
 			}
 		};
 		list( $code, $output ) = $this->run_against_dist( array( 'tree_builder' => $builder ) );
@@ -360,7 +360,7 @@ final class SScribe_ZIP_Content_Rules_Test extends TestCase {
 					mkdir( $dir, 0755, true );
 				}
 				// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
-				file_put_contents( $path, (string) $content );
+				sscribe_test_write_retry( $path, (string) $content );
 			}
 		};
 		list( $code, $output ) = $this->run_against_dist( array( 'tree_builder' => $builder ) );
@@ -388,7 +388,7 @@ final class SScribe_ZIP_Content_Rules_Test extends TestCase {
 					mkdir( $dir, 0755, true );
 				}
 				// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
-				file_put_contents( $path, (string) $content );
+				sscribe_test_write_retry( $path, (string) $content );
 			}
 		};
 		list( $code, $output ) = $this->run_against_dist( array( 'tree_builder' => $builder ) );
@@ -415,7 +415,7 @@ final class SScribe_ZIP_Content_Rules_Test extends TestCase {
 					mkdir( $dir, 0755, true );
 				}
 				// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
-				file_put_contents( $path, (string) $content );
+				sscribe_test_write_retry( $path, (string) $content );
 			}
 		};
 		list( $code, $output ) = $this->run_against_dist( array( 'tree_builder' => $builder ) );
@@ -441,7 +441,7 @@ final class SScribe_ZIP_Content_Rules_Test extends TestCase {
 					mkdir( $dir, 0755, true );
 				}
 				// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
-				file_put_contents( $path, (string) $content );
+				sscribe_test_write_retry( $path, (string) $content );
 			}
 		};
 		list( $code, $output ) = $this->run_against_dist( array( 'tree_builder' => $builder ) );
@@ -474,7 +474,7 @@ final class SScribe_ZIP_Content_Rules_Test extends TestCase {
 					mkdir( $dir, 0755, true );
 				}
 				// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
-				file_put_contents( $path, (string) $content );
+				sscribe_test_write_retry( $path, (string) $content );
 			}
 		};
 		list( $code, $output ) = $this->run_against_dist( array( 'tree_builder' => $builder ) );
@@ -511,7 +511,7 @@ final class SScribe_ZIP_Content_Rules_Test extends TestCase {
 					mkdir( $dir, 0755, true );
 				}
 				// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
-				file_put_contents( $path, (string) $content );
+				sscribe_test_write_retry( $path, (string) $content );
 			}
 		};
 		list( $code, $output ) = $this->run_against_dist( array( 'tree_builder' => $builder ) );
@@ -550,7 +550,7 @@ final class SScribe_ZIP_Content_Rules_Test extends TestCase {
 					mkdir( $dir, 0755, true );
 				}
 				// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
-				file_put_contents( $path, (string) $content );
+				sscribe_test_write_retry( $path, (string) $content );
 			}
 		};
 		list( $code, $output ) = $this->run_against_dist( array( 'tree_builder' => $builder ) );
@@ -592,7 +592,7 @@ final class SScribe_ZIP_Content_Rules_Test extends TestCase {
 					mkdir( $dir, 0755, true );
 				}
 				// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
-				file_put_contents( $path, (string) $content );
+				sscribe_test_write_retry( $path, (string) $content );
 			}
 		};
 		list( $code, $output ) = $this->run_against_dist( array( 'tree_builder' => $builder ) );
@@ -650,7 +650,7 @@ final class SScribe_ZIP_Content_Rules_Test extends TestCase {
 					mkdir( $dir, 0755, true );
 				}
 				// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
-				file_put_contents( $path, (string) $content );
+				sscribe_test_write_retry( $path, (string) $content );
 			}
 		};
 		list( $code, $output ) = $this->run_against_dist( array( 'tree_builder' => $builder ) );
@@ -682,7 +682,7 @@ final class SScribe_ZIP_Content_Rules_Test extends TestCase {
 					mkdir( $dir, 0755, true );
 				}
 				// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
-				file_put_contents( $path, (string) $content );
+				sscribe_test_write_retry( $path, (string) $content );
 			}
 			// assets/ exists but is empty.
 			mkdir( $root . '/assets', 0755, true );

@@ -450,6 +450,17 @@ class SScribe_Session {
 		$option_name = $this->get_option_name( $session_id );
 
 		wp_cache_delete( $option_name, 'options' );
+		// WordPress caches negative lookups in the shared `notoptions`
+		// bucket. Without purging it, one lookup that raced a write pins the
+		// session as "absent" for every later request on hosts with a
+		// persistent object cache — resume then reports "session expired"
+		// while the row is still in the database. Clear the negative entry
+		// exactly like core's update_option() does.
+		$notoptions = wp_cache_get( 'notoptions', 'options' );
+		if ( is_array( $notoptions ) && isset( $notoptions[ $option_name ] ) ) {
+			unset( $notoptions[ $option_name ] );
+			wp_cache_set( 'notoptions', $notoptions, 'options' );
+		}
 
 		$raw = get_option( self::OPTION_PREFIX . $session_id );
 

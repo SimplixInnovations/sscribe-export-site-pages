@@ -57,7 +57,7 @@ final class SScribe_ZIP_Certification_Test extends TestCase {
 		}
 		$plugin_file = $tmp . '/sscribe-export-site-pages.php';
 		$default_mainfile_src = "<?php\n/**\n * Plugin Name: SScribe Export Site Pages\n * Version: 9.9.9-test\n */\n";
-		file_put_contents( $plugin_file, $overrides['mainfile_src'] ?? $default_mainfile_src );
+		sscribe_test_write_retry( $plugin_file, $overrides['mainfile_src'] ?? $default_mainfile_src );
 
 		$dist      = $tmp . '/dist';
 		$zip_path  = $dist . '/sscribe-export-site-pages-9.9.9.zip';
@@ -106,7 +106,7 @@ final class SScribe_ZIP_Certification_Test extends TestCase {
 
 		// Sidecar checksum.
 		$sidecar = $overrides['sidecar'] ?? hash_file( 'sha256', $zip_path );
-		file_put_contents( $side_path, $sidecar );
+		sscribe_test_write_retry( $side_path, $sidecar );
 
 		return array( $zip_path, $dist, $plugin_file );
 	}
@@ -131,14 +131,14 @@ final class SScribe_ZIP_Certification_Test extends TestCase {
 		$backup_side     = is_file( $real_side ) ? (string) file_get_contents( $real_side ) : null;
 
 		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
-		file_put_contents( $real_mainfile, (string) file_get_contents( $plugin_file ) );
+		sscribe_test_write_retry( $real_mainfile, (string) file_get_contents( $plugin_file ) );
 		if ( ! is_dir( $real_dist ) ) {
 			mkdir( $real_dist, 0755, true );
 		}
 		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
-		file_put_contents( $real_zip, (string) file_get_contents( $zip_path ) );
+		sscribe_test_write_retry( $real_zip, (string) file_get_contents( $zip_path ) );
 		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
-		file_put_contents(
+		sscribe_test_write_retry(
 			$real_side,
 			null !== $sidecar_content ? $sidecar_content : (string) file_get_contents( $dist . '/sscribe-export-site-pages-9.9.9.sha256' )
 		);
@@ -163,19 +163,19 @@ final class SScribe_ZIP_Certification_Test extends TestCase {
 			// Restore originals.
 			if ( null !== $backup_mainfile ) {
 				// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
-				file_put_contents( $real_mainfile, $backup_mainfile );
+				sscribe_test_write_retry( $real_mainfile, $backup_mainfile );
 			} else {
 				@unlink( $real_mainfile );
 			}
 			if ( null !== $backup_zip ) {
 				// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
-				file_put_contents( $real_zip, $backup_zip );
+				sscribe_test_write_retry( $real_zip, $backup_zip );
 			} else {
 				@unlink( $real_zip );
 			}
 			if ( null !== $backup_side ) {
 				// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
-				file_put_contents( $real_side, $backup_side );
+				sscribe_test_write_retry( $real_side, $backup_side );
 			} else {
 				@unlink( $real_side );
 			}

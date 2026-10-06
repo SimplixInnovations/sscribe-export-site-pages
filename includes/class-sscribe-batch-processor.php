@@ -999,6 +999,10 @@ final class SScribe_Batch_Processor {
 
 		$this->get_diagnostics()->self_heal();
 
+		// Keep the request alive through client disconnects so the session
+		// and workspace writes below cannot be interrupted mid-flight.
+		ignore_user_abort( true );
+
 		$memory_raised = wp_raise_memory_limit( 'admin' );
 		$this->logger->debug( 'Memory limit raised', array( 'result' => $memory_raised ) );
 

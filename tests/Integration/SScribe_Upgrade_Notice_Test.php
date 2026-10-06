@@ -60,7 +60,7 @@ final class SScribe_Upgrade_Notice_Test extends TestCase {
 			$this->fail( 'Could not create temp dir for upgrade-notice test' );
 		}
 		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
-		file_put_contents( $tmpdir . '/readme.txt', $readme_payload );
+		sscribe_test_write_retry( $tmpdir . '/readme.txt', $readme_payload );
 
 		$script = self::plugin_root() . '/' . self::SCRIPT_PATH;
 		$cmd    = sprintf(
@@ -77,7 +77,7 @@ final class SScribe_Upgrade_Notice_Test extends TestCase {
 		$real_path = self::plugin_root() . '/readme.txt';
 		$backup    = file_get_contents( $real_path );
 		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
-		file_put_contents( $real_path, $readme_payload );
+		sscribe_test_write_retry( $real_path, $readme_payload );
 
 		try {
 			$descriptors = array(
@@ -92,7 +92,7 @@ final class SScribe_Upgrade_Notice_Test extends TestCase {
 			$code   = proc_close( $process );
 		} finally {
 			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
-			file_put_contents( $real_path, $backup );
+			sscribe_test_write_retry( $real_path, $backup );
 			unset( $cmd );
 		}
 

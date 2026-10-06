@@ -42,6 +42,10 @@ trait SScribe_Export_Finalizer {
 	 */
 	public function ajax_finalize_export(): void {
 
+		// ZIP assembly performs extended writes; a client disconnect must
+		// not abort them mid-flight (see the batch handler for details).
+		ignore_user_abort( true );
+
 		$decision = $this->check_rate_limit_decision( 'export_finalize' );
 		if ( ! $decision->allowed ) {
 			\SScribe_Rate_Limit_Response::emit( $decision );

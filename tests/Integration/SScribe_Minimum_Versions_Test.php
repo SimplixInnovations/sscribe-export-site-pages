@@ -64,9 +64,9 @@ final class SScribe_Minimum_Versions_Test extends TestCase {
 		$backup_main   = file_get_contents( $mainfile_path );
 		$backup_readme = file_get_contents( $readme_path );
 		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
-		file_put_contents( $mainfile_path, $mainfile );
+		sscribe_test_write_retry( $mainfile_path, $mainfile );
 		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
-		file_put_contents( $readme_path, $readme );
+		sscribe_test_write_retry( $readme_path, $readme );
 
 		try {
 			$descriptors = array(
@@ -85,9 +85,9 @@ final class SScribe_Minimum_Versions_Test extends TestCase {
 			$code   = proc_close( $process );
 		} finally {
 			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
-			file_put_contents( $mainfile_path, $backup_main );
+			sscribe_test_write_retry( $mainfile_path, $backup_main );
 			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
-			file_put_contents( $readme_path, $backup_readme );
+			sscribe_test_write_retry( $readme_path, $backup_readme );
 		}
 
 		return array( (int) $code, $stdout . $stderr );

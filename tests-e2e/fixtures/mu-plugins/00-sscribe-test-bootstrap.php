@@ -849,37 +849,15 @@ if ( function_exists( 'add_action' ) ) {
 			if ( isset( $_GET['ssb_test_reset'] ) ) {
 				return;
 			}
+			// HISTORY: this hook used to bulk-DELETE every sscribe_session_* row
+			// on each export-page load to dodge a stale session-index cache.
+			// That destroyed live sessions mid-test (a reload during a running
+			// export silently wiped it) and masked the plugin's real resume
+			// behavior. The plugin now purges its own caches on every session
+			// mutation and read (SScribe_Session::get(),
+			// invalidate_session_index()), so only the defensive cache purge
+			// below is needed - never the row deletions.
 			global $wpdb;
-			$wpdb->query(
-				$wpdb->prepare(
-					"DELETE FROM {$wpdb->options} WHERE option_name LIKE %s",
-					$wpdb->esc_like( '_transient_sscribe_active_sid_' ) . '%'
-				)
-			);
-			$wpdb->query(
-				$wpdb->prepare(
-					"DELETE FROM {$wpdb->options} WHERE option_name LIKE %s",
-					$wpdb->esc_like( '_transient_timeout_sscribe_active_sid_' ) . '%'
-				)
-			);
-			$wpdb->query(
-				$wpdb->prepare(
-					"DELETE FROM {$wpdb->options} WHERE option_name LIKE %s",
-					$wpdb->esc_like( 'sscribe_session_' ) . '%'
-				)
-			);
-			$wpdb->query(
-				$wpdb->prepare(
-					"DELETE FROM {$wpdb->options} WHERE option_name LIKE %s",
-					$wpdb->esc_like( '_transient_sscribe_export_session' ) . '%'
-				)
-			);
-			$wpdb->query(
-				$wpdb->prepare(
-					"DELETE FROM {$wpdb->options} WHERE option_name LIKE %s",
-					$wpdb->esc_like( '_transient_timeout_sscribe_export_session' ) . '%'
-				)
-			);
 			if ( function_exists( 'wp_cache_delete' ) ) {
 				wp_cache_delete( 'sscribe_session_options_index', 'sscribe_session_index' );
 				if ( function_exists( 'get_users' ) ) {

@@ -235,7 +235,7 @@
 			$(document).on('click.sscribe', '#sscribe-preview-dismiss-btn', $.proxy(this.closePreview, this));
 			$(document).on('click.sscribe', '#sscribe-preview-start-btn', $.proxy(this.startExportFromPreview, this));
 			$(document).on('click.sscribe', '#sscribe-new-export-btn', $.proxy(this.exportModalStartOver, this));
-			$(document).on('click.sscribe', '#sscribe-open-export-modal-btn', $.proxy(this.exportModalOpen, this));
+			$(document).on('click.sscribe', '#sscribe-open-export-modal-btn', $.proxy(this.openExportModalForConfig, this));
 			$(document).on('click.sscribe', '#sscribe-export-modal-close', $.proxy(this.exportModalClose, this));
 			$(document).on('click.sscribe', '#sscribe-export-modal', function (e) {
 				if (e.target === this) {
@@ -283,6 +283,15 @@
 			// Theme follows the admin surface: sync now, and again whenever
 			// the admin repaints (scheme class changes) or the OS flips.
 			this.syncThemeContext();
+			// Dialogs must live at the document root: inside the admin page
+			// they are trapped in ancestor stacking contexts and the fixed
+			// WP admin bar paints over their headers (the close button
+			// became unclickable at several viewports).
+			document.querySelectorAll('.sscribe-modal').forEach(function (modal) {
+				if (modal.parentElement !== document.body) {
+					document.body.appendChild(modal);
+				}
+			});
 			if (window.MutationObserver && document.body) {
 				const themeObserver = new MutationObserver(function () {
 					SScribe.syncThemeContext();
@@ -3582,7 +3591,7 @@
 				e.preventDefault();
 			}
 			this.activateTab('export', true);
-			this.exportModalOpen();
+			this.openExportModalForConfig();
 			const target = document.getElementById('sscribe-main-content');
 			if (target && typeof target.focus === 'function') {
 				target.focus();
@@ -4406,6 +4415,21 @@
 			this.updateExportButton();
 		},
 
+		/**
+		 * The "New Export" entry points always present a fresh wizard:
+		 * opening onto a stale completion/error state is confusing and (for
+		 * the hidden config radios) makes the form unreachable.
+		 */
+		openExportModalForConfig: function (e) {
+			if (e) {
+				e.preventDefault();
+			}
+			this.exportModalOpen();
+			if (!this.isExportRunning()) {
+				this.exportModalSetState('config');
+			}
+		},
+
 		// ============================================================
 		// Context-adaptive theme detection
 		// ============================================================
@@ -4592,9 +4616,9 @@
 				.text(sscribe_data.strings.cancel || 'Cancel Export');
 			this.showToast(cancelledMessage, 'info');
 			// Cancelling is the sanctioned exit while running: settle the
-			// modal back to its configuration state and release it.
+			// modal back to its configuration state (the user typically
+			// adjusts and retries) and unlock closing.
 			this.exportModalSetState('config');
-			this.exportModalClose();
 		},
 		/**
 		 * @param {string} code Stable server error code.

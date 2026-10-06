@@ -56,7 +56,7 @@ final class SScribe_Plugin_Check_Test extends TestCase {
 		$backup  = file_get_contents( $ci_path );
 		if ( null !== $ci_payload ) {
 			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
-			file_put_contents( $ci_path, $ci_payload );
+			sscribe_test_write_retry( $ci_path, $ci_payload );
 		}
 
 		try {
@@ -77,7 +77,7 @@ final class SScribe_Plugin_Check_Test extends TestCase {
 			return array( (int) $code, $stdout . $stderr );
 		} finally {
 			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
-			file_put_contents( $ci_path, $backup );
+			sscribe_test_write_retry( $ci_path, $backup );
 		}
 	}
 

@@ -151,11 +151,15 @@ class SScribe_Session_AJAX_Test extends TestCase {
 	}
 
 	/**
-	 * Cancel race fix: if a batch iteration already holds the
-	 * export lock for this session, cancel must return 409 with
-	 * a retry hint — never acquire the lock itself and race.
+	 * Cancel race fix (flag-based): if a batch iteration already holds the
+	 * export lock for this session, cancel must NOT steal the lock (a
+	 * takeover would race a live writer whose batch renews the lock every
+	 * page). It raises the cancellation flag instead and acknowledges with
+	 * cancel_requested — the batch stops at its next between-page
+	 * checkpoint. Contract updated when per-page lock renewal made stale
+	 * takeover impossible.
 	 */
-	public function test_ajax_cancel_export_returns_409_when_batch_lock_held(): void {
+	public function test_ajax_cancel_export_flags_session_when_batch_lock_held(): void {
 		$session = new \SScribe_Session();
 		$id      = $session->create(
 			array(
@@ -173,19 +177,22 @@ class SScribe_Session_AJAX_Test extends TestCase {
 		ob_start();
 		try {
 			$session->ajax_cancel_export();
-			$this->fail( 'Expected RuntimeException for 409 lock-conflict response' );
+			$this->fail( 'Expected RuntimeException for the acknowledged success response' );
 		} catch ( \RuntimeException $e ) {
-			$this->assertStringContainsString( 'AJAX error response sent', $e->getMessage() );
+			$this->assertStringContainsString( 'AJAX success response sent', $e->getMessage() );
 		} finally {
 			$output = ob_get_clean();
 		}
 
-		// 409 payload must include the batch_in_progress code that
-		// the JS client uses to decide retry behaviour.
-		$this->assertStringContainsString( 'batch_in_progress', $output );
+		// The acknowledgment carries the cancellation-requested contract the
+		// JS client uses to settle the modal without a fake failure.
+		$this->assertStringContainsString( 'cancel_requested', $output );
 
-		// Session must still exist — cancel must NOT mutate when 409'd.
-		$this->assertNotNull( $session->get( $id ) );
+		// The flag must be raised and the session must survive: the running
+		// batch owns the teardown at its next checkpoint.
+		$after = $session->get( $id );
+		$this->assertNotNull( $after );
+		$this->assertTrue( ! empty( $after['cancelled'] ) );
 	}
 
 	/**

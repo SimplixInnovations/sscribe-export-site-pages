@@ -68,7 +68,7 @@ final class SScribe_Build_Transparency_Test extends TestCase {
 					mkdir( $dir, 0755, true );
 				}
 				// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
-				file_put_contents( $abs, $contents );
+				sscribe_test_write_retry( $abs, $contents );
 			}
 
 			$descriptors = array(
@@ -97,7 +97,7 @@ final class SScribe_Build_Transparency_Test extends TestCase {
 					continue;
 				}
 				// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
-				file_put_contents( $abs, $contents );
+				sscribe_test_write_retry( $abs, $contents );
 			}
 		}
 	}

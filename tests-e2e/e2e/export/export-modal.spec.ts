@@ -58,6 +58,8 @@ test.describe('e2e / export / export-modal', () => {
       { timeout: 30_000 }
     );
     await adminPage.locator('#sscribe-cancel-btn').click();
+    await expect(adminPage.locator('#sscribe-confirm-modal')).toBeVisible({ timeout: 15_000 });
+    await adminPage.locator('#sscribe-confirm-proceed').click();
 
     // Cancel settles the modal back to the configuration state and releases it.
     await expect(adminPage.locator('#sscribe-export-state-config')).toBeVisible({ timeout: 30_000 });
