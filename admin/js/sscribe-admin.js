@@ -3602,7 +3602,7 @@
 			this.updateBulkBar();
 			if (needle !== '' && visible === 0) {
 				this.announce(
-					(sscribe_data.strings && scribe_data.strings.history_no_match) || 'No exports match your filter.'
+					(sscribe_data.strings && sscribe_data.strings.history_no_match) || 'No exports match your filter.'
 				);
 			}
 		},
