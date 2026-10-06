@@ -892,6 +892,9 @@ if ( ! function_exists( 'sscribe_humanize_export_filename' ) ) {
 							echo wp_kses_post( SScribe_Helpers::get_icon( 'search', 14 ) );
 							?>
 							<input type="search" id="sscribe-history-search" placeholder="<?php esc_attr_e( 'Filter by name or size...', 'sscribe-export-site-pages' ); ?>" autocomplete="off">
+							<button type="button" id="sscribe-history-search-clear" class="sscribe-search-clear" hidden aria-label="<?php esc_attr_e( 'Clear filter', 'sscribe-export-site-pages' ); ?>">
+								<?php echo wp_kses( SScribe_Helpers::get_icon_inline( 'x', 12 ), SScribe_Helpers::get_svg_kses_allowed_html() ); ?>
+							</button>
 						</label>
 						<p class="sscribe-bulk-hint" id="sscribe-bulk-hint">
 							<?php

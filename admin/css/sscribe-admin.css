@@ -1433,42 +1433,24 @@ so the user sees both at a glance. */
 	}
 }
 
-.sscribe-status-alert::before {
-	content: '';
-	position: absolute;
-	left: 0;
-	top: 0;
-	bottom: 0;
-	width: 3px;
-	background: var(--ss-border-strong);
-}
 
 .sscribe-status-processing {
 	background: var(--ss-info-bg);
 	border-color: var(--ss-info-border);
 }
 
-.sscribe-status-processing::before {
-	background: var(--ss-info);
-}
 
 .sscribe-status-success {
 	background: var(--ss-success-bg);
 	border-color: var(--ss-success-border);
 }
 
-.sscribe-status-success::before {
-	background: var(--ss-success);
-}
 
 .sscribe-status-error {
 	background: var(--ss-error-bg);
 	border-color: var(--ss-error-border);
 }
 
-.sscribe-status-error::before {
-	background: var(--ss-error);
-}
 
 .sscribe-status-icon {
 	width: 36px;
@@ -2677,7 +2659,7 @@ body.rtl .sscribe-progress-bar-fill {
 
 .sscribe-preflight-banner {
 	background: var(--ss-warning-bg);
-	border-left: 3px solid var(--ss-warning);
+	border: 1px solid var(--ss-warning-border);
 	padding: var(--ss-space-4) var(--ss-space-5);
 	border-radius: var(--ss-radius-sm);
 	display: flex;
@@ -3002,11 +2984,11 @@ body.rtl .sscribe-progress-bar-fill {
 	display: flex;
 	flex-direction: column;
 	gap: var(--ss-space-1);
-	padding: var(--ss-space-3) var(--ss-space-4);
-	background: var(--ss-surface-2);
+	padding: var(--ss-space-4);
+	background: var(--ss-surface);
 	border: 1px solid var(--ss-border);
-	border-radius: var(--ss-radius);
-	min-height: 66px;
+	border-radius: var(--ss-radius-md);
+	min-height: 72px;
 	justify-content: space-between;
 }
 
@@ -3028,10 +3010,10 @@ body.rtl .sscribe-progress-bar-fill {
 }
 
 .sscribe-preview-sample {
-	background: var(--ss-surface-2);
+	background: var(--ss-surface);
 	border: 1px solid var(--ss-border);
-	border-radius: var(--ss-radius);
-	padding: var(--ss-space-3) var(--ss-space-4);
+	border-radius: var(--ss-radius-md);
+	padding: var(--ss-space-4);
 	font-size: var(--ss-text-body);
 	line-height: var(--ss-leading-relaxed);
 	color: var(--ss-text-secondary);
@@ -4538,7 +4520,7 @@ body.rtl .sscribe-progress-bar-fill {
 	color: var(--ss-text-primary);
 	font-size: var(--ss-text-body);
 	line-height: var(--ss-leading-none);
-	padding: 0;
+	padding: 0 var(--ss-space-6) 0 0;
 	box-shadow: none;
 }
 
@@ -6006,4 +5988,44 @@ body.rtl .sscribe-progress-bar-fill {
 
 :where(.sscribe-master-container, .sscribe-modal-content, .sscribe-toast) :where(svg, img, video) {
 	color: inherit;
+}
+
+/* ============================================================
+   History filter clear affordance
+   ============================================================ */
+
+/* The plugin ships its own clear control (consistent across browsers). */
+.sscribe-search-field input[type='search']::-webkit-search-cancel-button {
+	display: none;
+}
+
+.sscribe-search-clear {
+	position: absolute;
+	inset-inline-end: var(--ss-space-2);
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 22px;
+	height: 22px;
+	padding: 0;
+	border: 0;
+	border-radius: var(--ss-radius-full);
+	background: transparent;
+	color: var(--ss-text-muted);
+	cursor: pointer;
+	transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.sscribe-search-clear:hover {
+	background: var(--ss-surface-2);
+	color: var(--ss-text-primary);
+}
+
+.sscribe-search-clear:focus-visible {
+	outline: 2px solid var(--ss-brand);
+	outline-offset: 2px;
+}
+
+.sscribe-search-clear[hidden] {
+	display: none;
 }

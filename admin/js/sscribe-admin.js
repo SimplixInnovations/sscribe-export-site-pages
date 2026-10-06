@@ -237,11 +237,8 @@
 			$(document).on('click.sscribe', '#sscribe-new-export-btn', $.proxy(this.exportModalStartOver, this));
 			$(document).on('click.sscribe', '#sscribe-open-export-modal-btn', $.proxy(this.openExportModalForConfig, this));
 			$(document).on('click.sscribe', '#sscribe-export-modal-close', $.proxy(this.exportModalClose, this));
-			$(document).on('click.sscribe', '#sscribe-export-modal', function (e) {
-				if (e.target === this) {
-					SScribe.exportModalClose(e);
-				}
-			});
+			// Backdrop clicks intentionally do NOT close the export dialog:
+			// dismissal happens only through its explicit close controls.
 			$(document).on('click.sscribe', '#sscribe-view-history-btn', $.proxy(this.openHistoryFromSuccess, this));
 			$(document).on('click.sscribe', '#sscribe-error-try-again', $.proxy(this.retry, this));
 			$(document).on('click.sscribe', '#sscribe-error-change-config', $.proxy(this.changeConfiguration, this));
@@ -270,16 +267,13 @@
 			$(document).on('click.sscribe', '#sscribe-onboarding-dismiss', $.proxy(this.dismissOnboarding, this));
 			$(document).on('click.sscribe', '#sscribe-error-toggle-details', $.proxy(this.toggleErrorDetails, this));
 			$(document).on('input.sscribe', '#sscribe-history-search', $.proxy(this.filterHistory, this));
+			$(document).on('click.sscribe', '#sscribe-history-search-clear', $.proxy(this.clearHistoryFilter, this));
 			$(document).on(
 				'click.sscribe',
 				'#sscribe-empty-start-export-btn',
 				$.proxy(this.startFirstExportFromEmpty, this)
 			);
-			$(document).on('click.sscribe', '#sscribe-preview-panel', function (e) {
-				if (e.target === this) {
-					SScribe.closePreview();
-				}
-			});
+			// Backdrop clicks intentionally do NOT close the preview dialog.
 			// Theme follows the admin surface: sync now, and again whenever
 			// the admin repaints (scheme class changes) or the OS flips.
 			this.syncThemeContext();
@@ -2765,18 +2759,21 @@
 			}
 			const count = $checks.length;
 			const exportWord = count === 1 ? 'export' : 'exports';
+			// Localized templates use positional placeholders (%1$d / %2$s);
+			// accept the plain forms too so both notations render.
+			const bulkLabelFormat = function (template) {
+				return String(template)
+					.replace(/%(?:1\$)?d/g, String(count))
+					.replace(/%(?:2\$)?s/g, exportWord);
+			};
 			const proceedLabel =
 				sscribe_data.strings && sscribe_data.strings.bulk_delete_label_format
-					? sscribe_data.strings.bulk_delete_label_format
-							.replace('%d', String(count))
-							.replace('%s', exportWord)
+					? bulkLabelFormat(sscribe_data.strings.bulk_delete_label_format)
 					: 'Delete ' + count + ' ' + exportWord;
 			this.showConfirm({
 				title:
 					sscribe_data.strings && sscribe_data.strings.bulk_delete_title_format
-						? sscribe_data.strings.bulk_delete_title_format
-								.replace('%d', String(count))
-								.replace('%s', exportWord)
+						? bulkLabelFormat(sscribe_data.strings.bulk_delete_title_format)
 						: 'Delete ' + count + ' ' + exportWord + '?',
 				description:
 					(sscribe_data.strings && sscribe_data.strings.bulk_delete_desc) ||
@@ -3460,11 +3457,9 @@
 				e.preventDefault();
 				cancel();
 			});
-			$modal.off('click.sscribe-confirm-overlay').one('click.sscribe-confirm-overlay', function (e) {
-				if (e.target === this) {
-					cancel();
-				}
-			});
+			$modal// Overlay clicks intentionally do NOT resolve the dialog (no
+			// accidental confirmation or dismissal): use the explicit buttons.
+			.off('click.sscribe-confirm-overlay');
 			setTimeout(function () {
 				if ($cancel[0]) {
 					$cancel.trigger('focus');
@@ -3601,12 +3596,24 @@
 			const raw = (e && e.target && e.target.value) || '';
 			const needle = String(raw).toLowerCase().trim();
 			const visible = this.applyHistoryFilter();
+			// The clear affordance mirrors the input state so the filter can
+			// always be dismissed in one click as well as from the keyboard.
+			$('#sscribe-history-search-clear').prop('hidden', needle === '');
 			this.updateBulkBar();
 			if (needle !== '' && visible === 0) {
 				this.announce(
-					(sscribe_data.strings && sscribe_data.strings.history_no_match) || 'No exports match your filter.'
+					(sscribe_data.strings && scribe_data.strings.history_no_match) || 'No exports match your filter.'
 				);
 			}
+		},
+		clearHistoryFilter: function (e) {
+			if (e) {
+				e.preventDefault();
+			}
+			$('#sscribe-history-search').val('');
+			this.applyHistoryFilter();
+			$('#sscribe-history-search-clear').prop('hidden', true);
+			this.updateBulkBar();
 		},
 		startFirstExportFromEmpty: function (e) {
 			if (e) {
@@ -3619,10 +3626,26 @@
 				target.focus();
 			}
 		},
+		/**
+		 * Substitute a count into a localized template. Accepts both the
+		 * positional form (%1$d) translators prefer and the plain form (%d),
+		 * so no template can leak raw placeholders into the UI.
+		 *
+		 * @param {string} template Localized template.
+		 * @param {number} count Value to substitute.
+		 * @returns {string} Rendered text.
+		 */
+		replaceCount: function (template, count) {
+			return String(template).replace(/%(?:1\$)?d/g, String(count));
+		},
 		openHistoryFromSuccess: function (e) {
 			if (e) {
 				e.preventDefault();
 			}
+			// The completion state lives inside the portaled modal: switching
+			// the tab behind it would look like a dead button. The run is
+			// finished so closing is allowed here.
+			this.exportModalClose();
 			this.activateTab('history', true);
 		},
 		prettyFormatLabel: function (format) {
@@ -3785,7 +3808,7 @@
 				messages.length === 1
 					? strings.export_issues_one || '%d problem during this export'
 					: strings.export_issues_many || '%d problems during this export';
-			title.textContent = titleTemplate.replace('%d', String(messages.length));
+			title.textContent = SScribe.replaceCount(titleTemplate, messages.length);
 			const shown = messages.slice(0, 5);
 			shown.forEach(function (message) {
 				const li = document.createElement('li');
@@ -5127,7 +5150,7 @@
 				return strings.net_connection_lost || strings.err_connection || 'Connection lost.';
 			}
 			const unknownMsg = strings.net_unknown || 'A network error occurred (HTTP %d).';
-			return unknownMsg.replace('%d', status);
+			return SScribe.replaceCount(unknownMsg, status);
 		},
 	};
 	$(document).ajaxError(function (_event, jqXHR, _settings, exception) {

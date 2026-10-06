@@ -9,7 +9,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-10-06T00:52:51+00:00\n"
+"POT-Creation-Date: 2026-10-06T17:10:07+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.12.0\n"
 "X-Domain: sscribe-export-site-pages\n"
@@ -189,7 +189,7 @@ msgid "Cancelling..."
 msgstr ""
 
 #: admin/class-sscribe-admin.php:285
-#: admin/partials/sscribe-admin-display.php:1123
+#: admin/partials/sscribe-admin-display.php:1126
 msgid "Loading log..."
 msgstr ""
 
@@ -215,51 +215,51 @@ msgid "Your recent export packages will appear here."
 msgstr ""
 
 #: admin/class-sscribe-admin.php:291
-#: admin/partials/sscribe-admin-display.php:930
+#: admin/partials/sscribe-admin-display.php:933
 msgid "Recent export packages"
 msgstr ""
 
 #: admin/class-sscribe-admin.php:292
-#: admin/partials/sscribe-admin-display.php:933
+#: admin/partials/sscribe-admin-display.php:936
 msgid "Select"
 msgstr ""
 
 #: admin/class-sscribe-admin.php:293
 #: admin/class-sscribe-admin.php:368
 #: admin/partials/sscribe-admin-display.php:190
-#: admin/partials/sscribe-admin-display.php:934
+#: admin/partials/sscribe-admin-display.php:937
 #: admin/js/sscribe-debug-console.js:1504
 #: admin/js/sscribe-debug-console.js:1673
 msgid "Export"
 msgstr ""
 
 #: admin/class-sscribe-admin.php:294
-#: admin/partials/sscribe-admin-display.php:935
+#: admin/partials/sscribe-admin-display.php:938
 msgid "Actions"
 msgstr ""
 
 #. translators: %s: export filename
 #: admin/class-sscribe-admin.php:296
-#: admin/partials/sscribe-admin-display.php:955
+#: admin/partials/sscribe-admin-display.php:958
 #, php-format
 msgid "Select export %s"
 msgstr ""
 
 #: admin/class-sscribe-admin.php:297
-#: admin/partials/sscribe-admin-display.php:914
-#: admin/partials/sscribe-admin-display.php:996
+#: admin/partials/sscribe-admin-display.php:917
+#: admin/partials/sscribe-admin-display.php:999
 msgid "Download"
 msgstr ""
 
 #: admin/class-sscribe-admin.php:298
-#: admin/partials/sscribe-admin-display.php:1000
+#: admin/partials/sscribe-admin-display.php:1003
 msgid "Log"
 msgstr ""
 
 #: admin/class-sscribe-admin.php:299
 #: admin/class-sscribe-admin.php:369
-#: admin/partials/sscribe-admin-display.php:917
-#: admin/partials/sscribe-admin-display.php:1003
+#: admin/partials/sscribe-admin-display.php:920
+#: admin/partials/sscribe-admin-display.php:1006
 #: admin/js/sscribe-debug-console.js:1505
 #: admin/js/sscribe-debug-console.js:1712
 #: admin/js/sscribe-debug-console.js:1727
@@ -380,18 +380,18 @@ msgid "Packaging files into ZIP archive..."
 msgstr ""
 
 #: admin/class-sscribe-admin.php:324
-#: admin/partials/sscribe-admin-display.php:995
+#: admin/partials/sscribe-admin-display.php:998
 msgid "Download this export"
 msgstr ""
 
 #. translators: %s: export filename
 #: admin/class-sscribe-admin.php:325
-#: admin/partials/sscribe-admin-display.php:999
+#: admin/partials/sscribe-admin-display.php:1002
 msgid "View export log"
 msgstr ""
 
 #: admin/class-sscribe-admin.php:326
-#: admin/partials/sscribe-admin-display.php:1002
+#: admin/partials/sscribe-admin-display.php:1005
 msgid "Delete this export"
 msgstr ""
 
@@ -553,7 +553,7 @@ msgstr ""
 #: admin/class-sscribe-admin.php:366
 #: admin/partials/sscribe-admin-display.php:243
 #: admin/partials/sscribe-admin-display.php:700
-#: admin/partials/sscribe-admin-display.php:1127
+#: admin/partials/sscribe-admin-display.php:1130
 msgid "Close"
 msgstr ""
 
@@ -674,7 +674,7 @@ msgid "Failed to clear the export session after multiple attempts. Please refres
 msgstr ""
 
 #: admin/class-sscribe-admin.php:396
-#: includes/traits/trait-sscribe-session-ajax.php:183
+#: includes/traits/trait-sscribe-session-ajax.php:158
 msgid "Export cancelled."
 msgstr ""
 
@@ -691,7 +691,7 @@ msgid "Click again"
 msgstr ""
 
 #: admin/class-sscribe-admin.php:400
-#: admin/partials/sscribe-admin-display.php:910
+#: admin/partials/sscribe-admin-display.php:913
 msgid "selected"
 msgstr ""
 
@@ -1526,127 +1526,131 @@ msgstr ""
 msgid "Filter by name or size..."
 msgstr ""
 
-#: admin/partials/sscribe-admin-display.php:900
+#: admin/partials/sscribe-admin-display.php:895
+msgid "Clear filter"
+msgstr ""
+
+#: admin/partials/sscribe-admin-display.php:903
 msgid "Tip: select multiple files to bulk download or delete."
 msgstr ""
 
-#: admin/partials/sscribe-admin-display.php:906
+#: admin/partials/sscribe-admin-display.php:909
 msgid "Select all visible exports"
 msgstr ""
 
-#: admin/partials/sscribe-admin-display.php:908
+#: admin/partials/sscribe-admin-display.php:911
 msgid "Select all"
 msgstr ""
 
-#: admin/partials/sscribe-admin-display.php:913
+#: admin/partials/sscribe-admin-display.php:916
 msgid "Download selected exports"
 msgstr ""
 
-#: admin/partials/sscribe-admin-display.php:916
+#: admin/partials/sscribe-admin-display.php:919
 msgid "Delete selected exports"
 msgstr ""
 
-#: admin/partials/sscribe-admin-display.php:982
+#: admin/partials/sscribe-admin-display.php:985
 msgid "Time until this file is auto-deleted"
 msgstr ""
 
 #. translators: %s: human time difference
-#: admin/partials/sscribe-admin-display.php:985
+#: admin/partials/sscribe-admin-display.php:988
 #, php-format
 msgid "expires in %s"
 msgstr ""
 
 #. translators: %s: export filename
-#: admin/partials/sscribe-admin-display.php:999
+#: admin/partials/sscribe-admin-display.php:1002
 #, php-format
 msgid "View export log for %s"
 msgstr ""
 
 #. translators: %d: number of additional exports
-#: admin/partials/sscribe-admin-display.php:1016
+#: admin/partials/sscribe-admin-display.php:1019
 #, php-format
 msgid "%d more export available in your archive."
 msgid_plural "%d more exports available in your archive."
 msgstr[0] ""
 msgstr[1] ""
 
-#: admin/partials/sscribe-admin-display.php:1028
+#: admin/partials/sscribe-admin-display.php:1031
 msgid "No exports yet"
 msgstr ""
 
-#: admin/partials/sscribe-admin-display.php:1029
+#: admin/partials/sscribe-admin-display.php:1032
 msgid "Your generated packages will appear here. They auto-delete 72 hours after creation."
 msgstr ""
 
-#: admin/partials/sscribe-admin-display.php:1031
+#: admin/partials/sscribe-admin-display.php:1034
 msgid "Export your first package"
 msgstr ""
 
-#: admin/partials/sscribe-admin-display.php:1047
+#: admin/partials/sscribe-admin-display.php:1050
 msgid "System Diagnostics"
 msgstr ""
 
-#: admin/partials/sscribe-admin-display.php:1049
+#: admin/partials/sscribe-admin-display.php:1052
 msgid "Generate a redacted environment snapshot. Share this securely with Simplix Innovations support to help us diagnose and resolve issues faster. The snapshot never includes passwords, license keys, or private post content."
 msgstr ""
 
-#: admin/partials/sscribe-admin-display.php:1053
+#: admin/partials/sscribe-admin-display.php:1056
 msgid "Copy to Clipboard"
 msgstr ""
 
-#: admin/partials/sscribe-admin-display.php:1057
+#: admin/partials/sscribe-admin-display.php:1060
 msgid "Refresh Data"
 msgstr ""
 
-#: admin/partials/sscribe-admin-display.php:1067
+#: admin/partials/sscribe-admin-display.php:1070
 msgid "System snapshot"
 msgstr ""
 
-#: admin/partials/sscribe-admin-display.php:1068
+#: admin/partials/sscribe-admin-display.php:1071
 msgid "Redacted environment report"
 msgstr ""
 
-#: admin/partials/sscribe-admin-display.php:1071
+#: admin/partials/sscribe-admin-display.php:1074
 msgid "Support information text"
 msgstr ""
 
-#: admin/partials/sscribe-admin-display.php:1072
+#: admin/partials/sscribe-admin-display.php:1075
 msgid "The redacted environment snapshot loads automatically. Use Refresh Data to regenerate it, then copy it to share with support."
 msgstr ""
 
-#: admin/partials/sscribe-admin-display.php:1089
+#: admin/partials/sscribe-admin-display.php:1092
 msgid "No snapshot loaded yet"
 msgstr ""
 
-#: admin/partials/sscribe-admin-display.php:1090
+#: admin/partials/sscribe-admin-display.php:1093
 msgid "The snapshot is generated locally on demand and never includes passwords, license keys, or private content."
 msgstr ""
 
-#: admin/partials/sscribe-admin-display.php:1114
+#: admin/partials/sscribe-admin-display.php:1117
 msgid "Export Log"
 msgstr ""
 
-#: admin/partials/sscribe-admin-display.php:1116
+#: admin/partials/sscribe-admin-display.php:1119
 msgid "Close modal"
 msgstr ""
 
-#: admin/partials/sscribe-admin-display.php:1129
+#: admin/partials/sscribe-admin-display.php:1132
 msgid "Export log details showing processing information for this export"
 msgstr ""
 
-#: admin/partials/sscribe-admin-display.php:1142
+#: admin/partials/sscribe-admin-display.php:1145
 msgid "Confirm action"
 msgstr ""
 
-#: admin/partials/sscribe-admin-display.php:1143
+#: admin/partials/sscribe-admin-display.php:1146
 msgid "Are you sure?"
 msgstr ""
 
-#: admin/partials/sscribe-admin-display.php:1149
+#: admin/partials/sscribe-admin-display.php:1152
 msgid "Cancel"
 msgstr ""
 
-#: admin/partials/sscribe-admin-display.php:1152
+#: admin/partials/sscribe-admin-display.php:1155
 msgid "Proceed"
 msgstr ""
 
@@ -3124,7 +3128,7 @@ msgstr ""
 #: includes/traits/trait-sscribe-batch-step-handler.php:127
 #: includes/traits/trait-sscribe-export-finalizer.php:82
 #: includes/traits/trait-sscribe-session-ajax.php:139
-#: includes/traits/trait-sscribe-session-ajax.php:194
+#: includes/traits/trait-sscribe-session-ajax.php:169
 msgid "Invalid session access."
 msgstr ""
 
@@ -3349,27 +3353,27 @@ msgstr ""
 msgid "Session not found."
 msgstr ""
 
-#: includes/traits/trait-sscribe-session-ajax.php:175
-msgid "Export cancellation requested — stopping after the current page."
-msgstr ""
-
-#: includes/traits/trait-sscribe-session-ajax.php:189
+#: includes/traits/trait-sscribe-session-ajax.php:164
 msgid "Session already cleared."
 msgstr ""
 
-#: includes/traits/trait-sscribe-session-ajax.php:254
+#: includes/traits/trait-sscribe-session-ajax.php:241
+msgid "Export cancellation requested — stopping after the current page."
+msgstr ""
+
+#: includes/traits/trait-sscribe-session-ajax.php:264
 msgid "Unable to identify the current user."
 msgstr ""
 
-#: includes/traits/trait-sscribe-session-ajax.php:266
+#: includes/traits/trait-sscribe-session-ajax.php:276
 msgid "Another export session operation is in progress. Please retry."
 msgstr ""
 
-#: includes/traits/trait-sscribe-session-ajax.php:296
+#: includes/traits/trait-sscribe-session-ajax.php:306
 msgid "The current export is still processing. Please retry shortly."
 msgstr ""
 
-#: includes/traits/trait-sscribe-session-ajax.php:305
+#: includes/traits/trait-sscribe-session-ajax.php:315
 msgid "Session cleared."
 msgstr ""
 
