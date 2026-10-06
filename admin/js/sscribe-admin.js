@@ -286,10 +286,17 @@
 			// Dialogs must live at the document root: inside the admin page
 			// they are trapped in ancestor stacking contexts and the fixed
 			// WP admin bar paints over their headers (the close button
-			// became unclickable at several viewports).
+			// became unclickable at several viewports). The scope class is
+			// carried onto the dialog content so every component rule
+			// written against the master container keeps applying inside
+			// the portaled dialogs.
 			document.querySelectorAll('.sscribe-modal').forEach(function (modal) {
 				if (modal.parentElement !== document.body) {
 					document.body.appendChild(modal);
+				}
+				const content = modal.querySelector('.sscribe-modal-content');
+				if (content) {
+					content.classList.add('sscribe-master-container');
 				}
 			});
 			if (window.MutationObserver && document.body) {

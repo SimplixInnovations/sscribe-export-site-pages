@@ -5973,10 +5973,14 @@ body.rtl .sscribe-progress-bar-fill {
 .sscribe-master-container,
 .sscribe-confirm-dialog {
 	color: var(--ss-text-primary);
+}
 
-	/* The page canvas stays transparent so the plugin background is
-	   exactly the WP admin background in any theme. Floating surfaces
-	   keep their own opaque backgrounds (they sit over overlays). */
+/* The page canvas stays transparent so the plugin background is exactly
+   the WP admin background in every theme. Floating surfaces (including
+   portaled dialog content, which carries the scope class) keep their own
+   opaque backgrounds because they sit over overlays. */
+.sscribe-master-container:not(.sscribe-modal-content),
+.sscribe-confirm-dialog:not(.sscribe-modal-content) {
 	background-color: transparent;
 }
 
