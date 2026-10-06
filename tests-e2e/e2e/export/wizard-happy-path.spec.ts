@@ -5,8 +5,7 @@ test.describe('e2e / export / wizard-happy-path', () => {
     await adminPage.goto('/wp-admin/admin.php?page=sscribe-export');
     await adminPage.locator('#sscribe-open-export-modal-btn').click();
     await expect(adminPage.locator('#sscribe-export-modal')).toBeVisible();
-    await adminPage.locator('#sscribe-open-export-modal-btn').click();
-    await expect(adminPage.locator('#sscribe-export-modal')).toBeVisible();
+
 
     // Wait until the export button reports enabled.
     await expect(adminPage.locator('#sscribe-export-btn')).toBeEnabled({ timeout: 60_000 });

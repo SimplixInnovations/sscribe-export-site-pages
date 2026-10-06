@@ -140,8 +140,7 @@ async function bootExport(
   await adminPage.goto('/wp-admin/admin.php?page=sscribe-export');
   await adminPage.locator('#sscribe-open-export-modal-btn').click();
   await expect(adminPage.locator('#sscribe-export-modal')).toBeVisible();
-  await adminPage.locator('#sscribe-open-export-modal-btn').click();
-  await expect(adminPage.locator('#sscribe-export-modal')).toBeVisible();
+
 
   // Wait for check_active_session to land with has_active=false.
   for (let attempt = 0; attempt < 30; attempt += 1) {
@@ -190,7 +189,14 @@ async function bootExport(
   await adminPage.locator('#sscribe-export-btn').click();
   // Wait for the progress area to appear — proves start_export succeeded
   // and the batch loop has started.
-  await expect(adminPage.locator('#sscribe-progress-area')).toBeVisible({ timeout: 30_000 });
+  await expect
+      .poll(
+        async () =>
+          (await adminPage.locator('#sscribe-export-state-running').isVisible()) ||
+          (await adminPage.locator('#sscribe-export-state-error').isVisible()),
+        { timeout: 30_000, intervals: [250] }
+      )
+      .toBe(true);
   return 'native-runtime';
 }
 

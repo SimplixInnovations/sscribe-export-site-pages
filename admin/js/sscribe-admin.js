@@ -1518,9 +1518,24 @@
 				'</button>';
 			bannerHtml += '</div></div>';
 			$('.sscribe-preflight-banner').remove();
-			$('.sscribe-workspace').prepend(bannerHtml);
+			// The export modal is portaled to the document root and overlays
+			// the workspace, so a banner injected into the workspace is
+			// visible yet unclickable beneath the overlay. Preflight runs
+			// from inside the modal — inject there, falling back to the
+			// workspace for any non-modal caller.
+			const $insertTarget = $('#sscribe-export-state-config').length
+				? $('#sscribe-export-state-config')
+				: $('.sscribe-workspace');
+			$insertTarget.prepend(bannerHtml);
 			const $banner = $('.sscribe-preflight-banner');
 			$banner.attr('role', 'alert');
+			// The configuration body scrolls and its action bar is pinned to
+			// the foot: without bringing the warning into view its proceed /
+			// cancel buttons can sit under the pinned bar where they cannot
+			// be reached.
+			if ($banner.length && typeof $banner[0].scrollIntoView === 'function') {
+				$banner[0].scrollIntoView({ block: 'center' });
+			}
 			const $firstFocusable = $banner.find('.sscribe-preflight-close');
 			if ($firstFocusable.length && typeof $firstFocusable[0].focus === 'function') {
 				setTimeout(function () {

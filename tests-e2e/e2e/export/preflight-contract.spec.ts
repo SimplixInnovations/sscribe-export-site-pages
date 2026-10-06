@@ -14,8 +14,7 @@ test.describe('e2e / export / preflight-contract', () => {
 		await adminPage.goto('/wp-admin/admin.php?page=sscribe-export');
 		await adminPage.locator('#sscribe-open-export-modal-btn').click();
 		await expect(adminPage.locator('#sscribe-export-modal')).toBeVisible();
-		await adminPage.locator('#sscribe-open-export-modal-btn').click();
-		await expect(adminPage.locator('#sscribe-export-modal')).toBeVisible();
+
 		await adminPage.route('**/admin-ajax.php*', async (route) => {
 			if (!isPreflight(route.request().postData())) return route.continue();
 			return route.fulfill(
@@ -56,8 +55,7 @@ test.describe('e2e / export / preflight-contract', () => {
 		await adminPage.goto('/wp-admin/admin.php?page=sscribe-export');
 		await adminPage.locator('#sscribe-open-export-modal-btn').click();
 		await expect(adminPage.locator('#sscribe-export-modal')).toBeVisible();
-		await adminPage.locator('#sscribe-open-export-modal-btn').click();
-		await expect(adminPage.locator('#sscribe-export-modal')).toBeVisible();
+
 		await adminPage.route('**/admin-ajax.php*', async (route) => {
 			if (!isPreflight(route.request().postData())) return route.continue();
 			return route.fulfill(
@@ -97,6 +95,7 @@ test.describe('e2e / export / preflight-contract', () => {
 		await expect(proceed).toBeVisible();
 		expect(await adminPage.evaluate(() => (window as any).__sscribeProceedCalls)).toBe(0);
 
+		await proceed.scrollIntoViewIfNeeded();
 		await proceed.click();
 		await expect(returnTarget).toBeFocused();
 		expect(await adminPage.evaluate(() => (window as any).__sscribeProceedCalls)).toBe(1);
@@ -107,8 +106,7 @@ test.describe('e2e / export / preflight-contract', () => {
 		await adminPage.goto('/wp-admin/admin.php?page=sscribe-export');
 		await adminPage.locator('#sscribe-open-export-modal-btn').click();
 		await expect(adminPage.locator('#sscribe-export-modal')).toBeVisible();
-		await adminPage.locator('#sscribe-open-export-modal-btn').click();
-		await expect(adminPage.locator('#sscribe-export-modal')).toBeVisible();
+
 		await adminPage.route('**/admin-ajax.php*', async (route) => {
 			if (!isPreflight(route.request().postData())) return route.continue();
 			return route.fulfill(
@@ -137,6 +135,7 @@ test.describe('e2e / export / preflight-contract', () => {
 		const banner = adminPage.locator('.sscribe-preflight-banner');
 		await expect(banner).toBeVisible();
 		await expect(banner.locator('.sscribe-preflight-close')).toBeFocused();
+		await banner.locator('.sscribe-preflight-cancel').scrollIntoViewIfNeeded();
 		await banner.locator('.sscribe-preflight-cancel').click();
 		await expect(banner).toHaveCount(0);
 		expect(await adminPage.evaluate(() => document.activeElement?.id)).toBe('sscribe-focus-origin');
@@ -146,8 +145,7 @@ test.describe('e2e / export / preflight-contract', () => {
 		await adminPage.goto('/wp-admin/admin.php?page=sscribe-export');
 		await adminPage.locator('#sscribe-open-export-modal-btn').click();
 		await expect(adminPage.locator('#sscribe-export-modal')).toBeVisible();
-		await adminPage.locator('#sscribe-open-export-modal-btn').click();
-		await expect(adminPage.locator('#sscribe-export-modal')).toBeVisible();
+
 		await adminPage.evaluate(() => {
 			(window as any).SScribe.showToast('Keyboard toast', 'info', 0);
 		});
@@ -164,8 +162,7 @@ test.describe('e2e / export / preflight-contract', () => {
 		await adminPage.goto('/wp-admin/admin.php?page=sscribe-export');
 		await adminPage.locator('#sscribe-open-export-modal-btn').click();
 		await expect(adminPage.locator('#sscribe-export-modal')).toBeVisible();
-		await adminPage.locator('#sscribe-open-export-modal-btn').click();
-		await expect(adminPage.locator('#sscribe-export-modal')).toBeVisible();
+
 		const label = await adminPage.evaluate(() => (window as any).SScribe.getLanguageLabel('__all__'));
 		expect(label).toBe('All Languages');
 	});

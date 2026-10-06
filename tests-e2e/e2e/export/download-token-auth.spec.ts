@@ -31,8 +31,7 @@ test.describe('e2e / export / download-token-auth', () => {
     await adminPage.goto('/wp-admin/admin.php?page=sscribe-export');
     await adminPage.locator('#sscribe-open-export-modal-btn').click();
     await expect(adminPage.locator('#sscribe-export-modal')).toBeVisible();
-    await adminPage.locator('#sscribe-open-export-modal-btn').click();
-    await expect(adminPage.locator('#sscribe-export-modal')).toBeVisible();
+
     await expect(adminPage.locator('#sscribe-export-btn')).toBeEnabled({ timeout: 30_000 });
 
     const responses = await adminPage.evaluate(async () => {
@@ -59,8 +58,7 @@ test.describe('e2e / export / download-token-auth', () => {
     await adminPage.goto('/wp-admin/admin.php?page=sscribe-export');
     await adminPage.locator('#sscribe-open-export-modal-btn').click();
     await expect(adminPage.locator('#sscribe-export-modal')).toBeVisible();
-    await adminPage.locator('#sscribe-open-export-modal-btn').click();
-    await expect(adminPage.locator('#sscribe-export-modal')).toBeVisible();
+
 
     // Wait until the export button reports enabled. The button enables
     // only after the counts success handler runs (admin/js/sscribe-admin.js:
