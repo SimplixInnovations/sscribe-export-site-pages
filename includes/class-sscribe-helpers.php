@@ -33,8 +33,8 @@ class SScribe_Helpers {
 
 	private const KNOWN_ICONS = array( 'check', 'chevron-down', 'clock', 'download', 'download-package', 'eye', 'file-doc', 'file-html', 'file-log', 'file-md', 'file-pdf', 'file-search', 'file-text', 'globe', 'info', 'refresh-cw', 'search', 'settings', 'warning-circle', 'x', 'loader' );
 
-	
-	
+
+
 	/**
 	 * Render an icon glyph from the embedded icon font.
 	 *
