@@ -33,9 +33,13 @@ final class SScribe_Success_Summary_Responsive_Test extends TestCase {
 	}
 
 	public function test_phone_labels_values_and_actions_cannot_force_horizontal_overflow(): void {
-		$css      = $this->admin_css();
-		$tablet_at = strrpos( $css, '@media (width <= 782px)' );
-		$phone_at = strrpos( $css, '@media (width <= 480px)' );
+		$css = $this->admin_css();
+		// Locate the phone block first, then the tablet block that belongs
+		// with it (the one immediately preceding it). Searching for "the
+		// last tablet breakpoint" in the whole file is wrong once later
+		// components append their own responsive blocks.
+		$phone_at  = strrpos( $css, '@media (width <= 480px)' );
+		$tablet_at = false === $phone_at ? false : strrpos( substr( $css, 0, (int) $phone_at ), '@media (width <= 782px)' );
 
 		$this->assertNotFalse( $tablet_at, 'The final tablet breakpoint must exist.' );
 		$this->assertNotFalse( $phone_at, 'The final phone breakpoint must exist.' );
