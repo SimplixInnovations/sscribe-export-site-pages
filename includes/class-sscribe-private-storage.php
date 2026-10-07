@@ -15,8 +15,9 @@ final class SScribe_Private_Storage {
 
 	public const FILE_MODE   = 0600;
 	public const DIR_MODE    = 0700;
-	private const DIRECTORY_NAME         = 'sscribe-export-site-pages';
+	public const DIRECTORY_NAME          = 'sscribe-export-site-pages';
 	public const DEFAULT_DIRECTORY_NAME  = 'sscribe-exports';
+	public const STORAGE_KEY_OPTION      = 'sscribe_storage_key';
 
 	/**
 	 * Return the export leaf directory name, honoring the `sscribe_storage_layout` filter.
@@ -65,218 +66,62 @@ final class SScribe_Private_Storage {
 	/**
 	 * Return the canonical export directory and optionally create it.
 	 *
+	 * The default base is the site's uploads directory. An operator override
+	 * (SSCRIBE_PRIVATE_STORAGE_DIR or the sscribe_private_storage_base_candidates
+	 * filter) replaces it entirely and fails closed when unusable.
+	 *
 	 * @param bool $create Create the directory when missing.
 	 * @return string Absolute path, or an empty string when no safe path exists.
 	 */
 	public static function get_export_dir( bool $create = true ): string {
-		// Process-lifetime cache. Hits are always revalidated below; tests that
-		// change SSCRIBE_PRIVATE_STORAGE_DIR run in separate PHP processes.
 		static $resolved_paths = array();
 
-		$candidates = self::get_base_candidates();
-		$cache_key  = ( $create ? 'create' : 'read' )
+		$site_key = self::get_site_key();
+		if ( '' === $site_key ) {
+			return '';
+		}
+
+		$bases     = self::resolve_bases();
+		$cache_key = ( $create ? 'create' : 'read' )
 			. '|' . get_current_blog_id()
+			. '|' . $site_key
 			. '|' . self::get_directory_name()
-			. '|' . md5( (string) wp_json_encode( $candidates ) );
+			. '|' . md5( (string) wp_json_encode( $bases ) );
 
 		if ( array_key_exists( $cache_key, $resolved_paths ) ) {
-			$cached_path = (string) $resolved_paths[ $cache_key ];
-
-			// A cached lexical path is only a shortcut, never a trust decision.
-			// Revalidate the leaf on every hit so deletion, replacement, symlink
-			// substitution, or a permissions change within the request fails closed.
-			clearstatcache( true, $cached_path );
-			$cached_real = realpath( $cached_path );
-			$cached_base = self::validate_base_candidate(
-				dirname( dirname( dirname( $cached_path ) ) )
-			);
-			if (
-				false !== $cached_real
-				&& '' !== $cached_base
-				&& is_dir( $cached_path )
-				&& ! is_link( $cached_path )
-				&& self::normalize_path( $cached_real ) === self::normalize_path( $cached_path )
-				&& self::path_is_within( $cached_real, $cached_base, false )
-				&& ( self::is_acceptable_public_path( $cached_real ) || self::is_outside_public_roots( $cached_real ) )
-				&& self::prepare_managed_path( $cached_path, $cached_base, false )
-				&& ( ! $create || wp_is_writable( $cached_real ) )
-			) {
-				// The directory can outlive its guard files (manual cleanup, a
-				// host purge, or an earlier step in the same request), so a
-				// creating lookup restores them before handing the path back.
-				if ( $create && ( ! is_file( $cached_path . '/.htaccess' ) || ! is_file( $cached_path . '/index.php' ) ) ) {
-					SScribe_Security::protect_directory( $cached_path );
-					self::harden_file( $cached_path . '/.htaccess' );
-					self::harden_file( $cached_path . '/index.php' );
-				}
+			list( $cached_path, $cached_base ) = $resolved_paths[ $cache_key ];
+			if ( in_array( $cached_base, $bases, true ) && self::claim_storage_path( $cached_path, $cached_base, $create ) ) {
 				return $cached_path;
 			}
 			unset( $resolved_paths[ $cache_key ] );
 		}
 
-		foreach ( $candidates as $base ) {
-			$canonical_base = self::validate_base_candidate( $base );
-			if ( '' === $canonical_base ) {
+		foreach ( $bases as $canonical_base ) {
+			$path = $canonical_base . DIRECTORY_SEPARATOR . self::DIRECTORY_NAME . DIRECTORY_SEPARATOR . $site_key . DIRECTORY_SEPARATOR . self::get_directory_name();
+			if ( ! self::claim_storage_path( $path, $canonical_base, $create ) ) {
 				continue;
 			}
-
-			$site_key = 'site-' . get_current_blog_id() . '-' . substr( hash( 'sha256', self::normalize_path( ABSPATH ) ), 0, 12 );
-			$path     = $canonical_base . DIRECTORY_SEPARATOR . self::DIRECTORY_NAME . DIRECTORY_SEPARATOR . $site_key . DIRECTORY_SEPARATOR . self::get_directory_name();
-
-			// Containment alone is insufficient here: realpath() resolves a
-			// planted intermediate symlink, so a link that still points somewhere
-			// inside the validated base would otherwise be accepted. Walk every
-			// SScribe-managed component lexically and reject links before creating
-			// descendants, then verify the chain again after creation.
-			if (
-				! self::path_is_within( $path, $canonical_base, false )
-				|| ! self::is_outside_public_roots( $path )
-				|| ! self::prepare_managed_path( $path, $canonical_base, $create )
-			) {
-				continue;
-			}
-			if ( self::path_exists( $path ) ) {
-				$real = realpath( $path );
-				if (
-					false === $real
-					|| ! is_dir( $path )
-					|| is_link( $path )
-					|| ! self::path_is_within( $real, $canonical_base, false )
-					|| ! self::is_outside_public_roots( $real )
-					|| ( $create && ! wp_is_writable( $real ) )
-					|| ! self::prepare_managed_path( $path, $canonical_base, false )
-				) {
-					continue;
-				}
-			}
-			if ( $create ) {
-				SScribe_Security::protect_directory( $path );
-				self::harden_file( $path . '/.htaccess' );
-				self::harden_file( $path . '/index.php' );
-			}
-
-			$resolved_paths[ $cache_key ] = $path;
+			$resolved_paths[ $cache_key ] = array( $path, $canonical_base );
 			return $path;
 		}
 
-		// Last-resort compatibility layer: managed hosts can block every
-		// strict candidate (open_basedir jails, site-at-account-root layouts,
-		// missing DOCUMENT_ROOT) while still writing their own uploads
-		// directory. The hardened uploads fallback keeps activation and
-		// exports working there without weakening the strict-first policy.
-		if ( self::fallback_is_permitted() ) {
-			$fallback = self::resolve_hardened_uploads_dir( $create );
-			if ( '' !== $fallback ) {
-				return $fallback;
-			}
-		}
-
-		// Do not memoize failures. Filesystem permissions, filters, or an
-		// operator-provided base may become valid later in the same long-running
-		// PHP process; only successful resolutions are safe performance hints.
 		return '';
 	}
 
 	/**
-	 * Whether the hardened uploads fallback may be consulted at all.
+	 * Validate a storage path below a canonical base and add guard files.
 	 *
-	 * Explicit operator configuration (SSCRIBE_PRIVATE_STORAGE_DIR or the
-	 * sscribe_private_storage_base_candidates filter) keeps the original
-	 * fail-closed posture: an operator-chosen location is never silently
-	 * replaced with a different tree.
+	 * @param string $path           Final managed path.
+	 * @param string $canonical_base Validated canonical base.
+	 * @param bool   $create         Create missing directories and guard files.
+	 * @return bool True when the path is safe to use.
 	 */
-	private static function fallback_is_permitted(): bool {
-		if ( defined( 'SSCRIBE_PRIVATE_STORAGE_DIR' ) ) {
-			return false;
-		}
-		if ( function_exists( 'has_filter' ) && false !== has_filter( 'sscribe_private_storage_base_candidates' ) ) {
-			return false;
-		}
-		return true;
-	}
-
-	/**
-	 * Whether a path belongs to the hardened uploads fallback layout.
-	 *
-	 * Used to relax the outside-public-roots boundary only for the
-	 * fallback subtree; every other consumer keeps the strict rule.
-	 *
-	 * @param string $path Candidate path.
-	 * @return bool True when the path is inside the fallback subtree.
-	 */
-	private static function is_acceptable_public_path( string $path ): bool {
-		if ( ! self::fallback_is_permitted() || ! function_exists( 'wp_upload_dir' ) ) {
-			return false;
-		}
-		$uploads = wp_upload_dir();
-		if ( empty( $uploads['error'] ) && ! empty( $uploads['basedir'] ) ) {
-			return self::path_is_within( $path, (string) $uploads['basedir'], true );
-		}
-		return false;
-	}
-
-	/**
-	 * Resolve a hardened, unguessable private directory under wp-content/uploads.
-	 *
-	 * Compatibility fallback for hosts where no location outside the web root
-	 * is writable by PHP. Every managed-path hardening still applies: symlink
-	 * rejection, owner-only mode on managed directories, .htaccess deny rules
-	 * and index.php guard files, plus an unguessable per-site path segment.
-	 * The world-writable-without-sticky case remains rejected; group-writable
-	 * bases are tolerated here only because the managed subtree is created
-	 * 0700 and re-validated on every lookup. Operators who must keep the
-	 * strict outside-public-roots posture can define SSCRIBE_PRIVATE_STORAGE_DIR.
-	 *
-	 * @param bool $create Create the directory when missing.
-	 * @return string Absolute path, or an empty string when unavailable.
-	 */
-	private static function resolve_hardened_uploads_dir( bool $create ): string {
-		if ( ! function_exists( 'wp_upload_dir' ) ) {
-			return '';
-		}
-		$uploads = wp_upload_dir();
-		if ( ! empty( $uploads['error'] ) || empty( $uploads['basedir'] ) ) {
-			return '';
-		}
-
-		$base = rtrim( trim( (string) $uploads['basedir'] ), '/\\' );
-		if (
-			'' === $base
-			|| str_contains( $base, "\0" )
-			|| ! self::is_absolute_path( $base )
-			|| ! is_dir( $base )
-			|| is_link( $base )
-			|| ! wp_is_writable( $base )
-		) {
-			return '';
-		}
-
-		$canonical_base = realpath( $base );
-		if ( false === $canonical_base || ! is_dir( $canonical_base ) || ! wp_is_writable( $canonical_base ) ) {
-			return '';
-		}
-
-		clearstatcache( true, $canonical_base );
-		// Windows ACLs do not map to POSIX mode bits (fileperms() returns
-		// synthetic values), same exemption as is_owned_by_current_process().
-		if ( 'Windows' !== PHP_OS_FAMILY && function_exists( 'fileperms' ) ) {
-			$permissions = @fileperms( $canonical_base );
-			// World-writable without sticky deletion protection stays rejected
-			// even for the fallback base.
-			if ( false !== $permissions && ( ( (int) $permissions & 0002 ) && ! ( (int) $permissions & 01000 ) ) ) {
-				return '';
-			}
-		}
-		$canonical_base = rtrim( $canonical_base, '/\\' );
-
-		$site_key = 'site-' . get_current_blog_id() . '-' . substr( hash( 'sha256', self::normalize_path( ABSPATH ) ), 0, 12 );
-		$path     = $canonical_base . DIRECTORY_SEPARATOR . self::DIRECTORY_NAME . DIRECTORY_SEPARATOR . $site_key . DIRECTORY_SEPARATOR . self::get_directory_name();
-
+	private static function claim_storage_path( string $path, string $canonical_base, bool $create ): bool {
 		if (
 			! self::path_is_within( $path, $canonical_base, false )
 			|| ! self::prepare_managed_path( $path, $canonical_base, $create )
 		) {
-			return '';
+			return false;
 		}
 
 		if ( self::path_exists( $path ) ) {
@@ -285,21 +130,229 @@ final class SScribe_Private_Storage {
 				false === $real
 				|| ! is_dir( $path )
 				|| is_link( $path )
+				|| self::normalize_path( $real ) !== self::normalize_path( $path )
 				|| ! self::path_is_within( $real, $canonical_base, false )
 				|| ( $create && ! wp_is_writable( $real ) )
-				|| ! self::prepare_managed_path( $path, $canonical_base, false )
 			) {
-				return '';
+				return false;
 			}
 		}
 
 		if ( $create ) {
-			SScribe_Security::protect_directory( $path );
-			self::harden_file( $path . '/.htaccess' );
-			self::harden_file( $path . '/index.php' );
+			if ( ! self::is_override_active() ) {
+				self::guard_directory( $canonical_base . DIRECTORY_SEPARATOR . self::DIRECTORY_NAME );
+			}
+			self::guard_directory( $path );
 		}
 
-		return $path;
+		return true;
+	}
+
+	/**
+	 * Write or restore the deny files for one managed directory.
+	 *
+	 * @param string $directory Managed directory.
+	 */
+	private static function guard_directory( string $directory ): void {
+		$complete = true;
+		foreach ( SScribe_Security::GUARD_FILES as $guard_name ) {
+			if ( ! is_file( $directory . '/' . $guard_name ) || is_link( $directory . '/' . $guard_name ) ) {
+				$complete = false;
+				break;
+			}
+		}
+		if ( $complete ) {
+			return;
+		}
+		SScribe_Security::protect_directory( $directory );
+		foreach ( SScribe_Security::GUARD_FILES as $guard_name ) {
+			self::harden_file( $directory . '/' . $guard_name );
+		}
+	}
+
+	/**
+	 * Return this site's random storage key, creating it on first use.
+	 *
+	 * The key is stored per site (options are per blog on multisite) and is
+	 * the only per-site segment of the storage path, so the location cannot
+	 * be derived from public information.
+	 *
+	 * @param bool $create Generate and store a key when none exists.
+	 * @return string 32-character lowercase alphanumeric key, or an empty string.
+	 */
+	public static function get_site_key( bool $create = true ): string {
+		$stored = get_option( self::STORAGE_KEY_OPTION, '' );
+		if ( self::is_valid_site_key( $stored ) ) {
+			return (string) $stored;
+		}
+		if ( ! $create ) {
+			return '';
+		}
+
+		$key = function_exists( 'wp_generate_password' )
+			? strtolower( wp_generate_password( 32, false, false ) )
+			: bin2hex( random_bytes( 16 ) );
+		if ( ! self::is_valid_site_key( $key ) ) {
+			return '';
+		}
+
+		if ( add_option( self::STORAGE_KEY_OPTION, $key, '', false ) ) {
+			return $key;
+		}
+
+		$current = get_option( self::STORAGE_KEY_OPTION, '' );
+		if ( self::is_valid_site_key( $current ) ) {
+			return (string) $current;
+		}
+
+		return update_option( self::STORAGE_KEY_OPTION, $key, false ) ? $key : '';
+	}
+
+	/**
+	 * Check the shape of a stored site key.
+	 *
+	 * @param mixed $key Candidate key.
+	 * @return bool True for a 32-character lowercase alphanumeric string.
+	 */
+	private static function is_valid_site_key( mixed $key ): bool {
+		return is_string( $key ) && 1 === preg_match( '/^[a-z0-9]{32}$/D', $key );
+	}
+
+	/**
+	 * Report whether an operator override replaces the uploads default.
+	 *
+	 * @return bool True when SSCRIBE_PRIVATE_STORAGE_DIR or the base filter is in use.
+	 */
+	public static function is_override_active(): bool {
+		return defined( 'SSCRIBE_PRIVATE_STORAGE_DIR' ) || array() !== self::get_override_bases();
+	}
+
+	/**
+	 * Return the storage mode for diagnostics.
+	 *
+	 * @return string Either 'override' or 'uploads'.
+	 */
+	public static function get_storage_mode(): string {
+		return self::is_override_active() ? 'override' : 'uploads';
+	}
+
+	/**
+	 * Return the operator-supplied base directories, in priority order.
+	 *
+	 * @return string[]
+	 */
+	public static function get_override_bases(): array {
+		if ( defined( 'SSCRIBE_PRIVATE_STORAGE_DIR' ) ) {
+			return array( (string) SSCRIBE_PRIVATE_STORAGE_DIR );
+		}
+
+		$filtered = apply_filters( 'sscribe_private_storage_base_candidates', array() );
+		if ( ! is_array( $filtered ) ) {
+			return array();
+		}
+
+		$unique = array();
+		foreach ( $filtered as $candidate ) {
+			if ( ! is_string( $candidate ) ) {
+				continue;
+			}
+			$candidate = rtrim( trim( $candidate ), '/\\' );
+			if ( '' === $candidate || in_array( $candidate, $unique, true ) ) {
+				continue;
+			}
+			$unique[] = $candidate;
+		}
+
+		return $unique;
+	}
+
+	/**
+	 * Return the validated canonical bases for the active storage mode.
+	 *
+	 * @return string[]
+	 */
+	private static function resolve_bases(): array {
+		if ( ! self::is_override_active() ) {
+			$uploads_base = self::get_uploads_base();
+			return '' === $uploads_base ? array() : array( $uploads_base );
+		}
+
+		$bases = array();
+		foreach ( self::get_override_bases() as $candidate ) {
+			$canonical = self::validate_base_candidate( $candidate );
+			if ( '' !== $canonical && ! in_array( $canonical, $bases, true ) ) {
+				$bases[] = $canonical;
+			}
+		}
+
+		return $bases;
+	}
+
+	/**
+	 * Return the canonical uploads base directory when it is usable.
+	 *
+	 * @return string Canonical absolute path, or an empty string.
+	 */
+	private static function get_uploads_base(): string {
+		$basedir = self::get_uploads_basedir();
+		if (
+			'' === $basedir
+			|| str_contains( $basedir, "\0" )
+			|| ! is_dir( $basedir )
+		) {
+			return '';
+		}
+
+		$canonical = realpath( $basedir );
+		if ( false === $canonical || ! is_dir( $canonical ) || ! wp_is_writable( $canonical ) ) {
+			return '';
+		}
+
+		clearstatcache( true, $canonical );
+		if ( 'Windows' !== PHP_OS_FAMILY && function_exists( 'fileperms' ) ) {
+			$permissions = @fileperms( $canonical );
+			if ( false !== $permissions && ( ( (int) $permissions & 0002 ) && ! ( (int) $permissions & 01000 ) ) ) {
+				return '';
+			}
+		}
+
+		return rtrim( $canonical, '/\\' );
+	}
+
+	/**
+	 * Return the configured uploads base directory without validation.
+	 *
+	 * @return string Uploads base directory, or an empty string.
+	 */
+	public static function get_uploads_basedir(): string {
+		if ( ! function_exists( 'wp_upload_dir' ) ) {
+			return '';
+		}
+		$uploads = wp_upload_dir();
+		if ( ! empty( $uploads['error'] ) || empty( $uploads['basedir'] ) ) {
+			return '';
+		}
+
+		return rtrim( trim( (string) $uploads['basedir'] ), '/\\' );
+	}
+
+	/**
+	 * Return the location an administrator should inspect when storage fails.
+	 *
+	 * @return string Empty when storage is available, otherwise the parent location.
+	 */
+	public static function get_unavailable_location(): string {
+		if ( '' !== self::get_export_dir() ) {
+			return '';
+		}
+		if ( self::is_override_active() ) {
+			$overrides = self::get_override_bases();
+			$first     = $overrides[0] ?? '';
+			return '' !== $first ? $first : 'SSCRIBE_PRIVATE_STORAGE_DIR';
+		}
+		$basedir = self::get_uploads_basedir();
+
+		return '' !== $basedir ? $basedir : 'wp-content/uploads';
 	}
 
 	/**
@@ -363,7 +416,6 @@ final class SScribe_Private_Storage {
 			if (
 				false === $real
 				|| ! self::path_is_within( $real, $canonical_base, false )
-				|| ! ( self::is_acceptable_public_path( $real ) || self::is_outside_public_roots( $real ) )
 			) {
 				return false;
 			}
@@ -391,110 +443,12 @@ final class SScribe_Private_Storage {
 	}
 
 	/**
-	 * Return the configured public root, ignoring root placeholders only in CLI.
-	 *
-	 * @return string Configured public root or an empty string for a CLI placeholder.
-	 */
-	private static function get_usable_document_root(): string {
-		$document_root = isset( $_SERVER['DOCUMENT_ROOT'] )
-			? sanitize_text_field( wp_unslash( $_SERVER['DOCUMENT_ROOT'] ) ) : '';
-		return self::classify_document_root( $document_root, PHP_SAPI );
-	}
-
-	/**
-	 * Keep genuine web-server filesystem roots authoritative.
-	 *
-	 * @param string $document_root Configured document root.
-	 * @param string $sapi          PHP server API that supplied the root.
-	 * @return string Document root or an empty string for a CLI placeholder.
-	 */
-	private static function classify_document_root( string $document_root, string $sapi ): string {
-		$normalized = str_replace( '\\', '/', $document_root );
-		$is_root    = '' === rtrim( $normalized, '/' ) || preg_match( '#^[a-z]:/*$#i', $normalized );
-		if ( in_array( $sapi, array( 'cli', 'phpdbg' ), true ) && $is_root ) {
-			return '';
-		}
-		return $document_root;
-	}
-
-	/**
-	 * Return ordered candidate bases for private storage.
-	 *
-	 * An explicit SSCRIBE_PRIVATE_STORAGE_DIR is authoritative: if the
-	 * operator pins an unsafe/unwritable value we fail closed rather than
-	 * silently writing elsewhere. Without an explicit override we try the
-	 * WordPress/PHP temp locations first, then hosting-account parents that
-	 * are outside the document root. Every candidate is independently
-	 * validated before use.
-	 *
-	 * @return string[]
-	 */
-	private static function get_base_candidates(): array {
-		if ( defined( 'SSCRIBE_PRIVATE_STORAGE_DIR' ) ) {
-			return array( (string) SSCRIBE_PRIVATE_STORAGE_DIR );
-		}
-
-		$candidates = array();
-		if ( function_exists( 'get_temp_dir' ) ) {
-			$candidates[] = (string) get_temp_dir();
-		}
-		if ( function_exists( 'sys_get_temp_dir' ) ) {
-			$candidates[] = (string) sys_get_temp_dir();
-		}
-
-		$upload_tmp = ini_get( 'upload_tmp_dir' );
-		if ( is_string( $upload_tmp ) && '' !== trim( $upload_tmp ) ) {
-			$candidates[] = $upload_tmp;
-		}
-
-		// Account-home and TMPDIR locations are common writable private spots
-		// on shared hosting (site-in-subdir layouts, jailed /tmp). They go
-		// through the same strict validation as every other candidate below.
-		foreach ( array( 'HOME', 'TMPDIR', 'TMP' ) as $env_name ) {
-			$env_value = getenv( $env_name );
-			if ( is_string( $env_value ) && '' !== trim( $env_value ) ) {
-				$candidates[] = $env_value;
-			}
-		}
-
-		$document_root = self::get_usable_document_root();
-		if ( '' !== $document_root && self::is_absolute_path( $document_root ) ) {
-			// The parent of the actual web document root is a common
-			// account-private location on managed/shared hosting. Do not derive
-			// a second candidate from ABSPATH: WordPress can be symlinked or
-			// test-bootstrapped outside DOCUMENT_ROOT, and treating that unrelated
-			// parent as private would defeat the document-root boundary.
-			$candidates[] = dirname( rtrim( $document_root, '/\\' ) );
-		}
-
-		$filtered = apply_filters( 'sscribe_private_storage_base_candidates', $candidates );
-		if ( is_array( $filtered ) ) {
-			$candidates = $filtered;
-		}
-
-		$unique = array();
-		foreach ( $candidates as $candidate ) {
-			if ( ! is_string( $candidate ) ) {
-				continue;
-			}
-			$candidate = rtrim( trim( $candidate ), '/\\' );
-			if ( '' === $candidate || in_array( $candidate, $unique, true ) ) {
-				continue;
-			}
-			$unique[] = $candidate;
-		}
-
-		return $unique;
-	}
-
-	/**
 	 * Validate and canonicalize one private-storage base candidate.
 	 *
 	 * @param string $base Candidate base directory.
-	 * @param bool   $allow_public_root Allow a web-served base (hardened uploads fallback only).
 	 * @return string Canonical absolute base or an empty string when unsafe.
 	 */
-	private static function validate_base_candidate( string $base, bool $allow_public_root = false ): string {
+	private static function validate_base_candidate( string $base ): string {
 		$base = rtrim( trim( $base ), '/\\' );
 		$normalized_segments = preg_split( '#[\\\\/]+#', $base );
 		if (
@@ -518,7 +472,6 @@ final class SScribe_Private_Storage {
 			|| ! is_dir( $canonical_base )
 			|| ! wp_is_writable( $canonical_base )
 			|| ! self::is_owned_by_current_process( $canonical_base )
-			|| ( ! $allow_public_root && ! self::is_outside_public_roots( $canonical_base ) )
 		) {
 			return '';
 		}
@@ -628,7 +581,102 @@ final class SScribe_Private_Storage {
 	 */
 	public static function delete_owned_storage(): bool {
 		$root = self::get_export_dir( false );
-		return '' === $root || ! file_exists( $root ) || SScribe_Security::delete_directory( $root );
+		if ( '' === $root ) {
+			return true;
+		}
+		$deleted = ! file_exists( $root ) || SScribe_Security::delete_directory( $root );
+		if ( $deleted ) {
+			$site_dir = dirname( $root );
+			self::remove_guarded_directory( $site_dir );
+			if ( self::DIRECTORY_NAME === basename( dirname( $site_dir ) ) ) {
+				self::remove_guarded_directory( dirname( $site_dir ) );
+			}
+		}
+
+		return $deleted;
+	}
+
+	/**
+	 * Remove a directory that holds nothing except SScribe guard files.
+	 *
+	 * @param string $directory Directory path.
+	 */
+	public static function remove_guarded_directory( string $directory ): void {
+		if ( ! is_dir( $directory ) || is_link( $directory ) ) {
+			return;
+		}
+		$entries = scandir( $directory );
+		if ( ! is_array( $entries ) ) {
+			return;
+		}
+		$entries = array_values( array_diff( $entries, array( '.', '..' ) ) );
+		if ( array() !== array_diff( $entries, SScribe_Security::GUARD_FILES ) ) {
+			return;
+		}
+		foreach ( $entries as $guard_name ) {
+			$guard_path = $directory . DIRECTORY_SEPARATOR . $guard_name;
+			if ( is_file( $guard_path ) && ! is_link( $guard_path ) ) {
+				chmod( $guard_path, self::FILE_MODE ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_chmod -- Makes a plugin-owned guard file removable on Windows.
+			}
+			wp_delete_file( $guard_path );
+		}
+		self::remove_empty_directory( $directory );
+	}
+
+	/**
+	 * Move every entry of a previous storage directory into the current one.
+	 *
+	 * Links are removed rather than followed, collisions keep both copies,
+	 * and each file is copied, verified, and only then removed from the source.
+	 *
+	 * @param string $source Previous storage directory.
+	 * @param string $target Current private storage directory.
+	 * @return bool True when every entry moved.
+	 */
+	public static function move_into_storage( string $source, string $target ): bool {
+		if ( '' === $target || ! self::is_owned_path( $target ) ) {
+			return false;
+		}
+
+		return self::move_directory_contents( $source, $target );
+	}
+
+	/**
+	 * Remove a previous storage tree without following links.
+	 *
+	 * @param string $directory Directory to remove.
+	 * @param int    $depth     Current recursion depth.
+	 * @return bool True when the directory no longer exists.
+	 */
+	public static function remove_previous_tree( string $directory, int $depth = 0 ): bool {
+		if ( is_link( $directory ) ) {
+			wp_delete_file( $directory );
+			return ! self::path_exists( $directory );
+		}
+		if ( ! is_dir( $directory ) ) {
+			return ! self::path_exists( $directory );
+		}
+		if ( $depth > 20 ) {
+			return false;
+		}
+		$entries = scandir( $directory );
+		if ( false === $entries ) {
+			return false;
+		}
+		foreach ( array_diff( $entries, array( '.', '..' ) ) as $name ) {
+			$entry = $directory . DIRECTORY_SEPARATOR . $name;
+			if ( is_dir( $entry ) && ! is_link( $entry ) ) {
+				self::remove_previous_tree( $entry, $depth + 1 );
+				continue;
+			}
+			if ( is_file( $entry ) && ! is_link( $entry ) ) {
+				chmod( $entry, self::FILE_MODE ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_chmod -- Makes a plugin-owned file removable on Windows.
+			}
+			wp_delete_file( $entry );
+		}
+		self::remove_empty_directory( $directory );
+
+		return ! self::path_exists( $directory );
 	}
 
 	/**
@@ -805,27 +853,6 @@ final class SScribe_Private_Storage {
 	}
 
 	/**
-	 * Check that a path is outside every web-served WordPress root.
-	 *
-	 * @param string $path Candidate path.
-	 * @return bool True when the path is private.
-	 */
-	private static function is_outside_public_roots( string $path ): bool {
-		$document_root = self::get_usable_document_root();
-		$roots = array( ABSPATH, WP_CONTENT_DIR, $document_root );
-		$uploads = wp_upload_dir();
-		if ( empty( $uploads['error'] ) && ! empty( $uploads['basedir'] ) ) {
-			$roots[] = (string) $uploads['basedir'];
-		}
-		foreach ( array_filter( $roots ) as $root ) {
-			if ( self::path_is_within( $path, $root, true ) ) {
-				return false;
-			}
-		}
-		return true;
-	}
-
-	/**
 	 * Compare canonical paths at directory boundaries.
 	 *
 	 * @param string $path        Candidate path.
@@ -942,7 +969,7 @@ final class SScribe_Private_Storage {
 		foreach ( array_diff( $entries, array( '.', '..' ) ) as $name ) {
 			$from = $source . DIRECTORY_SEPARATOR . $name;
 			$to   = $target . DIRECTORY_SEPARATOR . $name;
-			if ( in_array( $name, array( '.htaccess', 'index.php' ), true ) && is_file( $from ) && ! is_link( $from ) ) {
+			if ( in_array( $name, SScribe_Security::GUARD_FILES, true ) && is_file( $from ) && ! is_link( $from ) ) {
 				$deny_files[] = $from;
 			} elseif ( is_link( $from ) ) {
 				wp_delete_file( $from );

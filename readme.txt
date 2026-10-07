@@ -29,7 +29,7 @@ SScribe turns WordPress pages into portable documents for content handovers, aud
 * RTL output for Arabic, Farsi, Urdu, and other Arabic-script languages
 * SEO metadata from Yoast SEO, Rank Math, All in One SEO, SEOPress, and The SEO Framework
 * Cover pages, headings, tables, lists, code blocks, and images
-* Private archive and log storage outside public web directories
+* Hardened private archive and log storage inside your uploads directory (not web-readable, served only through single-use download links)
 * Capability, ownership, nonce, and single-use download-token checks
 * Automatic cleanup of expired archives and sessions
 
@@ -67,7 +67,11 @@ Yes. Export progress and the complete normalized page-ID queue are stored in exp
 
 = Where are exported files stored? =
 
-Archives, temporary files, and logs use a site-isolated private directory outside WordPress and public upload paths. SScribe prefers validated PHP/operating-system temporary locations and can fall back to another validated non-public base or an administrator-defined private base. Existing archives from older versions are copied, hash-verified, and only then removed from the old location.
+Archives, temporary files, and logs are kept in `wp-content/uploads/sscribe-export-site-pages/` inside a per-site folder with a random name. Each folder gets `.htaccess` (Apache), `web.config` (IIS), and `index.php` deny files, and archives are only served through single-use, permission-checked download links. On nginx, add a deny rule to your server block:
+
+`location ~* /uploads/(sites/[0-9]+/)?sscribe-export-site-pages/ { deny all; }`
+
+Developers can move storage elsewhere with the `SSCRIBE_PRIVATE_STORAGE_DIR` constant. Files from earlier versions are moved once, hash-verified, and then removed from the old location.
 
 = How long are archives kept? =
 
@@ -91,7 +95,7 @@ SScribe does not connect to Simplix Innovations or any third-party service, and 
 
 == Privacy ==
 
-SScribe stores short-lived export sessions, page queues, archives, operational logs, and security audit records on the WordPress site. Archives expire after 72 hours by default; sessions and logs are cleaned on a schedule. The plugin registers WordPress personal-data exporter and eraser callbacks for user-linked records. Exported page content is not transmitted to Simplix Innovations.
+SScribe stores short-lived export sessions, page queues, and security audit records in the WordPress database, and archives and operational logs in a protected folder inside the uploads directory. Archives expire after 72 hours by default; sessions and logs are cleaned on a schedule. The plugin registers WordPress personal-data exporter and eraser callbacks for user-linked records. Exported page content is not transmitted to Simplix Innovations.
 
 Operational security records can include an HMAC-protected representation of the request IP address, user ID, action, timestamp, and result. They are used to enforce rate limits and investigate export activity.
 

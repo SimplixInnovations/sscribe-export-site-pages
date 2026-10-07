@@ -31,6 +31,7 @@ class SScribe_Upgrader {
 		$installed_version = is_scalar( $installed_version ) ? (string) $installed_version : '0';
 
 		if ( version_compare( $installed_version, SSCRIBE_VERSION, '>=' ) ) {
+			self::maybe_migrate_storage();
 			return;
 		}
 
@@ -181,6 +182,26 @@ class SScribe_Upgrader {
 
 		if ( version_compare( $from_version, '2.0.0', '<' ) && ! SScribe_Private_Storage::migrate_legacy_storage() ) {
 			throw new \RuntimeException( 'Failed while migrating export artifacts to private storage.' );
+		}
+
+		SScribe_Storage_Migration::run();
+	}
+
+	/**
+	 * Move storage written by an earlier 2.0 build into the current folder.
+	 *
+	 * Runs once per site in an operational context, independent of the schema
+	 * version, so installations already on the current version converge too.
+	 */
+	private static function maybe_migrate_storage(): void {
+		if ( SScribe_Storage_Migration::is_complete() || ! self::should_attempt_upgrade() ) {
+			return;
+		}
+
+		try {
+			SScribe_Storage_Migration::run();
+		} catch ( \Throwable $e ) {
+			self::record_upgrade_failure( $e );
 		}
 	}
 }

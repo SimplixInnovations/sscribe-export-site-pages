@@ -98,6 +98,15 @@ class SScribe_Zip_Handler {
 	}
 
 	/**
+	 * Build an unguessable archive name for exports without a usable name.
+	 *
+	 * @return string Name stem with a 32-character hexadecimal suffix.
+	 */
+	public static function fallback_zip_stem(): string {
+		return 'sscribe-export-' . gmdate( 'Y-m-d-His' ) . '-' . bin2hex( random_bytes( 16 ) );
+	}
+
+	/**
 	 * Create a ZIP archive from export files.
 	 *
 	 * @param string $source_dir    Source directory path.
@@ -132,8 +141,7 @@ class SScribe_Zip_Handler {
 		}
 
 		if ( empty( $zip_name ) ) {
-			$random_suffix = bin2hex( random_bytes( 3 ) );
-			$zip_name      = 'sscribe-export-' . gmdate( 'Y-m-d-His' ) . '-' . $random_suffix;
+			$zip_name = self::fallback_zip_stem();
 		}
 
 		$zip_stem = sanitize_file_name( $zip_name );
@@ -141,12 +149,12 @@ class SScribe_Zip_Handler {
 		$zip_stem = trim( $zip_stem, '.-_' );
 		$zip_stem = substr( $zip_stem, 0, 180 );
 		if ( '' === $zip_stem ) {
-			$zip_stem = 'sscribe-export-' . gmdate( 'Y-m-d-His' ) . '-' . bin2hex( random_bytes( 3 ) );
+			$zip_stem = self::fallback_zip_stem();
 		}
 
 		$zip_path = $this->export_dir . '/' . $zip_stem . '.zip';
 		if ( file_exists( $zip_path ) || is_link( $zip_path ) ) {
-			$zip_path = $this->export_dir . '/' . substr( $zip_stem, 0, 171 ) . '-' . bin2hex( random_bytes( 4 ) ) . '.zip';
+			$zip_path = $this->export_dir . '/' . substr( $zip_stem, 0, 167 ) . '-' . bin2hex( random_bytes( 16 ) ) . '.zip';
 		}
 
 		$all_files         = array();

@@ -19,7 +19,14 @@ if ( ! defined( 'ABSPATH' ) ) {
 class SScribe_Security {
 
 	/**
-	 * Protect a directory with .htaccess and index.php files.
+	 * Deny files written into every plugin-owned storage directory.
+	 *
+	 * @var string[]
+	 */
+	public const GUARD_FILES = array( '.htaccess', 'index.php', 'web.config' );
+
+	/**
+	 * Protect a directory with Apache, IIS, and directory-index deny files.
 	 *
 	 * @param string $dir Directory path to protect.
 	 * @throws \InvalidArgumentException|\RuntimeException When validation or directory creation fails.
@@ -36,7 +43,7 @@ class SScribe_Security {
 		// The writers below follow symlinks, so a linked guard file would let
 		// this call overwrite whatever the link points at. Remove the link entry
 		// itself and write a real file in its place.
-		foreach ( array( '.htaccess', 'index.php' ) as $guard_name ) {
+		foreach ( self::GUARD_FILES as $guard_name ) {
 			$guard_path = $dir . '/' . $guard_name;
 			if ( is_link( $guard_path ) ) {
 				wp_delete_file( $guard_path );
@@ -70,6 +77,38 @@ class SScribe_Security {
 		if ( ! file_exists( $index_path ) ) {
 			self::write_file( $index_path, "<?php\n// Silence is golden.\n", 0444 );
 		}
+
+		$web_config_path = $dir . '/web.config';
+		$web_config      = self::get_web_config();
+		$existing_config = is_file( $web_config_path ) && ! is_link( $web_config_path )
+			? file_get_contents( $web_config_path ) // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Local plugin-owned guard file.
+			: false;
+		if ( $existing_config !== $web_config ) {
+			self::write_file( $web_config_path, $web_config );
+		}
+	}
+
+	/**
+	 * Return the IIS configuration that refuses every request to a directory.
+	 *
+	 * @return string web.config contents.
+	 */
+	private static function get_web_config(): string {
+		$content  = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n";
+		$content .= "<configuration>\n";
+		$content .= "  <system.webServer>\n";
+		$content .= "    <handlers accessPolicy=\"None\" />\n";
+		$content .= "    <directoryBrowse enabled=\"false\" />\n";
+		$content .= "    <security>\n";
+		$content .= "      <authorization>\n";
+		$content .= "        <remove users=\"*\" roles=\"\" verbs=\"\" />\n";
+		$content .= "        <add accessType=\"Deny\" users=\"*\" />\n";
+		$content .= "      </authorization>\n";
+		$content .= "    </security>\n";
+		$content .= "  </system.webServer>\n";
+		$content .= "</configuration>\n";
+
+		return $content;
 	}
 
 	/**
@@ -162,12 +201,10 @@ class SScribe_Security {
 	}
 
 	/**
-	 * Initialize the WordPress Filesystem API when its bootstrap is available.
+	 * Initialize the WordPress Filesystem API.
 	 *
-	 * WordPress normally provides wp-admin/includes/file.php. Test harnesses,
-	 * recovery contexts, and unusually stripped installations may not. In that
-	 * case callers use their bounded direct-operation fallback
-	 * rather than fatalling while trying to load a file that does not exist.
+	 * Where the API cannot be initialized, callers use their bounded
+	 * direct-operation fallback.
 	 *
 	 * @return bool True when a usable global filesystem object is available.
 	 */
@@ -178,14 +215,7 @@ class SScribe_Security {
 			return true;
 		}
 
-		if ( ! function_exists( 'WP_Filesystem' ) ) {
-			$filesystem_bootstrap = ABSPATH . 'wp-admin/includes/file.php';
-			if ( is_file( $filesystem_bootstrap ) ) {
-				require_once $filesystem_bootstrap;
-			}
-		}
-
-		if ( ! function_exists( 'WP_Filesystem' ) || ! WP_Filesystem() ) {
+		if ( ! SScribe_Helpers::ensure_filesystem_api() || ! WP_Filesystem() ) {
 			return false;
 		}
 
@@ -238,10 +268,6 @@ class SScribe_Security {
 			if ( ! is_link( $uploads_base . 'sscribe' ) ) {
 				$base_dirs[] = $uploads_base . 'sscribe/mpdf-tmp';
 			}
-			// Hardened private-storage fallback layout (see
-			// SScribe_Private_Storage::resolve_hardened_uploads_dir). Named
-			// here so guard-file writes on that tree never depend on the
-			// resolver recursion below succeeding first.
 			if ( ! is_link( $uploads_base . 'sscribe-export-site-pages' ) ) {
 				$base_dirs[] = $uploads_base . 'sscribe-export-site-pages';
 			}

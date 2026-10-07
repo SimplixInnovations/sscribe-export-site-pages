@@ -220,12 +220,12 @@ final class SScribe_Post_Audit_Performance_Test extends TestCase {
 		$method = substr( $src, $start, $end - $start );
 		$this->assertStringContainsString( 'static $resolved_paths', $method );
 		$this->assertStringContainsString( 'array_key_exists( $cache_key, $resolved_paths )', $method );
-		$this->assertStringContainsString( 'clearstatcache( true, $cached_path )', $method );
-		$this->assertStringContainsString( 'realpath( $cached_path )', $method );
-		$this->assertStringContainsString( '$cached_base = self::validate_base_candidate(', $method );
-		$this->assertStringContainsString( 'self::prepare_managed_path( $cached_path, $cached_base, false )', $method );
-		$this->assertStringContainsString( '! is_link( $cached_path )', $method );
-		$this->assertStringContainsString( 'self::is_outside_public_roots( $cached_real )', $method );
+		$this->assertStringContainsString( '$bases     = self::resolve_bases();', $method );
+		$this->assertStringContainsString( 'in_array( $cached_base, $bases, true ) && self::claim_storage_path( $cached_path, $cached_base, $create )', $method );
+		$this->assertStringContainsString( 'self::prepare_managed_path( $path, $canonical_base, $create )', $method );
+		$this->assertStringContainsString( 'clearstatcache( true, $path );', $src );
+		$this->assertStringContainsString( '$real = realpath( $path );', $method );
+		$this->assertStringContainsString( '|| is_link( $path )', $method );
 		$this->assertStringContainsString( 'unset( $resolved_paths[ $cache_key ] )', $method );
 		$this->assertStringNotContainsString( '$resolved_paths[ $cache_key ] = \'\';', $method );
 	}

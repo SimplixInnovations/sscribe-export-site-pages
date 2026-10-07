@@ -497,7 +497,7 @@ final class SScribe_Private_Storage_Branches_Test extends TestCase {
 	}
 
 	// ------------------------------------------------------------------
-	// is_outside_public_roots() — DOCUMENT_ROOT empty branch (line 397).
+	// Storage resolution does not depend on DOCUMENT_ROOT.
 	// ------------------------------------------------------------------
 
 	public function test_get_export_dir_works_when_document_root_missing(): void {
@@ -539,105 +539,12 @@ final class SScribe_Private_Storage_Branches_Test extends TestCase {
 		}
 	}
 
-	public function test_web_filesystem_roots_remain_public_boundaries(): void {
-		foreach ( array( '/', 'C:/', 'C:\\' ) as $root ) {
-			self::assertSame( $root, $this->call_private( 'classify_document_root', $root, 'fpm-fcgi' ) );
-			self::assertSame( '', $this->call_private( 'classify_document_root', $root, 'cli' ) );
-		}
+	public function test_filesystem_roots_compare_at_directory_boundaries(): void {
 		self::assertSame( '/', $this->call_private( 'normalize_path', '/' ) );
 		if ( 'Windows' !== PHP_OS_FAMILY ) {
 			self::assertTrue( $this->call_private( 'path_is_within', sys_get_temp_dir(), '/', true ) );
 			self::assertFalse( $this->call_private( 'path_is_within', '/', '/', false ) );
 			self::assertTrue( $this->call_private( 'path_is_within', '/', '/', true ) );
-		}
-	}
-
-	public function test_get_usable_document_root_rejects_filesystem_roots(): void {
-		$prev = $_SERVER['DOCUMENT_ROOT'] ?? null;
-		$cases = array(
-			'/'     => '',
-			'\\'    => '',
-			'//'    => '',
-			'C:/'   => '',
-			'C:\\'  => '',
-			'C:'    => '',
-			''      => '',
-		);
-		foreach ( $cases as $raw => $expected ) {
-			$_SERVER['DOCUMENT_ROOT'] = $raw;
-			$this::assertSame(
-				$expected,
-				$this->call_private( 'get_usable_document_root' ),
-				"DOCUMENT_ROOT={$raw} must normalize to empty usable root."
-			);
-		}
-		$_SERVER['DOCUMENT_ROOT'] = '/var/www/html';
-		$this::assertSame( '/var/www/html', $this->call_private( 'get_usable_document_root' ) );
-		if ( null === $prev ) {
-			unset( $_SERVER['DOCUMENT_ROOT'] );
-		} else {
-			$_SERVER['DOCUMENT_ROOT'] = $prev;
-		}
-	}
-
-	/**
-	 * A genuine (non-root) DOCUMENT_ROOT is a real public boundary: paths
-	 * inside it must be rejected as non-private.
-	 */
-	public function test_genuine_document_root_rejects_public_paths(): void {
-		$prev   = $_SERVER['DOCUMENT_ROOT'] ?? null;
-		$public = sys_get_temp_dir() . '/sscribe-public-docroot-' . uniqid();
-		wp_mkdir_p( $public . '/wp-content/uploads' );
-		$_SERVER['DOCUMENT_ROOT'] = str_replace( '\\', '/', $public );
-		try {
-			$inside = $public . '/wp-content/uploads/sscribe-exports';
-			$this::assertFalse(
-				$this->call_private( 'is_outside_public_roots', $inside ),
-				'Paths under a genuine DOCUMENT_ROOT must be treated as public.'
-			);
-			$outside = sys_get_temp_dir() . '/sscribe-private-outside-' . uniqid();
-			$this::assertTrue(
-				$this->call_private( 'is_outside_public_roots', $outside ),
-				'Paths outside a genuine DOCUMENT_ROOT remain eligible as private.'
-			);
-			$this::assertSame(
-				str_replace( '\\', '/', $public ),
-				str_replace( '\\', '/', (string) $this->call_private( 'get_usable_document_root' ) )
-			);
-		} finally {
-			if ( null === $prev ) {
-				unset( $_SERVER['DOCUMENT_ROOT'] );
-			} else {
-				$_SERVER['DOCUMENT_ROOT'] = $prev;
-			}
-			@rmdir( $public . '/wp-content/uploads' );
-			@rmdir( $public . '/wp-content' );
-			@rmdir( $public );
-		}
-	}
-
-	public function test_synthetic_and_genuine_document_roots_are_distinguished(): void {
-		$prev = $_SERVER['DOCUMENT_ROOT'] ?? null;
-		try {
-			$_SERVER['DOCUMENT_ROOT'] = '/';
-			$this::assertSame( '', $this->call_private( 'get_usable_document_root' ) );
-			$this::assertTrue(
-				$this->call_private( 'is_outside_public_roots', sys_get_temp_dir() . '/sscribe-x-' . uniqid() ),
-				'Synthetic root "/" must not make every path public.'
-			);
-
-			$_SERVER['DOCUMENT_ROOT'] = '/var/www/html';
-			$this::assertSame( '/var/www/html', $this->call_private( 'get_usable_document_root' ) );
-			$this::assertFalse(
-				$this->call_private( 'is_outside_public_roots', '/var/www/html/uploads/x' ),
-				'Genuine root must reject public child paths.'
-			);
-		} finally {
-			if ( null === $prev ) {
-				unset( $_SERVER['DOCUMENT_ROOT'] );
-			} else {
-				$_SERVER['DOCUMENT_ROOT'] = $prev;
-			}
 		}
 	}
 

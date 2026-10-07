@@ -177,13 +177,8 @@ class SScribe_Activator {
 			return;
 		}
 
-		if ( ! function_exists( 'is_plugin_active_for_network' ) ) {
-			$plugin_functions = ABSPATH . 'wp-admin/includes/plugin.php';
-			if ( file_exists( $plugin_functions ) ) {
-				require_once $plugin_functions;
-			}
-		}
-		if ( ! function_exists( 'is_plugin_active_for_network' ) || ! is_plugin_active_for_network( SSCRIBE_PLUGIN_BASENAME ) ) {
+		$network_plugins = get_site_option( 'active_sitewide_plugins', array() );
+		if ( ! is_array( $network_plugins ) || ! isset( $network_plugins[ SSCRIBE_PLUGIN_BASENAME ] ) ) {
 			return;
 		}
 
@@ -277,9 +272,8 @@ class SScribe_Activator {
 			KEY idx_status (status)
 		) $charset_collate;";
 
-		$upgrade_functions = ABSPATH . 'wp-admin/includes/upgrade.php';
-		if ( file_exists( $upgrade_functions ) ) {
-			require_once $upgrade_functions;
+		if ( ! function_exists( 'dbDelta' ) ) {
+			require_once ABSPATH . 'wp-admin/includes/upgrade.php';
 		}
 
 		if ( ! function_exists( 'dbDelta' ) ) {
@@ -544,33 +538,25 @@ class SScribe_Activator {
 	 * permissions or ownership prevent the plugin from moving them.
 	 *
 	 * An unresolvable private-storage location is also non-fatal: activation
-	 * completes with a persistent admin warning and export endpoints keep
-	 * failing closed at runtime. Hard-aborting activation here left live
-	 * sites with a dead plugin screen over a recoverable filesystem
-	 * condition.
+	 * completes and the admin screens show a live storage notice until the
+	 * uploads directory becomes writable, while export endpoints keep failing
+	 * closed at runtime.
 	 */
 	private static function create_export_directory(): void {
+		delete_transient( 'sscribe_storage_warning' );
 		$export_path = SScribe_Private_Storage::get_export_dir();
 		if ( '' === $export_path ) {
-			set_transient(
-				'sscribe_storage_warning',
-				array(
-					'message' => __( 'SScribe could not create its private storage directory. Exports stay disabled until a writable location is available. Make the WordPress uploads directory writable, or define SSCRIBE_PRIVATE_STORAGE_DIR.', 'sscribe-export-site-pages' ),
-					'time'    => gmdate( 'Y-m-d H:i:s \\U\\T\\C' ),
-				),
-				DAY_IN_SECONDS
-			);
 			return;
 		}
-		delete_transient( 'sscribe_storage_warning' );
+		SScribe_Storage_Migration::run();
 		if ( ! SScribe_Private_Storage::migrate_legacy_storage() ) {
 			set_transient(
 				'sscribe_migration_warning',
 				array(
 					'message' => sprintf(
-						/* translators: %s: legacy directory name. */
-						__( 'SScribe could not move every legacy public artifact into private storage. Review permissions on %s and the SScribe Diagnostics screen, then re-run Migration from the Tools menu.', 'sscribe-export-site-pages' ),
-						'wp-content/uploads/sscribe-exports'
+						/* translators: %s: legacy directory name inside the uploads folder. */
+						__( 'SScribe could not move every legacy public artifact into private storage. Review permissions on the %s folder inside your uploads directory and the Diagnostics section of the Support tab on the SScribe Export screen. Deactivating and reactivating the plugin retries the move.', 'sscribe-export-site-pages' ),
+						'sscribe-exports'
 					),
 					'time'    => gmdate( 'Y-m-d H:i:s \U\T\C' ),
 				),

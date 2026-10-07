@@ -277,7 +277,7 @@ class SScribe_Logger_Enhanced extends SScribe_Logger {
 			$wpdb->last_error = '';
 			$previous_suppression = $wpdb->suppress_errors( true );
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- One-shot schema probe; result cached in $table_exists_cache.
-			$result = $wpdb->query( 'SELECT 1 FROM `' . esc_sql( $this->table_name ) . '` WHERE 1 = 0' );
+			$result = $wpdb->query( "SELECT 1 FROM `{$wpdb->prefix}sscribe_export_logs` WHERE 1 = 0" ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name is built from the trusted database prefix.
 			$last_error = trim( (string) $wpdb->last_error );
 			$wpdb->suppress_errors( (bool) $previous_suppression );
 			$this->table_exists_cache = false !== $result && '' === $last_error;
@@ -354,8 +354,8 @@ class SScribe_Logger_Enhanced extends SScribe_Logger {
 		global $wpdb;
 
 		if ( $this->table_exists() ) {
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name is already escaped via esc_sql(); DELETE FROM does not support placeholders for table names.
-			$wpdb->query( 'DELETE FROM ' . esc_sql( $this->table_name ) );
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name is built from the trusted database prefix.
+			$wpdb->query( "DELETE FROM `{$wpdb->prefix}sscribe_export_logs`" );
 		}
 
 		if ( $this->enable_file && $this->storage_available ) {
@@ -436,7 +436,7 @@ class SScribe_Logger_Enhanced extends SScribe_Logger {
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		return $wpdb->query(
 			$wpdb->prepare(
-				'DELETE FROM ' . esc_sql( $this->table_name ) . ' WHERE timestamp < %s',
+				"DELETE FROM `{$wpdb->prefix}sscribe_export_logs` WHERE timestamp < %s", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name is built from the trusted database prefix.
 				$cutoff
 			)
 		);
@@ -461,7 +461,7 @@ class SScribe_Logger_Enhanced extends SScribe_Logger {
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		return $wpdb->query(
 			$wpdb->prepare(
-				'DELETE FROM ' . esc_sql( $this->table_name ) . ' WHERE user_id = %d',
+				"DELETE FROM `{$wpdb->prefix}sscribe_export_logs` WHERE user_id = %d", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name is built from the trusted database prefix.
 				$user_id
 			)
 		);

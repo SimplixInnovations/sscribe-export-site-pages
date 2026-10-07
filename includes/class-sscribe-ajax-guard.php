@@ -27,8 +27,8 @@ class SScribe_AJAX_Guard {
 	 * @return string Sanitized request value.
 	 */
 	public static function post_text( string $key, string $default = '', int $max_length = 200 ): string {
-		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Sanitized after scalar validation below.
-		$value = isset( $_POST[ $key ] ) ? wp_unslash( $_POST[ $key ] ) : null;
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Guarded callers verify the nonce before reading request data.
+		$value = isset( $_POST[ $key ] ) && is_scalar( $_POST[ $key ] ) ? sanitize_text_field( wp_unslash( (string) $_POST[ $key ] ) ) : null;
 
 		return self::sanitize_request_text( $value, $default, $max_length );
 	}
@@ -42,8 +42,8 @@ class SScribe_AJAX_Guard {
 	 * @return string Sanitized request value.
 	 */
 	public static function get_text( string $key, string $default = '', int $max_length = 200 ): string {
-		// phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Sanitized after scalar validation below.
-		$value = isset( $_GET[ $key ] ) ? wp_unslash( $_GET[ $key ] ) : null;
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Guarded callers verify the nonce before reading request data.
+		$value = isset( $_GET[ $key ] ) && is_scalar( $_GET[ $key ] ) ? sanitize_text_field( wp_unslash( (string) $_GET[ $key ] ) ) : null;
 
 		return self::sanitize_request_text( $value, $default, $max_length );
 	}
@@ -63,9 +63,9 @@ class SScribe_AJAX_Guard {
 		int $minimum = 0,
 		int $maximum = PHP_INT_MAX
 	): int {
-		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Validated as an integer below.
-		$value = isset( $_POST[ $key ] ) ? wp_unslash( $_POST[ $key ] ) : null;
-		if ( ! is_scalar( $value ) || is_bool( $value ) ) {
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Guarded callers verify the nonce before reading request data.
+		$value = isset( $_POST[ $key ] ) && is_scalar( $_POST[ $key ] ) && ! is_bool( $_POST[ $key ] ) ? sanitize_text_field( wp_unslash( (string) $_POST[ $key ] ) ) : null;
+		if ( null === $value ) {
 			return min( $maximum, max( $minimum, $default ) );
 		}
 
@@ -85,9 +85,9 @@ class SScribe_AJAX_Guard {
 	 * @return bool Validated boolean.
 	 */
 	public static function post_boolean( string $key, bool $default = false ): bool {
-		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Validated as a boolean below.
-		$value = isset( $_POST[ $key ] ) ? wp_unslash( $_POST[ $key ] ) : null;
-		if ( ! is_scalar( $value ) || is_bool( $value ) ) {
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Guarded callers verify the nonce before reading request data.
+		$value = isset( $_POST[ $key ] ) && is_scalar( $_POST[ $key ] ) && ! is_bool( $_POST[ $key ] ) ? sanitize_text_field( wp_unslash( (string) $_POST[ $key ] ) ) : null;
+		if ( null === $value ) {
 			return $default;
 		}
 
@@ -107,8 +107,8 @@ class SScribe_AJAX_Guard {
 	 * @return array Unslashed request array or an empty array.
 	 */
 	public static function post_array( string $key, int $max_items = 100 ): array {
-		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Elements are intentionally validated by the destination-specific caller.
-		$value = isset( $_POST[ $key ] ) ? wp_unslash( $_POST[ $key ] ) : null;
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Guarded callers verify the nonce before reading request data.
+		$value = isset( $_POST[ $key ] ) && is_array( $_POST[ $key ] ) ? map_deep( wp_unslash( $_POST[ $key ] ), 'sanitize_text_field' ) : array();
 		if ( ! is_array( $value ) ) {
 			return array();
 		}
@@ -295,26 +295,9 @@ class SScribe_AJAX_Guard {
 	 * Sanitize PHP environment for AJAX responses.
 	 */
 	private static function sanitise_environment(): void {
-		self::disable_if_possible( 'display_errors', '0' );
-	}
-
-	/**
-	 * Attempt to disable a PHP configuration option.
-	 *
-	 * @param string $key   Configuration key.
-	 * @param string $value Value to set.
-	 * @return bool True if successful.
-	 */
-	private static function disable_if_possible( string $key, string $value ): bool {
-		if ( function_exists( 'ini_set' ) ) {
-			$disabled_functions = array_map( 'trim', explode( ',', (string) ini_get( 'disable_functions' ) ) );
-			if ( ! in_array( 'ini_set', $disabled_functions, true ) ) {
-				// phpcs:ignore WordPress.PHP.IniSet.Risky, Squiz.PHP.DiscouragedFunctions.Discouraged
-				@ini_set( $key, $value );
-				return true;
-			}
+		if ( ! headers_sent() ) {
+			nocache_headers();
 		}
-		return false;
 	}
 
 	/**

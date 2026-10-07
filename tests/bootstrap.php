@@ -1432,6 +1432,43 @@ if ( ! function_exists( 'get_option' ) ) {
 	}
 }
 
+if ( ! function_exists( 'map_deep' ) ) {
+	function map_deep( $sscribe_value, $sscribe_callback ) {
+		if ( is_array( $sscribe_value ) ) {
+			foreach ( $sscribe_value as $sscribe_index => $sscribe_item ) {
+				$sscribe_value[ $sscribe_index ] = map_deep( $sscribe_item, $sscribe_callback );
+			}
+			return $sscribe_value;
+		}
+		if ( is_object( $sscribe_value ) ) {
+			foreach ( get_object_vars( $sscribe_value ) as $sscribe_prop => $sscribe_item ) {
+				$sscribe_value->$sscribe_prop = map_deep( $sscribe_item, $sscribe_callback );
+			}
+			return $sscribe_value;
+		}
+		return call_user_func( $sscribe_callback, $sscribe_value );
+	}
+}
+
+if ( ! function_exists( 'nocache_headers' ) ) {
+	function nocache_headers() {
+		return null;
+	}
+}
+
+if ( ! function_exists( 'get_current_screen' ) ) {
+	function get_current_screen() {
+		return $GLOBALS['sscribe_test_current_screen'] ?? null;
+	}
+}
+
+if ( ! function_exists( 'get_site_option' ) ) {
+	function get_site_option( $sscribe_option, $sscribe_default = false, $sscribe_deprecated = true ) {
+		global $sscribe_test_site_options;
+		return isset( $sscribe_test_site_options[ $sscribe_option ] ) ? $sscribe_test_site_options[ $sscribe_option ] : $sscribe_default;
+	}
+}
+
 if ( ! function_exists( 'update_option' ) ) {
 	function update_option( $sscribe_option, $sscribe_value, $sscribe_autoload = null ) {
 		global $sscribe_test_options;

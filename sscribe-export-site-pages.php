@@ -31,22 +31,13 @@ if ( version_compare( PHP_VERSION, '8.2', '<' ) ) {
 		function () {
 			printf(
 				'<div class="notice notice-error is-dismissible"><p><strong>%1$s</strong></p><p>%2$s <code>%3$s</code></p><p>%4$s <a href="%5$s" target="_blank" rel="noopener noreferrer">%6$s</a>.</p></div>',
-				esc_html__( 'SScribe Export Site Pages has been deactivated.', 'sscribe-export-site-pages' ),
+				esc_html__( 'SScribe Export Site Pages cannot run on this server.', 'sscribe-export-site-pages' ),
 				esc_html__( 'This plugin requires PHP 8.2 or higher. Your server is running PHP', 'sscribe-export-site-pages' ),
 				esc_html( PHP_VERSION ),
 				esc_html__( 'Ask your hosting provider to upgrade PHP, or follow the WordPress guide:', 'sscribe-export-site-pages' ),
 				esc_url( 'https://make.wordpress.org/core/handbook/tutorials/upgrading-php/' ),
 				esc_html__( 'Upgrading PHP on WordPress', 'sscribe-export-site-pages' )
 			);
-		}
-	);
-	add_action(
-		'admin_init',
-		static function () {
-			if ( ! function_exists( 'deactivate_plugins' ) ) {
-				return;
-			}
-			deactivate_plugins( plugin_basename( __FILE__ ) );
 		}
 	);
 	return;
@@ -64,20 +55,11 @@ if ( version_compare( $sscribe_wp_version, '6.1', '<' ) ) {
 		function () use ( $sscribe_wp_version ) {
 			printf(
 				'<div class="notice notice-error is-dismissible"><p><strong>%1$s</strong></p><p>%2$s <code>%3$s</code></p><p>%4$s</p></div>',
-				esc_html__( 'SScribe Export Site Pages has been deactivated.', 'sscribe-export-site-pages' ),
+				esc_html__( 'SScribe Export Site Pages cannot run on this WordPress version.', 'sscribe-export-site-pages' ),
 				esc_html__( 'This plugin requires WordPress 6.1 or higher. Your installation is running', 'sscribe-export-site-pages' ),
 				esc_html( $sscribe_wp_version ),
 				esc_html__( 'Update WordPress from Dashboard → Updates before activating this plugin.', 'sscribe-export-site-pages' )
 			);
-		}
-	);
-	add_action(
-		'admin_init',
-		static function () {
-			if ( ! function_exists( 'deactivate_plugins' ) ) {
-				return;
-			}
-			deactivate_plugins( plugin_basename( __FILE__ ) );
 		}
 	);
 	return;
@@ -165,7 +147,7 @@ add_action(
 			return;
 		}
 
-		foreach ( array( 'sscribe_storage_warning', 'sscribe_migration_warning' ) as $warning_key ) {
+		foreach ( array( 'sscribe_migration_warning' ) as $warning_key ) {
 			$warning = get_transient( $warning_key );
 			if ( ! is_array( $warning ) || empty( $warning['message'] ) ) {
 				continue;

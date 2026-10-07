@@ -151,11 +151,6 @@ final class SScribe_AJAX_Guard_Input_Coverage_Test extends TestCase {
 		$this::assertSame( '1.00 GB', $result );
 	}
 
-	public function test_disable_if_possible_returns_bool(): void {
-		$result = $this->call( 'disable_if_possible', array( 'display_errors', '0' ) );
-		$this::assertIsBool( $result );
-	}
-
 	public function test_extract_message_handles_array(): void {
 		$result = $this->call( 'extract_message', array( array( 'message' => 'hi' ) ) );
 		$this::assertSame( 'hi', $result );

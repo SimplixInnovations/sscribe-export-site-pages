@@ -111,12 +111,10 @@ final class SScribe_Request_Id {
 			if ( ! isset( $_SERVER[ $key ] ) ) {
 				continue;
 			}
-			// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Unsanitized on purpose; sanitize_text_field() runs immediately below.
-			$raw = wp_unslash( $_SERVER[ $key ] );
-			if ( ! is_scalar( $raw ) ) {
+			$clean = is_scalar( $_SERVER[ $key ] ) ? sanitize_text_field( wp_unslash( (string) $_SERVER[ $key ] ) ) : '';
+			if ( '' === $clean ) {
 				continue;
 			}
-			$clean = sanitize_text_field( (string) $raw );
 			$sanitized = self::sanitize( $clean );
 			if ( null !== $sanitized ) {
 				return $sanitized;
