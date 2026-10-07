@@ -37,6 +37,9 @@
 	--ss-brand-soft: #d4e7dc;
 	--ss-brand-tint: #e8f2ec;
 	--ss-brand-mark: #68a885;
+	--ss-selected-bg: #2f6146;
+	--ss-selected-fg: #fff;
+	--ss-selected-ring: #2f6146;
 	--ss-success: #00664a;
 	--ss-success-bg: #e6f6f0;
 	--ss-success-border: #abefc6;
@@ -212,6 +215,9 @@
 	--ss-brand-soft: #24453a;
 	--ss-brand-tint: #1e3a31;
 	--ss-brand-mark: #74c49b;
+	--ss-selected-bg: #388059;
+	--ss-selected-fg: #fff;
+	--ss-selected-ring: #74c49b;
 	--ss-success: #69d39d;
 	--ss-success-bg: #123227;
 	--ss-success-border: #2c5c48;
@@ -234,6 +240,6 @@
 	/* Glyph assets ship light-safe fills; dark surfaces need light glyphs. */
 	--ss-icon-caret-down: url("data:image/svg+xml;charset=utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 16 16' fill='%23c3c4c7'%3E%3Cpath d='M8 11L3 6h10z'/%3E%3C/svg%3E");
 	--ss-icon-chevron-down: url("data:image/svg+xml;charset=utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 16 16' fill='none' stroke='%23c3c4c7' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m4 6 4 4 4-4'/%3E%3C/svg%3E");
-	--ss-icon-check-inverse: url("data:image/svg+xml;charset=utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%231d2327' stroke-width='2.25' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3.5 8.5l3 3 6-6.5'/%3E%3C/svg%3E");
-	--ss-icon-minus-inverse: url("data:image/svg+xml;charset=utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%231d2327' stroke-width='2.25' stroke-linecap='round'%3E%3Cpath d='M4 8h8'/%3E%3C/svg%3E");
+	--ss-icon-check-inverse: url("data:image/svg+xml;charset=utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23ffffff' stroke-width='2.25' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3.5 8.5l3 3 6-6.5'/%3E%3C/svg%3E");
+	--ss-icon-minus-inverse: url("data:image/svg+xml;charset=utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23ffffff' stroke-width='2.25' stroke-linecap='round'%3E%3Cpath d='M4 8h8'/%3E%3C/svg%3E");
 }

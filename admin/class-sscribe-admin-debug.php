@@ -457,6 +457,17 @@ class SScribe_Admin_Debug {
 
 		$entries = $this->parse_log_entries( $logs, $filter_level, $search, $session_id, true );
 
+		if ( array() === $entries ) {
+			SScribe_AJAX_Guard::error(
+				array(
+					'message' => __( 'There are no log entries to export.', 'sscribe-export-site-pages' ),
+					'nonce'   => wp_create_nonce( 'sscribe_export_nonce' ),
+				),
+				404
+			);
+			return;
+		}
+
 		$json_content = wp_json_encode(
 			array(
 				'entries'  => $entries,

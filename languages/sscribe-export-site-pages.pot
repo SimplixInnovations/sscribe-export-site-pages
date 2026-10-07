@@ -9,7 +9,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-10-07T15:03:33+00:00\n"
+"POT-Creation-Date: 2026-10-07T16:24:49+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.12.0\n"
 "X-Domain: sscribe-export-site-pages\n"
@@ -67,17 +67,17 @@ msgid "Invalid filename."
 msgstr ""
 
 #: admin/class-sscribe-admin-debug.php:376
-#: admin/class-sscribe-admin-debug.php:511
-#: admin/class-sscribe-admin-debug.php:629
-#: admin/class-sscribe-admin-debug.php:768
+#: admin/class-sscribe-admin-debug.php:522
+#: admin/class-sscribe-admin-debug.php:640
+#: admin/class-sscribe-admin-debug.php:779
 msgid "Private log storage is unavailable."
 msgstr ""
 
 #: admin/class-sscribe-admin-debug.php:387
 #: admin/class-sscribe-admin-debug.php:399
-#: admin/class-sscribe-admin-debug.php:641
-#: admin/class-sscribe-admin-debug.php:779
-#: admin/class-sscribe-admin-debug.php:791
+#: admin/class-sscribe-admin-debug.php:652
+#: admin/class-sscribe-admin-debug.php:790
+#: admin/class-sscribe-admin-debug.php:802
 msgid "File not found."
 msgstr ""
 
@@ -86,48 +86,52 @@ msgid "Log file is too large to export through the browser."
 msgstr ""
 
 #: admin/class-sscribe-admin-debug.php:423
-#: admin/class-sscribe-admin-debug.php:709
+#: admin/class-sscribe-admin-debug.php:720
 msgid "Failed to read file."
 msgstr ""
 
 #: admin/class-sscribe-admin-debug.php:440
-#: admin/class-sscribe-admin-debug.php:471
+#: admin/class-sscribe-admin-debug.php:482
 msgid "Failed to encode log data."
 msgstr ""
 
-#: admin/class-sscribe-admin-debug.php:554
-msgid "Unable to read the log directory."
+#: admin/class-sscribe-admin-debug.php:463
+msgid "There are no log entries to export."
 msgstr ""
 
-#: admin/class-sscribe-admin-debug.php:608
-#: admin/class-sscribe-admin-debug.php:747
-msgid "Filename required."
+#: admin/class-sscribe-admin-debug.php:565
+msgid "Unable to read the log directory."
 msgstr ""
 
 #: admin/class-sscribe-admin-debug.php:619
 #: admin/class-sscribe-admin-debug.php:758
+msgid "Filename required."
+msgstr ""
+
+#: admin/class-sscribe-admin-debug.php:630
+#: admin/class-sscribe-admin-debug.php:769
 msgid "Invalid file type."
 msgstr ""
 
-#: admin/class-sscribe-admin-debug.php:653
+#: admin/class-sscribe-admin-debug.php:664
 msgid "Unable to stat file."
 msgstr ""
 
 #. translators: %s: file size in MB
-#: admin/class-sscribe-admin-debug.php:669
+#: admin/class-sscribe-admin-debug.php:680
 #, php-format
 msgid "Rotated log is %s MB and exceeds the safe browser-read limit."
 msgstr ""
 
-#: admin/class-sscribe-admin-debug.php:804
+#: admin/class-sscribe-admin-debug.php:815
 msgid "Cannot delete the active log file."
 msgstr ""
 
-#: admin/class-sscribe-admin-debug.php:816
+#: admin/class-sscribe-admin-debug.php:827
 msgid "Failed to delete file."
 msgstr ""
 
-#: admin/class-sscribe-admin-debug.php:824
+#: admin/class-sscribe-admin-debug.php:835
 msgid "File deleted."
 msgstr ""
 
@@ -228,8 +232,8 @@ msgstr ""
 #: admin/class-sscribe-admin.php:368
 #: admin/partials/sscribe-admin-display.php:190
 #: admin/partials/sscribe-admin-display.php:937
-#: admin/js/sscribe-debug-console.js:1504
-#: admin/js/sscribe-debug-console.js:1673
+#: admin/js/sscribe-debug-console.js:1509
+#: admin/js/sscribe-debug-console.js:1678
 msgid "Export"
 msgstr ""
 
@@ -260,11 +264,11 @@ msgstr ""
 #: admin/class-sscribe-admin.php:369
 #: admin/partials/sscribe-admin-display.php:920
 #: admin/partials/sscribe-admin-display.php:1006
-#: admin/js/sscribe-debug-console.js:1505
-#: admin/js/sscribe-debug-console.js:1712
-#: admin/js/sscribe-debug-console.js:1727
-#: admin/js/sscribe-debug-console.js:1746
-#: admin/js/sscribe-debug-console.js:1776
+#: admin/js/sscribe-debug-console.js:1510
+#: admin/js/sscribe-debug-console.js:1717
+#: admin/js/sscribe-debug-console.js:1732
+#: admin/js/sscribe-debug-console.js:1751
+#: admin/js/sscribe-debug-console.js:1781
 msgid "Delete"
 msgstr ""
 
@@ -558,22 +562,22 @@ msgid "Close"
 msgstr ""
 
 #: admin/class-sscribe-admin.php:367
-#: admin/js/sscribe-debug-console.js:1503
+#: admin/js/sscribe-debug-console.js:1508
 msgid "View"
 msgstr ""
 
 #: admin/class-sscribe-admin.php:370
-#: admin/js/sscribe-debug-console.js:1506
+#: admin/js/sscribe-debug-console.js:1511
 msgid "View rotated log"
 msgstr ""
 
 #: admin/class-sscribe-admin.php:371
-#: admin/js/sscribe-debug-console.js:1507
+#: admin/js/sscribe-debug-console.js:1512
 msgid "Export rotated log"
 msgstr ""
 
 #: admin/class-sscribe-admin.php:372
-#: admin/js/sscribe-debug-console.js:1508
+#: admin/js/sscribe-debug-console.js:1513
 msgid "Delete rotated log"
 msgstr ""
 
@@ -776,7 +780,7 @@ msgid "Delete %1$d %2$s?"
 msgstr ""
 
 #: admin/class-sscribe-admin.php:425
-#: admin/js/sscribe-debug-console.js:1024
+#: admin/js/sscribe-debug-console.js:1025
 msgid "Retry"
 msgstr ""
 
@@ -1043,7 +1047,7 @@ msgstr ""
 
 #: admin/partials/sscribe-admin-debug-tab.php:149
 #: admin/js/sscribe-debug-console.js:897
-#: admin/js/sscribe-debug-console.js:1652
+#: admin/js/sscribe-debug-console.js:1657
 msgid "Loading..."
 msgstr ""
 
@@ -1074,7 +1078,7 @@ msgid "Click to expand"
 msgstr ""
 
 #: admin/partials/sscribe-admin-debug-tab.php:185
-#: admin/js/sscribe-debug-console.js:1496
+#: admin/js/sscribe-debug-console.js:1501
 msgid "No rotated log files."
 msgstr ""
 
@@ -3499,14 +3503,14 @@ msgid "Debug mode changed : reloading…"
 msgstr ""
 
 #: admin/js/sscribe-debug-console.js:814
-#: admin/js/sscribe-debug-console.js:956
-#: admin/js/sscribe-debug-console.js:982
-#: admin/js/sscribe-debug-console.js:1255
-#: admin/js/sscribe-debug-console.js:1266
-#: admin/js/sscribe-debug-console.js:1609
-#: admin/js/sscribe-debug-console.js:1623
-#: admin/js/sscribe-debug-console.js:1761
-#: admin/js/sscribe-debug-console.js:1782
+#: admin/js/sscribe-debug-console.js:957
+#: admin/js/sscribe-debug-console.js:983
+#: admin/js/sscribe-debug-console.js:1256
+#: admin/js/sscribe-debug-console.js:1267
+#: admin/js/sscribe-debug-console.js:1614
+#: admin/js/sscribe-debug-console.js:1628
+#: admin/js/sscribe-debug-console.js:1766
+#: admin/js/sscribe-debug-console.js:1787
 msgid "Error"
 msgstr ""
 
@@ -3516,8 +3520,8 @@ msgid "Error %s"
 msgstr ""
 
 #: admin/js/sscribe-debug-console.js:846
-#: admin/js/sscribe-debug-console.js:985
-#: admin/js/sscribe-debug-console.js:1268
+#: admin/js/sscribe-debug-console.js:986
+#: admin/js/sscribe-debug-console.js:1269
 msgid "Network error. Please check your connection."
 msgstr ""
 
@@ -3529,166 +3533,166 @@ msgstr ""
 msgid "Invalid response from server."
 msgstr ""
 
-#: admin/js/sscribe-debug-console.js:958
+#: admin/js/sscribe-debug-console.js:959
 msgid "Unable to load debug logs."
 msgstr ""
 
-#: admin/js/sscribe-debug-console.js:987
-#: admin/js/sscribe-debug-console.js:1270
+#: admin/js/sscribe-debug-console.js:988
+#: admin/js/sscribe-debug-console.js:1271
 msgid "Session expired. Please reload the page to continue."
 msgstr ""
 
-#: admin/js/sscribe-debug-console.js:997
-#: admin/js/sscribe-debug-console.js:1272
-#: admin/js/sscribe-debug-console.js:1340
+#: admin/js/sscribe-debug-console.js:998
+#: admin/js/sscribe-debug-console.js:1273
+#: admin/js/sscribe-debug-console.js:1341
 #, js-format
 msgid "HTTP %s"
 msgstr ""
 
-#: admin/js/sscribe-debug-console.js:1007
+#: admin/js/sscribe-debug-console.js:1008
 msgid " (unparseable response)"
 msgstr ""
 
-#: admin/js/sscribe-debug-console.js:1022
+#: admin/js/sscribe-debug-console.js:1023
 msgid "Failed to load more entries."
 msgstr ""
 
-#: admin/js/sscribe-debug-console.js:1038
+#: admin/js/sscribe-debug-console.js:1039
 #, js-format
 msgid "%d entry"
 msgid_plural "%d entries"
 msgstr[0] ""
 msgstr[1] ""
 
-#: admin/js/sscribe-debug-console.js:1076
+#: admin/js/sscribe-debug-console.js:1077
 msgid "Debug logging is disabled. Enable it in Settings above to capture logs."
 msgstr ""
 
-#: admin/js/sscribe-debug-console.js:1089
+#: admin/js/sscribe-debug-console.js:1090
 msgid "Debug is enabled but no log file exists yet. Run an export to generate logs."
 msgstr ""
 
-#: admin/js/sscribe-debug-console.js:1096
+#: admin/js/sscribe-debug-console.js:1097
 msgid "This rotated log file is empty."
 msgstr ""
 
-#: admin/js/sscribe-debug-console.js:1104
+#: admin/js/sscribe-debug-console.js:1105
 msgid "No entries match the current filters. Adjust level, search, or session above."
 msgstr ""
 
-#: admin/js/sscribe-debug-console.js:1126
+#: admin/js/sscribe-debug-console.js:1127
 #, js-format
 msgid "Debug mode is OFF. Showing %d entry from previous runs."
 msgid_plural "Debug mode is OFF. Showing %d entries from previous runs."
 msgstr[0] ""
 msgstr[1] ""
 
-#: admin/js/sscribe-debug-console.js:1184
+#: admin/js/sscribe-debug-console.js:1185
 msgid "Loading more entries..."
 msgstr ""
 
-#: admin/js/sscribe-debug-console.js:1241
+#: admin/js/sscribe-debug-console.js:1242
 msgid "Cleared!"
 msgstr ""
 
-#: admin/js/sscribe-debug-console.js:1300
+#: admin/js/sscribe-debug-console.js:1301
 msgid "Nonce refresh failed : you may need to reload the page."
 msgstr ""
 
-#: admin/js/sscribe-debug-console.js:1358
+#: admin/js/sscribe-debug-console.js:1359
 msgid "Empty response from server."
 msgstr ""
 
-#: admin/js/sscribe-debug-console.js:1377
+#: admin/js/sscribe-debug-console.js:1378
 msgid "Unknown error"
 msgstr ""
 
-#: admin/js/sscribe-debug-console.js:1380
+#: admin/js/sscribe-debug-console.js:1381
 #, js-format
 msgid "Export failed: %s"
 msgstr ""
 
-#: admin/js/sscribe-debug-console.js:1414
+#: admin/js/sscribe-debug-console.js:1419
 msgid "Nonce refresh failed : attempting export anyway."
 msgstr ""
 
-#: admin/js/sscribe-debug-console.js:1433
+#: admin/js/sscribe-debug-console.js:1438
 msgid " : exporting..."
 msgstr ""
 
-#: admin/js/sscribe-debug-console.js:1435
+#: admin/js/sscribe-debug-console.js:1440
 msgid "Export in progress : download should begin shortly"
 msgstr ""
 
-#: admin/js/sscribe-debug-console.js:1461
+#: admin/js/sscribe-debug-console.js:1466
 msgid "Loading rotated logs..."
 msgstr ""
 
-#: admin/js/sscribe-debug-console.js:1474
-#: admin/js/sscribe-debug-console.js:1485
+#: admin/js/sscribe-debug-console.js:1479
+#: admin/js/sscribe-debug-console.js:1490
 msgid "Unable to load rotated logs."
 msgstr ""
 
-#: admin/js/sscribe-debug-console.js:1487
+#: admin/js/sscribe-debug-console.js:1492
 msgid "Network error : could not load rotated logs."
 msgstr ""
 
-#: admin/js/sscribe-debug-console.js:1588
+#: admin/js/sscribe-debug-console.js:1593
 #, js-format
 msgid "%d entry (rotated)"
 msgid_plural "%d entries (rotated)"
 msgstr[0] ""
 msgstr[1] ""
 
-#: admin/js/sscribe-debug-console.js:1595
+#: admin/js/sscribe-debug-console.js:1600
 #, js-format
 msgid "Viewing archived log: %s"
 msgstr ""
 
-#: admin/js/sscribe-debug-console.js:1598
+#: admin/js/sscribe-debug-console.js:1603
 msgid "Back to current log"
 msgstr ""
 
-#: admin/js/sscribe-debug-console.js:1613
-#: admin/js/sscribe-debug-console.js:1624
+#: admin/js/sscribe-debug-console.js:1618
+#: admin/js/sscribe-debug-console.js:1629
 msgid "Unable to open rotated log."
 msgstr ""
 
-#: admin/js/sscribe-debug-console.js:1677
+#: admin/js/sscribe-debug-console.js:1682
 msgid "Downloading..."
 msgstr ""
 
-#: admin/js/sscribe-debug-console.js:1679
+#: admin/js/sscribe-debug-console.js:1684
 msgid "Exporting rotated log..."
 msgstr ""
 
-#: admin/js/sscribe-debug-console.js:1723
+#: admin/js/sscribe-debug-console.js:1728
 msgid "Click to confirm"
 msgstr ""
 
-#: admin/js/sscribe-debug-console.js:1742
+#: admin/js/sscribe-debug-console.js:1747
 msgid "Deleting..."
 msgstr ""
 
-#: admin/js/sscribe-debug-console.js:1825
+#: admin/js/sscribe-debug-console.js:1830
 msgid "... [truncated]"
 msgstr ""
 
-#: admin/js/sscribe-debug-console.js:1829
+#: admin/js/sscribe-debug-console.js:1834
 #, js-format
 msgid "[unserializable: %s]"
 msgstr ""
 
-#: admin/js/sscribe-debug-console.js:1853
+#: admin/js/sscribe-debug-console.js:1858
 #, js-format
 msgid "%1$s entry at %2$s"
 msgstr ""
 
-#: admin/js/sscribe-debug-console.js:1854
+#: admin/js/sscribe-debug-console.js:1859
 msgid "log"
 msgstr ""
 
-#: admin/js/sscribe-debug-console.js:1887
+#: admin/js/sscribe-debug-console.js:1892
 #, js-format
 msgid "Toggle context for: %s"
 msgstr ""

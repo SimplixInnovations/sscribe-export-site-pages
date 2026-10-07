@@ -31,7 +31,7 @@ class SScribe_Helpers {
 	 */
 	private static array $icon_cache = array();
 
-	private const KNOWN_ICONS = array( 'check', 'chevron-down', 'clock', 'download', 'download-package', 'eye', 'file-doc', 'file-html', 'file-log', 'file-md', 'file-pdf', 'file-search', 'file-text', 'globe', 'info', 'refresh-cw', 'search', 'settings', 'warning-circle', 'x', 'loader' );
+	private const KNOWN_ICONS = array( 'check', 'chevron-down', 'clock', 'download', 'download-package', 'eye', 'file-doc', 'file-html', 'file-log', 'file-md', 'file-pdf', 'file-search', 'file-text', 'globe', 'info', 'refresh-cw', 'search', 'settings', 'warning-circle', 'x', 'loader', 'article', 'check-circle', 'copy', 'list', 'warning' );
 
 
 

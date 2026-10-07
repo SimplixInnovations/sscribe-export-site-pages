@@ -947,6 +947,7 @@
 					self.hasMoreEntries = self.currentOffset < totalCount;
 					self.lastEntryCount = totalCount;
 					self.$clearBtn.prop('disabled', totalCount <= 0);
+					self.$exportBtn.prop('disabled', totalCount <= 0);
 					self.entryCountText(totalCount);
 					if (!self.hasMoreEntries) {
 						self.destroyObserver();
@@ -1386,6 +1387,10 @@
 		exportLogs: function () {
 			const self = this;
 			if (!this.hasRequiredDom() || !sscribe_data || !sscribe_data.nonce) {
+				return;
+			}
+			if (!this.isViewingRotated && this.lastEntryCount <= 0) {
+				this.$exportBtn.prop('disabled', true);
 				return;
 			}
 			const wasAutoRefresh = this.isAutoRefresh;
