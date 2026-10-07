@@ -100,6 +100,19 @@ Filters the data collected for one page before it is exported. Parameters: `(arr
 
 Filters page HTML before the DOCX parser reads it. Parameters: `(string $html)`.
 
+### `sscribe_strip_unrendered_shortcodes`
+
+Whether shortcodes that are still present in rendered content (their plugin or
+builder is inactive) are removed before parsing. Only lowercase tags that carry
+attributes, close themselves, or have a matching closing tag are treated as
+shortcodes; their inner content is kept and bracketed prose such as `[sic]`,
+`[1]` or `[USD]` is left alone. Default: `true`.
+
+The parser also turns iframes, video, audio, object and embed elements into a
+paragraph linking to their source, drops decorative inline SVG and icon-font
+glyphs, promotes lazy-loaded image sources over placeholder data URIs, and
+keeps whitespace inside `<pre>` blocks.
+
 ### `sscribe_html_export_show_seo`
 
 Show an "SEO Metadata" box in the body of HTML exports. Default: `false`. Parameters: `(bool $show, array $page_data)`. The meta description, canonical URL, and robots tags are always written to the HTML head.
