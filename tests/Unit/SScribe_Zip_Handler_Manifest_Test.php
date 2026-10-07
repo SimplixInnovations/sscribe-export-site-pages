@@ -94,6 +94,10 @@ class SScribe_Zip_Handler_Manifest_Test extends TestCase {
 		}
 		$zip->close();
 		$this->assertNotContains( SScribe_Export_Manifest::SIDECAR_NAME, $names, 'the JSONL sidecar must never ship inside the archive' );
+		$this->assertContains( SScribe_Export_Manifest::LLMS_ENTRY, $names );
+		$llms = $this->read_entry( $zip_path, SScribe_Export_Manifest::LLMS_ENTRY );
+		$this->assertStringContainsString( '- [Hello](https://example.test/hello/)', $llms );
+		$this->assertNotContains( SScribe_Export_Manifest::LLMS_FULL, $names, 'no Markdown documents, so no llms-full.txt' );
 
 		wp_delete_file( $zip_path );
 	}

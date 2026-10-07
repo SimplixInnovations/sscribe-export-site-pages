@@ -178,11 +178,81 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 	 */
 	private function generate_markdown( array $page_data ): string {
 		$include_frontmatter = '1' === (string) $this->get_format_option( 'sscribe_md_include_frontmatter', '1' );
+		$preset              = SScribe_Markdown_Front_Matter::normalize_preset( $this->get_format_option( 'sscribe_md_frontmatter_preset', SScribe_Markdown_Front_Matter::PRESET_SSCRIBE ) );
 
-		$md  = $include_frontmatter ? $this->generate_frontmatter( $page_data ) : '';
+		if ( ! $include_frontmatter || SScribe_Markdown_Front_Matter::PRESET_NONE === $preset ) {
+			$md = '';
+		} elseif ( SScribe_Markdown_Front_Matter::PRESET_SSCRIBE === $preset ) {
+			$md = $this->generate_frontmatter( $page_data );
+		} else {
+			$md = SScribe_Markdown_Front_Matter::render( $preset, $this->preset_fields( $page_data ) );
+		}
+
 		$md .= $this->html_to_markdown( $this->normalize_scalar( $page_data['content'] ?? '' ) );
 
 		return $md;
+	}
+
+	/**
+	 * Collect the normalized fields a front matter preset needs.
+	 *
+	 * Dates come from WordPress when it is loaded so they carry a real
+	 * timezone; the collector's display dates are the fallback.
+	 *
+	 * @param array $page_data Page data.
+	 * @return array<string, mixed>
+	 */
+	private function preset_fields( array $page_data ): array {
+		$page_id   = isset( $page_data['id'] ) && is_numeric( $page_data['id'] ) ? absint( $page_data['id'] ) : 0;
+		$published = $this->normalize_scalar( $page_data['date_published'] ?? '' );
+		$modified  = $this->normalize_scalar( $page_data['date_modified'] ?? '' );
+		$status    = 'publish';
+		$post_type = '';
+
+		if ( $page_id > 0 ) {
+			if ( function_exists( 'get_post_time' ) ) {
+				$stamp     = get_post_time( 'U', true, $page_id );
+				$published = is_numeric( $stamp ) ? (int) $stamp : $published;
+			}
+			if ( function_exists( 'get_post_modified_time' ) ) {
+				$stamp    = get_post_modified_time( 'U', true, $page_id );
+				$modified = is_numeric( $stamp ) ? (int) $stamp : $modified;
+			}
+			if ( function_exists( 'get_post_status' ) ) {
+				$found  = get_post_status( $page_id );
+				$status = is_string( $found ) && '' !== $found ? $found : $status;
+			}
+			if ( function_exists( 'get_post_type' ) ) {
+				$found     = get_post_type( $page_id );
+				$post_type = is_string( $found ) ? $found : '';
+			}
+		}
+
+		$seo         = isset( $page_data['seo'] ) && is_array( $page_data['seo'] ) ? $page_data['seo'] : array();
+		$description = $this->normalize_scalar( $seo['meta_description'] ?? '' );
+		if ( '' === $description ) {
+			$description = $this->normalize_scalar( $page_data['excerpt'] ?? '' );
+		}
+
+		$featured = '1' === (string) $this->get_format_option( 'sscribe_md_include_featured_image', '1' )
+			? $this->normalize_scalar( $page_data['featured_image_url'] ?? '' )
+			: '';
+
+		return array(
+			'title'          => $this->normalize_scalar( $page_data['title'] ?? '', __( 'Untitled', 'sscribe-export-site-pages' ) ),
+			'slug'           => $this->normalize_scalar( $page_data['slug'] ?? '' ),
+			'url'            => $this->normalize_scalar( $page_data['permalink'] ?? '' ),
+			'author'         => $this->normalize_scalar( $page_data['author'] ?? '' ),
+			'published'      => $published,
+			'modified'       => $modified,
+			'status'         => $status,
+			'post_type'      => $post_type,
+			'language'       => $this->normalize_scalar( $page_data['language'] ?? '' ),
+			'description'    => $description,
+			'featured_image' => $featured,
+			'canonical_url'  => $this->normalize_scalar( $seo['canonical_url'] ?? '' ),
+			'post_id'        => $page_id,
+		);
 	}
 
 	/**

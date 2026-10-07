@@ -195,6 +195,18 @@ Scheduled hook that removes stale sessions and durable page queues.
 
 Scheduled hook that removes expired audit-trail rows.
 
+## Markdown front matter presets
+
+The Markdown exporter reads the format option `sscribe_md_frontmatter_preset`
+(admin select, or `wp sscribe export --md-preset=<preset>`). `sscribe` is the
+plugin's full metadata block and stays the default; `hugo`, `jekyll`, `astro`
+and `obsidian` emit the keys those tools expect (UTC ISO 8601 dates, `draft`
+or `published` flags, `permalink`, `heroImage`, `aliases` and so on) and omit
+the duplicated H1 and source line from the body; `none` writes no front
+matter. Every preset adds an `sscribe:` block with the source URL, post id,
+post type and language so a migrated file can be traced back. Presets are
+built by `SScribe_Markdown_Front_Matter::render()`.
+
 ## Archive manifest
 
 Every archive carries two generated entries at its root:

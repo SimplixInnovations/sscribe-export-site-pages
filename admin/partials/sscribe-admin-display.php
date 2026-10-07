@@ -539,6 +539,14 @@ if ( ! function_exists( 'sscribe_humanize_export_filename' ) ) {
 									<input type="checkbox" name="sscribe_md_include_frontmatter" id="sscribe-md-include-frontmatter" value="1" checked>
 									<span><?php esc_html_e( 'Include YAML frontmatter', 'sscribe-export-site-pages' ); ?></span>
 								</label>
+								<label class="sscribe-format-option-field">
+									<span class="sscribe-format-option-label"><?php esc_html_e( 'Front matter layout', 'sscribe-export-site-pages' ); ?></span>
+									<select name="sscribe_md_frontmatter_preset" id="sscribe-md-frontmatter-preset">
+										<?php foreach ( SScribe_Markdown_Front_Matter::labels() as $sscribe_preset_key => $sscribe_preset_label ) : ?>
+											<option value="<?php echo esc_attr( $sscribe_preset_key ); ?>"><?php echo esc_html( $sscribe_preset_label ); ?></option>
+										<?php endforeach; ?>
+									</select>
+								</label>
 								<label class="sscribe-format-option-field sscribe-format-option-checkbox">
 									<input type="checkbox" name="sscribe_md_include_featured_image" id="sscribe-md-include-featured-image" value="1" checked>
 									<span><?php esc_html_e( 'Include featured image', 'sscribe-export-site-pages' ); ?></span>

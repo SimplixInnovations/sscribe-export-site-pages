@@ -388,6 +388,7 @@ final class SScribe_Batch_Processor implements SScribe_Export_Pipeline_Interface
 				'title'     => (string) ( $page_data['title'] ?? '' ),
 				'url'       => (string) ( $page_data['permalink'] ?? '' ),
 				'modified'  => $modified,
+				'excerpt'   => (string) ( $page_data['seo']['meta_description'] ?? $page_data['excerpt'] ?? '' ),
 			)
 		);
 	}
@@ -620,6 +621,7 @@ final class SScribe_Batch_Processor implements SScribe_Export_Pipeline_Interface
 		'sscribe_html_include_css',
 		'sscribe_html_responsive_images',
 		'sscribe_md_absolute_urls',
+		'sscribe_md_frontmatter_preset',
 		'sscribe_md_include_featured_image',
 		'sscribe_md_include_frontmatter',
 		'sscribe_pdf_include_images',

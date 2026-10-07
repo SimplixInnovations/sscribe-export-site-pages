@@ -25,6 +25,10 @@ final class SScribe_Export_Manifest {
 	public const SIDECAR_NAME = '.sscribe-manifest.jsonl';
 	public const JSON_ENTRY   = 'manifest.json';
 	public const INDEX_ENTRY  = 'INDEX.md';
+	public const LLMS_ENTRY   = 'llms.txt';
+	public const LLMS_FULL    = 'llms-full.txt';
+
+	private const MAX_EXCERPT_LENGTH = 300;
 
 	private const MAX_SIDECAR_BYTES = 16777216;
 	private const MAX_TITLE_LENGTH  = 500;
@@ -162,6 +166,9 @@ final class SScribe_Export_Manifest {
 				'sha256' => false === $sha256 ? null : $sha256,
 				'post'   => $post,
 			);
+			if ( null !== $record && '' !== $record['excerpt'] ) {
+				$files[ count( $files ) - 1 ]['post']['excerpt'] = $record['excerpt'];
+			}
 
 			$bytes                += $size;
 			$by_format[ $format ]  = ( $by_format[ $format ] ?? 0 ) + 1;
@@ -299,6 +306,108 @@ final class SScribe_Export_Manifest {
 	}
 
 	/**
+	 * Render llms.txt (llmstxt.org): one line per source post with its
+	 * canonical URL and excerpt, so an AI tool can index the site from the
+	 * archive alone.
+	 *
+	 * @param array $manifest Manifest document.
+	 * @return string
+	 */
+	public static function render_llms_txt( array $manifest ): string {
+		$site   = (array) ( $manifest['site'] ?? array() );
+		$export = (array) ( $manifest['export'] ?? array() );
+		$seen   = array();
+		$items  = array();
+
+		foreach ( (array) ( $manifest['files'] ?? array() ) as $file ) {
+			$post = $file['post'] ?? null;
+			if ( ! is_array( $post ) ) {
+				continue;
+			}
+			$key = (string) ( $post['id'] ?? '' ) . '|' . (string) ( $file['lang'] ?? '' );
+			if ( isset( $seen[ $key ] ) ) {
+				continue;
+			}
+			$seen[ $key ] = true;
+			$title        = self::single_line( (string) ( $post['title'] ?? '' ) );
+			$url          = (string) ( $post['url'] ?? '' );
+			$excerpt      = self::single_line( (string) ( $post['excerpt'] ?? '' ) );
+			$line         = '- [' . str_replace( array( '[', ']' ), array( '\\[', '\\]' ), $title ) . '](' . self::md_link_target( $url ) . ')';
+			if ( '' !== $excerpt ) {
+				$line .= ': ' . $excerpt;
+			}
+			$lang = (string) ( $file['lang'] ?? '' );
+			$items[ $lang ][] = $line;
+		}
+
+		$lines   = array();
+		$lines[] = '# ' . self::single_line( (string) ( $site['name'] ?? '' ) );
+		$lines[] = '';
+		$lines[] = '> ' . sprintf(
+			'Content export of %s generated %s. Each entry links to the live page; the matching documents are listed in %s.',
+			(string) ( $site['url'] ?? '' ),
+			(string) ( $export['created_utc'] ?? '' ),
+			self::JSON_ENTRY
+		);
+
+		ksort( $items );
+		foreach ( $items as $lang => $entries ) {
+			$lines[] = '';
+			$lines[] = '## ' . ( '' !== $lang ? 'Pages (' . $lang . ')' : 'Pages' );
+			$lines[] = '';
+			foreach ( $entries as $entry ) {
+				$lines[] = $entry;
+			}
+		}
+
+		$lines[] = '';
+		return implode( "\n", $lines );
+	}
+
+	/**
+	 * Render llms-full.txt: every Markdown document in the archive joined
+	 * into one file, front matter removed, each section headed by the page
+	 * title and source URL.
+	 *
+	 * @param array    $manifest Manifest document.
+	 * @param callable $reader   Takes an archive path and returns the Markdown body.
+	 * @return string Empty when the archive has no Markdown documents.
+	 */
+	public static function render_llms_full( array $manifest, callable $reader ): string {
+		$sections = array();
+		foreach ( (array) ( $manifest['files'] ?? array() ) as $file ) {
+			if ( 'markdown' !== (string) ( $file['format'] ?? '' ) ) {
+				continue;
+			}
+			$body = (string) $reader( (string) ( $file['path'] ?? '' ) );
+			$body = trim( (string) preg_replace( '/\A---\R(?:.*?\R)?---\R*/s', '', $body ) );
+			if ( '' === $body ) {
+				continue;
+			}
+			$post    = is_array( $file['post'] ?? null ) ? $file['post'] : array();
+			$title   = self::single_line( (string) ( $post['title'] ?? pathinfo( (string) $file['path'], PATHINFO_FILENAME ) ) );
+			$url     = (string) ( $post['url'] ?? '' );
+			$heading = '# ' . $title . ( '' !== $url ? "\n\nSource: " . $url : '' );
+			$sections[] = $heading . "\n\n" . $body;
+		}
+		if ( array() === $sections ) {
+			return '';
+		}
+		return implode( "\n\n---\n\n", $sections ) . "\n";
+	}
+
+	/**
+	 * Collapse whitespace and strip tags for a one-line context.
+	 *
+	 * @param string $text Raw text.
+	 * @return string
+	 */
+	private static function single_line( string $text ): string {
+		$text = wp_strip_all_tags( $text );
+		return trim( (string) preg_replace( '/\s+/u', ' ', $text ) );
+	}
+
+	/**
 	 * Coerce a raw record into the stored shape.
 	 *
 	 * @param array  $record Raw record.
@@ -317,6 +426,7 @@ final class SScribe_Export_Manifest {
 			'title'     => mb_substr( wp_strip_all_tags( (string) ( $record['title'] ?? '' ) ), 0, self::MAX_TITLE_LENGTH ),
 			'url'       => mb_substr( $url, 0, self::MAX_URL_LENGTH ),
 			'modified'  => (string) ( $record['modified'] ?? '' ),
+			'excerpt'   => mb_substr( trim( (string) preg_replace( '/\s+/u', ' ', wp_strip_all_tags( (string) ( $record['excerpt'] ?? '' ) ) ) ), 0, self::MAX_EXCERPT_LENGTH ),
 		);
 	}
 
