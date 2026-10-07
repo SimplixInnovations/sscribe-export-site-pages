@@ -352,7 +352,7 @@ final class SScribe_Private_Storage {
 		}
 		$basedir = self::get_uploads_basedir();
 
-		return '' !== $basedir ? $basedir : 'wp-content/uploads';
+		return '' !== $basedir ? $basedir : __( 'the uploads directory', 'sscribe-export-site-pages' );
 	}
 
 	/**
