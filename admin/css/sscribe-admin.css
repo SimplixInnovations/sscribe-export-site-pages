@@ -1317,6 +1317,12 @@ so the user sees both at a glance. */
 	color: var(--ss-text-inverse);
 }
 
+.sscribe-master-container a.sscribe-button-primary > span,
+.sscribe-master-container a.sscribe-button-success > span,
+.sscribe-master-container a.sscribe-button-danger > span {
+	color: var(--ss-text-inverse);
+}
+
 .sscribe-master-container a.sscribe-button-outline,
 .sscribe-master-container a.sscribe-button-outline:visited {
 	color: var(--ss-brand);
@@ -1336,16 +1342,6 @@ so the user sees both at a glance. */
 .sscribe-button-danger:hover:not(:disabled) {
 	background: var(--ss-error-hover);
 	border-color: var(--ss-error-hover);
-}
-
-.sscribe-button-cancel {
-	background: transparent;
-	color: var(--ss-error);
-	border-color: var(--ss-error-border);
-}
-
-.sscribe-button-cancel:hover:not(:disabled) {
-	background: var(--ss-error-bg);
 }
 
 .sscribe-button-icon {
@@ -3231,7 +3227,7 @@ body.rtl .sscribe-progress-bar-fill {
 
 .sscribe-log-table {
 	width: 100%;
-	min-width: 640px;
+	min-width: 100%;
 	border-collapse: separate;
 	border-spacing: 0;
 	font-size: var(--ss-text-body);
@@ -3243,6 +3239,8 @@ body.rtl .sscribe-progress-bar-fill {
 }
 
 .sscribe-log-table-wrap {
+	width: 100%;
+	flex: 1 1 auto;
 	overflow-x: auto;
 	border-radius: var(--ss-radius-md);
 	background: var(--ss-surface);
@@ -3633,16 +3631,24 @@ body.rtl .sscribe-progress-bar-fill {
 	letter-spacing: var(--ss-tracking-xs);
 }
 
+.sscribe-button.sscribe-button-cancel,
 .sscribe-button.sscribe-cancel-btn {
-	background: transparent;
+	background: var(--ss-error-bg);
 	color: var(--ss-error);
-	border-color: var(--ss-error-border);
+	border-color: var(--ss-error);
 }
 
+.sscribe-button.sscribe-button-cancel:hover:not(:disabled),
 .sscribe-button.sscribe-cancel-btn:hover:not(:disabled) {
-	background: var(--ss-error-bg);
-	border-color: var(--ss-error-border);
-	color: var(--ss-error);
+	background: var(--ss-error);
+	border-color: var(--ss-error);
+	color: var(--ss-text-inverse);
+}
+
+.sscribe-button.sscribe-button-cancel:focus-visible,
+.sscribe-button.sscribe-cancel-btn:focus-visible {
+	outline: 2px solid var(--ss-error);
+	outline-offset: 2px;
 }
 
 .sscribe-button.sscribe-new-export-btn,
