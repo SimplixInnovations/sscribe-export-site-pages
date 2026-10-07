@@ -25,10 +25,14 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+require_once __DIR__ . '/trait-sscribe-export-outcome-emitter.php';
+
 /**
  * Batch step handler : processes one chunk of pages per AJAX call.
  */
 trait SScribe_Batch_Step_Handler {
+
+	use SScribe_Export_Outcome_Emitter;
 
 	/**
 	 * Process a batch of pages via AJAX.
@@ -52,6 +56,22 @@ trait SScribe_Batch_Step_Handler {
 			}
 		}
 
+		$session_id = SScribe_AJAX_Guard::post_text( 'session_id', '', 16 );
+		$this->emit_export_outcome( $this->process_batch_step( $session_id, new SScribe_Ajax_Export_Context() ) );
+	}
+
+	/**
+	 * Process one batch of pages for a session and return what happened.
+	 *
+	 * Works the same for the AJAX handler and for callers outside a request,
+	 * such as WP-CLI or cron, which pass their own context.
+	 *
+	 * @param string                           $session_id Export session ID.
+	 * @param SScribe_Export_Context_Interface $context    Who is running the export and how.
+	 * @return SScribe_Export_Outcome
+	 */
+	public function process_batch_step( string $session_id, SScribe_Export_Context_Interface $context ): SScribe_Export_Outcome {
+
 		$last_heal = get_transient( 'sscribe_last_self_heal' );
 		if ( ! $last_heal || time() - (int) $last_heal > 60 ) {
 			$this->get_diagnostics()->self_heal();
@@ -64,13 +84,8 @@ trait SScribe_Batch_Step_Handler {
 		// write, silently losing the session and breaking resume. The
 		// download stream already pins this (SScribe_Batch_File_Handler);
 		// the state machine needs the same guarantee.
-		ignore_user_abort( true );
-
 		$max_time = (int) apply_filters( 'sscribe_max_execution_time', 150 );
-		if ( function_exists( 'set_time_limit' ) ) {
-				set_time_limit( $max_time ); // phpcs:ignore Squiz.PHP.DiscouragedFunctions.Discouraged
-		}
-		wp_raise_memory_limit( 'admin' );
+		$context->prepare_long_request( $max_time );
 
 		$ob_level_before = ob_get_level();
 		ob_start();
@@ -78,10 +93,9 @@ trait SScribe_Batch_Step_Handler {
 		$batch_start_time = microtime( true );
 		$batch_duration  = 0.0;
 		try {
-			$session_id = SScribe_AJAX_Guard::post_text( 'session_id', '', 16 );
 			if ( 1 !== preg_match( '/^[a-f0-9]{16}$/D', $session_id ) ) {
 				$this->restore_ob_level( $ob_level_before );
-				SScribe_AJAX_Guard::error(
+				return SScribe_Export_Outcome::fail(
 					array(
 						'code'    => 'invalid_session_id',
 						'message' => __( 'Invalid export session identifier.', 'sscribe-export-site-pages' ),
@@ -107,7 +121,7 @@ trait SScribe_Batch_Step_Handler {
 					)
 				);
 				$this->restore_ob_level( $ob_level_before );
-				SScribe_AJAX_Guard::error(
+				return SScribe_Export_Outcome::fail(
 					array(
 						'code'    => 'session_expired',
 						'message' => __( 'Export session expired or not found. Please start again.', 'sscribe-export-site-pages' ),
@@ -121,7 +135,7 @@ trait SScribe_Batch_Step_Handler {
 
 			if ( ! $this->validate_session_ownership( $session, $session_id ) ) {
 				$this->restore_ob_level( $ob_level_before );
-				SScribe_AJAX_Guard::error(
+				return SScribe_Export_Outcome::fail(
 					array(
 						'code'    => 'session_ownership',
 						'message' => __( 'Invalid session access.', 'sscribe-export-site-pages' ),
@@ -140,7 +154,7 @@ trait SScribe_Batch_Step_Handler {
 					)
 				);
 				$this->restore_ob_level( $ob_level_before );
-				SScribe_AJAX_Guard::error(
+				return SScribe_Export_Outcome::fail(
 					array(
 						'code'    => 'session_corrupt',
 						'message' => __( 'Export session data corrupted. Please start again.', 'sscribe-export-site-pages' ),
@@ -154,7 +168,7 @@ trait SScribe_Batch_Step_Handler {
 			if ( null === $this->current_lock_token ) {
 				$this->logger->debug( 'Lock acquisition failed : another process holds the lock', array( 'session_id' => $session_id ) );
 				$this->restore_ob_level( $ob_level_before );
-				\SScribe_Lock_Response::emit_conflict( $session_id, 5000 );
+				return SScribe_Export_Outcome::lock_conflict( $session_id, 5000 );
 			}
 
 			$lock_token = $this->current_lock_token;
@@ -163,7 +177,7 @@ trait SScribe_Batch_Step_Handler {
 			if ( null === $session ) {
 				$this->get_lock_manager()->release_lock( $session_id, $lock_token );
 				$this->restore_ob_level( $ob_level_before );
-				SScribe_AJAX_Guard::error(
+				return SScribe_Export_Outcome::fail(
 					array(
 						'code'    => 'session_expired',
 						'message' => __( 'Export session expired during lock acquisition.', 'sscribe-export-site-pages' ),
@@ -185,7 +199,7 @@ trait SScribe_Batch_Step_Handler {
 				// client's cancelled branch. HTTP 499 made
 				// jQuery treat it as an error and retry into "session
 				// expired" instead of showing the cancelled state.
-				SScribe_AJAX_Guard::error(
+				return SScribe_Export_Outcome::fail(
 					array(
 						'code'      => 'cancelled',
 						'message'   => __( 'Export was cancelled.', 'sscribe-export-site-pages' ),
@@ -213,7 +227,7 @@ trait SScribe_Batch_Step_Handler {
 			if ( in_array( 'pdf', $formats, true ) && function_exists( 'set_time_limit' ) ) {
 				$pdf_max_time = (int) apply_filters( 'sscribe_pdf_max_execution_time', 150 );
 
-				set_time_limit( $pdf_max_time ); // phpcs:ignore Squiz.PHP.DiscouragedFunctions.Discouraged
+				$context->prepare_long_request( $pdf_max_time );
 			}
 
 			$pause_hint = isset( $session['last_pause_reason'] ) ? $session['last_pause_reason'] : '';
@@ -223,7 +237,7 @@ trait SScribe_Batch_Step_Handler {
 			if ( '' === $allowed_temp_base ) {
 				$this->release_lock( $session_id, $lock_token );
 				$this->restore_ob_level( $ob_level_before );
-				SScribe_AJAX_Guard::error(
+				return SScribe_Export_Outcome::fail(
 					array( 'message' => __( 'Private export storage is unavailable.', 'sscribe-export-site-pages' ) ),
 					500
 				);
@@ -236,7 +250,7 @@ trait SScribe_Batch_Step_Handler {
 			if ( ! $path_valid ) {
 				$this->release_lock( $session_id, $lock_token );
 				$this->restore_ob_level( $ob_level_before );
-				SScribe_AJAX_Guard::error(
+				return SScribe_Export_Outcome::fail(
 					array( 'message' => __( 'Export session corrupted (invalid temp directory path). Please start again.', 'sscribe-export-site-pages' ) ),
 					500
 				);
@@ -248,7 +262,7 @@ trait SScribe_Batch_Step_Handler {
 				if ( ! $filesystem->mkdir( (string) $temp_dir ) ) {
 					$this->release_lock( $session_id, $lock_token );
 					$this->restore_ob_level( $ob_level_before );
-					SScribe_AJAX_Guard::error(
+					return SScribe_Export_Outcome::fail(
 						array( 'message' => __( 'Private export storage is unavailable.', 'sscribe-export-site-pages' ) ),
 						500
 					);
@@ -276,7 +290,7 @@ trait SScribe_Batch_Step_Handler {
 			if ( ! $path_valid ) {
 				$this->release_lock( $session_id, $lock_token );
 				$this->restore_ob_level( $ob_level_before );
-				SScribe_AJAX_Guard::error(
+				return SScribe_Export_Outcome::fail(
 					array(
 						'message' => __( 'Export session corrupted (invalid temp directory path). Please start again.', 'sscribe-export-site-pages' ),
 					),
@@ -328,11 +342,10 @@ trait SScribe_Batch_Step_Handler {
 				$this->restore_ob_level( $ob_level_before );
 
 				try {
-					$this->finalize_export( $session_id, $session, $lock_token );
+					return $this->finalize_export( $session_id, $session, $lock_token, $context );
 				} finally {
 					$this->release_lock( $session_id, $lock_token );
 				}
-				return;
 			}
 
 			$current_page_title      = '';
@@ -345,9 +358,7 @@ trait SScribe_Batch_Step_Handler {
 			$lock_lost               = false;
 
 			$batch_time_limit = (int) apply_filters( 'sscribe_max_execution_time', 150 );
-			if ( function_exists( 'set_time_limit' ) ) {
-				set_time_limit( $batch_time_limit ); // phpcs:ignore Squiz.PHP.DiscouragedFunctions.Discouraged
-			}
+			$context->prepare_long_request( $batch_time_limit );
 
 			wp_suspend_cache_invalidation( true );
 
@@ -825,7 +836,7 @@ trait SScribe_Batch_Step_Handler {
 			}
 
 			if ( $session_update_failed ) {
-				SScribe_AJAX_Guard::error(
+				return SScribe_Export_Outcome::fail(
 					array(
 						'message' => __( 'Export progress could not be saved. The batch can be retried safely.', 'sscribe-export-site-pages' ),
 						'retry'   => true,
@@ -867,7 +878,7 @@ trait SScribe_Batch_Step_Handler {
 				$update_data['status']            = 'finalizing';
 				if ( ! $this->session->update( $session_id, $update_data ) ) {
 					$this->logger->error( 'Final session update failed', array( 'session_id' => $session_id ) );
-					SScribe_AJAX_Guard::error(
+					return SScribe_Export_Outcome::fail(
 						array(
 							'message' => __( 'Export completion state could not be saved. Please retry this step.', 'sscribe-export-site-pages' ),
 							'retry'   => true,
@@ -882,18 +893,17 @@ trait SScribe_Batch_Step_Handler {
 				}
 
 				$this->restore_ob_level( $ob_level_before );
-				SScribe_AJAX_Guard::success(
-					array(
-						'status'            => 'finalizing',
-						'processed'         => $processed,
-						'total'             => $total,
-						'percentage'        => 95,
-						'message'           => __( 'Packaging files into ZIP archive...', 'sscribe-export-site-pages' ),
-						'time_remaining'    => 0,
-						'error_diagnostics' => $error_diagnostics ? $error_diagnostics : null,
-					)
+				$finalizing_payload = array(
+					'status'            => 'finalizing',
+					'processed'         => $processed,
+					'total'             => $total,
+					'percentage'        => 95,
+					'message'           => __( 'Packaging files into ZIP archive...', 'sscribe-export-site-pages' ),
+					'time_remaining'    => 0,
+					'error_diagnostics' => $error_diagnostics ? $error_diagnostics : null,
 				);
-				return;
+				$context->report_progress( $finalizing_payload );
+				return SScribe_Export_Outcome::ok( $finalizing_payload );
 			}
 
 			$response = $this->build_batch_response(
@@ -913,7 +923,8 @@ trait SScribe_Batch_Step_Handler {
 				$response['cancelled'] = true;
 			}
 
-			SScribe_AJAX_Guard::success( $response );
+			$context->report_progress( $response );
+			return SScribe_Export_Outcome::ok( $response );
 		} finally {
 			$this->restore_ob_level( $ob_level_before );
 		}

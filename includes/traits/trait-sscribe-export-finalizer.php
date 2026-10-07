@@ -14,6 +14,7 @@
  *  - the count_temp_dir_files() helper for lock-TTL sizing
  *  - the build_error_diagnostics_payload() helper for failure responses
  *  - the release_lock() helper used in the failure paths
+ *  - emit_export_outcome(), which comes with the batch step handler trait
  *  - the static cleanup state properties (cleanup_temp_dir,
  *    cleanup_zip_handler, cleanup_logger) for shutdown coordination
  *  - the session_handler collaborator for the catch-all finalize races
@@ -52,9 +53,20 @@ trait SScribe_Export_Finalizer {
 		}
 
 		$session_id = SScribe_AJAX_Guard::post_text( 'session_id', '', 16 );
+		$this->emit_export_outcome( $this->finalize_session( $session_id, new SScribe_Ajax_Export_Context( false ) ) );
+	}
+
+	/**
+	 * Check that a session is ready to finalize, then package it.
+	 *
+	 * @param string                           $session_id Export session ID.
+	 * @param SScribe_Export_Context_Interface $context    Who is running the export and how.
+	 * @return SScribe_Export_Outcome
+	 */
+	public function finalize_session( string $session_id, SScribe_Export_Context_Interface $context ): SScribe_Export_Outcome {
 
 		if ( empty( $session_id ) ) {
-			SScribe_AJAX_Guard::error(
+			return SScribe_Export_Outcome::fail(
 				array(
 					'code'    => 'invalid_session_id',
 					'message' => __( 'Invalid session.', 'sscribe-export-site-pages' ),
@@ -66,7 +78,7 @@ trait SScribe_Export_Finalizer {
 		$session = $this->session->get( $session_id );
 
 		if ( ! $session ) {
-			SScribe_AJAX_Guard::error(
+			return SScribe_Export_Outcome::fail(
 				array(
 					'code'    => 'session_expired',
 					'message' => __( 'Export session not found. Please start again.', 'sscribe-export-site-pages' ),
@@ -76,14 +88,13 @@ trait SScribe_Export_Finalizer {
 		}
 
 		if ( ! $this->validate_session_ownership( $session, $session_id ) ) {
-			SScribe_AJAX_Guard::error(
+			return SScribe_Export_Outcome::fail(
 				array(
 					'code'    => 'session_ownership',
 					'message' => __( 'Invalid session access.', 'sscribe-export-site-pages' ),
 				),
 				403
 			);
-			return;
 		}
 
 		$status = $session['status'] ?? '';
@@ -97,25 +108,23 @@ trait SScribe_Export_Finalizer {
 					'error'  => 'Previous export failed and was automatically cleared.',
 				)
 			);
-			SScribe_AJAX_Guard::error(
+			return SScribe_Export_Outcome::fail(
 				array(
 					'code'    => 'session_cleared',
 					'message' => __( 'Previous export failed and was cleared. Please try again.', 'sscribe-export-site-pages' ),
 				),
 				410
 			);
-			return;
 		}
 
 		if ( 'finalizing' !== $status && 'completing' !== $status ) {
-			SScribe_AJAX_Guard::error(
+			return SScribe_Export_Outcome::fail(
 				array(
 					'code'    => 'not_finalizing',
 					'message' => __( 'Export is not in the finalizing state.', 'sscribe-export-site-pages' ),
 				),
 				409
 			);
-			return;
 		}
 
 		$file_count = $this->count_temp_dir_files( $session['temp_dir'] );
@@ -124,14 +133,13 @@ trait SScribe_Export_Finalizer {
 			$lock_token = $this->get_lock_manager()->acquire_lock( $session_id, $lock_ttl, (int) ( $lock_ttl * 0.85 ) );
 		if ( null === $lock_token ) {
 			$this->logger->debug( 'Finalize race detected : another request holds the lock', array( 'session_id' => $session_id ) );
-			SScribe_AJAX_Guard::error(
+			return SScribe_Export_Outcome::fail(
 				array(
 					'code'    => 'race_detected',
 					'message' => __( 'Export is being finalized by another request. Please wait.', 'sscribe-export-site-pages' ),
 				),
 				409
 			);
-			return;
 		}
 
 		if ( 'completing' === $status ) {
@@ -139,20 +147,18 @@ trait SScribe_Export_Finalizer {
 			$completing_since = $session['completing_since'] ?? 0;
 			if ( $completing_since > 0 && ( time() - $completing_since ) < $lock_ttl ) {
 				$this->release_lock( $session_id, $lock_token );
-				SScribe_AJAX_Guard::error(
+				return SScribe_Export_Outcome::fail(
 					array(
 						'code'    => 'already_completing',
 						'message' => __( 'Export is already being finalized. Please wait.', 'sscribe-export-site-pages' ),
 					),
 					409
 				);
-
-				return;
 			}
 		}
 
 		try {
-			$this->finalize_export( $session_id, $session, $lock_token );
+			return $this->finalize_export( $session_id, $session, $lock_token, $context );
 		} catch ( \Throwable $e ) {
 			$this->logger->error(
 				'Finalize export threw exception',
@@ -164,7 +170,7 @@ trait SScribe_Export_Finalizer {
 				)
 			);
 			$this->release_lock( $session_id, $lock_token );
-			SScribe_AJAX_Guard::error(
+			return SScribe_Export_Outcome::fail(
 				array(
 					'code'    => 'finalize_exception',
 					'message' => __( 'Export finalization failed. Please try again.', 'sscribe-export-site-pages' ),
@@ -177,11 +183,13 @@ trait SScribe_Export_Finalizer {
 	/**
 	 * Complete the export process and package files.
 	 *
-	 * @param string      $session_id Export session ID.
-	 * @param array       $session    Session data.
-	 * @param string|null $lock_token Optional lock token to release on completion.
+	 * @param string                           $session_id Export session ID.
+	 * @param array                            $session    Session data.
+	 * @param string|null                      $lock_token Lock token to release on completion.
+	 * @param SScribe_Export_Context_Interface $context    Who is running the export and how.
+	 * @return SScribe_Export_Outcome
 	 */
-	private function finalize_export( string $session_id, array $session, ?string $lock_token = null ): void {
+	private function finalize_export( string $session_id, array $session, ?string $lock_token, SScribe_Export_Context_Interface $context ): SScribe_Export_Outcome {
 
 		self::$cleanup_temp_dir    = null;
 		self::$cleanup_zip_handler = null;
@@ -205,7 +213,7 @@ trait SScribe_Export_Finalizer {
 				array( 'session_id' => $session_id )
 			);
 			$this->release_lock( $session_id, $lock_token );
-			SScribe_AJAX_Guard::error(
+			return SScribe_Export_Outcome::fail(
 				array(
 					'code'    => 'session_state_persist_failed',
 					'message' => __( 'Export finalization failed. Please try again.', 'sscribe-export-site-pages' ),
@@ -218,11 +226,7 @@ trait SScribe_Export_Finalizer {
 
 		$this->logger->set_session_id( $session_id );
 
-		if ( function_exists( 'set_time_limit' ) ) {
-
-			// phpcs:ignore Squiz.PHP.DiscouragedFunctions.Discouraged
-			set_time_limit( 300 );
-		}
+		$context->prepare_long_request( 300 );
 
 		$this->logger->debug(
 			'=== FINALIZE EXPORT ===',
@@ -323,7 +327,7 @@ trait SScribe_Export_Finalizer {
 				$this->release_lock( $session_id, $lock_token );
 				$this->get_diagnostics()->self_heal();
 
-				SScribe_AJAX_Guard::error(
+				return SScribe_Export_Outcome::fail(
 					array(
 						'message'   => __( 'No files were generated : all pages failed to export. Check the export format selected and try again.', 'sscribe-export-site-pages' ),
 						'guidance'  => __( 'If you selected PDF format, verify that the PDF export works before running a bulk export. Try exporting a single page first.', 'sscribe-export-site-pages' ),
@@ -346,14 +350,13 @@ trait SScribe_Export_Finalizer {
 					array( 'session_id' => $session_id )
 				);
 				$this->release_lock( $session_id, $lock_token );
-				SScribe_AJAX_Guard::error(
+				return SScribe_Export_Outcome::fail(
 					array(
 						'code'    => 'race_detected',
 						'message' => __( 'Export finalization ownership changed. Please retry.', 'sscribe-export-site-pages' ),
 					),
 					409
 				);
-				return;
 			}
 
 			$zip_path = $this->zip_handler->create_zip( $session['temp_dir'], $zip_name, $formats, $has_language, $lang_metadata, $session_id );
@@ -428,7 +431,7 @@ trait SScribe_Export_Finalizer {
 					);
 				}
 
-				SScribe_AJAX_Guard::error( $error_response, 500 );
+				return SScribe_Export_Outcome::fail( $error_response, 500 );
 			}
 
 			$zip             = new ZipArchive();
@@ -485,7 +488,7 @@ trait SScribe_Export_Finalizer {
 
 				$this->release_lock( $session_id, $lock_token );
 
-				SScribe_AJAX_Guard::error(
+				return SScribe_Export_Outcome::fail(
 					array(
 						'message'   => __( 'Export packaging failed : the ZIP archive was empty. Please try again.', 'sscribe-export-site-pages' ),
 						'guidance'  => __( 'This can happen if temporary export files were deleted before packaging completed. Click "Try Again" to restart the export.', 'sscribe-export-site-pages' ),
@@ -647,7 +650,8 @@ trait SScribe_Export_Finalizer {
 
 			$this->session->delete( $session_id );
 			$this->release_lock( $session_id, $lock_token );
-			SScribe_AJAX_Guard::success( $response );
+			$context->report_progress( $response );
+			return SScribe_Export_Outcome::ok( $response );
 		} catch ( \Throwable $e ) {
 			$this->logger->error(
 				'Finalize export crashed',
@@ -663,7 +667,7 @@ trait SScribe_Export_Finalizer {
 			$this->session->update( $session_id, array( 'status' => 'finalizing' ) );
 			$this->release_lock( $session_id, $lock_token );
 
-			SScribe_AJAX_Guard::error(
+			return SScribe_Export_Outcome::fail(
 				array(
 					'message'   => __( 'Export finalization failed. Please try again.', 'sscribe-export-site-pages' ),
 					'guidance'  => __( 'An unexpected error occurred while packaging the export. Click "Try Again" to resume from where it left off.', 'sscribe-export-site-pages' ),

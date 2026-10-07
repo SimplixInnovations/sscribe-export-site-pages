@@ -81,7 +81,7 @@ $exempt_callsites = array(
 	// [relative_file => line => 'temp' annotation]
 	'includes/class-sscribe-exporter.php'                => array( 480 => 'phpword tempdir — transient working file' ),
 	'includes/class-sscribe-zip-handler.php'             => array( 57  => 'zip tempdir — transient working file' ),
-	'includes/traits/trait-sscribe-batch-step-handler.php' => array( 207 => 'batch tempdir — transient working file' ),
+	'includes/traits/trait-sscribe-batch-step-handler.php' => array( 231 => 'batch tempdir — transient working file' ),
 	'includes/exporters/class-sscribe-pdf-exporter.php'  => array( 619 => 'mpdf tempdir — transient working file' ),
 );
 

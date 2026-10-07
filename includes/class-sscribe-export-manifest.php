@@ -299,6 +299,8 @@ final class SScribe_Export_Manifest {
 	}
 
 	/**
+	 * Coerce a raw record into the stored shape.
+	 *
 	 * @param array  $record Raw record.
 	 * @param string $file   Sanitized relative path.
 	 * @param string $format Sanitized format key.

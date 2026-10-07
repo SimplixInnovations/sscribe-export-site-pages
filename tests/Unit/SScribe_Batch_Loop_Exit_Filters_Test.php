@@ -545,8 +545,9 @@ class Batch_Loop_Host {
 		);
 	}
 
-	private function finalize_export( string $session_id, array $session, $lock_token ): void {
-		unset( $session_id, $session, $lock_token );
+	private function finalize_export( string $session_id, array $session, $lock_token, \SScribe_Export_Context_Interface $context ): \SScribe_Export_Outcome {
+		unset( $session_id, $session, $lock_token, $context );
+		return \SScribe_Export_Outcome::ok();
 	}
 
 	private function build_error_diagnostics_payload( array $structured_errors, array $string_errors = array() ): array {
