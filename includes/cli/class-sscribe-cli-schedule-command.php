@@ -91,6 +91,12 @@ final class SScribe_CLI_Schedule_Command {
 	 * [--notify]
 	 * : Email the owner after every run.
 	 *
+	 * [--destination=<id>]
+	 * : Send every archive to this destination as well. See wp sscribe destinations.
+	 *
+	 * [--destination-settings=<json>]
+	 * : Destination settings as a JSON object. Passwords are stored encrypted.
+	 *
 	 * [--owner=<user>]
 	 * : Login or id of the user the export runs as. Defaults to --user.
 	 *
@@ -101,6 +107,7 @@ final class SScribe_CLI_Schedule_Command {
 	 *
 	 *     wp sscribe schedule add --user=admin --label="Nightly docs" --frequency=daily --hour=2 --formats=docx,markdown
 	 *     wp sscribe schedule add --user=admin --label="Weekly changes" --frequency=weekly --weekday=1 --incremental --notify
+	 *     wp sscribe schedule add --user=admin --label="Offsite" --frequency=daily --destination=s3 --destination-settings='{"region":"eu-west-1","bucket":"backups","access_key":"AKIA...","secret_key":"..."}'
 	 *
 	 * @param array<int, string>    $args       Positional arguments, unused.
 	 * @param array<string, string> $assoc_args Options.
@@ -329,6 +336,7 @@ final class SScribe_CLI_Schedule_Command {
 		if ( ! is_string( $formats ) || '' === trim( $formats ) ) {
 			$formats = self::DEFAULT_FORMATS;
 		}
+		$destination = SScribe_CLI_Destination_Args::parse( $assoc_args );
 
 		$schedule = SScribe_Schedule::from_array(
 			array(
@@ -347,6 +355,7 @@ final class SScribe_CLI_Schedule_Command {
 				'owner_user_id'  => $owner_id,
 				'enabled'        => true,
 				'created_at'     => $now,
+				'destinations'   => null === $destination ? array() : array( $destination ),
 			)
 		);
 

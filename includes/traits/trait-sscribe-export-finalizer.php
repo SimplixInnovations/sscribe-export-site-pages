@@ -650,6 +650,7 @@ trait SScribe_Export_Finalizer {
 
 			$this->session->delete( $session_id );
 			$this->release_lock( $session_id, $lock_token );
+			$this->announce_completed( $zip_path, $response, $session );
 			$context->report_progress( $response );
 			return SScribe_Export_Outcome::ok( $response );
 		} catch ( \Throwable $e ) {
@@ -677,6 +678,28 @@ trait SScribe_Export_Finalizer {
 					),
 				),
 				500
+			);
+		}
+	}
+
+	/**
+	 * Tell listeners an archive is ready, without letting one of them undo the export.
+	 *
+	 * @param string               $zip_path Absolute path of the archive.
+	 * @param array<string, mixed> $response Finished export payload.
+	 * @param array<string, mixed> $session  Export session.
+	 * @return void
+	 */
+	private function announce_completed( string $zip_path, array $response, array $session ): void {
+		try {
+			do_action( 'sscribe_export_completed', $zip_path, $response, $session );
+		} catch ( \Throwable $e ) {
+			$this->logger->error(
+				'A sscribe_export_completed listener failed',
+				array(
+					'session_id'      => (string) ( $response['session_id'] ?? '' ),
+					'exception_class' => get_class( $e ),
+				)
 			);
 		}
 	}

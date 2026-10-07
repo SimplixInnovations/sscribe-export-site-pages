@@ -52,6 +52,7 @@ final class SScribe_Scheduler {
 	 * @param callable|null                          $owner_is_busy  Called with a user id; the session store is asked when null.
 	 * @param float|null                             $time_budget    Seconds per slice; worked out from the environment when null.
 	 * @param int                                    $retry_sleep_ms Wait between retries of a busy batch step.
+	 * @param SScribe_Destination_Dispatcher|null    $dispatcher     Sends archives to the schedule's destinations; a default one when null.
 	 */
 	public function __construct(
 		private readonly SScribe_Schedule_Store $store,
@@ -59,7 +60,8 @@ final class SScribe_Scheduler {
 		private readonly ?SScribe_Zip_Handler $zip_handler = null,
 		?callable $owner_is_busy = null,
 		private readonly ?float $time_budget = null,
-		private readonly int $retry_sleep_ms = 500
+		private readonly int $retry_sleep_ms = 500,
+		private readonly ?SScribe_Destination_Dispatcher $dispatcher = null
 	) {
 		$this->owner_is_busy = $owner_is_busy ?? array( self::class, 'user_has_active_session' );
 	}
@@ -291,10 +293,12 @@ final class SScribe_Scheduler {
 	}
 
 	/**
-	 * Record a successful run, tag and prune its archives, then notify.
+	 * Record a successful run, deliver, tag and prune its archives, then notify.
 	 *
 	 * The watermark for the next incremental run is the start of this one,
-	 * so posts edited while it ran are picked up next time.
+	 * so posts edited while it ran are picked up next time. The run counts
+	 * as a success even when delivery fails, because the archive exists;
+	 * the failure is kept in last_error when no destination took it.
 	 *
 	 * @param SScribe_Schedule         $schedule   Schedule that ran.
 	 * @param string                   $session_id Session the run used, empty when none was needed.
@@ -309,8 +313,10 @@ final class SScribe_Scheduler {
 
 		$now      = time();
 		$basename = self::clean_basename( (string) ( $payload['filename'] ?? '' ) );
+		$delivery = array();
 		if ( '' !== $basename ) {
 			$this->tag_archive( $current, $basename, $now );
+			$delivery = $this->deliver( $current, $basename, $payload );
 		}
 
 		$updated = $current->with(
@@ -318,7 +324,8 @@ final class SScribe_Scheduler {
 				'last_run_at'     => $current->run_started_at > 0 ? $current->run_started_at : $now,
 				'last_run_status' => 'success',
 				'last_run_file'   => $basename,
-				'last_error'      => '',
+				'last_error'      => self::delivery_error( $delivery ),
+				'last_delivery'   => self::strip_paths( SScribe_Destination_Dispatcher::summarize( $delivery ) ),
 				'running_session' => '',
 				'run_started_at'  => 0,
 				'next_run_at'     => $current->compute_next_run( $now, wp_timezone()->getName() ),
@@ -330,9 +337,65 @@ final class SScribe_Scheduler {
 			$this->apply_retention( $updated, $basename, $now );
 		}
 
-		$this->notify( $updated, $payload );
+		SScribe_Schedule_Notifier::notify( $updated, array_merge( $payload, array( 'delivery' => $delivery ) ) );
 
 		do_action( 'sscribe_schedule_completed', $updated, $payload );
+	}
+
+	/**
+	 * Send a finished archive to the schedule's destinations.
+	 *
+	 * @param SScribe_Schedule         $schedule Schedule that ran.
+	 * @param string                   $basename ZIP filename.
+	 * @param array<string|int, mixed> $payload  Finished export payload.
+	 * @return list<array{id: string, ok: bool, message: string}>
+	 */
+	private function deliver( SScribe_Schedule $schedule, string $basename, array $payload ): array {
+		if ( array() === $schedule->destinations ) {
+			return array();
+		}
+
+		try {
+			$zip_path = SScribe_Destination_Dispatcher::archive_path( $this->zip()->get_export_dir(), $basename );
+		} catch ( \InvalidArgumentException $e ) {
+			$zip_path = '';
+		}
+		if ( '' === $zip_path ) {
+			$missing = __( 'The archive could not be found for delivery.', 'sscribe-export-site-pages' );
+			return array_map(
+				static fn( array $entry ): array => array(
+					'id'      => $entry['id'],
+					'ok'      => false,
+					'message' => $missing,
+				),
+				$schedule->destinations
+			);
+		}
+
+		$dispatcher = $this->dispatcher ?? new SScribe_Destination_Dispatcher();
+		$context    = SScribe_Destination_Dispatcher::context_from_payload( $zip_path, $payload, $schedule->id );
+
+		return $dispatcher->deliver_all( $zip_path, $context, $schedule->destinations );
+	}
+
+	/**
+	 * The error to keep when every destination failed, or an empty string.
+	 *
+	 * @param array<int, array{id: string, ok: bool, message: string}> $results Delivery results.
+	 * @return string
+	 */
+	private static function delivery_error( array $results ): string {
+		if ( array() === $results || in_array( true, array_column( $results, 'ok' ), true ) ) {
+			return '';
+		}
+
+		return self::strip_paths(
+			sprintf(
+				/* translators: %s: Summary of each failed delivery. */
+				__( 'The archive was made but could not be delivered: %s', 'sscribe-export-site-pages' ),
+				SScribe_Destination_Dispatcher::summarize( $results )
+			)
+		);
 	}
 
 	/**
@@ -386,7 +449,7 @@ final class SScribe_Scheduler {
 			'code'    => $code,
 			'message' => $message,
 		);
-		$this->notify( $updated, $failure );
+		SScribe_Schedule_Notifier::notify( $updated, $failure );
 
 		do_action( 'sscribe_schedule_failed', $updated, $code, $message );
 
@@ -559,95 +622,6 @@ final class SScribe_Scheduler {
 				);
 			}
 		}
-	}
-
-	/**
-	 * Email the owner about a finished or failed run.
-	 *
-	 * @param SScribe_Schedule         $schedule Schedule after the run.
-	 * @param array<string|int, mixed> $payload  Export payload, or code and message for a failure.
-	 * @return void
-	 */
-	private function notify( SScribe_Schedule $schedule, array $payload ): void {
-		if ( ! $schedule->notify ) {
-			return;
-		}
-
-		$user = get_userdata( $schedule->owner_user_id );
-		$mail = apply_filters(
-			'sscribe_schedule_notification',
-			array(
-				'to'      => $user instanceof WP_User ? (string) $user->user_email : '',
-				'subject' => self::notification_subject( $schedule ),
-				'message' => self::notification_body( $schedule, $payload ),
-			),
-			$schedule,
-			$payload
-		);
-
-		if ( ! is_array( $mail ) || empty( $mail['to'] ) || ! is_string( $mail['to'] ) ) {
-			return;
-		}
-
-		if ( ! wp_mail( $mail['to'], (string) ( $mail['subject'] ?? '' ), (string) ( $mail['message'] ?? '' ) ) ) {
-			self::logger()->warning( 'Schedule notification email was not sent', array( 'schedule_id' => $schedule->id ) );
-		}
-	}
-
-	/**
-	 * Subject line of the notification email.
-	 *
-	 * @param SScribe_Schedule $schedule Schedule after the run.
-	 * @return string
-	 */
-	private static function notification_subject( SScribe_Schedule $schedule ): string {
-		$site = html_entity_decode( (string) get_bloginfo( 'name' ), ENT_QUOTES, 'UTF-8' );
-
-		if ( 'success' === $schedule->last_run_status ) {
-			/* translators: 1: Site name, 2: Schedule label. */
-			$format = __( '[%1$s] Scheduled export "%2$s" finished', 'sscribe-export-site-pages' );
-		} else {
-			/* translators: 1: Site name, 2: Schedule label. */
-			$format = __( '[%1$s] Scheduled export "%2$s" failed', 'sscribe-export-site-pages' );
-		}
-
-		return sprintf( $format, $site, $schedule->label );
-	}
-
-	/**
-	 * Body of the notification email.
-	 *
-	 * @param SScribe_Schedule         $schedule Schedule after the run.
-	 * @param array<string|int, mixed> $payload  Export payload, or code and message for a failure.
-	 * @return string
-	 */
-	private static function notification_body( SScribe_Schedule $schedule, array $payload ): string {
-		$errors = $payload['errors'] ?? 0;
-		$lines  = array(
-			/* translators: %s: Schedule label. */
-			sprintf( __( 'Schedule: %s', 'sscribe-export-site-pages' ), $schedule->label ),
-			/* translators: %s: Run status, success or failed. */
-			sprintf( __( 'Status: %s', 'sscribe-export-site-pages' ), 'success' === $schedule->last_run_status ? __( 'success', 'sscribe-export-site-pages' ) : __( 'failed', 'sscribe-export-site-pages' ) ),
-		);
-
-		if ( 'success' === $schedule->last_run_status ) {
-			/* translators: %d: Number of pages exported. */
-			$lines[] = sprintf( __( 'Pages: %d', 'sscribe-export-site-pages' ), (int) ( $payload['pages'] ?? 0 ) );
-			/* translators: %d: Number of pages that failed to export. */
-			$lines[] = sprintf( __( 'Errors: %d', 'sscribe-export-site-pages' ), is_array( $errors ) ? count( $errors ) : (int) $errors );
-			$lines[] = '' !== $schedule->last_run_file
-				/* translators: %s: ZIP filename. */
-				? sprintf( __( 'File: %s', 'sscribe-export-site-pages' ), $schedule->last_run_file )
-				: __( 'No archive was made because nothing changed since the last run.', 'sscribe-export-site-pages' );
-		} else {
-			/* translators: %s: Error message. */
-			$lines[] = sprintf( __( 'Error: %s', 'sscribe-export-site-pages' ), $schedule->last_error );
-		}
-
-		/* translators: %s: URL of the export history page. */
-		$lines[] = sprintf( __( 'Export history: %s', 'sscribe-export-site-pages' ), admin_url( 'admin.php?page=sscribe-export&tab=history' ) );
-
-		return implode( "\n", $lines ) . "\n";
 	}
 
 	/**

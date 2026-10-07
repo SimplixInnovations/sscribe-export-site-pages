@@ -1797,6 +1797,31 @@ if ( ! function_exists( 'wp_safe_remote_get' ) ) {
 	}
 }
 
+if ( ! function_exists( 'wp_remote_request' ) ) {
+	/**
+	 * Test stub for wp_remote_request() that records every call.
+	 *
+	 * Calls are appended to $GLOBALS['sscribe_test_http_requests'] as
+	 * array( 'url' => ..., 'args' => ... ). The reply comes from
+	 * $GLOBALS['sscribe_test_http_request_response']: a callable gets the
+	 * URL and arguments, anything else is returned as is, and nothing set
+	 * yields a WP_Error like a site without an HTTP transport.
+	 */
+	function wp_remote_request( $url, $args = array() ) {
+		$GLOBALS['sscribe_test_http_requests'][] = array(
+			'url'  => $url,
+			'args' => $args,
+		);
+
+		$configured = $GLOBALS['sscribe_test_http_request_response'] ?? null;
+		if ( is_callable( $configured ) ) {
+			return $configured( $url, $args );
+		}
+
+		return null === $configured ? new WP_Error( 'no_response', 'No mock HTTP response configured.' ) : $configured;
+	}
+}
+
 if ( ! function_exists( 'wp_remote_retrieve_response_code' ) ) {
 	function wp_remote_retrieve_response_code( $response ) {
 		return (int) ( $response['response']['code'] ?? 0 );
@@ -2194,6 +2219,10 @@ if ( ! function_exists( 'wp_delete_file' ) ) {
 		}
 		return false;
 	}
+}
+
+if ( ! defined( 'MB_IN_BYTES' ) ) {
+	define( 'MB_IN_BYTES', 1048576 );
 }
 
 if ( ! defined( 'DAY_IN_SECONDS' ) ) {

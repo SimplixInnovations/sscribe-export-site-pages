@@ -177,6 +177,20 @@ final class SScribe_Schedule {
 	public readonly string $last_error;
 
 	/**
+	 * Summary of where the last archive was delivered.
+	 *
+	 * @var string
+	 */
+	public readonly string $last_delivery;
+
+	/**
+	 * Where each archive is sent, with password fields sealed.
+	 *
+	 * @var list<array{id: string, settings: array<string, string|bool>}>
+	 */
+	public readonly array $destinations;
+
+	/**
 	 * When the schedule is next due.
 	 *
 	 * @var int
@@ -203,6 +217,13 @@ final class SScribe_Schedule {
 	 * @param array<string, mixed> $values Validated values keyed by property name.
 	 */
 	private function __construct( array $values ) {
+		/**
+		 * Destinations already checked by SScribe_Destination_Settings::for_storage().
+		 *
+		 * @var list<array{id: string, settings: array<string, string|bool>}> $destinations
+		 */
+		$destinations = $values['destinations'];
+
 		$this->id              = (string) $values['id'];
 		$this->label           = (string) $values['label'];
 		$this->language        = (string) $values['language'];
@@ -224,6 +245,8 @@ final class SScribe_Schedule {
 		$this->last_run_status = (string) $values['last_run_status'];
 		$this->last_run_file   = (string) $values['last_run_file'];
 		$this->last_error      = (string) $values['last_error'];
+		$this->last_delivery   = (string) $values['last_delivery'];
+		$this->destinations    = $destinations;
 		$this->next_run_at     = (int) $values['next_run_at'];
 		$this->running_session = (string) $values['running_session'];
 		$this->run_started_at  = (int) $values['run_started_at'];
@@ -231,6 +254,9 @@ final class SScribe_Schedule {
 
 	/**
 	 * Build a schedule from loosely typed input such as stored options or CLI arguments.
+	 *
+	 * Destination secrets are sealed here, so a schedule never holds them in
+	 * plain text once built.
 	 *
 	 * @param array<string, mixed> $data Schedule fields.
 	 * @return self
@@ -270,6 +296,8 @@ final class SScribe_Schedule {
 				'last_run_status' => self::clean_status( $data['last_run_status'] ?? '' ),
 				'last_run_file'   => self::clean_file( $data['last_run_file'] ?? '' ),
 				'last_error'      => self::clean_error( $data['last_error'] ?? '' ),
+				'last_delivery'   => self::clean_error( $data['last_delivery'] ?? '' ),
+				'destinations'    => SScribe_Destination_Settings::for_storage( $data['destinations'] ?? array() ),
 				'next_run_at'     => self::timestamp( $data['next_run_at'] ?? null, 0 ),
 				'running_session' => sanitize_key( self::scalar_string( $data['running_session'] ?? '' ) ),
 				'run_started_at'  => self::timestamp( $data['run_started_at'] ?? null, 0 ),
@@ -305,6 +333,8 @@ final class SScribe_Schedule {
 			'last_run_status' => $this->last_run_status,
 			'last_run_file'   => $this->last_run_file,
 			'last_error'      => $this->last_error,
+			'last_delivery'   => $this->last_delivery,
+			'destinations'    => $this->destinations,
 			'next_run_at'     => $this->next_run_at,
 			'running_session' => $this->running_session,
 			'run_started_at'  => $this->run_started_at,

@@ -61,6 +61,12 @@ final class SScribe_CLI_Command {
 	 * [--output=<path>]
 	 * : Copy the finished ZIP to this file, or into this directory.
 	 *
+	 * [--destination=<id>]
+	 * : Also send the finished ZIP to this destination. See wp sscribe destinations.
+	 *
+	 * [--destination-settings=<json>]
+	 * : Destination settings as a JSON object. Secrets given here are used for this run only and never stored.
+	 *
 	 * [--per-language]
 	 * : With WPML, Polylang or TranslatePress active, make one archive per language instead of a combined one.
 	 *
@@ -72,6 +78,7 @@ final class SScribe_CLI_Command {
 	 *     wp sscribe export --user=admin
 	 *     wp sscribe export --user=admin --formats=docx,markdown --post-status=all
 	 *     wp sscribe export --user=admin --output=/tmp/ --porcelain
+	 *     wp sscribe export --user=admin --destination=directory --destination-settings='{"path":"/srv/backups"}'
 	 *
 	 * @param array<int, string>    $args       Positional arguments, unused.
 	 * @param array<string, string> $assoc_args Options.
@@ -87,6 +94,12 @@ final class SScribe_CLI_Command {
 
 		$porcelain = ! empty( $assoc_args['porcelain'] );
 		$job       = self::job_from_args( $assoc_args );
+
+		try {
+			$destination = SScribe_CLI_Destination_Args::parse( $assoc_args );
+		} catch ( SScribe_Validation_Exception $e ) {
+			self::fail( html_entity_decode( $e->getMessage(), ENT_QUOTES, 'UTF-8' ) );
+		}
 
 		$output_target = '';
 		if ( isset( $assoc_args['output'] ) && '' !== trim( (string) $assoc_args['output'] ) ) {
@@ -154,6 +167,10 @@ final class SScribe_CLI_Command {
 				self::fail( __( 'The export finished but its ZIP could not be found. (zip_missing)', 'sscribe-export-site-pages' ) );
 			}
 
+			if ( null !== $destination ) {
+				self::deliver( $zip_path, $payload, $destination, $porcelain );
+			}
+
 			$final_path = $zip_path;
 			if ( '' !== $output_target ) {
 				$final_path = self::copy_to_output( $zip_path, $output_target );
@@ -179,6 +196,79 @@ final class SScribe_CLI_Command {
 			self::print_summary( (string) $result['path'], (array) $result['payload'] );
 		}
 		self::succeed( __( 'Export complete.', 'sscribe-export-site-pages' ) );
+	}
+
+	/**
+	 * List the destinations finished exports can be sent to, with their settings.
+	 *
+	 * ## OPTIONS
+	 *
+	 * [--format=<format>]
+	 * : Output format.
+	 * ---
+	 * default: table
+	 * options:
+	 *   - table
+	 *   - json
+	 *   - csv
+	 * ---
+	 *
+	 * ## EXAMPLES
+	 *
+	 *     wp sscribe destinations
+	 *
+	 * @param array<int, string>    $args       Positional arguments, unused.
+	 * @param array<string, string> $assoc_args Options.
+	 * @return void
+	 */
+	public function destinations( array $args, array $assoc_args ): void {
+		unset( $args );
+
+		$format = isset( $assoc_args['format'] ) ? (string) $assoc_args['format'] : 'table';
+		if ( ! in_array( $format, self::LIST_FORMATS, true ) ) {
+			self::fail( __( 'Use --format=table, --format=json or --format=csv.', 'sscribe-export-site-pages' ) );
+		}
+
+		if ( class_exists( 'WP_CLI' ) && function_exists( 'WP_CLI\Utils\format_items' ) ) {
+			\WP_CLI\Utils\format_items( $format, SScribe_CLI_Destination_Args::schema_rows(), array( 'id', 'label', 'settings' ) );
+		}
+	}
+
+	/**
+	 * Send one finished archive to the destination named on the command line.
+	 *
+	 * @param string                                            $zip_path    Absolute path of the archive.
+	 * @param array<string|int, mixed>                          $payload     Finished export payload.
+	 * @param array{id: string, settings: array<string, mixed>} $destination Destination and its settings.
+	 * @param bool                                              $porcelain   Whether to stay quiet on success.
+	 * @return void
+	 */
+	private static function deliver( string $zip_path, array $payload, array $destination, bool $porcelain ): void {
+		$context = SScribe_Destination_Dispatcher::context_from_payload( $zip_path, $payload );
+		$results = ( new SScribe_Destination_Dispatcher() )->deliver_all( $zip_path, $context, array( $destination ) );
+		$result  = $results[0] ?? null;
+
+		if ( null === $result || ! $result['ok'] ) {
+			self::fail(
+				sprintf(
+					/* translators: 1: Destination id, 2: Error message. */
+					__( 'Delivery to %1$s failed: %2$s (delivery_failed)', 'sscribe-export-site-pages' ),
+					$destination['id'],
+					null === $result ? '' : $result['message']
+				)
+			);
+		}
+
+		if ( ! $porcelain ) {
+			self::line(
+				sprintf(
+					/* translators: 1: Destination id, 2: Where the archive went. */
+					__( 'Delivered to %1$s: %2$s', 'sscribe-export-site-pages' ),
+					$result['id'],
+					$result['message']
+				)
+			);
+		}
 	}
 
 	/**

@@ -115,6 +115,63 @@ final class SScribe_Scheduler_WP_Test extends SScribe_WP_TestCase {
 		$this::assertSame( $second_zip, $store->get( $schedule->id )?->last_run_file );
 	}
 
+	public function test_schedule_run_copies_the_archive_to_a_directory_destination(): void {
+		$this->page( 'Delivered page', '<p>Delivered body.</p>' );
+		$target = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'sscribe-wp-dest-' . bin2hex( random_bytes( 4 ) );
+		$this::assertTrue( wp_mkdir_p( $target ) );
+
+		$completed = array();
+		$delivered = array();
+		$on_done   = static function ( string $zip_path ) use ( &$completed ): void {
+			$completed[] = basename( $zip_path );
+		};
+		$on_sent   = static function ( string $zip_path, array $context, array $results ) use ( &$delivered ): void {
+			$delivered[] = array( $context, $results );
+		};
+		add_action( 'sscribe_export_completed', $on_done );
+		add_action( 'sscribe_export_delivered', $on_sent, 10, 3 );
+
+		$store    = new SScribe_Schedule_Store();
+		$schedule = SScribe_Schedule::from_array(
+			array(
+				'label'         => 'Delivered docs',
+				'frequency'     => 'daily',
+				'formats'       => 'markdown',
+				'owner_user_id' => $this->admin_user_id,
+				'destinations'  => array(
+					array(
+						'id'       => 'directory',
+						'settings' => array( 'path' => $target ),
+					),
+				),
+			)
+		);
+		$this::assertTrue( $store->save( $schedule ) );
+
+		try {
+			$outcome = $this->scheduler( $store )->run( $schedule->id, true );
+		} finally {
+			remove_action( 'sscribe_export_completed', $on_done );
+			remove_action( 'sscribe_export_delivered', $on_sent, 10 );
+		}
+
+		$filename              = (string) ( $outcome->payload()['filename'] ?? '' );
+		$this->zip_filenames[] = $filename;
+		$copy                  = $target . DIRECTORY_SEPARATOR . $filename;
+
+		$this::assertTrue( $outcome->is_success(), wp_json_encode( $outcome->payload() ) );
+		$this::assertSame( array( $filename ), $completed );
+		$this::assertFileExists( $copy );
+		$this::assertSame( 'directory: delivered', $store->get( $schedule->id )?->last_delivery );
+		$this::assertCount( 1, $delivered );
+		$this::assertSame( $schedule->id, $delivered[0][0]['schedule_id'] );
+		$this::assertNotSame( array(), $delivered[0][0]['manifest'] );
+		$this::assertTrue( $delivered[0][1][0]['ok'] );
+
+		wp_delete_file( $copy );
+		rmdir( $target );
+	}
+
 	private function scheduler( SScribe_Schedule_Store $store ): SScribe_Scheduler {
 		return new SScribe_Scheduler( $store, new SScribe_Batch_Processor(), null, null, 0.0, 0 );
 	}

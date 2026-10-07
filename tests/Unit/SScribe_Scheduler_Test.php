@@ -28,6 +28,9 @@ final class SScribe_Scheduler_Test extends TestCase {
 	/** @var array<string, mixed> */
 	private array $saved_globals = array();
 
+	/** @var list<string> */
+	private array $cleanup = array();
+
 	protected function setUp(): void {
 		parent::setUp();
 		foreach ( array( 'sscribe_test_actions', 'sscribe_test_filters', 'sscribe_test_scheduled_events', 'sscribe_test_current_user_id', 'sscribe_test_current_user' ) as $key ) {
@@ -50,6 +53,10 @@ final class SScribe_Scheduler_Test extends TestCase {
 	}
 
 	protected function tearDown(): void {
+		foreach ( $this->cleanup as $dir ) {
+			array_map( 'unlink', (array) glob( $dir . DIRECTORY_SEPARATOR . '*' ) );
+			@rmdir( $dir ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged
+		}
 		foreach ( $this->saved_globals as $key => $value ) {
 			if ( null === $value && ! in_array( $key, array( 'sscribe_test_actions', 'sscribe_test_filters' ), true ) ) {
 				unset( $GLOBALS[ $key ] );
@@ -185,6 +192,76 @@ final class SScribe_Scheduler_Test extends TestCase {
 		$this::assertStringContainsString( 'finished', $GLOBALS['sscribe_test_mail'][0]['subject'] );
 		$this::assertStringContainsString( self::ZIP, $GLOBALS['sscribe_test_mail'][0]['message'] );
 		$this::assertStringContainsString( 'tab=history', $GLOBALS['sscribe_test_mail'][0]['message'] );
+	}
+
+	public function test_destinations_receive_the_archive_with_secrets_opened(): void {
+		$archive_dir = $this->archive_dir();
+		add_filter( 'sscribe_destinations', static fn( array $classes ): array => array_merge( $classes, array( Scheduler_Recording_Destination::class ) ) );
+		Scheduler_Recording_Destination::$calls  = array();
+		Scheduler_Recording_Destination::$result = \SScribe_Result::success( 'recorded://ok' );
+		$schedule                                = $this->add(
+			array(
+				'notify'       => true,
+				'destinations' => array(
+					array(
+						'id'       => 'recording',
+						'settings' => array( 'token' => 'plain-token' ),
+					),
+				),
+			)
+		);
+		$raw = (string) wp_json_encode( get_option( \SScribe_Schedule_Store::OPTION ) );
+
+		$outcome = $this->scheduler( new Fake_Schedule_Pipeline( self::started(), array( self::complete() ) ) )->run( $schedule->id );
+		$stored  = $this->store->get( $schedule->id );
+
+		$this::assertStringNotContainsString( 'plain-token', $raw );
+		$this::assertTrue( $outcome->is_success() );
+		$this::assertCount( 1, Scheduler_Recording_Destination::$calls );
+		$this::assertSame( 'plain-token', Scheduler_Recording_Destination::$calls[0]['settings']['token'] );
+		$this::assertSame( realpath( $archive_dir . '/' . self::ZIP ), Scheduler_Recording_Destination::$calls[0]['path'] );
+		$this::assertSame( $schedule->id, Scheduler_Recording_Destination::$calls[0]['context']['schedule_id'] );
+		$this::assertSame( 'success', $stored?->last_run_status );
+		$this::assertSame( '', $stored?->last_error );
+		$this::assertSame( 'recording: delivered', $stored?->last_delivery );
+		$this::assertStringContainsString( 'Delivered to recording', $GLOBALS['sscribe_test_mail'][0]['message'] );
+	}
+
+	public function test_run_stays_successful_when_every_destination_fails(): void {
+		$this->archive_dir();
+		add_filter( 'sscribe_destinations', static fn( array $classes ): array => array_merge( $classes, array( Scheduler_Recording_Destination::class ) ) );
+		Scheduler_Recording_Destination::$calls  = array();
+		Scheduler_Recording_Destination::$result = \SScribe_Result::failure( 'Bucket is gone.' );
+		$schedule                                = $this->add(
+			array(
+				'notify'       => true,
+				'destinations' => array( array( 'id' => 'recording' ) ),
+			)
+		);
+
+		$this->scheduler( new Fake_Schedule_Pipeline( self::started(), array( self::complete() ) ) )->run( $schedule->id );
+		$stored = $this->store->get( $schedule->id );
+
+		$this::assertSame( 'success', $stored?->last_run_status );
+		$this::assertSame( self::ZIP, $stored?->last_run_file );
+		$this::assertStringContainsString( 'could not be delivered', (string) $stored?->last_error );
+		$this::assertStringContainsString( 'Bucket is gone.', (string) $stored?->last_error );
+		$this::assertSame( 'recording: failed (Bucket is gone.)', $stored?->last_delivery );
+		$this::assertStringContainsString( 'Delivery to recording failed: Bucket is gone.', $GLOBALS['sscribe_test_mail'][0]['message'] );
+	}
+
+	public function test_missing_archive_is_reported_for_each_destination(): void {
+		$this->zip->archive_dir = sys_get_temp_dir();
+		add_filter( 'sscribe_destinations', static fn( array $classes ): array => array_merge( $classes, array( Scheduler_Recording_Destination::class ) ) );
+		Scheduler_Recording_Destination::$calls = array();
+		$schedule                               = $this->add( array( 'destinations' => array( array( 'id' => 'recording' ) ) ) );
+
+		$this->scheduler( new Fake_Schedule_Pipeline( self::started(), array( self::complete() ) ) )->run( $schedule->id );
+		$stored = $this->store->get( $schedule->id );
+
+		$this::assertSame( array(), Scheduler_Recording_Destination::$calls );
+		$this::assertSame( 'success', $stored?->last_run_status );
+		$this::assertStringContainsString( 'could not be found', (string) $stored?->last_delivery );
 	}
 
 	public function test_notification_filter_can_suppress_the_email(): void {
@@ -426,6 +503,16 @@ final class SScribe_Scheduler_Test extends TestCase {
 		$this::assertSame( 20, \SScribe_Scheduler::time_budget() );
 	}
 
+	private function archive_dir(): string {
+		$dir = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'sscribe-sched-' . bin2hex( random_bytes( 4 ) );
+		mkdir( $dir, 0700, true );
+		file_put_contents( $dir . DIRECTORY_SEPARATOR . self::ZIP, 'zip bytes' );
+		$this->zip->archive_dir = $dir;
+		$this->cleanup[]        = $dir;
+
+		return $dir;
+	}
+
 	/**
 	 * @param array<string, mixed> $overrides Fields to change.
 	 */
@@ -547,6 +634,12 @@ class Recording_Zip_Handler extends \SScribe_Zip_Handler {
 	/** @var list<array<string, mixed>> */
 	public array $for_schedule = array();
 
+	public string $archive_dir = '';
+
+	public function get_export_dir(): string {
+		return '' !== $this->archive_dir ? $this->archive_dir : parent::get_export_dir();
+	}
+
 	public function tag_export_row( string $zip_filename, array $meta ): bool {
 		$this->tagged[] = array(
 			'file' => $zip_filename,
@@ -562,5 +655,44 @@ class Recording_Zip_Handler extends \SScribe_Zip_Handler {
 	public function delete_export( string $zip_filename, int $user_id ): bool {
 		$this->deleted[] = array( $zip_filename, $user_id );
 		return true;
+	}
+}
+
+final class Scheduler_Recording_Destination implements \SScribe_Destination_Interface {
+
+	/** @var list<array{path: string, context: array<string, mixed>, settings: array<string, mixed>}> */
+	public static array $calls = array();
+
+	public static ?\SScribe_Result $result = null;
+
+	public static function id(): string {
+		return 'recording';
+	}
+
+	public static function label(): string {
+		return 'Recording';
+	}
+
+	public static function settings_schema(): array {
+		return array(
+			'token' => array(
+				'type'     => 'password',
+				'label'    => 'Token',
+				'required' => false,
+			),
+		);
+	}
+
+	public function validate( array $settings ): \SScribe_Result {
+		return \SScribe_Result::success( $settings );
+	}
+
+	public function deliver( string $zip_path, array $context, array $settings ): \SScribe_Result {
+		self::$calls[] = array(
+			'path'     => $zip_path,
+			'context'  => $context,
+			'settings' => $settings,
+		);
+		return self::$result ?? \SScribe_Result::success( 'recorded' );
 	}
 }
