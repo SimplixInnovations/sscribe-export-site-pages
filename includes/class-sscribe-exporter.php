@@ -61,6 +61,8 @@ use SScribeVendor\PhpOffice\PhpWord\SimpleType\Jc;
  */
 final class SScribe_Exporter {
 
+	public const TEMPLATE_TRANSLATION = 'translation';
+
 	/**
 	 * Last error message from export operation.
 	 *
@@ -789,8 +791,10 @@ final class SScribe_Exporter {
 
 			$this->define_styles( $php_word );
 
-			$template = (string) $this->get_format_option( 'sscribe_docx_template', 'default' );
-			if ( 'minimal' !== $template ) {
+			$template  = (string) $this->get_format_option( 'sscribe_docx_template', 'default' );
+			$text_only = self::TEMPLATE_TRANSLATION === $template;
+			$this->content_renderer->set_text_only( $text_only );
+			if ( 'minimal' !== $template && ! $text_only ) {
 
 				$cover_settings              = $this->get_section_settings( $this->is_rtl );
 				$cover_settings['vAlign']    = 'center';
@@ -810,68 +814,73 @@ final class SScribe_Exporter {
 
 			$content_section = $php_word->addSection( $this->get_section_settings( $this->is_rtl ) );
 
-			try {
-				$this->add_header_footer( $content_section, $page_data );
-			} catch ( \Throwable $e ) {
-				$this->get_logger()->warning(
-					'Header/footer skipped',
-					array(
-						'page_id'   => $page_data['id'] ?? 0,
-						'exception' => get_class( $e ),
-					)
-				);
-			}
+			if ( $text_only ) {
+				$this->add_translation_heading( $content_section, $page_data );
+				$this->content_renderer->add_main_content( $content_section, $page_data );
+			} else {
+				try {
+					$this->add_header_footer( $content_section, $page_data );
+				} catch ( \Throwable $e ) {
+					$this->get_logger()->warning(
+						'Header/footer skipped',
+						array(
+							'page_id'   => $page_data['id'] ?? 0,
+							'exception' => get_class( $e ),
+						)
+					);
+				}
 
-			$this->add_featured_image( $content_section, $page_data );
+				$this->add_featured_image( $content_section, $page_data );
 
-			try {
-				$this->add_page_info_table( $content_section, $page_data );
-			} catch ( \Throwable $e ) {
-				$this->get_logger()->warning(
-					'Page info table skipped',
-					array(
-						'page_id'   => $page_data['id'] ?? 0,
-						'exception' => get_class( $e ),
-					)
-				);
-			}
+				try {
+					$this->add_page_info_table( $content_section, $page_data );
+				} catch ( \Throwable $e ) {
+					$this->get_logger()->warning(
+						'Page info table skipped',
+						array(
+							'page_id'   => $page_data['id'] ?? 0,
+							'exception' => get_class( $e ),
+						)
+					);
+				}
 
-			try {
-				$this->add_seo_section( $content_section, $page_data );
-			} catch ( \Throwable $e ) {
-				$this->get_logger()->warning(
-					'SEO section skipped',
-					array(
-						'page_id'   => $page_data['id'] ?? 0,
-						'exception' => get_class( $e ),
-					)
-				);
-			}
+				try {
+					$this->add_seo_section( $content_section, $page_data );
+				} catch ( \Throwable $e ) {
+					$this->get_logger()->warning(
+						'SEO section skipped',
+						array(
+							'page_id'   => $page_data['id'] ?? 0,
+							'exception' => get_class( $e ),
+						)
+					);
+				}
 
-			try {
-				$this->add_breadcrumbs( $content_section, $page_data );
-			} catch ( \Throwable $e ) {
-				$this->get_logger()->warning(
-					'Breadcrumbs skipped',
-					array(
-						'page_id'   => $page_data['id'] ?? 0,
-						'exception' => get_class( $e ),
-					)
-				);
-			}
+				try {
+					$this->add_breadcrumbs( $content_section, $page_data );
+				} catch ( \Throwable $e ) {
+					$this->get_logger()->warning(
+						'Breadcrumbs skipped',
+						array(
+							'page_id'   => $page_data['id'] ?? 0,
+							'exception' => get_class( $e ),
+						)
+					);
+				}
 
-			$this->content_renderer->add_main_content( $content_section, $page_data );
+				$this->content_renderer->add_main_content( $content_section, $page_data );
 
-			try {
-				$this->add_child_pages( $content_section, $page_data );
-			} catch ( \Throwable $e ) {
-				$this->get_logger()->warning(
-					'Child pages skipped',
-					array(
-						'page_id'   => $page_data['id'] ?? 0,
-						'exception' => get_class( $e ),
-					)
-				);
+				try {
+					$this->add_child_pages( $content_section, $page_data );
+				} catch ( \Throwable $e ) {
+					$this->get_logger()->warning(
+						'Child pages skipped',
+						array(
+							'page_id'   => $page_data['id'] ?? 0,
+							'exception' => get_class( $e ),
+						)
+					);
+				}
 			}
 
 			$filename    = \SScribe_Exporter_Factory::build_filename( $page_data, $index, $total, 'docx' );
@@ -1272,6 +1281,32 @@ final class SScribe_Exporter {
 		}
 
 		return apply_filters( 'sscribe_docx_section_settings', $settings, $is_rtl );
+	}
+
+	/**
+	 * Title and source line for the translation template: enough context
+	 * for a translator, nothing a translation memory would choke on.
+	 *
+	 * @param Section $section   Content section.
+	 * @param array   $page_data Page data.
+	 */
+	private function add_translation_heading( Section $section, array $page_data ): void {
+		$title = $this->safe_text( (string) ( $page_data['title'] ?? '' ) );
+		if ( '' !== $title ) {
+			$section->addTitle( $title, 1 );
+		}
+		$url = (string) ( $page_data['permalink'] ?? '' );
+		if ( '' !== $url && 1 === preg_match( '#^https?://#i', $url ) ) {
+			$section->addText(
+				$this->safe_text( $url ),
+				array(
+					'name'  => $this->font_name,
+					'size'  => 9,
+					'color' => $this->colors['body'],
+				),
+				$this->get_para_style()
+			);
+		}
 	}
 
 	/**

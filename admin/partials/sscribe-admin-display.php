@@ -516,6 +516,7 @@ if ( ! function_exists( 'sscribe_humanize_export_filename' ) ) {
 									<select name="sscribe_docx_template" id="sscribe-docx-template">
 										<option value="default"><?php esc_html_e( 'Default (with cover & TOC)', 'sscribe-export-site-pages' ); ?></option>
 										<option value="minimal"><?php esc_html_e( 'Minimal (body only)', 'sscribe-export-site-pages' ); ?></option>
+										<option value="translation"><?php esc_html_e( 'Translation (text only, no images or layout)', 'sscribe-export-site-pages' ); ?></option>
 									</select>
 								</label>
 								<label class="sscribe-format-option-field sscribe-format-option-checkbox">

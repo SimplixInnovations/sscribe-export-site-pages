@@ -101,6 +101,23 @@ class SScribe_DOCX_Content_Renderer {
 	}
 
 	/**
+	 * Text-only mode drops images and figures and turns buttons into plain
+	 * text, for translation hand-offs and text-processing tools.
+	 *
+	 * @param bool $text_only Whether to render text only.
+	 */
+	public function set_text_only( bool $text_only ): void {
+		$this->text_only = $text_only;
+	}
+
+	/**
+	 * Whether images, figures and button chrome are suppressed.
+	 *
+	 * @var bool
+	 */
+	private bool $text_only = false;
+
+	/**
 	 * Default color palette.
 	 *
 	 * @return array<string, string>
@@ -490,11 +507,17 @@ class SScribe_DOCX_Content_Renderer {
 				break;
 
 			case 'image':
-				$this->render_inline_image( $section, $element );
+				if ( ! $this->text_only ) {
+					$this->render_inline_image( $section, $element );
+				}
 				break;
 
 			case 'button':
-				$this->render_button( $section, $element );
+				if ( $this->text_only ) {
+					$this->render_button_as_text( $section, $element );
+				} else {
+					$this->render_button( $section, $element );
+				}
 				break;
 
 			case 'break':
@@ -513,7 +536,11 @@ class SScribe_DOCX_Content_Renderer {
 				break;
 
 			case 'figure':
-				$this->render_figure( $section, $element );
+				if ( $this->text_only ) {
+					$this->render_figure_caption_only( $section, $element );
+				} else {
+					$this->render_figure( $section, $element );
+				}
 				break;
 
 			case 'details':
@@ -792,6 +819,48 @@ class SScribe_DOCX_Content_Renderer {
 		}
 
 		$section->addTextBreak( 1 );
+	}
+
+	/**
+	 * Button label and target as one plain paragraph.
+	 *
+	 * @param Section $section Section.
+	 * @param array   $element Button element.
+	 */
+	private function render_button_as_text( Section $section, array $element ): void {
+		$label = $this->safe_text( ! empty( $element['content'] ) ? (string) $element['content'] : __( 'Click Here', 'sscribe-export-site-pages' ) );
+		$url   = ! empty( $element['url'] ) ? $this->validate_url( (string) $element['url'] ) : '';
+		$text  = '' !== $url ? $label . ' (' . $url . ')' : $label;
+		$section->addText(
+			$text,
+			array(
+				'name' => $this->font_name,
+				'size' => $this->font_size,
+			),
+			$this->get_para_style()
+		);
+	}
+
+	/**
+	 * Only the caption of a figure, for text-only output.
+	 *
+	 * @param Section $section Section.
+	 * @param array   $element Figure element.
+	 */
+	private function render_figure_caption_only( Section $section, array $element ): void {
+		$caption = trim( (string) ( $element['caption'] ?? '' ) );
+		if ( '' === $caption ) {
+			return;
+		}
+		$section->addText(
+			$this->safe_text( $caption ),
+			array(
+				'name'   => $this->font_name,
+				'size'   => $this->font_size,
+				'italic' => true,
+			),
+			$this->get_para_style()
+		);
 	}
 
 	/**
@@ -1133,7 +1202,9 @@ class SScribe_DOCX_Content_Renderer {
 						$section->addTextBreak();
 						break;
 					case 'image':
-						$this->render_inline_image( $section, $body_element );
+						if ( ! $this->text_only ) {
+							$this->render_inline_image( $section, $body_element );
+						}
 						break;
 					case 'table':
 						$this->render_table( $section, $body_element );

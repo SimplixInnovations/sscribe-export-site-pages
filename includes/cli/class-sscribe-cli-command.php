@@ -49,6 +49,9 @@ final class SScribe_CLI_Command {
 	 * [--language=<code>]
 	 * : Language code when a multilingual plugin is active. Leave out for every language.
 	 *
+	 * [--docx-template=<template>]
+	 * : DOCX layout: default, minimal or translation (text only, for translation vendors).
+	 *
 	 * [--md-preset=<preset>]
 	 * : Markdown front matter layout: sscribe, hugo, jekyll, astro, obsidian or none.
 	 *
@@ -237,9 +240,16 @@ final class SScribe_CLI_Command {
 				'post_type'      => $assoc_args['post-type'] ?? 'page',
 				'formats'        => $formats,
 				'modified_since' => $assoc_args['modified-since'] ?? 0,
-				'format_options' => isset( $assoc_args['md-preset'] )
-					? array( 'sscribe_md_frontmatter_preset' => SScribe_Markdown_Front_Matter::normalize_preset( $assoc_args['md-preset'] ) )
-					: array(),
+				'format_options' => array_filter(
+					array(
+						'sscribe_md_frontmatter_preset' => isset( $assoc_args['md-preset'] )
+							? SScribe_Markdown_Front_Matter::normalize_preset( $assoc_args['md-preset'] )
+							: '',
+						'sscribe_docx_template'         => isset( $assoc_args['docx-template'] )
+							? sanitize_key( (string) $assoc_args['docx-template'] )
+							: '',
+					)
+				),
 			)
 		);
 	}
