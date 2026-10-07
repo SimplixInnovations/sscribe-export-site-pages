@@ -49,6 +49,9 @@ final class SScribe_CLI_Command {
 	 * [--language=<code>]
 	 * : Language code when a multilingual plugin is active. Leave out for every language.
 	 *
+	 * [--md-preset=<preset>]
+	 * : Markdown front matter layout: sscribe, hugo, jekyll, astro, obsidian or none.
+	 *
 	 * [--modified-since=<date>]
 	 * : Only export posts modified after this date or Unix timestamp, for example 2026-10-01 or "-7 days".
 	 *
@@ -234,6 +237,9 @@ final class SScribe_CLI_Command {
 				'post_type'      => $assoc_args['post-type'] ?? 'page',
 				'formats'        => $formats,
 				'modified_since' => $assoc_args['modified-since'] ?? 0,
+				'format_options' => isset( $assoc_args['md-preset'] )
+					? array( 'sscribe_md_frontmatter_preset' => SScribe_Markdown_Front_Matter::normalize_preset( $assoc_args['md-preset'] ) )
+					: array(),
 			)
 		);
 	}

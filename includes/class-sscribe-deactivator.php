@@ -68,6 +68,7 @@ class SScribe_Deactivator {
 		wp_clear_scheduled_hook( 'sscribe_cleanup_exports' );
 		wp_clear_scheduled_hook( 'sscribe_cleanup_sessions' );
 		wp_clear_scheduled_hook( 'sscribe_cleanup_audit_trail' );
+		SScribe_Scheduler::unschedule_all();
 
 		try {
 			self::cleanup_transients();

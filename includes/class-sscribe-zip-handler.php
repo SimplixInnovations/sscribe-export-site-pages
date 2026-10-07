@@ -353,10 +353,29 @@ class SScribe_Zip_Handler {
 						'languages'  => $has_language && ! empty( $lang_metadata['lang_code'] ) ? array( (string) $lang_metadata['lang_code'] ) : array(),
 					)
 				);
+				$source_by_entry = array();
+				foreach ( $zip_entries as $zip_entry ) {
+					$source_by_entry[ (string) $zip_entry['zip_path'] ] = $zip_entry['source_path'];
+				}
 				$manifest_entries = array(
 					SScribe_Export_Manifest::JSON_ENTRY  => SScribe_Export_Manifest::to_json( $manifest ),
 					SScribe_Export_Manifest::INDEX_ENTRY => SScribe_Export_Manifest::render_index_markdown( $manifest ),
+					SScribe_Export_Manifest::LLMS_ENTRY  => SScribe_Export_Manifest::render_llms_txt( $manifest ),
 				);
+				$llms_full        = SScribe_Export_Manifest::render_llms_full(
+					$manifest,
+					static function ( string $entry ) use ( $source_by_entry ): string {
+						$source = $source_by_entry[ $entry ] ?? '';
+						if ( '' === $source || ! is_file( $source ) || is_link( $source ) ) {
+							return '';
+						}
+						$body = file_get_contents( $source ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Plugin-generated document in private storage.
+						return is_string( $body ) ? $body : '';
+					}
+				);
+				if ( '' !== $llms_full ) {
+					$manifest_entries[ SScribe_Export_Manifest::LLMS_FULL ] = $llms_full;
+				}
 				foreach ( $manifest_entries as $entry_name => $entry_body ) {
 					if ( ! $zip->addFromString( $entry_name, $entry_body ) ) {
 						$this->logger->error(
@@ -715,6 +734,102 @@ class SScribe_Zip_Handler {
 	}
 
 	/**
+	 * Add schedule details to an export row.
+	 *
+	 * Only schedule_id, schedule_label and retain_until are accepted; other
+	 * keys are ignored so the download token and owner cannot be changed here.
+	 *
+	 * @param string               $zip_filename ZIP basename.
+	 * @param array<string, mixed> $meta         Keys: schedule_id, schedule_label, retain_until.
+	 * @return bool False when the row does not exist or could not be saved.
+	 */
+	public function tag_export_row( string $zip_filename, array $meta ): bool {
+		$zip_filename = $this->normalize_zip_filename( $zip_filename );
+		if ( '' === $zip_filename ) {
+			return false;
+		}
+
+		$option_name = 'sscribe_export_row_' . md5( $zip_filename );
+		$row         = get_option( $option_name, null );
+		if ( ! is_array( $row ) ) {
+			return false;
+		}
+
+		if ( isset( $meta['schedule_id'] ) && is_scalar( $meta['schedule_id'] ) ) {
+			$row['schedule_id'] = sanitize_key( (string) $meta['schedule_id'] );
+		}
+		if ( isset( $meta['schedule_label'] ) && is_scalar( $meta['schedule_label'] ) ) {
+			$row['schedule_label'] = sanitize_text_field( (string) $meta['schedule_label'] );
+		}
+		if ( isset( $meta['retain_until'] ) && is_numeric( $meta['retain_until'] ) ) {
+			$row['retain_until'] = max( 0, (int) $meta['retain_until'] );
+		}
+
+		if ( update_option( $option_name, $row, false ) ) {
+			return true;
+		}
+
+		return get_option( $option_name, null ) === $row;
+	}
+
+	/**
+	 * Export rows produced by one schedule, newest first.
+	 *
+	 * @param string $schedule_id Schedule id.
+	 * @return list<array<string, mixed>> Rows with their ZIP name under "basename".
+	 */
+	public function exports_for_schedule( string $schedule_id ): array {
+		$schedule_id = sanitize_key( $schedule_id );
+		if ( '' === $schedule_id ) {
+			return array();
+		}
+
+		$rows = array();
+		foreach ( (array) get_option( 'sscribe_export_index', array() ) as $basename ) {
+			$basename = $this->normalize_zip_filename( (string) $basename );
+			if ( '' === $basename ) {
+				continue;
+			}
+			$row = get_option( 'sscribe_export_row_' . md5( $basename ), null );
+			if ( ! is_array( $row ) || ( $row['schedule_id'] ?? '' ) !== $schedule_id ) {
+				continue;
+			}
+			$row['basename'] = $basename;
+			$rows[]          = $row;
+		}
+
+		usort(
+			$rows,
+			static fn( array $a, array $b ): int => (int) ( $b['created_at'] ?? 0 ) <=> (int) ( $a['created_at'] ?? 0 )
+		);
+
+		return $rows;
+	}
+
+	/**
+	 * Whether an indexed export has outlived its retention.
+	 *
+	 * Rows tagged with retain_until keep their archive until that time;
+	 * everything else expires a fixed age after the file was written.
+	 *
+	 * @param string $basename  ZIP basename.
+	 * @param string $file_path Absolute ZIP path.
+	 * @param int    $now       Current Unix time.
+	 * @param int    $max_age   Default maximum age in seconds.
+	 * @return bool
+	 */
+	private function is_expired_export( string $basename, string $file_path, int $now, int $max_age ): bool {
+		$row = get_option( 'sscribe_export_row_' . md5( $basename ), null );
+		if ( is_array( $row ) && isset( $row['retain_until'] ) && is_numeric( $row['retain_until'] ) && (int) $row['retain_until'] > 0 ) {
+			return $now > (int) $row['retain_until'];
+		}
+
+		$file_time = filemtime( $file_path );
+
+		return false !== $file_time && $file_time > 0 && ( $now - $file_time ) > $max_age;
+	}
+
+	/**
 	 * List export entries in newest-first order.
 	 *
 	 * Reads from per-row options so the index does not need to be
@@ -1069,8 +1184,7 @@ class SScribe_Zip_Handler {
 					continue;
 				}
 
-				$file_time = filemtime( $file_path );
-				if ( $file_time && ( $now - $file_time ) > $max_age ) {
+				if ( $this->is_expired_export( $basename, $file_path, $now, $max_age ) ) {
 					wp_delete_file( $file_path );
 					if ( file_exists( $file_path ) ) {
 						continue;

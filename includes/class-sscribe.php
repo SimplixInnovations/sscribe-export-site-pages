@@ -334,6 +334,52 @@ class SScribe {
 		$this->loader->add_action( 'sscribe_cleanup_sessions', $this, 'cleanup_sessions' );
 		$this->loader->add_action( 'sscribe_cleanup_sessions', $this, 'rotate_session_signing_key', 99 );
 		$this->loader->add_action( 'sscribe_cleanup_audit_trail', $this, 'cleanup_audit_trail' );
+		$this->loader->add_action( SScribe_Scheduler::TICK_HOOK, $this, 'run_scheduler_tick' );
+		$this->loader->add_action( SScribe_Scheduler::CONTINUE_HOOK, $this, 'continue_scheduled_export', 10, 2 );
+		$this->loader->add_action( 'init', $this, 'heal_scheduler_tick' );
+	}
+
+	/**
+	 * Start every due schedule when the hourly tick fires.
+	 *
+	 * @return void
+	 */
+	public function run_scheduler_tick(): void {
+		( new SScribe_Scheduler( new SScribe_Schedule_Store() ) )->tick();
+	}
+
+	/**
+	 * Resume a scheduled export that paused at the end of its time slice.
+	 *
+	 * @param mixed $schedule_id Schedule id from the cron event.
+	 * @param mixed $session_id  Export session id from the cron event.
+	 * @return void
+	 */
+	public function continue_scheduled_export( mixed $schedule_id = '', mixed $session_id = '' ): void {
+		if ( ! is_string( $schedule_id ) || ! is_string( $session_id ) ) {
+			return;
+		}
+
+		( new SScribe_Scheduler( new SScribe_Schedule_Store() ) )->continue_run( $schedule_id, $session_id );
+	}
+
+	/**
+	 * Queue the scheduler tick again if it went missing while schedules exist.
+	 *
+	 * The cron lookup is served from the autoloaded cron option, so the
+	 * schedules option is only read when the tick is actually missing.
+	 *
+	 * @return void
+	 */
+	public function heal_scheduler_tick(): void {
+		if ( false !== wp_next_scheduled( SScribe_Scheduler::TICK_HOOK ) ) {
+			return;
+		}
+
+		$schedules = get_option( SScribe_Schedule_Store::OPTION, array() );
+		if ( is_array( $schedules ) && array() !== $schedules ) {
+			SScribe_Scheduler::ensure_scheduled();
+		}
 	}
 
 	/**
@@ -470,6 +516,7 @@ class SScribe {
 
 		if ( defined( 'WP_CLI' ) && WP_CLI && class_exists( 'WP_CLI' ) ) {
 			\WP_CLI::add_command( 'sscribe', 'SScribe_CLI_Command' );
+			\WP_CLI::add_command( 'sscribe schedule', 'SScribe_CLI_Schedule_Command' );
 		}
 	}
 }

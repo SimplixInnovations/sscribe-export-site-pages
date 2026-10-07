@@ -183,6 +183,61 @@ final class SScribe_Export_Runner_Test extends TestCase {
 		$this::assertSame( $context, $pipeline->started_context );
 	}
 
+	public function test_passed_deadline_pauses_after_one_step(): void {
+		$pipeline = new Scripted_Export_Pipeline( self::started(), array( self::processing( 2 ), self::processing( 4 ) ) );
+		$runner   = new \SScribe_Export_Runner( $pipeline, 100, 0 );
+
+		$outcome = $runner->advance( self::SID, self::context(), microtime( true ) - 1 );
+
+		$this::assertTrue( $outcome->is_success() );
+		$this::assertSame( 'paused', $outcome->payload()['status'] );
+		$this::assertSame( self::SID, $outcome->payload()['session_id'] );
+		$this::assertSame( 2, $outcome->payload()['processed'] );
+		$this::assertSame( 1, $pipeline->steps );
+		$this::assertSame( self::SID, $runner->last_session_id() );
+	}
+
+	public function test_paused_session_can_be_advanced_to_completion(): void {
+		$complete = \SScribe_Export_Outcome::ok( array( 'status' => 'complete' ) );
+		$pipeline = new Scripted_Export_Pipeline( self::started(), array( self::processing( 2 ), self::processing( 4 ), $complete ) );
+		$runner   = new \SScribe_Export_Runner( $pipeline, 100, 0 );
+
+		$runner->advance( self::SID, self::context(), microtime( true ) - 1 );
+		$outcome = $runner->advance( self::SID, self::context() );
+
+		$this::assertSame( $complete, $outcome );
+		$this::assertSame( 3, $pipeline->steps );
+	}
+
+	public function test_future_deadline_does_not_interrupt_a_short_run(): void {
+		$complete = \SScribe_Export_Outcome::ok( array( 'status' => 'complete' ) );
+		$pipeline = new Scripted_Export_Pipeline( self::started(), array( self::processing( 1 ), self::processing( 2 ), $complete ) );
+		$runner   = new \SScribe_Export_Runner( $pipeline, 100, 0 );
+
+		$this::assertSame( $complete, $runner->advance( self::SID, self::context(), microtime( true ) + 3600 ) );
+	}
+
+	public function test_deadline_is_not_checked_when_the_first_step_finishes_the_export(): void {
+		$complete = \SScribe_Export_Outcome::ok( array( 'status' => 'complete' ) );
+		$pipeline = new Scripted_Export_Pipeline( self::started(), array( $complete ) );
+		$runner   = new \SScribe_Export_Runner( $pipeline, 100, 0 );
+
+		$this::assertSame( $complete, $runner->advance( self::SID, self::context(), microtime( true ) - 1 ) );
+	}
+
+	public function test_run_never_pauses(): void {
+		$complete = \SScribe_Export_Outcome::ok( array( 'status' => 'complete' ) );
+		$steps    = array();
+		for ( $i = 1; $i <= 5; $i++ ) {
+			$steps[] = self::processing( $i );
+		}
+		$steps[]  = $complete;
+		$pipeline = new Scripted_Export_Pipeline( self::started(), $steps );
+
+		$this::assertSame( $complete, ( new \SScribe_Export_Runner( $pipeline, 100, 0 ) )->run( new \SScribe_Export_Job(), self::context() ) );
+		$this::assertSame( 6, $pipeline->steps );
+	}
+
 	private static function context(): \SScribe_Headless_Export_Context {
 		return new \SScribe_Headless_Export_Context( 1 );
 	}

@@ -579,6 +579,16 @@ if ( ! function_exists( 'wp_update_user' ) ) {
 if ( ! function_exists( 'wp_delete_user' ) ) {
 	function wp_delete_user( $id, $reassign = null ): bool { return true; }
 }
+if ( ! function_exists( 'wp_mail' ) ) {
+	/**
+	 * @param string|string[] $to          Recipients.
+	 * @param string          $subject     Subject.
+	 * @param string          $message     Body.
+	 * @param string|string[] $headers     Headers.
+	 * @param string|string[] $attachments Attachments.
+	 */
+	function wp_mail( $to, $subject, $message, $headers = '', $attachments = array() ): bool { return true; }
+}
 if ( ! function_exists( 'wp_set_current_user' ) ) {
 	function wp_set_current_user( $id, $name = '' ) { return new WP_User(); }
 }

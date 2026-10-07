@@ -608,6 +608,8 @@ class SScribe_Activator {
 		if ( ! wp_next_scheduled( 'sscribe_cleanup_audit_trail' ) ) {
 			wp_schedule_event( time(), $audit_interval, 'sscribe_cleanup_audit_trail' );
 		}
+
+		SScribe_Scheduler::ensure_scheduled();
 	}
 
 	/**

@@ -64,11 +64,34 @@ final class SScribe_Export_Runner {
 		$session_id            = (string) ( $started->payload()['session_id'] ?? '' );
 		$this->last_session_id = $session_id;
 
+		return $this->advance( $session_id, $context );
+	}
+
+	/**
+	 * Work through a started session until it finishes, fails or runs out of time.
+	 *
+	 * At least one batch step is taken before the deadline is checked, so
+	 * every call makes progress. When time runs out the result is a
+	 * successful outcome with the status "paused", and calling this again
+	 * with the same session picks up where it stopped.
+	 *
+	 * @param string                           $session_id Export session ID.
+	 * @param SScribe_Export_Context_Interface $context    Who is running the export and how.
+	 * @param float                            $deadline   Unix time from microtime( true ) to pause at; 0 never pauses.
+	 * @return SScribe_Export_Outcome
+	 */
+	public function advance( string $session_id, SScribe_Export_Context_Interface $context, float $deadline = 0.0 ): SScribe_Export_Outcome {
+		$this->last_session_id = $session_id;
+
 		$last_processed = 0;
 		$stalled_steps  = 0;
 		$retries        = 0;
 
 		for ( $step = 0; $step < $this->max_steps; $step++ ) {
+			if ( $step > 0 && $deadline > 0 && microtime( true ) >= $deadline ) {
+				return self::paused( $session_id, $last_processed );
+			}
+
 			$outcome = $this->pipeline->process_batch_step( $session_id, $context );
 
 			if ( $this->is_busy( $outcome ) ) {
@@ -162,6 +185,23 @@ final class SScribe_Export_Runner {
 		}
 
 		usleep( $this->retry_sleep_ms * 1000 );
+	}
+
+	/**
+	 * Outcome for a run that stopped at its deadline and can be resumed.
+	 *
+	 * @param string $session_id Export session ID.
+	 * @param int    $processed  Pages processed so far in this call.
+	 * @return SScribe_Export_Outcome
+	 */
+	private static function paused( string $session_id, int $processed ): SScribe_Export_Outcome {
+		return SScribe_Export_Outcome::ok(
+			array(
+				'status'     => 'paused',
+				'session_id' => $session_id,
+				'processed'  => $processed,
+			)
+		);
 	}
 
 	/**

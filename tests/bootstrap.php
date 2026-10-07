@@ -478,6 +478,7 @@ if ( ! class_exists( 'WP_User' ) ) {
 	class WP_User {
 		public int $ID = 0;
 		public string $user_login = '';
+		public string $user_email = '';
 		public string $display_name = '';
 
 		public function __construct( int $id = 0 ) {
@@ -755,6 +756,69 @@ if ( ! function_exists( 'wp_clear_scheduled_hook' ) ) {
 		}
 
 		unset( $sscribe_test_scheduled_events[ $hook ] );
+		return true;
+	}
+}
+
+if ( ! function_exists( 'wp_schedule_single_event' ) ) {
+	function wp_schedule_single_event( $timestamp, $hook, $args = array(), $wp_error = false ) {
+		unset( $wp_error );
+		$GLOBALS['sscribe_test_single_events'][] = array(
+			'timestamp' => $timestamp,
+			'hook'      => $hook,
+			'args'      => $args,
+		);
+		return true;
+	}
+}
+
+if ( ! function_exists( 'wp_unschedule_hook' ) ) {
+	function wp_unschedule_hook( $hook, $wp_error = false ) {
+		global $sscribe_test_scheduled_events;
+		unset( $wp_error, $sscribe_test_scheduled_events[ $hook ] );
+		$GLOBALS['sscribe_test_single_events'] = array_values(
+			array_filter(
+				(array) ( $GLOBALS['sscribe_test_single_events'] ?? array() ),
+				static fn( $event ): bool => ( $event['hook'] ?? '' ) !== $hook
+			)
+		);
+		return 0;
+	}
+}
+
+if ( ! function_exists( 'get_userdata' ) ) {
+	function get_userdata( $user_id ) {
+		$users = (array) ( $GLOBALS['sscribe_test_users'] ?? array() );
+		return $users[ (int) $user_id ] ?? false;
+	}
+}
+
+if ( ! function_exists( 'user_can' ) ) {
+	function user_can( $user, $capability, ...$args ) {
+		unset( $args );
+		$user_id = $user instanceof WP_User ? $user->ID : (int) $user;
+		$caps    = (array) ( $GLOBALS['sscribe_test_user_caps'][ $user_id ] ?? array() );
+		return in_array( $capability, $caps, true );
+	}
+}
+
+if ( ! function_exists( 'wp_set_current_user' ) ) {
+	function wp_set_current_user( $id, $name = '' ) {
+		unset( $name );
+		$GLOBALS['sscribe_test_current_user_id'] = (int) $id;
+		$GLOBALS['sscribe_test_current_user']    = new WP_User( (int) $id );
+		return $GLOBALS['sscribe_test_current_user'];
+	}
+}
+
+if ( ! function_exists( 'wp_mail' ) ) {
+	function wp_mail( $to, $subject, $message, $headers = '', $attachments = array() ) {
+		unset( $headers, $attachments );
+		$GLOBALS['sscribe_test_mail'][] = array(
+			'to'      => $to,
+			'subject' => $subject,
+			'message' => $message,
+		);
 		return true;
 	}
 }

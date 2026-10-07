@@ -128,6 +128,7 @@ $sscribe_cleanup_site = static function (): void {
 	delete_option( 'sscribe_upgrade_next_attempt' );
 	delete_option( 'sscribe_settings' );
 	delete_option( 'sscribe_active_languages' );
+	delete_option( 'sscribe_schedules' );
 
 	$sscribe_roles = new \WP_Roles();
 	$sscribe_plugin_caps = array( 'sscribe_export', 'sscribe_health' );
@@ -157,6 +158,8 @@ $sscribe_cleanup_site = static function (): void {
 	wp_clear_scheduled_hook( 'sscribe_cleanup_exports' );
 	wp_clear_scheduled_hook( 'sscribe_cleanup_sessions' );
 	wp_clear_scheduled_hook( 'sscribe_cleanup_audit_trail' );
+	wp_unschedule_hook( 'sscribe_scheduler_tick' );
+	wp_unschedule_hook( 'sscribe_schedule_continue' );
 
 	SScribe_Private_Storage::delete_owned_storage();
 	SScribe_Private_Storage::delete_legacy_storage();
