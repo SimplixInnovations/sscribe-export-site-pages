@@ -1166,7 +1166,7 @@ final class SScribe_Batch_Processor implements SScribe_Export_Pipeline_Interface
 		}
 
 		$page_id_cap       = SScribe_Page_Collector::COUNT_LIMIT;
-		$page_ids_probe   = $this->collector->get_page_ids( $language, $post_status, $post_type, SScribe_Page_Collector::COUNT_SENTINEL );
+		$page_ids_probe   = $this->collector->get_page_ids( $language, $post_status, $post_type, SScribe_Page_Collector::COUNT_SENTINEL, $job->modified_since );
 		$partial_export   = count( $page_ids_probe ) > $page_id_cap;
 		$page_ids         = $partial_export ? array_slice( $page_ids_probe, 0, $page_id_cap ) : $page_ids_probe;
 		$total            = count( $page_ids );
@@ -1238,6 +1238,8 @@ final class SScribe_Batch_Processor implements SScribe_Export_Pipeline_Interface
 				'cancelled'         => false,
 				'user_id'           => $user_id,
 				'format_options'    => $format_options,
+				'modified_since'    => $job->modified_since,
+				'schedule_id'       => $job->schedule_id,
 			)
 		);
 

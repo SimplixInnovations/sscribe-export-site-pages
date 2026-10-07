@@ -61,6 +61,20 @@ final class SScribe_Export_Job {
 	public readonly array $format_options;
 
 	/**
+	 * Only posts modified after this GMT timestamp; 0 exports everything.
+	 *
+	 * @var int
+	 */
+	public readonly int $modified_since;
+
+	/**
+	 * Identifier of the schedule that produced this job, empty for manual runs.
+	 *
+	 * @var string
+	 */
+	public readonly string $schedule_id;
+
+	/**
 	 * Build a job.
 	 *
 	 * @param string               $language       Language code, empty for all languages.
@@ -68,19 +82,42 @@ final class SScribe_Export_Job {
 	 * @param string               $post_type      Post type.
 	 * @param array<mixed>         $formats        Format names.
 	 * @param array<string, mixed> $format_options Per-format options.
+	 * @param int                  $modified_since GMT watermark; 0 for a full export.
+	 * @param string               $schedule_id    Owning schedule, empty for manual runs.
 	 */
 	public function __construct(
 		string $language = '',
 		string $post_status = 'publish',
 		string $post_type = 'page',
 		array $formats = array(),
-		array $format_options = array()
+		array $format_options = array(),
+		int $modified_since = 0,
+		string $schedule_id = ''
 	) {
 		$this->language       = self::clean_language( $language );
 		$this->post_status    = sanitize_key( $post_status );
 		$this->post_type      = sanitize_key( $post_type );
 		$this->formats        = self::clean_formats( $formats );
 		$this->format_options = self::clean_format_options( $format_options );
+		$this->modified_since = max( 0, $modified_since );
+		$this->schedule_id    = sanitize_key( $schedule_id );
+	}
+
+	/**
+	 * Read a watermark given as a timestamp or any date string.
+	 *
+	 * @param mixed $value Raw value.
+	 * @return int GMT timestamp, 0 when unusable.
+	 */
+	private static function watermark( mixed $value ): int {
+		if ( is_int( $value ) || ( is_string( $value ) && 1 === preg_match( '/^\d{9,11}$/', $value ) ) ) {
+			return max( 0, (int) $value );
+		}
+		if ( is_string( $value ) && '' !== trim( $value ) ) {
+			$parsed = strtotime( trim( $value ) );
+			return false === $parsed ? 0 : max( 0, $parsed );
+		}
+		return 0;
 	}
 
 	/**
@@ -104,7 +141,9 @@ final class SScribe_Export_Job {
 			self::scalar_string( $input['post_status'] ?? null, 'publish' ),
 			self::scalar_string( $input['post_type'] ?? null, 'page' ),
 			is_array( $formats ) ? $formats : array(),
-			is_array( $format_options ) ? $format_options : array()
+			is_array( $format_options ) ? $format_options : array(),
+			self::watermark( $input['modified_since'] ?? 0 ),
+			self::scalar_string( $input['schedule_id'] ?? '', '' )
 		);
 	}
 

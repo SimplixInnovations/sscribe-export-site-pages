@@ -168,23 +168,26 @@ class SScribe_Page_Collector {
 	 * @param string $language    Language code.
 	 * @param string $post_status Post status.
 	 * @param string $post_type   Post type.
-	 * @param int    $limit       Maximum number of IDs to return (-1 for all).
+	 * @param int    $limit          Maximum number of IDs to return (-1 for all).
+	 * @param int    $modified_since Only posts modified after this GMT timestamp; 0 for all.
 	 * @return array<int>
 	 */
-	public function get_page_ids( string $language = '', string $post_status = 'publish', string $post_type = 'page', int $limit = -1 ): array {
+	public function get_page_ids( string $language = '', string $post_status = 'publish', string $post_type = 'page', int $limit = -1, int $modified_since = 0 ): array {
+
+		$modified_since = max( 0, $modified_since );
 
 		$filter_value = apply_filters( 'sscribe_use_chunked_page_ids', null );
 		if ( null !== $filter_value && false === $filter_value && $limit <= 0 ) {
 
-			return $this->get_page_ids_direct( $language, $post_status, $post_type, $limit );
+			return $this->get_page_ids_direct( $language, $post_status, $post_type, $limit, $modified_since );
 		}
 
-		$estimated_count = $this->estimate_page_count( $language, $post_status, $post_type );
+		$estimated_count = $this->estimate_page_count( $language, $post_status, $post_type, $modified_since );
 		$use_chunked     = $estimated_count > 500 || $limit > 0;
 
 		if ( $filter_value || $use_chunked ) {
 			$all_ids = array();
-			foreach ( $this->get_page_ids_chunked( $language, $post_status, $post_type, 500 ) as $chunk ) {
+			foreach ( $this->get_page_ids_chunked( $language, $post_status, $post_type, 500, $modified_since ) as $chunk ) {
 				$all_ids = array_merge( $all_ids, $chunk );
 				if ( $limit > 0 && count( $all_ids ) >= $limit ) {
 					break;
@@ -196,7 +199,27 @@ class SScribe_Page_Collector {
 			return $all_ids;
 		}
 
-		return $this->get_page_ids_direct( $language, $post_status, $post_type, $limit );
+		return $this->get_page_ids_direct( $language, $post_status, $post_type, $limit, $modified_since );
+	}
+
+	/**
+	 * Build the date clause that limits a query to posts modified after a
+	 * GMT watermark.
+	 *
+	 * @param int $modified_since GMT timestamp; 0 disables the clause.
+	 * @return array<int, array<string, mixed>> Empty when disabled.
+	 */
+	private static function modified_since_date_query( int $modified_since ): array {
+		if ( $modified_since <= 0 ) {
+			return array();
+		}
+		return array(
+			array(
+				'column'    => 'post_modified_gmt',
+				'after'     => gmdate( 'Y-m-d H:i:s', $modified_since ),
+				'inclusive' => false,
+			),
+		);
 	}
 
 	/**
@@ -205,14 +228,15 @@ class SScribe_Page_Collector {
 	 * @param string $language    Language code.
 	 * @param string $post_status  Post status.
 	 * @param string $post_type    Post type.
-	 * @param int    $limit        Maximum number of IDs to return (-1 for all).
+	 * @param int    $limit          Maximum number of IDs to return (-1 for all).
+	 * @param int    $modified_since Only posts modified after this GMT timestamp; 0 for all.
 	 * @return array<int>
 	 */
-	private function get_page_ids_direct( string $language, string $post_status, string $post_type, int $limit = -1 ): array {
+	private function get_page_ids_direct( string $language, string $post_status, string $post_type, int $limit = -1, int $modified_since = 0 ): array {
 		$post_status = $this->validate_post_status( $post_status );
 
 		$generation = $this->get_content_cache_generation();
-		$cache_key  = 'sscribe_page_ids_v3_' . $post_status . '_' . md5( "{$language}_{$post_type}_{$limit}" );
+		$cache_key  = 'sscribe_page_ids_v3_' . $post_status . '_' . md5( "{$language}_{$post_type}_{$limit}_{$modified_since}" );
 		$cached     = get_transient( $cache_key );
 		if (
 			is_array( $cached )
@@ -237,6 +261,9 @@ class SScribe_Page_Collector {
 			),
 			'no_found_rows'  => true,
 		);
+		if ( $modified_since > 0 ) {
+			$args['date_query'] = self::modified_since_date_query( $modified_since );
+		}
 
 		$switched = false;
 
@@ -419,16 +446,17 @@ class SScribe_Page_Collector {
 	 * @param string $language    Language code.
 	 * @param string $post_status Post status.
 	 * @param string $post_type   Post type.
+	 * @param int    $modified_since Only posts modified after this GMT timestamp; 0 for all.
 	 * @return int
 	 */
-	private function estimate_page_count( string $language, string $post_status, string $post_type ): int {
+	private function estimate_page_count( string $language, string $post_status, string $post_type, int $modified_since = 0 ): int {
 		global $wpdb;
 
 		$post_status = $this->validate_post_status( $post_status );
 		$post_types  = $this->resolve_post_type_for_query( $post_type );
 
 		$generation = $this->get_content_cache_generation();
-		$cache_key  = 'sscribe_estimate_count_v2_' . md5( $language . '|' . $post_status . '|' . ( is_array( $post_types ) ? implode( ',', $post_types ) : (string) $post_types ) );
+		$cache_key  = 'sscribe_estimate_count_v2_' . md5( $language . '|' . $post_status . '|' . ( is_array( $post_types ) ? implode( ',', $post_types ) : (string) $post_types ) . '|' . $modified_since );
 		$cached     = function_exists( 'get_transient' ) ? get_transient( $cache_key ) : false;
 		if (
 			is_array( $cached )
@@ -459,6 +487,9 @@ class SScribe_Page_Collector {
 		if ( 'any' !== $post_status ) {
 			$sql .= $wpdb->prepare( ' AND post_status = %s', $post_status );
 		}
+		if ( $modified_since > 0 ) {
+			$sql .= $wpdb->prepare( ' AND post_modified_gmt > %s', gmdate( 'Y-m-d H:i:s', $modified_since ) );
+		}
 
 		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- Count query for auto-detection; caching not needed. SQL is prepared via $wpdb->prepare() above.
 
@@ -485,10 +516,11 @@ class SScribe_Page_Collector {
 	 * @param string $language    Language code.
 	 * @param string $post_status Post status.
 	 * @param string $post_type   Post type.
-	 * @param int    $chunk_size  Chunk size.
+	 * @param int    $chunk_size     Chunk size.
+	 * @param int    $modified_since Only posts modified after this GMT timestamp; 0 for all.
 	 * @return \Generator<int[]>
 	 */
-	public function get_page_ids_chunked( string $language = '', string $post_status = 'publish', string $post_type = 'page', int $chunk_size = 100 ): \Generator {
+	public function get_page_ids_chunked( string $language = '', string $post_status = 'publish', string $post_type = 'page', int $chunk_size = 100, int $modified_since = 0 ): \Generator {
 		$post_status = $this->validate_post_status( $post_status );
 		$chunk_size  = max( 1, min( 1000, (int) apply_filters( 'sscribe_page_ids_chunk_size', $chunk_size ) ) );
 
@@ -515,6 +547,9 @@ class SScribe_Page_Collector {
 					'ID'         => 'ASC',
 				),
 			);
+			if ( $modified_since > 0 ) {
+				$args['date_query'] = self::modified_since_date_query( $modified_since );
+			}
 
 			$switched = false;
 

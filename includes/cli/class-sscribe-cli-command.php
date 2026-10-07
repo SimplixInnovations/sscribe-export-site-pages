@@ -49,6 +49,9 @@ final class SScribe_CLI_Command {
 	 * [--language=<code>]
 	 * : Language code when a multilingual plugin is active. Leave out for every language.
 	 *
+	 * [--modified-since=<date>]
+	 * : Only export posts modified after this date or Unix timestamp, for example 2026-10-01 or "-7 days".
+	 *
 	 * [--output=<path>]
 	 * : Copy the finished ZIP to this file, or into this directory.
 	 *
@@ -226,10 +229,11 @@ final class SScribe_CLI_Command {
 
 		return SScribe_Export_Job::from_array(
 			array(
-				'language'    => $assoc_args['language'] ?? '',
-				'post_status' => $assoc_args['post-status'] ?? 'publish',
-				'post_type'   => $assoc_args['post-type'] ?? 'page',
-				'formats'     => $formats,
+				'language'       => $assoc_args['language'] ?? '',
+				'post_status'    => $assoc_args['post-status'] ?? 'publish',
+				'post_type'      => $assoc_args['post-type'] ?? 'page',
+				'formats'        => $formats,
+				'modified_since' => $assoc_args['modified-since'] ?? 0,
 			)
 		);
 	}

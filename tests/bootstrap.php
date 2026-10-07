@@ -957,6 +957,7 @@ if ( ! class_exists( 'WP_Query' ) ) {
 		public int $max_num_pages = 0;
 
 		public function __construct( $query = array() ) {
+			$GLOBALS['sscribe_test_wp_query_last_args'] = is_array( $query ) ? $query : array();
 			// Test-time stub. If a test sets
 			// $GLOBALS['sscribe_test_wp_query_chunks'] to an array of
 			// integer arrays, the stub yields each chunk in order on
