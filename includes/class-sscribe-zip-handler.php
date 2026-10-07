@@ -309,10 +309,11 @@ class SScribe_Zip_Handler {
 						break 2;
 					}
 					$zip_entries[] = array(
-						'source'    => $basename,
-						'zip_path'  => $archive_entry,
-						'lang_code' => $lang_code,
-						'size'      => file_exists( $file ) ? (int) filesize( $file ) : 0,
+						'source'      => $basename,
+						'source_path' => $file,
+						'zip_path'    => $archive_entry,
+						'lang_code'   => $lang_code,
+						'size'        => file_exists( $file ) ? (int) filesize( $file ) : 0,
 					);
 				}
 			}
@@ -334,6 +335,35 @@ class SScribe_Zip_Handler {
 							array(
 								'manifest' => $manifest_name,
 								'zip'      => basename( $zip_path ),
+							)
+						);
+						$assembly_failed = true;
+						break;
+					}
+				}
+			}
+
+			if ( ! $assembly_failed ) {
+				$manifest = SScribe_Export_Manifest::build(
+					$source_dir,
+					$zip_entries,
+					array(
+						'session_id' => $session_id,
+						'formats'    => $formats,
+						'languages'  => $has_language && ! empty( $lang_metadata['lang_code'] ) ? array( (string) $lang_metadata['lang_code'] ) : array(),
+					)
+				);
+				$manifest_entries = array(
+					SScribe_Export_Manifest::JSON_ENTRY  => SScribe_Export_Manifest::to_json( $manifest ),
+					SScribe_Export_Manifest::INDEX_ENTRY => SScribe_Export_Manifest::render_index_markdown( $manifest ),
+				);
+				foreach ( $manifest_entries as $entry_name => $entry_body ) {
+					if ( ! $zip->addFromString( $entry_name, $entry_body ) ) {
+						$this->logger->error(
+							'Failed to add manifest to ZIP; archive assembly aborted',
+							array(
+								'entry' => $entry_name,
+								'zip'   => basename( $zip_path ),
 							)
 						);
 						$assembly_failed = true;

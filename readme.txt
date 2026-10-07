@@ -29,6 +29,7 @@ SScribe turns WordPress pages into portable documents for content handovers, aud
 * RTL output for Arabic, Farsi, Urdu, and other Arabic-script languages
 * SEO metadata from Yoast SEO, Rank Math, All in One SEO, SEOPress, and The SEO Framework
 * Cover pages, headings, tables, lists, code blocks, and images
+* A manifest.json and INDEX.md in every archive with SHA-256 checksums, source URLs, and modified dates
 * Private archive and log storage outside public web directories
 * Capability, ownership, nonce, and single-use download-token checks
 * Automatic cleanup of expired archives and sessions

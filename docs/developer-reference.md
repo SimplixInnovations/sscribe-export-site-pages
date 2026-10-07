@@ -182,8 +182,30 @@ Scheduled hook that removes stale sessions and durable page queues.
 
 Scheduled hook that removes expired audit-trail rows.
 
+## Archive manifest
+
+Every archive carries two generated entries at its root:
+
+* `manifest.json` (schema `sscribe-export-manifest/1`): generator and site
+  identity, the export session, formats and languages, one record per
+  document (`path`, `format`, `lang`, `bytes`, `sha256`, and the source
+  `post` with id, type, title, URL and `modified_utc`), and totals.
+* `INDEX.md`: a human-readable table with one row per source post and a
+  link to each of its documents, followed by any files that have no source
+  record.
+
+Records are collected while pages render, as JSON lines in the dotfile
+`.sscribe-manifest.jsonl` inside the session temp directory, so they survive
+request boundaries, retries and resumes; a retried page replaces its earlier
+record. The sidecar never ships. Checksums are computed from the final bytes
+when the ZIP is assembled, so `sha256` always matches the archive content.
+Timestamps are UTC in `YYYY-MM-DDTHH:MM:SSZ` form. `SScribe_Export_Manifest`
+exposes `record()`, `load()`, `build()`, `to_json()` and
+`render_index_markdown()`.
+
 ## Public classes
 
 * `SScribe_Export_All_Formats_Wrapper`: exports a page to every supported format with per-format error isolation.
 * `SScribe_Exporter_Factory`: constructs an exporter for a supported format.
+* `SScribe_Export_Manifest`: builds the `manifest.json` and `INDEX.md` entries shipped in every archive.
 * `SScribe_Exporter_Interface`: contract implemented by exporter classes.

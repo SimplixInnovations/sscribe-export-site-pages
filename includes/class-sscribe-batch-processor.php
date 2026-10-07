@@ -358,6 +358,41 @@ final class SScribe_Batch_Processor {
 	}
 
 	/**
+	 * Append the generated document to the session manifest sidecar.
+	 *
+	 * @param string $temp_dir  Session temp directory.
+	 * @param string $file_path Absolute path of the generated document.
+	 * @param string $format    Format key.
+	 * @param int    $page_id   Source post ID.
+	 * @param array  $page_data Page payload from the collector.
+	 */
+	private function record_manifest_entry( string $temp_dir, string $file_path, string $format, int $page_id, array $page_data ): void {
+		$root = rtrim( str_replace( '\\', '/', $temp_dir ), '/' ) . '/';
+		$file = str_replace( '\\', '/', $file_path );
+		if ( ! str_starts_with( $file, $root ) ) {
+			return;
+		}
+
+		$modified_ts = function_exists( 'get_post_modified_time' ) ? get_post_modified_time( 'U', true, $page_id ) : false;
+		$modified    = is_numeric( $modified_ts ) ? gmdate( 'Y-m-d\TH:i:s\Z', (int) $modified_ts ) : '';
+		$type     = function_exists( 'get_post_type' ) ? get_post_type( $page_id ) : '';
+
+		SScribe_Export_Manifest::record(
+			$temp_dir,
+			array(
+				'file'      => substr( $file, strlen( $root ) ),
+				'format'    => $format,
+				'lang'      => (string) ( $page_data['language'] ?? '' ),
+				'post_id'   => $page_id,
+				'post_type' => is_string( $type ) ? $type : '',
+				'title'     => (string) ( $page_data['title'] ?? '' ),
+				'url'       => (string) ( $page_data['permalink'] ?? '' ),
+				'modified'  => $modified,
+			)
+		);
+	}
+
+	/**
 	 * Dispatch export to all formats for a single page.
 	 *
 	 * @param array  $page_data   Page data from collector.
@@ -509,6 +544,8 @@ final class SScribe_Batch_Processor {
 				if ( $this->export_log ) {
 					$this->export_log->log_format_result( $page_id, $format, true, $file_path );
 				}
+
+				$this->record_manifest_entry( $temp_dir, $file_path, $format, $page_id, $page_data );
 
 				$this->logger->debug(
 					ucfirst( $format ) . ' generated successfully',
