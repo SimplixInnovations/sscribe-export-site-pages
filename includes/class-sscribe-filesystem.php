@@ -787,7 +787,7 @@ class SScribe_Filesystem {
 	 * @return bool True when the path is inside a plugin-owned directory.
 	 */
 	private function is_path_safe_for_plugin_read( string $file ): bool {
-		if ( '' === $file || str_contains( $file, ' ' ) || is_link( $file ) ) {
+		if ( '' === $file || str_contains( $file, "\0" ) || is_link( $file ) ) {
 			return false;
 		}
 

@@ -213,6 +213,15 @@ would fail the build.
 - `vendor-prefixed/phpoffice/phpword/src/PhpWord/Shared/PCLZip/`
   is removed. PHPWord bundles its own PCLZip; WordPress core also
   ships PCLZip. Shipping both causes class-name conflicts.
+- `vendor-prefixed/phpoffice/phpword/src/PhpWord/Style.php` is a modified
+  copy of the upstream LGPL-3.0 file. `scripts/fix-phpword-style-deprecation.php`
+  (run from Composer's `post-install-cmd` and `vendor:prefix`) adds a
+  `null === $styleName` guard to `Style::getStyle()` so PHP 8.1+ does not emit
+  a deprecation when a document references no named style. No other PHPWord
+  file is changed. This note is the LGPL section 2 change notice for that file;
+  the complete, unmodified upstream source is available from
+  https://github.com/PHPOffice/PHPWord at the version pinned in
+  `composer.lock`.
 - `vendor-prefixed/phpoffice/phpword/phpword.ini.dist` and
   `vendor-prefixed/phpoffice/phpword/phpmd.xml.dist` are removed.
   These are configuration samples never read by SScribe code.

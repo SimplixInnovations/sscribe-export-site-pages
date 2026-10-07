@@ -85,6 +85,10 @@ No. SScribe does not send exported content to Simplix Innovations or another con
 
 Uninstall removes plugin options, scheduled hooks, saved export sessions and page queues, private archives and logs, and any recognized legacy export directory. Deactivation alone keeps data so exports can resume after reactivation.
 
+== External services ==
+
+SScribe does not connect to Simplix Innovations or any third-party service, and it does not send exported content anywhere. During an export it may issue HTTP GET requests for images only, through the WordPress safe HTTP API. By default the request goes only to your own site host so that a Media Library file that cannot be read from disk can still be embedded; other hosts are blocked. A developer can add approved hosts with the `sscribe_allowed_image_hosts` filter. Those requests send standard HTTP request metadata, such as your server's IP address, to the fetched host, so review the terms and privacy policy of any host you add.
+
 == Privacy ==
 
 SScribe stores short-lived export sessions, page queues, archives, operational logs, and security audit records on the WordPress site. Archives expire after 72 hours by default; sessions and logs are cleaned on a schedule. The plugin registers WordPress personal-data exporter and eraser callbacks for user-linked records. Exported page content is not transmitted to Simplix Innovations.
@@ -129,7 +133,7 @@ Build transformations are documented in docs/BUILD_TRANSFORMATIONS.md.
 * Fixed PDFs with images, block tables in DOCX, code samples, Markdown captions, Arabic PDF links, the All status filter, and custom post type exports.
 * Fixed activation on managed hosting and containers, SQLite upgrades, and large-site caching.
 * Added responsive layouts, RTL keyboard support, and accessibility fixes in the admin screens.
-* Supports PHP 8.2 to 8.5 and WordPress 6.1 and later, and passes WordPress Plugin Check.
+* Supports PHP 8.2 to 8.5 and WordPress 6.1 and later.
 
 = 1.9.0 =
 * Rebuilt the WordPress admin screens and corrected export, history, accessibility, and download-flow defects.

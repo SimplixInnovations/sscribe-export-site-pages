@@ -275,7 +275,7 @@ trait SScribe_Export_Finalizer {
 				$timestamp,
 				$lang_suffix,
 				$format_suffix,
-				substr( bin2hex( self::random_suffix_bytes( 3 ) ), 0, 6 )
+				bin2hex( self::random_suffix_bytes( 16 ) )
 			);
 
 			$this->logger->debug(

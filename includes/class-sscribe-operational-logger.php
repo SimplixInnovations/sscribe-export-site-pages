@@ -317,13 +317,15 @@ final class SScribe_Operational_Logger {
 			self::rotate( $log_file );
 		}
 
-		$written = file_put_contents( $log_file, $payload, FILE_APPEND | LOCK_EX );
+		$written = file_put_contents( $log_file, $payload, FILE_APPEND | LOCK_EX ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- Append-only operational log in private storage.
 		if ( false === $written ) {
 			// Operational-logger self-report uses error_log() rather than the
 			// plugin's own SScribe_Logger because the failure path itself may
 			// would break the logger doing the reporting.
-			// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
-			error_log( '[SSCRIBE][OPS_LOGGER] Failed to append operational record to ' . basename( $log_file ) );
+			if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+				// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+				error_log( '[SSCRIBE][OPS_LOGGER] Failed to append operational record to ' . basename( $log_file ) );
+			}
 			return;
 		}
 		// Operational log is owner-read/write only (mode 0600). This is

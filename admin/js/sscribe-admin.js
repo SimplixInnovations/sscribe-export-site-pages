@@ -235,7 +235,11 @@
 			$(document).on('click.sscribe', '#sscribe-preview-dismiss-btn', $.proxy(this.closePreview, this));
 			$(document).on('click.sscribe', '#sscribe-preview-start-btn', $.proxy(this.startExportFromPreview, this));
 			$(document).on('click.sscribe', '#sscribe-new-export-btn', $.proxy(this.exportModalStartOver, this));
-			$(document).on('click.sscribe', '#sscribe-open-export-modal-btn', $.proxy(this.openExportModalForConfig, this));
+			$(document).on(
+				'click.sscribe',
+				'#sscribe-open-export-modal-btn',
+				$.proxy(this.openExportModalForConfig, this)
+			);
 			$(document).on('click.sscribe', '#sscribe-export-modal-close', $.proxy(this.exportModalClose, this));
 			// Backdrop clicks intentionally do NOT close the export dialog:
 			// dismissal happens only through its explicit close controls.
@@ -2660,7 +2664,9 @@
 		},
 		applyHistoryFilter: function () {
 			const $input = $('#sscribe-history-search');
-			const needle = String(($input.val() || '')).toLowerCase().trim();
+			const needle = String($input.val() || '')
+				.toLowerCase()
+				.trim();
 			const $rows = $('#sscribe-history-table .sscribe-history-row');
 			let visible = 0;
 			$rows.each(function () {
@@ -3457,9 +3463,9 @@
 				e.preventDefault();
 				cancel();
 			});
-			$modal// Overlay clicks intentionally do NOT resolve the dialog (no
-			// accidental confirmation or dismissal): use the explicit buttons.
-			.off('click.sscribe-confirm-overlay');
+			$modal // Overlay clicks intentionally do NOT resolve the dialog (no
+				// accidental confirmation or dismissal): use the explicit buttons.
+				.off('click.sscribe-confirm-overlay');
 			setTimeout(function () {
 				if ($cancel[0]) {
 					$cancel.trigger('focus');
@@ -4379,12 +4385,7 @@
 				return;
 			}
 			this._exportModalReturnFocus = document.activeElement;
-			$modal
-				.removeClass('sscribe-hidden')
-				.prop('hidden', false)
-				.attr('aria-hidden', 'false')
-				.hide()
-				.fadeIn(160);
+			$modal.removeClass('sscribe-hidden').prop('hidden', false).attr('aria-hidden', 'false').hide().fadeIn(160);
 			document.body.style.overflow = 'hidden';
 			this.focusFirstInteractive($modal[0], '#sscribe-export-modal-close');
 		},
@@ -4490,15 +4491,18 @@
 				return null;
 			}
 			const v = value.trim();
-			const rgbMatch = v.match(
-				/rgba?\(\s*([\d.]+)[\s,]+([\d.]+)[\s,]+([\d.]+)(?:[\s,/]+([\d.]+%?))?\s*\)/i
-			);
+			const rgbMatch = v.match(/rgba?\(\s*([\d.]+)[\s,]+([\d.]+)[\s,]+([\d.]+)(?:[\s,/]+([\d.]+%?))?\s*\)/i);
 			if (rgbMatch) {
 				let alpha = 1;
 				if (typeof rgbMatch[4] === 'string') {
 					alpha = rgbMatch[4].endsWith('%') ? parseFloat(rgbMatch[4]) / 100 : parseFloat(rgbMatch[4]);
 				}
-				return [parseFloat(rgbMatch[1]), parseFloat(rgbMatch[2]), parseFloat(rgbMatch[3]), isNaN(alpha) ? 1 : alpha];
+				return [
+					parseFloat(rgbMatch[1]),
+					parseFloat(rgbMatch[2]),
+					parseFloat(rgbMatch[3]),
+					isNaN(alpha) ? 1 : alpha,
+				];
 			}
 			const hexMatch = v.match(/^#([0-9a-f]{3,8})$/i);
 			if (hexMatch) {

@@ -25,7 +25,7 @@
 	--ss-surface-2: #f4f4f5;
 	--ss-surface-3: #e4e4e7;
 	--ss-border: #e4e4e7;
-	--ss-border-strong: #d4d4d8;
+	--ss-border-strong: #8c8f94;
 	--ss-text-primary: #09090b;
 	--ss-text-secondary: #3f3f46;
 	--ss-text-tertiary: #52525b;
@@ -195,13 +195,12 @@
    its own look.
    ============================================================ */
 
-
 .sscribe-dark {
 	--ss-surface: #24282d;
 	--ss-surface-2: #2b3036;
 	--ss-surface-3: #333940;
 	--ss-border: #454c54;
-	--ss-border-strong: #59616a;
+	--ss-border-strong: #7d868f;
 	--ss-text-primary: #f0f0f1;
 	--ss-text-secondary: #dfe2e5;
 	--ss-text-tertiary: #c7cbd0;

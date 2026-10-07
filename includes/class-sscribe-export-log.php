@@ -170,9 +170,7 @@ class SScribe_Export_Log {
 					return;
 				}
 			}
-			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- Intended logging file operation.
-			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_chmod -- Intended logging file permission (0600).
-			$result = file_put_contents( $this->log_file, $json, LOCK_EX );
+			$result = file_put_contents( $this->log_file, $json, LOCK_EX ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- Intended logging file operation.
 			if ( false !== $result ) {
 				$this->dirty = false;
 				// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_chmod -- Setting 0600 for log file security; only effective on Unix-like systems.
@@ -549,9 +547,7 @@ class SScribe_Export_Log {
 			return $this->data_cache;
 		}
 
-		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Safe filesystem read.
-
-		$json = file_get_contents( $this->log_file );
+		$json = file_get_contents( $this->log_file ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Safe filesystem read.
 		if ( false === $json ) {
 			$this->data_cache = $this->get_default_log_data();
 			return $this->data_cache;

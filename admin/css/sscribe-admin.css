@@ -90,12 +90,12 @@
 	z-index: 100000;
 	padding: var(--ss-space-2) var(--ss-space-4);
 	background: var(--ss-brand);
-	color: var(--ss-color-solid-white);
+	color: var(--ss-text-inverse);
 	border-radius: var(--ss-radius);
 	text-decoration: none;
 	font-weight: var(--ss-font-semibold);
 	font-size: var(--ss-text-body);
-	outline: 2px solid var(--ss-color-solid-white);
+	outline: 2px solid var(--ss-brand);
 	outline-offset: 2px;
 }
 
@@ -1433,7 +1433,6 @@ so the user sees both at a glance. */
 	}
 }
 
-
 .sscribe-status-processing {
 	/* The running state belongs to the brand family (green), not the
 	   informational blue: the progress UI is brand-colored everywhere
@@ -1442,18 +1441,15 @@ so the user sees both at a glance. */
 	border-color: var(--ss-brand);
 }
 
-
 .sscribe-status-success {
 	background: var(--ss-success-bg);
 	border-color: var(--ss-success-border);
 }
 
-
 .sscribe-status-error {
 	background: var(--ss-error-bg);
 	border-color: var(--ss-error-border);
 }
-
 
 .sscribe-status-icon {
 	width: 36px;
@@ -4187,8 +4183,8 @@ body.rtl .sscribe-progress-bar-fill {
 	content: '';
 	width: 9px;
 	height: 5px;
-	border-left: 2px solid var(--ss-color-solid-white);
-	border-bottom: 2px solid var(--ss-color-solid-white);
+	border-left: 2px solid var(--ss-text-inverse);
+	border-bottom: 2px solid var(--ss-text-inverse);
 	transform: rotate(-45deg) translate(0, -1px);
 	display: block;
 }
@@ -5340,6 +5336,7 @@ body.rtl .sscribe-progress-bar-fill {
 
 .sscribe-toggle-switch input:checked + .sscribe-toggle-slider::before {
 	transform: translateX(20px);
+	background: var(--ss-text-inverse);
 }
 
 .sscribe-toggle-switch input:focus-visible + .sscribe-toggle-slider {
@@ -5696,7 +5693,7 @@ body.rtl .sscribe-progress-bar-fill {
 }
 
 .sscribe-export-hero-copy h2 {
-	font-size: var(--ss-text-large);
+	font-size: var(--ss-text-lg);
 	font-weight: var(--ss-font-semibold);
 	color: var(--ss-text-primary);
 	margin: 0 0 var(--ss-space-1);
@@ -5734,7 +5731,7 @@ body.rtl .sscribe-progress-bar-fill {
 }
 
 .sscribe-modal-header-copy h3 {
-	font-size: var(--ss-text-title);
+	font-size: var(--ss-text-h2);
 	font-weight: var(--ss-font-semibold);
 	color: var(--ss-text-primary);
 }
@@ -5871,16 +5868,12 @@ body.rtl .sscribe-progress-bar-fill {
 }
 
 .sscribe-modal-content-export .sscribe-status-success {
-	background: linear-gradient(
-		180deg,
-		var(--ss-surface) 0%,
-		var(--ss-bg) 100%
-	);
+	background: linear-gradient(180deg, var(--ss-surface) 0%, var(--ss-bg) 100%);
 	border-color: var(--ss-border);
 }
 
 .sscribe-modal-content-export .sscribe-status-success .sscribe-status-heading {
-	font-size: var(--ss-text-title);
+	font-size: var(--ss-text-h2);
 	letter-spacing: var(--ss-tracking-tight, normal);
 }
 
@@ -5996,7 +5989,9 @@ body.rtl .sscribe-progress-bar-fill {
 	background: transparent;
 	color: var(--ss-text-muted);
 	cursor: pointer;
-	transition: background-color 0.15s ease, color 0.15s ease;
+	transition:
+		background-color 0.15s ease,
+		color 0.15s ease;
 }
 
 .sscribe-search-clear:hover {
@@ -6023,7 +6018,7 @@ body.rtl .sscribe-progress-bar-fill {
 
 @font-face {
 	font-family: 'SScribe Icons';
-	src: url('../assets/fonts/SScribeIcons-Light.woff2') format('woff2');
+	src: url('../../assets/fonts/SScribeIcons-Light.woff2') format('woff2');
 	font-weight: normal;
 	font-style: normal;
 	font-display: block;
