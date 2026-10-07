@@ -9,7 +9,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-10-07T16:24:49+00:00\n"
+"POT-Creation-Date: 2026-10-07T19:43:14+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.12.0\n"
 "X-Domain: sscribe-export-site-pages\n"
@@ -379,7 +379,7 @@ msgid "s"
 msgstr ""
 
 #: admin/class-sscribe-admin.php:323
-#: includes/traits/trait-sscribe-batch-step-handler.php:891
+#: includes/traits/trait-sscribe-batch-step-handler.php:901
 msgid "Packaging files into ZIP archive..."
 msgstr ""
 
@@ -1763,60 +1763,60 @@ msgstr ""
 msgid "%1$s file appears empty or corrupted (size: %2$d bytes, minimum: %3$d bytes)."
 msgstr ""
 
-#: includes/class-sscribe-batch-processor.php:1018
+#: includes/class-sscribe-batch-processor.php:1074
 #: includes/class-sscribe-export-query-controller.php:120
 #: includes/class-sscribe-export-query-controller.php:522
 msgid "Invalid or inactive language."
 msgstr ""
 
 #. translators: %s: Submitted post type.
-#: includes/class-sscribe-batch-processor.php:1077
+#: includes/class-sscribe-batch-processor.php:1125
 #, php-format
 msgid "Invalid post type \"%s\"."
 msgstr ""
 
-#: includes/class-sscribe-batch-processor.php:1101
+#: includes/class-sscribe-batch-processor.php:1149
 msgid "You already have an export in progress. Please wait for it to complete or refresh the page."
 msgstr ""
 
-#: includes/class-sscribe-batch-processor.php:1113
+#: includes/class-sscribe-batch-processor.php:1161
 msgid "Invalid language code specified."
 msgstr ""
 
-#: includes/class-sscribe-batch-processor.php:1150
+#: includes/class-sscribe-batch-processor.php:1198
 msgid "No pages found matching the selected criteria."
 msgstr ""
 
-#: includes/class-sscribe-batch-processor.php:1171
+#: includes/class-sscribe-batch-processor.php:1219
 msgid "Failed to initialize export directory. Please try again."
 msgstr ""
 
-#: includes/class-sscribe-batch-processor.php:1214
+#: includes/class-sscribe-batch-processor.php:1262
 msgid "Failed to create export session. Please try again."
 msgstr ""
 
-#: includes/class-sscribe-batch-processor.php:1229
+#: includes/class-sscribe-batch-processor.php:1277
 msgid "Failed to store the export page list. Please try again."
 msgstr ""
 
-#: includes/class-sscribe-batch-processor.php:1255
+#: includes/class-sscribe-batch-processor.php:1303
 msgid "Another export was started. Please try again."
 msgstr ""
 
 #. translators: %d: Number of pages found.
-#: includes/class-sscribe-batch-processor.php:1285
+#: includes/class-sscribe-batch-processor.php:1333
 #, php-format
 msgid "Found %d pages. Starting export..."
 msgstr ""
 
 #. translators: %d: Maximum number of pages included in one export.
-#: includes/class-sscribe-batch-processor.php:1296
+#: includes/class-sscribe-batch-processor.php:1344
 #, php-format
 msgid "More than %d readable pages are available. This export includes the first batch only; run additional exports to cover the remainder."
 msgstr ""
 
 #. translators: %s: image alt text.
-#: includes/class-sscribe-content-parser.php:991
+#: includes/class-sscribe-content-parser.php:1218
 #, php-format
 msgid "[Image: %s]"
 msgstr ""
@@ -2714,6 +2714,19 @@ msgstr ""
 msgid "Note: Each export batch will use ~%1$d MB of %2$d MB available (%3$d%%). Consider increasing memory for safety."
 msgstr ""
 
+#: includes/class-sscribe-export-runner.php:115
+msgid "Export did not advance; see the export log."
+msgstr ""
+
+#: includes/class-sscribe-export-runner.php:125
+msgid "Export stopped after too many steps without finishing."
+msgstr ""
+
+#: includes/class-sscribe-export-runner.php:176
+#: includes/traits/trait-sscribe-batch-step-handler.php:205
+msgid "Export was cancelled."
+msgstr ""
+
 #: includes/class-sscribe-exporter.php:334
 #: includes/exporters/class-sscribe-html-exporter.php:124
 #: includes/exporters/class-sscribe-html-exporter.php:307
@@ -2997,6 +3010,75 @@ msgstr ""
 msgid "SScribe is missing required vendor dependencies: %s. Run composer install in the plugin directory to restore export functionality."
 msgstr ""
 
+#: includes/cli/class-sscribe-cli-command.php:73
+msgid "Run this command as a user who can export: wp sscribe export --user=<login>"
+msgstr ""
+
+#: includes/cli/class-sscribe-cli-command.php:83
+msgid "The --output location does not exist or is not writable."
+msgstr ""
+
+#. translators: %s: Format name given on the command line.
+#: includes/cli/class-sscribe-cli-command.php:92
+#, php-format
+msgid "Unknown format \"%s\" will be skipped."
+msgstr ""
+
+#: includes/cli/class-sscribe-cli-command.php:105
+#: includes/cli/class-sscribe-cli-command.php:202
+msgid "The export service is unavailable. (service_unavailable)"
+msgstr ""
+
+#: includes/cli/class-sscribe-cli-command.php:118
+msgid "The export finished but its ZIP could not be found. (zip_missing)"
+msgstr ""
+
+#: includes/cli/class-sscribe-cli-command.php:125
+msgid "The ZIP could not be copied to the --output location. (output_copy_failed)"
+msgstr ""
+
+#. translators: %s: Absolute path of the ZIP archive.
+#: includes/cli/class-sscribe-cli-command.php:138
+#, php-format
+msgid "ZIP: %s"
+msgstr ""
+
+#. translators: %s: Human readable file size.
+#: includes/cli/class-sscribe-cli-command.php:145
+#, php-format
+msgid "Size: %s"
+msgstr ""
+
+#. translators: %d: Number of pages exported.
+#: includes/cli/class-sscribe-cli-command.php:152
+#, php-format
+msgid "Pages: %d"
+msgstr ""
+
+#. translators: %d: Number of pages that failed to export.
+#: includes/cli/class-sscribe-cli-command.php:159
+#, php-format
+msgid "Errors: %d"
+msgstr ""
+
+#: includes/cli/class-sscribe-cli-command.php:163
+msgid "Export complete."
+msgstr ""
+
+#: includes/cli/class-sscribe-cli-command.php:197
+msgid "Use --format=table, --format=json or --format=csv."
+msgstr ""
+
+#: includes/cli/class-sscribe-cli-command.php:417
+msgid "The export failed."
+msgstr ""
+
+#. translators: 1: Pages processed so far, 2: Total pages, 3: Percentage complete.
+#: includes/cli/class-sscribe-cli-command.php:434
+#, php-format
+msgid "Processed %1$d of %2$d pages (%3$d%%)"
+msgstr ""
+
 #: includes/exporters/class-sscribe-docx-exporter.php:97
 msgid "DOCX export is unavailable because a required library is missing. Please reinstall the plugin."
 msgstr ""
@@ -3117,216 +3199,213 @@ msgstr ""
 msgid "PDF export aborted : only %1$s free of %2$s PHP memory limit. Try exporting to DOCX instead, or increase the memory_limit."
 msgstr ""
 
-#: includes/traits/trait-sscribe-batch-step-handler.php:46
+#: includes/traits/trait-sscribe-batch-step-handler.php:50
+#: includes/traits/trait-sscribe-export-outcome-emitter.php:38
 msgid "Too many requests. Please wait a moment."
 msgstr ""
 
-#: includes/traits/trait-sscribe-batch-step-handler.php:87
+#: includes/traits/trait-sscribe-batch-step-handler.php:101
 msgid "Invalid export session identifier."
 msgstr ""
 
-#: includes/traits/trait-sscribe-batch-step-handler.php:113
+#: includes/traits/trait-sscribe-batch-step-handler.php:127
 msgid "Export session expired or not found. Please start again."
 msgstr ""
 
-#: includes/traits/trait-sscribe-batch-step-handler.php:127
-#: includes/traits/trait-sscribe-export-finalizer.php:82
+#: includes/traits/trait-sscribe-batch-step-handler.php:141
+#: includes/traits/trait-sscribe-export-finalizer.php:94
 #: includes/traits/trait-sscribe-session-ajax.php:139
 #: includes/traits/trait-sscribe-session-ajax.php:169
 msgid "Invalid session access."
 msgstr ""
 
-#: includes/traits/trait-sscribe-batch-step-handler.php:146
+#: includes/traits/trait-sscribe-batch-step-handler.php:160
 msgid "Export session data corrupted. Please start again."
 msgstr ""
 
-#: includes/traits/trait-sscribe-batch-step-handler.php:169
+#: includes/traits/trait-sscribe-batch-step-handler.php:183
 msgid "Export session expired during lock acquisition."
 msgstr ""
 
-#: includes/traits/trait-sscribe-batch-step-handler.php:191
-msgid "Export was cancelled."
-msgstr ""
-
-#: includes/traits/trait-sscribe-batch-step-handler.php:227
-#: includes/traits/trait-sscribe-batch-step-handler.php:252
+#: includes/traits/trait-sscribe-batch-step-handler.php:241
+#: includes/traits/trait-sscribe-batch-step-handler.php:266
 msgid "Private export storage is unavailable."
 msgstr ""
 
-#: includes/traits/trait-sscribe-batch-step-handler.php:240
-#: includes/traits/trait-sscribe-batch-step-handler.php:281
+#: includes/traits/trait-sscribe-batch-step-handler.php:254
+#: includes/traits/trait-sscribe-batch-step-handler.php:295
 msgid "Export session corrupted (invalid temp directory path). Please start again."
 msgstr ""
 
 #. translators: %d: Page ID.
-#: includes/traits/trait-sscribe-batch-step-handler.php:440
+#: includes/traits/trait-sscribe-batch-step-handler.php:451
 #, php-format
 msgid "Failed to collect data for page ID %d."
 msgstr ""
 
 #. translators: %d: Page ID.
-#: includes/traits/trait-sscribe-batch-step-handler.php:487
+#: includes/traits/trait-sscribe-batch-step-handler.php:498
 #, php-format
 msgid "Skipped page %d - insufficient memory to proceed."
 msgstr ""
 
 #. translators: %d: Page ID.
-#: includes/traits/trait-sscribe-batch-step-handler.php:530
+#: includes/traits/trait-sscribe-batch-step-handler.php:541
 #, php-format
 msgid "Critical error while exporting page %d. See the export log for details."
 msgstr ""
 
 #. translators: %s: Page title.
-#: includes/traits/trait-sscribe-batch-step-handler.php:569
+#: includes/traits/trait-sscribe-batch-step-handler.php:580
 #, php-format
 msgid "Some formats could not be created for \"%s\"."
 msgstr ""
 
 #. translators: %s: Page title.
-#: includes/traits/trait-sscribe-batch-step-handler.php:574
+#: includes/traits/trait-sscribe-batch-step-handler.php:585
 #, php-format
 msgid "Failed to generate exports for \"%s\"."
 msgstr ""
 
 #. translators: %d: Number of additional errors not stored.
-#: includes/traits/trait-sscribe-batch-step-handler.php:738
+#: includes/traits/trait-sscribe-batch-step-handler.php:749
 #, php-format
 msgid "... and %d more errors occurred (see export log for full details)."
 msgstr ""
 
 #. translators: %d: Number of additional errors not stored.
-#: includes/traits/trait-sscribe-batch-step-handler.php:759
+#: includes/traits/trait-sscribe-batch-step-handler.php:770
 #, php-format
 msgid "... and %d more errors occurred."
 msgstr ""
 
-#: includes/traits/trait-sscribe-batch-step-handler.php:830
+#: includes/traits/trait-sscribe-batch-step-handler.php:841
 msgid "Export progress could not be saved. The batch can be retried safely."
 msgstr ""
 
-#: includes/traits/trait-sscribe-batch-step-handler.php:872
+#: includes/traits/trait-sscribe-batch-step-handler.php:883
 msgid "Export completion state could not be saved. Please retry this step."
 msgstr ""
 
 #. translators: 1: Current page number, 2: Total pages.
-#: includes/traits/trait-sscribe-batch-step-handler.php:962
+#: includes/traits/trait-sscribe-batch-step-handler.php:973
 #, php-format
 msgid "Processing %1$d of %2$d pages... (Paused briefly to manage memory - will resume automatically)"
 msgstr ""
 
 #. translators: 1: Current page number, 2: Total pages.
-#: includes/traits/trait-sscribe-batch-step-handler.php:969
+#: includes/traits/trait-sscribe-batch-step-handler.php:980
 #, php-format
 msgid "Processing %1$d of %2$d pages... (Paused to prevent timeout - will resume automatically)"
 msgstr ""
 
 #. translators: 1: Current page number, 2: Total pages.
-#: includes/traits/trait-sscribe-batch-step-handler.php:975
+#: includes/traits/trait-sscribe-batch-step-handler.php:986
 #, php-format
 msgid "Processing %1$d of %2$d pages..."
 msgstr ""
 
-#: includes/traits/trait-sscribe-batch-step-handler.php:987
+#: includes/traits/trait-sscribe-batch-step-handler.php:998
 msgid "The export paused briefly to manage server memory. It will resume automatically. No action needed."
 msgstr ""
 
-#: includes/traits/trait-sscribe-batch-step-handler.php:989
+#: includes/traits/trait-sscribe-batch-step-handler.php:1000
 msgid "The export paused briefly to prevent a server timeout. It will resume automatically. No action needed."
 msgstr ""
 
-#: includes/traits/trait-sscribe-export-finalizer.php:60
+#: includes/traits/trait-sscribe-export-finalizer.php:72
 #: includes/traits/trait-sscribe-session-ajax.php:118
 msgid "Invalid session."
 msgstr ""
 
-#: includes/traits/trait-sscribe-export-finalizer.php:72
+#: includes/traits/trait-sscribe-export-finalizer.php:84
 msgid "Export session not found. Please start again."
 msgstr ""
 
-#: includes/traits/trait-sscribe-export-finalizer.php:103
+#: includes/traits/trait-sscribe-export-finalizer.php:114
 msgid "Previous export failed and was cleared. Please try again."
 msgstr ""
 
-#: includes/traits/trait-sscribe-export-finalizer.php:114
+#: includes/traits/trait-sscribe-export-finalizer.php:124
 msgid "Export is not in the finalizing state."
 msgstr ""
 
-#: includes/traits/trait-sscribe-export-finalizer.php:130
+#: includes/traits/trait-sscribe-export-finalizer.php:139
 msgid "Export is being finalized by another request. Please wait."
 msgstr ""
 
-#: includes/traits/trait-sscribe-export-finalizer.php:145
+#: includes/traits/trait-sscribe-export-finalizer.php:153
 msgid "Export is already being finalized. Please wait."
 msgstr ""
 
-#: includes/traits/trait-sscribe-export-finalizer.php:170
-#: includes/traits/trait-sscribe-export-finalizer.php:211
-#: includes/traits/trait-sscribe-export-finalizer.php:668
+#: includes/traits/trait-sscribe-export-finalizer.php:176
+#: includes/traits/trait-sscribe-export-finalizer.php:219
+#: includes/traits/trait-sscribe-export-finalizer.php:672
 msgid "Export finalization failed. Please try again."
 msgstr ""
 
-#: includes/traits/trait-sscribe-export-finalizer.php:328
+#: includes/traits/trait-sscribe-export-finalizer.php:332
 msgid "No files were generated : all pages failed to export. Check the export format selected and try again."
 msgstr ""
 
-#: includes/traits/trait-sscribe-export-finalizer.php:329
+#: includes/traits/trait-sscribe-export-finalizer.php:333
 msgid "If you selected PDF format, verify that the PDF export works before running a bulk export. Try exporting a single page first."
 msgstr ""
 
-#: includes/traits/trait-sscribe-export-finalizer.php:331
+#: includes/traits/trait-sscribe-export-finalizer.php:335
 msgid "Select DOCX, HTML, or Markdown format instead of PDF-only."
 msgstr ""
 
-#: includes/traits/trait-sscribe-export-finalizer.php:332
+#: includes/traits/trait-sscribe-export-finalizer.php:336
 msgid "If PDF is needed, contact your plugin developer to verify PDF is configured correctly."
 msgstr ""
 
-#: includes/traits/trait-sscribe-export-finalizer.php:352
+#: includes/traits/trait-sscribe-export-finalizer.php:356
 msgid "Export finalization ownership changed. Please retry."
 msgstr ""
 
-#: includes/traits/trait-sscribe-export-finalizer.php:386
+#: includes/traits/trait-sscribe-export-finalizer.php:389
 msgid "ZIP package"
 msgstr ""
 
-#: includes/traits/trait-sscribe-export-finalizer.php:387
-#: includes/traits/trait-sscribe-export-finalizer.php:416
+#: includes/traits/trait-sscribe-export-finalizer.php:390
+#: includes/traits/trait-sscribe-export-finalizer.php:419
 msgid "Failed to create ZIP package. Please try again."
 msgstr ""
 
-#: includes/traits/trait-sscribe-export-finalizer.php:391
+#: includes/traits/trait-sscribe-export-finalizer.php:394
 msgid "Failed to create ZIP package."
 msgstr ""
 
-#: includes/traits/trait-sscribe-export-finalizer.php:490
+#: includes/traits/trait-sscribe-export-finalizer.php:493
 msgid "Export packaging failed : the ZIP archive was empty. Please try again."
 msgstr ""
 
-#: includes/traits/trait-sscribe-export-finalizer.php:491
+#: includes/traits/trait-sscribe-export-finalizer.php:494
 msgid "This can happen if temporary export files were deleted before packaging completed. Click \"Try Again\" to restart the export."
 msgstr ""
 
-#: includes/traits/trait-sscribe-export-finalizer.php:493
+#: includes/traits/trait-sscribe-export-finalizer.php:496
 msgid "Click \"Try Again\" to restart the export."
 msgstr ""
 
-#: includes/traits/trait-sscribe-export-finalizer.php:494
+#: includes/traits/trait-sscribe-export-finalizer.php:497
 msgid "If this keeps happening, check that your server has enough disk space."
 msgstr ""
 
-#: includes/traits/trait-sscribe-export-finalizer.php:507
-#: includes/traits/trait-sscribe-export-finalizer.php:644
+#: includes/traits/trait-sscribe-export-finalizer.php:510
+#: includes/traits/trait-sscribe-export-finalizer.php:647
 msgid "unknown"
 msgstr ""
 
 #. translators: 1: Number of files expected, 2: Number of files found in the ZIP archive.
-#: includes/traits/trait-sscribe-export-finalizer.php:590
+#: includes/traits/trait-sscribe-export-finalizer.php:593
 #, php-format
 msgid "Warning: ZIP may be incomplete : expected %1$d files, found %2$d in archive."
 msgstr ""
 
 #. translators: %d: Number of pages exported.
-#: includes/traits/trait-sscribe-export-finalizer.php:614
+#: includes/traits/trait-sscribe-export-finalizer.php:617
 #, php-format
 msgid "Export complete! %d page exported successfully."
 msgid_plural "Export complete! %d pages exported successfully."
@@ -3334,22 +3413,22 @@ msgstr[0] ""
 msgstr[1] ""
 
 #. translators: %d: Number of errors.
-#: includes/traits/trait-sscribe-export-finalizer.php:623
+#: includes/traits/trait-sscribe-export-finalizer.php:626
 #, php-format
 msgid "(%d error)"
 msgid_plural "(%d errors)"
 msgstr[0] ""
 msgstr[1] ""
 
-#: includes/traits/trait-sscribe-export-finalizer.php:669
+#: includes/traits/trait-sscribe-export-finalizer.php:673
 msgid "An unexpected error occurred while packaging the export. Click \"Try Again\" to resume from where it left off."
 msgstr ""
 
-#: includes/traits/trait-sscribe-export-finalizer.php:671
+#: includes/traits/trait-sscribe-export-finalizer.php:675
 msgid "Click \"Try Again\" to retry the export."
 msgstr ""
 
-#: includes/traits/trait-sscribe-export-finalizer.php:672
+#: includes/traits/trait-sscribe-export-finalizer.php:676
 msgid "If the problem persists, check your server PHP error logs for details."
 msgstr ""
 

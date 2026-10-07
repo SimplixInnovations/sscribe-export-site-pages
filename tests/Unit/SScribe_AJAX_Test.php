@@ -14,13 +14,17 @@ use PHPUnit\Framework\TestCase;
 class SScribe_AJAX_Test extends TestCase {
 	private $processor;
 
+	private int $original_max_execution_time = 0;
+
 	protected function setUp(): void {
 		parent::setUp();
+		$this->original_max_execution_time = (int) ini_get( 'max_execution_time' );
 		$this->processor = new \SScribe_Batch_Processor();
 		$_POST = array();
 	}
 
 	protected function tearDown(): void {
+		set_time_limit( $this->original_max_execution_time );
 		$this->processor = null;
 		$_POST = array();
 		parent::tearDown();

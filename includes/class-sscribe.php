@@ -467,5 +467,9 @@ class SScribe {
 		}
 
 		$this->loader->run();
+
+		if ( defined( 'WP_CLI' ) && WP_CLI && class_exists( 'WP_CLI' ) ) {
+			\WP_CLI::add_command( 'sscribe', 'SScribe_CLI_Command' );
+		}
 	}
 }

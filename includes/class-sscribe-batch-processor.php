@@ -41,7 +41,7 @@ use SScribe_Result as SScribe_Export_Result;
  *                                  ajax_clear_session
  *  - SScribe_Session_Status      : ajax_check_active_session
  */
-final class SScribe_Batch_Processor {
+final class SScribe_Batch_Processor implements SScribe_Export_Pipeline_Interface {
 
 	use SScribe_Batch_Step_Handler;
 	use SScribe_Export_Finalizer;
@@ -1036,20 +1036,39 @@ final class SScribe_Batch_Processor {
 
 		$this->get_diagnostics()->self_heal();
 
-		// Keep the request alive through client disconnects so the session
-		// and workspace writes below cannot be interrupted mid-flight.
-		ignore_user_abort( true );
-
-		$memory_raised = wp_raise_memory_limit( 'admin' );
-		$this->logger->debug( 'Memory limit raised', array( 'result' => $memory_raised ) );
-
 		$this->audit_log( 'export_started' );
 		$this->logger->debug( '=== START EXPORT ===' );
 
-		$requested_language = SScribe_AJAX_Guard::post_text( 'language', '', 100 );
+		$job = new SScribe_Export_Job(
+			SScribe_AJAX_Guard::post_text( 'language', '', 100 ),
+			SScribe_AJAX_Guard::post_text( 'post_status', 'publish', 30 ),
+			SScribe_AJAX_Guard::post_text( 'post_type', 'page', 30 ),
+			SScribe_AJAX_Guard::post_array( 'formats', 10 ),
+			self::parse_format_options( SScribe_AJAX_Guard::post_array( 'format_options', 100 ) )
+		);
+
+		$this->emit_export_outcome( $this->start_export_job( $job, new SScribe_Ajax_Export_Context() ) );
+	}
+
+	/**
+	 * Create an export session for a job and return what happened.
+	 *
+	 * Used by the AJAX start handler and by headless callers such as
+	 * WP-CLI, which pass their own context. Runs as the current user.
+	 *
+	 * @param SScribe_Export_Job               $job     What to export.
+	 * @param SScribe_Export_Context_Interface $context Who is running the export and how.
+	 * @return SScribe_Export_Outcome
+	 */
+	public function start_export_job( SScribe_Export_Job $job, SScribe_Export_Context_Interface $context ): SScribe_Export_Outcome {
+
+		$context->prepare_long_request( (int) apply_filters( 'sscribe_max_execution_time', 150 ) );
+		$this->logger->debug( 'Memory limit raised' );
+
+		$requested_language = $job->language;
 		$language           = $this->collector->normalize_language_code( $requested_language );
 		if ( '' !== $requested_language && '' === $language ) {
-			SScribe_AJAX_Guard::error(
+			return SScribe_Export_Outcome::fail(
 				array(
 					'code'    => 'invalid_language',
 					'message' => __( 'Invalid or inactive language.', 'sscribe-export-site-pages' ),
@@ -1057,21 +1076,13 @@ final class SScribe_Batch_Processor {
 				400
 			);
 		}
-		$post_status = SScribe_AJAX_Guard::post_text( 'post_status', 'publish', 30 );
+		$post_status = $job->post_status;
 
-		// "all" is the All card in the status step; the collector maps it to
-		// every exportable status.
 		$allowed_statuses = array( 'publish', 'private', 'draft', 'pending', 'future', 'all' );
 		if ( ! in_array( $post_status, $allowed_statuses, true ) ) {
 			$post_status = 'publish';
 		}
-		$formats_raw   = SScribe_AJAX_Guard::post_array( 'formats', 10 );
-		$formats_input = array();
-		foreach ( $formats_raw as $format_input ) {
-			if ( is_scalar( $format_input ) && ! is_bool( $format_input ) ) {
-				$formats_input[] = sanitize_key( (string) $format_input );
-			}
-		}
+		$formats_input = $job->formats;
 		$formats       = ! empty( $formats_input ) ? $formats_input : self::DEFAULT_FORMATS;
 		if ( empty( $formats_input ) ) {
 			$this->logger->debug(
@@ -1100,13 +1111,13 @@ final class SScribe_Batch_Processor {
 			$formats = self::DEFAULT_FORMATS;
 		}
 
-		$post_type = SScribe_AJAX_Guard::post_text( 'post_type', 'page', 30 );
+		$post_type = $job->post_type;
 
-		$format_options = self::parse_format_options( SScribe_AJAX_Guard::post_array( 'format_options', 100 ) );
+		$format_options        = self::parse_format_options( $job->format_options );
 		$selectable_post_types = $this->collector->get_selectable_post_types();
 		$valid_post_types       = array_merge( array( 'any' ), $selectable_post_types );
 		if ( ! in_array( $post_type, $valid_post_types, true ) ) {
-			SScribe_AJAX_Guard::error(
+			return SScribe_Export_Outcome::fail(
 				array(
 					'code'    => 'invalid_post_type',
 					'message' => sprintf(
@@ -1132,7 +1143,7 @@ final class SScribe_Batch_Processor {
 		$user_id = get_current_user_id();
 
 		if ( null !== $this->session->get_active_session_data( $user_id ) ) {
-			SScribe_AJAX_Guard::error(
+			return SScribe_Export_Outcome::fail(
 				array(
 					'code'    => 'concurrent_export',
 					'message' => __( 'You already have an export in progress. Please wait for it to complete or refresh the page.', 'sscribe-export-site-pages' ),
@@ -1144,7 +1155,7 @@ final class SScribe_Batch_Processor {
 		if ( ! empty( $language ) && $this->collector->is_multilingual_active() ) {
 			$valid_languages = wp_list_pluck( $this->collector->get_languages(), 'code' );
 			if ( ! in_array( $language, $valid_languages, true ) ) {
-				SScribe_AJAX_Guard::error(
+				return SScribe_Export_Outcome::fail(
 					array(
 						'code'    => 'invalid_language',
 						'message' => __( 'Invalid language code specified.', 'sscribe-export-site-pages' ),
@@ -1181,7 +1192,7 @@ final class SScribe_Batch_Processor {
 		);
 
 		if ( 0 === $total ) {
-			SScribe_AJAX_Guard::error(
+			return SScribe_Export_Outcome::fail(
 				array(
 					'code'    => 'no_pages_selected',
 					'message' => __( 'No pages found matching the selected criteria.', 'sscribe-export-site-pages' ),
@@ -1202,7 +1213,7 @@ final class SScribe_Batch_Processor {
 					'exception' => $e->getMessage(),
 				)
 			);
-			SScribe_AJAX_Guard::error(
+			return SScribe_Export_Outcome::fail(
 				array(
 					'code'    => 'workspace_init_failed',
 					'message' => __( 'Failed to initialize export directory. Please try again.', 'sscribe-export-site-pages' ),
@@ -1245,7 +1256,7 @@ final class SScribe_Batch_Processor {
 
 				self::$cleanup_temp_dir = null;
 			}
-			SScribe_AJAX_Guard::error(
+			return SScribe_Export_Outcome::fail(
 				array(
 					'code'    => 'session_create_failed',
 					'message' => __( 'Failed to create export session. Please try again.', 'sscribe-export-site-pages' ),
@@ -1260,7 +1271,7 @@ final class SScribe_Batch_Processor {
 				$this->zip_handler->delete_directory( $temp_dir );
 				self::$cleanup_temp_dir = null;
 			}
-			SScribe_AJAX_Guard::error(
+			return SScribe_Export_Outcome::fail(
 				array(
 					'code'    => 'page_list_failed',
 					'message' => __( 'Failed to store the export page list. Please try again.', 'sscribe-export-site-pages' ),
@@ -1286,7 +1297,7 @@ final class SScribe_Batch_Processor {
 
 					self::$cleanup_temp_dir = null;
 				}
-				SScribe_AJAX_Guard::error(
+				return SScribe_Export_Outcome::fail(
 					array(
 						'code'    => 'concurrent_export',
 						'message' => __( 'Another export was started. Please try again.', 'sscribe-export-site-pages' ),
@@ -1357,7 +1368,8 @@ final class SScribe_Batch_Processor {
 		self::$cleanup_zip_handler = null;
 		self::$cleanup_logger      = null;
 
-		SScribe_AJAX_Guard::success( $response );
+		$context->report_progress( $response );
+		return SScribe_Export_Outcome::ok( $response );
 	}
 
 	/**

@@ -617,15 +617,15 @@ trait SScribe_Batch_Step_Handler {
 						foreach ( $export_errors as $format_error ) {
 							$fmt       = strtolower( $format_error['format'] );
 							$err_msg   = $format_error['message'] ?? '';
-							$context   = $format_error['context'];
-							$diagnosis = $this->get_diagnostics()->diagnose_page_error( $page_id, $fmt, $err_msg, $context );
+							$error_context = $format_error['context'];
+							$diagnosis     = $this->get_diagnostics()->diagnose_page_error( $page_id, $fmt, $err_msg, $error_context );
 
 							if ( ! empty( $format_error['category'] ) && 'unknown' !== $format_error['category'] ) {
 								$diagnosis['category'] = $format_error['category'];
 							}
 
-							if ( ! empty( $context['fix_steps'] ) && empty( $diagnosis['fix'] ) ) {
-								$diagnosis['fix'] = $context['fix_steps'];
+							if ( ! empty( $error_context['fix_steps'] ) && empty( $diagnosis['fix'] ) ) {
+								$diagnosis['fix'] = $error_context['fix_steps'];
 							}
 
 							$detailed_errors[] = $diagnosis;
