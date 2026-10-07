@@ -61,8 +61,11 @@ final class SScribe_CLI_Command {
 	 * [--output=<path>]
 	 * : Copy the finished ZIP to this file, or into this directory.
 	 *
+	 * [--per-language]
+	 * : With WPML, Polylang or TranslatePress active, make one archive per language instead of a combined one.
+	 *
 	 * [--porcelain]
-	 * : Print only the path of the finished ZIP.
+	 * : Print only the path of the finished ZIP (one line per archive with --per-language).
 	 *
 	 * ## EXAMPLES
 	 *
@@ -114,32 +117,97 @@ final class SScribe_CLI_Command {
 			self::fail( __( 'The export service is unavailable. (service_unavailable)', 'sscribe-export-site-pages' ) );
 		}
 
-		$runner  = new SScribe_Export_Runner( $processor );
-		$outcome = $runner->run( $job, new SScribe_Headless_Export_Context( $user_id, $progress ) );
-
-		if ( ! $outcome->is_success() ) {
-			self::fail( self::describe_failure( $outcome ) );
-		}
-
-		$payload  = $outcome->payload();
-		$zip_path = self::resolve_zip_path( (string) ( $payload['filename'] ?? '' ) );
-		if ( '' === $zip_path ) {
-			self::fail( __( 'The export finished but its ZIP could not be found. (zip_missing)', 'sscribe-export-site-pages' ) );
-		}
-
-		$final_path = $zip_path;
-		if ( '' !== $output_target ) {
-			$final_path = self::copy_to_output( $zip_path, $output_target );
-			if ( '' === $final_path ) {
-				self::fail( __( 'The ZIP could not be copied to the --output location. (output_copy_failed)', 'sscribe-export-site-pages' ) );
+		$languages = array( $job->language );
+		if ( isset( $assoc_args['per-language'] ) && false !== $assoc_args['per-language'] ) {
+			$collector = SScribe_Container::instance()->get( SScribe_Page_Collector::class );
+			$languages = $collector instanceof SScribe_Page_Collector ? self::languages_for_run( $collector ) : array();
+			if ( array() === $languages ) {
+				self::fail( __( '--per-language needs WPML, Polylang or TranslatePress with at least one language. (no_languages)', 'sscribe-export-site-pages' ) );
 			}
 		}
 
+		$runner  = new SScribe_Export_Runner( $processor );
+		$context = new SScribe_Headless_Export_Context( $user_id, $progress );
+		$results = array();
+		foreach ( $languages as $language ) {
+			$language_job = count( $languages ) > 1 || '' !== $language
+				? SScribe_Export_Job::from_array(
+					array(
+						'language'       => $language,
+						'post_status'    => $job->post_status,
+						'post_type'      => $job->post_type,
+						'formats'        => $job->formats,
+						'format_options' => $job->format_options,
+						'modified_since' => $job->modified_since,
+					)
+				)
+				: $job;
+			$outcome      = $runner->run( $language_job, $context );
+
+			if ( ! $outcome->is_success() ) {
+				self::fail( self::describe_failure( $outcome ) );
+			}
+
+			$payload  = $outcome->payload();
+			$zip_path = self::resolve_zip_path( (string) ( $payload['filename'] ?? '' ) );
+			if ( '' === $zip_path ) {
+				self::fail( __( 'The export finished but its ZIP could not be found. (zip_missing)', 'sscribe-export-site-pages' ) );
+			}
+
+			$final_path = $zip_path;
+			if ( '' !== $output_target ) {
+				$final_path = self::copy_to_output( $zip_path, $output_target );
+				if ( '' === $final_path ) {
+					self::fail( __( 'The ZIP could not be copied to the --output location. (output_copy_failed)', 'sscribe-export-site-pages' ) );
+				}
+			}
+
+			$results[] = array(
+				'path'    => $final_path,
+				'payload' => $payload,
+			);
+		}
+
 		if ( $porcelain ) {
-			self::line( $final_path );
+			foreach ( $results as $result ) {
+				self::line( (string) $result['path'] );
+			}
 			return;
 		}
 
+		foreach ( $results as $result ) {
+			self::print_summary( (string) $result['path'], (array) $result['payload'] );
+		}
+		self::succeed( __( 'Export complete.', 'sscribe-export-site-pages' ) );
+	}
+
+	/**
+	 * Language codes for a per-language run.
+	 *
+	 * @param SScribe_Page_Collector $collector Collector that knows the multilingual plugin.
+	 * @return list<string> Codes, empty when no multilingual plugin is active.
+	 */
+	public static function languages_for_run( SScribe_Page_Collector $collector ): array {
+		if ( ! $collector->is_multilingual_active() ) {
+			return array();
+		}
+		$codes = array();
+		foreach ( $collector->get_languages() as $row ) {
+			$code = sanitize_key( (string) ( $row['code'] ?? '' ) );
+			if ( '' !== $code && ! in_array( $code, $codes, true ) ) {
+				$codes[] = $code;
+			}
+		}
+		return $codes;
+	}
+
+	/**
+	 * Print the archive summary lines for one finished export.
+	 *
+	 * @param string $final_path Absolute ZIP path.
+	 * @param array  $payload    Finalize payload.
+	 */
+	private static function print_summary( string $final_path, array $payload ): void {
 		$errors = $payload['errors'] ?? array();
 		self::line(
 			sprintf(
@@ -169,7 +237,6 @@ final class SScribe_CLI_Command {
 				is_array( $errors ) ? count( $errors ) : 0
 			)
 		);
-		self::succeed( __( 'Export complete.', 'sscribe-export-site-pages' ) );
 	}
 
 	/**

@@ -9,7 +9,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-10-07T20:59:42+00:00\n"
+"POT-Creation-Date: 2026-10-07T21:19:23+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.12.0\n"
 "X-Domain: sscribe-export-site-pages\n"
@@ -3157,14 +3157,14 @@ msgstr ""
 
 #. translators: %d: Number of pages exported.
 #: includes/class-sscribe-scheduler.php:635
-#: includes/cli/class-sscribe-cli-command.php:161
+#: includes/cli/class-sscribe-cli-command.php:229
 #, php-format
 msgid "Pages: %d"
 msgstr ""
 
 #. translators: %d: Number of pages that failed to export.
 #: includes/class-sscribe-scheduler.php:637
-#: includes/cli/class-sscribe-cli-command.php:168
+#: includes/cli/class-sscribe-cli-command.php:236
 #, php-format
 msgid "Errors: %d"
 msgstr ""
@@ -3200,7 +3200,7 @@ msgid "The schedule owner is no longer allowed to export."
 msgstr ""
 
 #: includes/class-sscribe-scheduler.php:749
-#: includes/cli/class-sscribe-cli-command.php:437
+#: includes/cli/class-sscribe-cli-command.php:504
 #: includes/cli/class-sscribe-cli-schedule-command.php:226
 msgid "The export failed."
 msgstr ""
@@ -3211,56 +3211,60 @@ msgstr ""
 msgid "SScribe is missing required vendor dependencies: %s. Run composer install in the plugin directory to restore export functionality."
 msgstr ""
 
-#: includes/cli/class-sscribe-cli-command.php:82
+#: includes/cli/class-sscribe-cli-command.php:85
 msgid "Run this command as a user who can export: wp sscribe export --user=<login>"
 msgstr ""
 
-#: includes/cli/class-sscribe-cli-command.php:92
+#: includes/cli/class-sscribe-cli-command.php:95
 msgid "The --output location does not exist or is not writable."
 msgstr ""
 
 #. translators: %s: Format name given on the command line.
-#: includes/cli/class-sscribe-cli-command.php:101
+#: includes/cli/class-sscribe-cli-command.php:104
 #, php-format
 msgid "Unknown format \"%s\" will be skipped."
 msgstr ""
 
-#: includes/cli/class-sscribe-cli-command.php:114
-#: includes/cli/class-sscribe-cli-command.php:211
+#: includes/cli/class-sscribe-cli-command.php:117
+#: includes/cli/class-sscribe-cli-command.php:278
 msgid "The export service is unavailable. (service_unavailable)"
 msgstr ""
 
-#: includes/cli/class-sscribe-cli-command.php:127
+#: includes/cli/class-sscribe-cli-command.php:125
+msgid "--per-language needs WPML, Polylang or TranslatePress with at least one language. (no_languages)"
+msgstr ""
+
+#: includes/cli/class-sscribe-cli-command.php:154
 msgid "The export finished but its ZIP could not be found. (zip_missing)"
 msgstr ""
 
-#: includes/cli/class-sscribe-cli-command.php:134
+#: includes/cli/class-sscribe-cli-command.php:161
 msgid "The ZIP could not be copied to the --output location. (output_copy_failed)"
 msgstr ""
 
+#: includes/cli/class-sscribe-cli-command.php:181
+msgid "Export complete."
+msgstr ""
+
 #. translators: %s: Absolute path of the ZIP archive.
-#: includes/cli/class-sscribe-cli-command.php:147
+#: includes/cli/class-sscribe-cli-command.php:215
 #, php-format
 msgid "ZIP: %s"
 msgstr ""
 
 #. translators: %s: Human readable file size.
-#: includes/cli/class-sscribe-cli-command.php:154
+#: includes/cli/class-sscribe-cli-command.php:222
 #, php-format
 msgid "Size: %s"
 msgstr ""
 
-#: includes/cli/class-sscribe-cli-command.php:172
-msgid "Export complete."
-msgstr ""
-
-#: includes/cli/class-sscribe-cli-command.php:206
+#: includes/cli/class-sscribe-cli-command.php:273
 #: includes/cli/class-sscribe-cli-schedule-command.php:188
 msgid "Use --format=table, --format=json or --format=csv."
 msgstr ""
 
 #. translators: 1: Pages processed so far, 2: Total pages, 3: Percentage complete.
-#: includes/cli/class-sscribe-cli-command.php:454
+#: includes/cli/class-sscribe-cli-command.php:521
 #, php-format
 msgid "Processed %1$d of %2$d pages (%3$d%%)"
 msgstr ""
