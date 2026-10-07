@@ -259,10 +259,11 @@ class SScribe_Content_Parser {
 
 		$html = $this->safe_replace( '/<(script|noscript)\b[^>]*>.*?<\/\1>/is', '', $html );
 
-		// Inline SVG cannot be represented faithfully in the document
-		// formats; leave a visible marker instead of silently deleting the
-		// whole block (the Markdown exporter already used such a marker).
-		$html = $this->safe_replace( '/<svg\b[^>]*>.*?<\/svg>/is', '[SVG image]', $html );
+		$html = $this->replace_svg_graphics( $html );
+		$html = $this->drop_icon_glyphs( $html );
+		$html = $this->rewrite_embedded_media( $html );
+		$html = $this->normalize_lazy_images( $html );
+		$html = $this->strip_unrendered_shortcodes( $html );
 
 		$html = $this->safe_replace( '/<!--.*?-->/s', '', $html );
 
@@ -271,11 +272,220 @@ class SScribe_Content_Parser {
 
 		$html = wp_kses( $html, self::KSES_ALLOWED_HTML );
 
+		$preformatted = array();
+		$html         = (string) preg_replace_callback(
+			'/<pre\b[^>]*>.*?<\/pre>/is',
+			static function ( array $match ) use ( &$preformatted ): string {
+				$preformatted[] = $match[0];
+				return "\x02PRE" . ( count( $preformatted ) - 1 ) . "\x03";
+			},
+			$html
+		);
+
 		$html = $this->safe_replace( '/>\s+</', '><', $html );
 
 		$html = $this->safe_replace( '/<\/(p|div|h[1-6]|ul|ol|li|table|tr|blockquote|pre)>/', "</$1>\n", $html );
 
+		$html = (string) preg_replace_callback(
+			'/\x02PRE(\d+)\x03/',
+			static function ( array $match ) use ( $preformatted ): string {
+				return $preformatted[ (int) $match[1] ] ?? '';
+			},
+			$html
+		);
+
 		return trim( $html );
+	}
+
+	/**
+	 * Read one attribute value from a raw tag string.
+	 *
+	 * @param string $tag  Raw tag markup.
+	 * @param string $name Attribute name.
+	 * @return string Decoded value or empty string.
+	 */
+	private static function tag_attribute( string $tag, string $name ): string {
+		if ( 1 !== preg_match( '/\s' . preg_quote( $name, '/' ) . '\s*=\s*(?:"([^"]*)"|\'([^\']*)\'|([^\s>]+))/i', $tag, $m ) ) {
+			return '';
+		}
+		$value = '' !== $m[1] ? $m[1] : ( '' !== ( $m[2] ?? '' ) ? $m[2] : ( $m[3] ?? '' ) );
+		return trim( html_entity_decode( $value, ENT_QUOTES | ENT_HTML5, 'UTF-8' ) );
+	}
+
+	/**
+	 * Build the paragraph that stands in for an embedded resource.
+	 *
+	 * @param string $url   Resource URL.
+	 * @param string $label Visible label, falls back to the URL.
+	 * @return string Paragraph markup, or empty when the URL is unusable.
+	 */
+	private static function link_paragraph( string $url, string $label = '' ): string {
+		$url = trim( $url );
+		if ( '' === $url || 1 !== preg_match( '#^(?:https?:)?//#i', $url ) ) {
+			return '';
+		}
+		$label = '' !== trim( $label ) ? trim( $label ) : $url;
+		return '<p><a href="' . htmlspecialchars( $url, ENT_QUOTES, 'UTF-8' ) . '">' . htmlspecialchars( $label, ENT_QUOTES, 'UTF-8' ) . '</a></p>';
+	}
+
+	/**
+	 * Inline SVG cannot be carried into the document formats. A graphic
+	 * with a title keeps a readable marker; decorative icons disappear.
+	 *
+	 * @param string $html Raw HTML.
+	 * @return string
+	 */
+	private function replace_svg_graphics( string $html ): string {
+		return (string) preg_replace_callback(
+			'/<svg\b[^>]*>(.*?)<\/svg>/is',
+			static function ( array $match ): string {
+				if ( 1 === preg_match( '/<title\b[^>]*>(.*?)<\/title>/is', $match[1], $title ) ) {
+					$text = trim( wp_strip_all_tags( $title[1] ) );
+					if ( '' !== $text ) {
+						return '[' . $text . ']';
+					}
+				}
+				return '';
+			},
+			$html
+		);
+	}
+
+	/**
+	 * Icon fonts render a private glyph through a class; exported as text
+	 * they become stray letters. Drop the glyph carriers.
+	 *
+	 * @param string $html Raw HTML.
+	 * @return string
+	 */
+	private function drop_icon_glyphs( string $html ): string {
+		$pattern = '/<(span|i)\b[^>]*\bclass\s*=\s*(["\'])(?:[^"\']*\s)?(?:et-pb-icon|et_pb_icon|dashicons(?:-[a-z0-9-]+)?|fa|fas|far|fab|fal|fad|fa-[a-z0-9-]+|fl-icon|brxe-icon|vc_icon|elementor-icon|icon)(?:\s[^"\']*)?\2[^>]*>\s*(?:&#x?[0-9a-f]+;|[^<]{0,2})\s*<\/\1>/iu';
+		return $this->safe_replace( $pattern, '', $html );
+	}
+
+	/**
+	 * Iframes, video, audio and plugin objects cannot ship inside a
+	 * document, but their source is real content. Keep it as a link.
+	 *
+	 * @param string $html Raw HTML.
+	 * @return string
+	 */
+	private function rewrite_embedded_media( string $html ): string {
+		$html = (string) preg_replace_callback(
+			'/<iframe\b([^>]*)>.*?<\/iframe>|<iframe\b([^>]*)\/?>/is',
+			static function ( array $match ): string {
+				$tag = '<iframe' . $match[1] . ( $match[2] ?? '' ) . '>';
+				return self::link_paragraph( self::tag_attribute( $tag, 'src' ), self::tag_attribute( $tag, 'title' ) );
+			},
+			$html
+		);
+
+		$html = (string) preg_replace_callback(
+			'/<(video|audio)\b([^>]*)>(.*?)<\/\1>/is',
+			static function ( array $match ): string {
+				$src = self::tag_attribute( '<' . $match[1] . $match[2] . '>', 'src' );
+				if ( '' === $src && 1 === preg_match( '/<source\b[^>]*>/i', $match[3], $source ) ) {
+					$src = self::tag_attribute( $source[0], 'src' );
+				}
+				$link = self::link_paragraph( $src );
+				if ( '' !== $link ) {
+					return $link;
+				}
+				return (string) preg_replace( '/<source\b[^>]*>/i', '', $match[3] );
+			},
+			$html
+		);
+
+		$html = (string) preg_replace_callback(
+			'/<object\b([^>]*)>.*?<\/object>/is',
+			static function ( array $match ): string {
+				return self::link_paragraph( self::tag_attribute( '<object' . $match[1] . '>', 'data' ) );
+			},
+			$html
+		);
+
+		return (string) preg_replace_callback(
+			'/<embed\b([^>]*)\/?>/i',
+			static function ( array $match ): string {
+				return self::link_paragraph( self::tag_attribute( '<embed' . $match[1] . '>', 'src' ) );
+			},
+			$html
+		);
+	}
+
+	/**
+	 * Lazy-loading plugins park the real image in a data attribute and put
+	 * a placeholder in src. Promote the real source and drop images that
+	 * have none.
+	 *
+	 * @param string $html Raw HTML.
+	 * @return string
+	 */
+	private function normalize_lazy_images( string $html ): string {
+		return (string) preg_replace_callback(
+			'/<img\b[^>]*>/i',
+			static function ( array $match ): string {
+				$tag = $match[0];
+				$src = self::tag_attribute( $tag, 'src' );
+				if ( '' !== $src && 0 !== stripos( $src, 'data:' ) ) {
+					return $tag;
+				}
+				$candidate = '';
+				foreach ( array( 'data-src', 'data-lazy-src', 'data-original', 'data-srcset', 'data-lazy-srcset', 'srcset' ) as $name ) {
+					$value = self::tag_attribute( $tag, $name );
+					if ( '' === $value ) {
+						continue;
+					}
+					$first = trim( (string) strtok( $value, ',' ) );
+					$first = trim( (string) strtok( $first, " \t\n" ) );
+					if ( '' !== $first && 0 !== stripos( $first, 'data:' ) ) {
+						$candidate = $first;
+						break;
+					}
+				}
+				if ( '' === $candidate ) {
+					return '';
+				}
+				$tag = (string) preg_replace( '/\ssrc\s*=\s*(?:"[^"]*"|\'[^\']*\'|[^\s>]+)/i', '', $tag );
+				return (string) preg_replace( '/^<img\b/i', '<img src="' . htmlspecialchars( $candidate, ENT_QUOTES, 'UTF-8' ) . '"', $tag );
+			},
+			$html
+		);
+	}
+
+	/**
+	 * A shortcode that is still in the content was never rendered: its
+	 * plugin is missing or the builder is inactive. Shipping the raw tag
+	 * helps nobody, so drop the tag and keep whatever it wrapped.
+	 *
+	 * Only lowercase tags that carry attributes, close themselves, or have a
+	 * matching closing tag are treated as shortcodes, so prose such as
+	 * "[sic]", "[1]" or "[UPDATE]" is left alone.
+	 *
+	 * @param string $html Raw HTML.
+	 * @return string
+	 */
+	private function strip_unrendered_shortcodes( string $html ): string {
+		if ( ! apply_filters( 'sscribe_strip_unrendered_shortcodes', true ) ) {
+			return $html;
+		}
+		if ( ! str_contains( $html, '[' ) ) {
+			return $html;
+		}
+
+		$paired = '/\[([a-z][a-z0-9_-]*)(?:\s[^\]]*)?\](.*?)\[\/\1\]/s';
+		for ( $pass = 0; $pass < 12; $pass++ ) {
+			$next = $this->safe_replace( $paired, '$2', $html );
+			if ( $next === $html ) {
+				break;
+			}
+			$html = $next;
+		}
+
+		$html = $this->safe_replace( '/\[[a-z][a-z0-9_-]*\s+[^\]]*=[^\]]*\]/', '', $html );
+		$html = $this->safe_replace( '/\[[a-z][a-z0-9_-]*(?:\s+[^\]]*)?\/\]/', '', $html );
+
+		return $html;
 	}
 
 	/**
@@ -477,7 +687,7 @@ class SScribe_Content_Parser {
 			case 'code':
 				return array(
 					'type'    => 'code',
-					'content' => $node->textContent,
+					'content' => rtrim( str_replace( "\r", '', $node->textContent ), "\n" ),
 				);
 
 			case 'table':
@@ -489,6 +699,17 @@ class SScribe_Content_Parser {
 			case 'a':
 				$href = $node->getAttribute( 'href' );
 				$text = $this->get_text_content( $node );
+				if ( '' === trim( $text ) ) {
+					$linked_images = array();
+					foreach ( $node->getElementsByTagName( 'img' ) as $linked_image ) {
+						$parsed_image = $this->parse_image( $linked_image );
+						if ( null !== $parsed_image ) {
+							$parsed_image['link'] = $href;
+							$linked_images[]      = $parsed_image;
+						}
+					}
+					return array() === $linked_images ? null : $linked_images;
+				}
 				if ( $this->is_button_anchor( $node ) ) {
 					return array(
 						'type'    => 'button',
@@ -521,7 +742,7 @@ class SScribe_Content_Parser {
 					}
 				}
 
-				if ( null === $img_node ) {
+				if ( null === $img_node && 0 === $node->getElementsByTagName( 'figure' )->length ) {
 					$descendant_imgs = $node->getElementsByTagName( 'img' );
 					if ( $descendant_imgs->length > 0 ) {
 						$img_node = $descendant_imgs->item( 0 );
@@ -703,6 +924,12 @@ class SScribe_Content_Parser {
 			'et_pb_button',
 			'fl-button',
 			'vc_btn',
+			'vc_btn3',
+			'bricks-button',
+			'brxe-button',
+			'uagb-button__link',
+			'kb-button',
+			'kt-button',
 			'button',
 			'btn',
 		);
