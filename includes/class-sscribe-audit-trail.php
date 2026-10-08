@@ -80,8 +80,8 @@ class SScribe_Audit_Trail {
 			}
 			$wpdb->last_error = '';
 			$previous_suppression = $wpdb->suppress_errors( true );
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- One-shot schema probe; result cached in $table_exists_cache.
-			$result = $wpdb->query( "SELECT 1 FROM `{$wpdb->prefix}sscribe_audit_log` WHERE 1 = 0" ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name is built from the trusted database prefix.
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- One-shot schema probe cached in $table_exists_cache; table name is built from the trusted database prefix.
+			$result = $wpdb->query( "SELECT 1 FROM `{$wpdb->prefix}sscribe_audit_log` WHERE 1 = 0" );
 			$last_error = trim( (string) $wpdb->last_error );
 			$wpdb->suppress_errors( (bool) $previous_suppression );
 			$this->table_exists_cache = false !== $result && '' === $last_error;
