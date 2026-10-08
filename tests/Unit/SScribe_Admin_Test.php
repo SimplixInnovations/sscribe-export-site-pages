@@ -196,9 +196,10 @@ class SScribe_Admin_Test extends TestCase {
 			$admin,
 			array(
 				$valid_file              => array(
-					'created_at' => 200,
-					'user_id'    => 1,
-					'lang_code'  => 'fr',
+					'created_at'   => 200,
+					'user_id'      => 1,
+					'lang_code'    => 'fr',
+					'retain_until' => 1900000000,
 				),
 				'../../invalid.zip'      => array(
 					'created_at' => 300,
@@ -233,6 +234,7 @@ class SScribe_Admin_Test extends TestCase {
 		$this->assertSame( 'French', $rows[0]['lang_name'] );
 		$this->assertSame( 'https://example.org/fr.svg', $rows[0]['flag_url'] );
 		$this->assertSame( 'https://example.org/download?file=valid-export-FR.zip', $rows[0]['url'] );
+		$this->assertSame( 1900000000, $rows[0]['retain_until'], 'Compliance retention reaches the History table.' );
 
 		wp_delete_file( $export_dir . $valid_file );
 	}
