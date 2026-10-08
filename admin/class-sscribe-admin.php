@@ -65,6 +65,47 @@ class SScribe_Admin {
 		$this->debug = new SScribe_Admin_Debug();
 
 		$this->debug->register_hooks();
+
+		add_action( 'admin_notices', array( $this, 'render_storage_notice' ) );
+	}
+
+	/**
+	 * Warn administrators when private storage cannot be written.
+	 *
+	 * The check runs live on the plugin screen and the Plugins screen, so the
+	 * notice disappears as soon as the folder becomes writable again.
+	 */
+	public function render_storage_notice(): void {
+		if ( ! current_user_can( 'manage_options' ) || ! function_exists( 'get_current_screen' ) ) {
+			return;
+		}
+		$screen = get_current_screen();
+		if ( null === $screen || ! in_array( $screen->id, array( 'plugins', 'plugins-network', 'toplevel_page_sscribe-export' ), true ) ) {
+			return;
+		}
+
+		$location = SScribe_Private_Storage::get_unavailable_location();
+		if ( '' === $location ) {
+			return;
+		}
+
+		$message = SScribe_Private_Storage::is_override_active()
+			? sprintf(
+				/* translators: %s: configured private storage folder. */
+				__( 'Exports are disabled because private storage could not be created in %s. Check that the folder configured with SSCRIBE_PRIVATE_STORAGE_DIR exists and is writable by the web server.', 'sscribe-export-site-pages' ),
+				$location
+			)
+			: sprintf(
+				/* translators: %s: uploads folder path. */
+				__( 'Exports are disabled because private storage could not be created in %s. Check permissions on your uploads directory.', 'sscribe-export-site-pages' ),
+				$location
+			);
+
+		printf(
+			'<div class="notice notice-warning"><p><strong>%1$s</strong> %2$s</p></div>',
+			esc_html__( 'SScribe Export Site Pages:', 'sscribe-export-site-pages' ),
+			esc_html( $message )
+		);
 	}
 
 	/**

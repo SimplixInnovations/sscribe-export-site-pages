@@ -93,11 +93,8 @@ final class SScribe_No_Internal_Details_Test extends TestCase {
 
 	public function test_ajax_guard_displays_errors_off(): void {
 		$src = (string) file_get_contents( self::plugin_root() . '/' . self::AJAX_GUARD_PATH );
-		$this::assertMatchesRegularExpression(
-			'/disable_if_possible\s*\(\s*[\'"]display_errors[\'"]/',
-			$src,
-			'AJAX guard MUST disable display_errors before sending any response.'
-		);
+		$this::assertStringNotContainsString( 'ini_set(', $src, 'AJAX guard must not change PHP settings globally.' );
+		$this::assertStringContainsString( 'ob_clean', $src, 'AJAX guard MUST discard buffered output before sending any response.' );
 	}
 
 	public function test_ajax_guard_cleans_output_buffers(): void {

@@ -1,13 +1,10 @@
 <?php
 /**
- * Activation resilience regressions for private-storage failure.
+ * Activation resilience and the live storage notice.
  *
- * Live-site failure class (reference b174bc301c46): when no strict
- * private-storage candidate is usable, the resolver returned '' and the
- * activator hard-aborted with "Activation could not complete the required
- * setup". Activation must instead complete with a persistent admin warning,
- * and the hardened uploads fallback must provide a working directory on
- * hosts where nothing outside the web root is writable.
+ * Activation must complete even when private storage cannot be created, and
+ * the administrator must then see a live notice on the plugin screens that
+ * disappears as soon as the uploads directory is writable again.
  *
  * @package SScribe_Export_Site_Pages
  */
@@ -35,36 +32,41 @@ final class SScribe_Activator_Storage_Warning_Test extends TestCase {
 		);
 	}
 
-	private static function invoke( string $method, array $args = array() ) {
-		$reflection = ( new \ReflectionClass( \SScribe_Private_Storage::class ) )->getMethod( $method );
+	protected function tearDown(): void {
+		unset( $GLOBALS['sscribe_test_current_screen'] );
+		parent::tearDown();
+	}
 
-		return $reflection->invoke( null, ...$args );
+	private static function screen( string $id ): object {
+		$screen     = new \stdClass();
+		$screen->id = $id;
+
+		return $screen;
+	}
+
+	private static function render_notice(): string {
+		$admin = ( new \ReflectionClass( \SScribe_Admin::class ) )->newInstanceWithoutConstructor();
+		ob_start();
+		$admin->render_storage_notice();
+
+		return (string) ob_get_clean();
 	}
 
 	#[RunInSeparateProcess]
 	#[PreserveGlobalState( false )]
-	public function test_activation_completes_with_warning_when_private_storage_is_unavailable(): void {
-		// Explicit candidate configuration keeps the fail-closed posture and
-		// disables the fallback, so this poisoned base resolves to '' — the
-		// exact precondition of the live-site activation failure.
+	public function test_activation_completes_without_a_stored_warning_when_storage_is_unavailable(): void {
 		$poison = static function (): array {
 			return array( sys_get_temp_dir() . '/sscribe-missing-base-' . uniqid() );
 		};
 		add_filter( 'sscribe_private_storage_base_candidates', $poison );
 
 		try {
-			// The historical behavior here was a thrown RuntimeException that
-			// dead-ended activation. Completing is the contract now.
 			\SScribe_Activator::activate( false );
 		} finally {
 			remove_filter( 'sscribe_private_storage_base_candidates', $poison );
 		}
 
-		$warning = get_transient( 'sscribe_storage_warning' );
-		$this->assertIsArray( $warning, 'A storage warning must be surfaced when no private directory resolves.' );
-		$this->assertNotEmpty( $warning['message'] ?? '' );
-
-		// The remainder of activation must have completed normally.
+		$this->assertFalse( get_transient( 'sscribe_storage_warning' ), 'The storage warning is computed live, never stored at activation.' );
 		$this->assertSame( SSCRIBE_VERSION, get_option( 'sscribe_version' ) );
 		$this->assertSame( '1', get_transient( 'sscribe_activation_redirect' ) );
 		$this->assertArrayHasKey( 'sscribe_cleanup_exports', $GLOBALS['sscribe_test_scheduled_events'] );
@@ -72,11 +74,11 @@ final class SScribe_Activator_Storage_Warning_Test extends TestCase {
 
 	#[RunInSeparateProcess]
 	#[PreserveGlobalState( false )]
-	public function test_activation_clears_storage_warning_when_storage_resolves(): void {
+	public function test_activation_removes_a_stale_storage_warning_transient(): void {
 		set_transient(
 			'sscribe_storage_warning',
 			array(
-				'message' => 'stale warning from a previous attempt',
+				'message' => 'stale warning from a previous release',
 				'time'    => gmdate( 'Y-m-d H:i:s \U\T\C' ),
 			),
 			300
@@ -84,47 +86,90 @@ final class SScribe_Activator_Storage_Warning_Test extends TestCase {
 
 		\SScribe_Activator::activate( false );
 
-		$this->assertFalse( get_transient( 'sscribe_storage_warning' ), 'A successful storage resolution must clear the warning.' );
+		$this->assertFalse( get_transient( 'sscribe_storage_warning' ) );
 	}
 
 	#[RunInSeparateProcess]
 	#[PreserveGlobalState( false )]
-	public function test_hardened_uploads_fallback_creates_guarded_directory(): void {
+	public function test_uploads_default_creates_guarded_directory(): void {
 		$uploads = wp_upload_dir();
 		wp_mkdir_p( $uploads['basedir'] );
 
-		$this::assertTrue( (bool) self::invoke( 'fallback_is_permitted' ), 'Stock discovery must permit the fallback.' );
-
-		$path = (string) self::invoke( 'resolve_hardened_uploads_dir', array( true ) );
-		$this->assertNotSame( '', $path, 'The fallback must resolve a directory under uploads.' );
+		$path = \SScribe_Private_Storage::get_export_dir();
+		$this->assertNotSame( '', $path );
+		$this->assertSame( 'uploads', \SScribe_Private_Storage::get_storage_mode() );
 
 		$normalized      = str_replace( '\\', '/', $path );
-		$normalized_base = str_replace( '\\', '/', rtrim( (string) $uploads['basedir'], '/\\' ) );
-		$this->assertStringStartsWith( $normalized_base . '/', $normalized );
-		$this->assertStringContainsString( '/sscribe-export-site-pages/', $normalized );
-		$this->assertFileExists( $path . '/.htaccess', 'The fallback tree must ship deny rules.' );
-		$this->assertFileExists( $path . '/index.php', 'The fallback tree must ship a silent index guard.' );
+		$normalized_base = str_replace( '\\', '/', (string) realpath( $uploads['basedir'] ) );
+		$this->assertStringStartsWith( $normalized_base . '/sscribe-export-site-pages/', $normalized );
+		$container = dirname( $path, 2 );
+		foreach ( array( $path, $container ) as $guarded ) {
+			$this->assertFileExists( $guarded . '/.htaccess' );
+			$this->assertFileExists( $guarded . '/index.php' );
+			$this->assertFileExists( $guarded . '/web.config' );
+		}
+		$this->assertStringContainsString( 'Require all denied', (string) file_get_contents( $path . '/.htaccess' ) );
+		$this->assertStringContainsString( 'Deny from all', (string) file_get_contents( $path . '/.htaccess' ) );
+		$this->assertStringContainsString( '<add accessType="Deny" users="*" />', (string) file_get_contents( $path . '/web.config' ) );
+		$this->assertStringContainsString( '<handlers accessPolicy="None" />', (string) file_get_contents( $path . '/web.config' ) );
 
-		// Documented trade-off: the fallback lives under a web-served root and
-		// is protected by unguessable naming plus deny rules instead.
-		$this::assertFalse(
-			(bool) self::invoke( 'is_outside_public_roots', array( $path ) ),
-			'The hardened uploads fallback is deliberately inside a public root.'
-		);
+		\SScribe_Private_Storage::delete_owned_storage();
+		$this->assertDirectoryDoesNotExist( dirname( $path ) );
 	}
 
 	#[RunInSeparateProcess]
 	#[PreserveGlobalState( false )]
-	public function test_explicit_configuration_never_silently_falls_back(): void {
+	public function test_explicit_configuration_never_falls_back_to_uploads(): void {
+		define( 'SSCRIBE_PRIVATE_STORAGE_DIR', sys_get_temp_dir() . '/sscribe-missing-override-' . uniqid() );
+
+		$this->assertSame( 'override', \SScribe_Private_Storage::get_storage_mode() );
+		$this->assertSame( '', \SScribe_Private_Storage::get_export_dir() );
+	}
+
+	#[RunInSeparateProcess]
+	#[PreserveGlobalState( false )]
+	public function test_live_notice_names_uploads_when_uploads_is_not_writable(): void {
+		$unusable = sys_get_temp_dir() . '/sscribe-unwritable-uploads-' . uniqid();
+		$upload   = static function () use ( $unusable ): array {
+			return array(
+				'basedir' => $unusable,
+				'baseurl' => 'http://example.org/wp-content/uploads',
+				'path'    => $unusable,
+				'url'     => 'http://example.org/wp-content/uploads',
+				'subdir'  => '',
+				'error'   => false,
+			);
+		};
+		add_filter( 'pre_upload_dir', $upload );
+		$GLOBALS['sscribe_test_current_screen'] = self::screen( 'plugins' );
+
+		$output = self::render_notice();
+
+		$this->assertStringContainsString( 'notice-warning', $output );
+		$this->assertStringContainsString( esc_html( $unusable ), $output );
+		$this->assertStringContainsString( 'Check permissions on your uploads directory.', $output );
+	}
+
+	#[RunInSeparateProcess]
+	#[PreserveGlobalState( false )]
+	public function test_live_notice_is_silent_when_storage_resolves(): void {
 		$uploads = wp_upload_dir();
 		wp_mkdir_p( $uploads['basedir'] );
-		define( 'SSCRIBE_PRIVATE_STORAGE_DIR', $uploads['basedir'] );
+		$GLOBALS['sscribe_test_current_screen'] = self::screen( 'toplevel_page_sscribe-export' );
 
-		$this::assertFalse( (bool) self::invoke( 'fallback_is_permitted' ), 'Explicit configuration must disable the fallback.' );
-		$this::assertSame(
-			'',
-			(string) self::invoke( 'resolve_hardened_uploads_dir', array( true ) ),
-			'An operator-chosen location must never be replaced with the fallback tree.'
-		);
+		$this->assertSame( '', self::render_notice() );
+		\SScribe_Private_Storage::delete_owned_storage();
+	}
+
+	#[RunInSeparateProcess]
+	#[PreserveGlobalState( false )]
+	public function test_live_notice_is_limited_to_plugin_screens(): void {
+		define( 'SSCRIBE_PRIVATE_STORAGE_DIR', sys_get_temp_dir() . '/sscribe-missing-override-' . uniqid() );
+
+		$GLOBALS['sscribe_test_current_screen'] = self::screen( 'dashboard' );
+		$this->assertSame( '', self::render_notice() );
+
+		$GLOBALS['sscribe_test_current_screen'] = self::screen( 'toplevel_page_sscribe-export' );
+		$this->assertStringContainsString( 'SSCRIBE_PRIVATE_STORAGE_DIR', self::render_notice() );
 	}
 }

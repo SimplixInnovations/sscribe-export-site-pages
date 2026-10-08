@@ -8,7 +8,6 @@
  *   - canonicalize_path() broken-parent bail (L457 / L470 / L465)
  *   - is_absolute_path() with a drive-letter absolute path
  *   - is_owned_by_current_process() forced-via-filter branch
- *   - is_outside_public_roots() when document_root overlaps ABSPATH
  *   - delete_owned_storage() happy path
  *   - normalize_path() with Windows-style backslashes (Unix skip)
  *
@@ -100,21 +99,6 @@ final class SScribe_Private_Storage_Late_Branch_Test extends TestCase {
 		wp_mkdir_p( $dir );
 		$result = $this->call( 'resolve_path_for_comparison', array( $dir . '/missing-child' ) );
 		$this::assertIsString( $result );
-	}
-
-	public function test_is_outside_public_roots_for_tmp_path(): void {
-		$result = $this->call( 'is_outside_public_roots', array( $this->tmp_root ) );
-		$this::assertTrue( $result );
-	}
-
-	public function test_is_outside_public_roots_false_for_abspath(): void {
-		$result = $this->call( 'is_outside_public_roots', array( ABSPATH ) );
-		$this::assertFalse( $result );
-	}
-
-	public function test_is_outside_public_roots_false_for_wp_content(): void {
-		$result = $this->call( 'is_outside_public_roots', array( WP_CONTENT_DIR ) );
-		$this::assertFalse( $result );
 	}
 
 	public function test_delete_owned_storage_returns_bool(): void {

@@ -249,6 +249,7 @@ class SScribe_Diagnostics {
 			'label' => __( 'Paths', 'sscribe-export-site-pages' ),
 			'items' => array(
 				'storage'     => '' === $export_dir ? __( 'Unavailable', 'sscribe-export-site-pages' ) : '[private]/' . SScribe_Private_Storage::get_directory_name(),
+				'storage_mode' => 'override' === SScribe_Private_Storage::get_storage_mode() ? __( 'custom override', 'sscribe-export-site-pages' ) : __( 'uploads (hardened)', 'sscribe-export-site-pages' ),
 				'export_dir'  => '[private]/' . SScribe_Private_Storage::get_directory_name(),
 				'log_dir'     => '[private]/' . SScribe_Private_Storage::get_directory_name() . '/logs',
 				'writable'    => '' !== $export_dir && wp_is_writable( $export_dir ) ? __( 'Yes', 'sscribe-export-site-pages' ) : __( 'No', 'sscribe-export-site-pages' ),
@@ -658,7 +659,7 @@ class SScribe_Diagnostics {
 				'name'    => __( 'Private Storage', 'sscribe-export-site-pages' ),
 				'status'  => 'error',
 				'message' => __( 'A safe private export directory could not be created.', 'sscribe-export-site-pages' ),
-				'fix'     => __( 'Make the system temporary directory writable, or configure SSCRIBE_PRIVATE_STORAGE_DIR to a writable path outside the web root.', 'sscribe-export-site-pages' ),
+				'fix'     => __( 'Check permissions on your uploads directory, or set SSCRIBE_PRIVATE_STORAGE_DIR to a writable folder.', 'sscribe-export-site-pages' ),
 			);
 		}
 

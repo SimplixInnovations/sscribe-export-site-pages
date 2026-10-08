@@ -36,6 +36,22 @@ class SScribe_Helpers {
 
 
 	/**
+	 * Make the WordPress Filesystem API available outside admin requests.
+	 *
+	 * WordPress loads wp-admin/includes/file.php for admin screens and AJAX
+	 * only; cron, WP-CLI and the test runner need it loaded the same way core
+	 * does before WP_Filesystem() can be called.
+	 *
+	 * @return bool True when WP_Filesystem() is callable.
+	 */
+	public static function ensure_filesystem_api(): bool {
+		if ( ! function_exists( 'WP_Filesystem' ) && is_file( ABSPATH . 'wp-admin/includes/file.php' ) ) {
+			require_once ABSPATH . 'wp-admin/includes/file.php';
+		}
+		return function_exists( 'WP_Filesystem' );
+	}
+
+	/**
 	 * Render an icon glyph from the embedded icon font.
 	 *
 	 * Icons draw in currentColor so they inherit the surrounding text

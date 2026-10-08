@@ -87,14 +87,9 @@ class SScribe_Filesystem {
 			return true;
 		}
 
-		if ( ! function_exists( 'WP_Filesystem' ) ) {
-			$file_path = ABSPATH . 'wp-admin/includes/file.php';
-			if ( file_exists( $file_path ) ) {
-				require_once $file_path;
-			} else {
-				$this->logger->debug( 'WP_Filesystem file not available, using direct file operations' );
-				return false;
-			}
+		if ( ! SScribe_Helpers::ensure_filesystem_api() ) {
+			$this->logger->debug( 'WP_Filesystem file not available, using direct file operations' );
+			return false;
 		}
 
 		if ( ! function_exists( 'request_filesystem_credentials' ) ) {
