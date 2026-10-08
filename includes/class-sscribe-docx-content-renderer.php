@@ -955,7 +955,11 @@ class SScribe_DOCX_Content_Renderer {
 				);
 				if ( ! empty( $element['alt'] ) ) {
 					$section->addText(
-						'[Image: ' . $this->safe_text( $element['alt'] ) . ']',
+						sprintf(
+							/* translators: %s: image alternative text. */
+							__( '[Image: %s]', 'sscribe-export-site-pages' ),
+							$this->safe_text( $element['alt'] )
+						),
 						array(
 							'name' => $this->font_name,
 							'size' => 9,

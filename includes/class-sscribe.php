@@ -323,7 +323,7 @@ class SScribe {
 		// Nonce-free: recovers users whose nonce expired mid-run.
 		// Authorization is enforced inside the handler (login + capability +
 		// rate limit). See SScribe_Export_Query_Controller::ajax_refresh_nonce().
-		$this->loader->add_action( 'wp_ajax_sscribe_refresh_nonce', $batch_resolver, 'ajax_refresh_nonce' );
+		$this->loader->add_lazy_action( 'wp_ajax_sscribe_refresh_nonce', $batch_resolver, 'ajax_refresh_nonce' );
 	}
 
 	/**

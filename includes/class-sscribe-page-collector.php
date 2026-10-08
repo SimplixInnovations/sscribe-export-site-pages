@@ -1032,7 +1032,6 @@ class SScribe_Page_Collector {
 			} finally {
 
 				wp_reset_postdata();
-				// phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited
 				$post                           = $original_post; // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited
 				$is_applying_the_content_filter = false;
 			}

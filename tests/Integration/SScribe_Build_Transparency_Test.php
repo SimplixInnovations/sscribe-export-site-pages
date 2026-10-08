@@ -329,4 +329,15 @@ final class SScribe_Build_Transparency_Test extends TestCase {
 		$this->assertStringContainsString( 'VERSION', $doc );
 	}
 
+	public function test_jbig2_stub_and_system_command_gate_are_documented(): void {
+		$doc    = $this->read_live( 'docs/BUILD_TRANSFORMATIONS.md' );
+		$script = $this->read_live( 'scripts/build-release.php' );
+
+		$this->assertStringContainsString( 'tc-lib-pdf-filter/src/Type/JbigTwo.php', $doc );
+		$this->assertStringContainsString( 'proc_open', $doc );
+		$this->assertStringContainsString( 'tc-lib-pdf-filter/src/Type/JbigTwo.php', $script );
+		$this->assertStringContainsString( "'pcntl_exec'", $script );
+		$this->assertStringContainsString( 'JbigTwo.php', $script, 'The end-of-build summary must list the stub.' );
+	}
+
 }

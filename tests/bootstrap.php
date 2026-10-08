@@ -1135,9 +1135,12 @@ $sscribe_test_ajax_nonce_valid = true;
 			}
 			$index = 0;
 			return preg_replace_callback(
-				'/%(?:d|s|f)/',
+				'/%(?:d|s|f|i)/',
 				static function ( array $matches ) use ( $args, &$index ) {
 					$value = $args[ $index++ ] ?? null;
+					if ( '%i' === $matches[0] ) {
+						return '`' . str_replace( '`', '``', (string) $value ) . '`';
+					}
 					if ( '%d' === $matches[0] ) {
 						return (string) (int) $value;
 					}

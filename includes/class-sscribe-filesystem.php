@@ -361,7 +361,7 @@ class SScribe_Filesystem {
 	 * the blast radius of any other plugin/user reading the log/exports
 	 * directory out-of-band.
 	 *
-	 * Phase 38 containment: every public filesystem mutation must verify
+	 * Containment rule: every public filesystem mutation must verify
 	 * its target resolves inside the plugin-owned export directory before
 	 * touching the disk. A caller passing `/tmp/foo` or any path that
 	 * resolves outside the export root gets a rejection, not a directory
@@ -407,7 +407,7 @@ class SScribe_Filesystem {
 	/**
 	 * Root-scoped directory creation.
 	 *
-	 * Phase 38 helper: callers that need to create a directory inside
+	 * Callers that need to create a directory inside
 	 * the plugin-owned export area must pass a *relative* path. The
 	 * helper resolves it under {@see SScribe_Private_Storage::get_export_dir()}
 	 * and runs the standard `wp_mkdir_p()` plumbing.

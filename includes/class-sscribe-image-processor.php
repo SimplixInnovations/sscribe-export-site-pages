@@ -172,7 +172,7 @@ class SScribe_Image_Processor {
 	/**
 	 * Download image to temporary file.
 	 *
-	 * Phase 16: external 429 responses are classified distinctly from
+	 * External 429 responses are classified distinctly from
 	 * other HTTP errors and retried with a bounded budget. The remote
 	 * Retry-After header is honored up to a hard cap (default 30s) so
 	 * a misconfigured origin cannot stall an entire export. Other 4xx

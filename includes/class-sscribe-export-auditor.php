@@ -63,7 +63,7 @@ class SScribe_Export_Auditor {
 			'action'    => $action,
 			'user_id'   => $user_id,
 			'username'  => $username,
-			'ip'        => SScribe_Helpers::get_client_ip(),
+			'ip'        => self::hash_client_ip( SScribe_Helpers::get_client_ip() ),
 			'timestamp' => current_time( 'mysql' ),
 			'context'   => $context,
 		);
@@ -74,6 +74,17 @@ class SScribe_Export_Auditor {
 		if ( null !== $event_type ) {
 			$this->audit_trail->log( $event_type, $context );
 		}
+	}
+
+	/**
+	 * Shorten and key the client IP so the debug log never stores it raw.
+	 *
+	 * @param string $raw_ip Client IP address.
+	 * @return string 16-character keyed hash.
+	 */
+	private static function hash_client_ip( string $raw_ip ): string {
+		$salt = defined( 'AUTH_SALT' ) && '' !== AUTH_SALT ? AUTH_SALT : ( function_exists( 'wp_salt' ) ? wp_salt( 'auth' ) : 'sscribe-audit-fallback' );
+		return substr( hash_hmac( 'sha256', $raw_ip, $salt ), 0, 16 );
 	}
 
 	/**

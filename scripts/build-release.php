@@ -103,7 +103,7 @@ $config = array(
 		//                      files. NEVER ship to WP.org.
 		//   - phpunit-wp.xml: real-WP testbench config. Dev-only.
 		//   - playwright.config.ts: E2E test config. Dev-only.
-		'.superpowers', 'phpunit-wp.xml', 'playwright.config.ts',
+		'.superpowers', 'phpunit-wp.xml', 'playwright.config.ts', 'composer.json',
 		// Coverage output from `composer test:coverage:merge` lands at the repo
 		// root. It is gitignored but still on disk, and it embeds absolute local
 		// paths, so it must never reach the ZIP.
@@ -757,6 +757,107 @@ if ( is_dir( $vendor_dir ) ) {
 		}
 	}
 
+	// tc-lib-pdf-filter's JBIG2Decode filter decodes streams by running the
+	// jbig2dec CLI through shell_exec()/proc_open(). SScribe generates PDFs
+	// and never parses existing ones, so the decoder is unreachable; ship a
+	// stub that keeps the upstream class contract and fails closed instead
+	// of a file carrying system-command calls.
+	$jbig2_filter = $vendor_dir . '/tecnickcom/tc-lib-pdf-filter/src/Type/JbigTwo.php';
+	if ( is_file( $jbig2_filter ) ) {
+		$jbig2_stub = <<<'PHP'
+<?php
+
+declare(strict_types=1);
+
+/**
+ * JbigTwo.php
+ *
+ * SScribe release build: the upstream filter decodes JBIG2 streams by
+ * running the jbig2dec command-line tool through PHP process functions.
+ * SScribe generates PDF documents and never parses existing
+ * ones, so this decoder is unreachable at runtime. The shipped class keeps
+ * the upstream contract and fails closed instead of invoking system
+ * commands. The unmodified file is available from
+ * https://github.com/tecnickcom/tc-lib-pdf-filter at the version recorded
+ * in vendor-prefixed/composer/installed.php.
+ *
+ * @category  Library
+ * @package   PdfFilter
+ * @author    Nicola Asuni <info@tecnick.com>
+ * @copyright 2011-2026 Nicola Asuni - Tecnick.com LTD
+ * @license   https://www.gnu.org/copyleft/lesser.html GNU-LGPL v3 (see LICENSE)
+ * @link      https://github.com/tecnickcom/tc-lib-pdf-filter
+ */
+
+namespace SScribeVendor\Com\Tecnick\Pdf\Filter\Type;
+
+use SScribeVendor\Com\Tecnick\Pdf\Filter\Exception as PPException;
+
+class JbigTwo implements Template
+{
+    public function decode(string $data, array $params = []): string
+    {
+        if ($data === '') {
+            return '';
+        }
+
+        throw new PPException('JBIG2Decode is not available in this build');
+    }
+}
+
+PHP;
+		if ( false === file_put_contents( $jbig2_filter, $jbig2_stub ) ) {
+			echo "     ❌ Unable to write the JBIG2Decode stub: {$jbig2_filter}\n";
+			exit( 1 );
+		}
+	}
+
+	// Hard gate: no PHP file in the staged plugin may call a system command.
+	// Tokenize instead of grepping so docblocks, strings, and methods named
+	// exec() or system() do not trip it.
+	$system_command_functions = array( 'exec', 'shell_exec', 'system', 'passthru', 'proc_open', 'popen', 'pcntl_exec' );
+	$system_command_hits      = array();
+	$system_command_iterator  = new RecursiveIteratorIterator(
+		new RecursiveDirectoryIterator( $plugin_dir, RecursiveDirectoryIterator::SKIP_DOTS )
+	);
+	foreach ( $system_command_iterator as $php_item ) {
+		if ( 'php' !== strtolower( pathinfo( $php_item->getBasename(), PATHINFO_EXTENSION ) ) ) {
+			continue;
+		}
+		$tokens = token_get_all( (string) file_get_contents( $php_item->getPathname() ) );
+		$count  = count( $tokens );
+		for ( $i = 0; $i < $count; $i++ ) {
+			$token = $tokens[ $i ];
+			if ( ! is_array( $token ) || T_STRING !== $token[0] || ! in_array( strtolower( $token[1] ), $system_command_functions, true ) ) {
+				continue;
+			}
+			$next = $i + 1;
+			while ( $next < $count && is_array( $tokens[ $next ] ) && T_WHITESPACE === $tokens[ $next ][0] ) {
+				$next++;
+			}
+			if ( $next >= $count || '(' !== $tokens[ $next ] ) {
+				continue;
+			}
+			$prev = $i - 1;
+			while ( $prev >= 0 && is_array( $tokens[ $prev ] ) && T_WHITESPACE === $tokens[ $prev ][0] ) {
+				$prev--;
+			}
+			$prev_id = $prev >= 0 && is_array( $tokens[ $prev ] ) ? $tokens[ $prev ][0] : null;
+			if ( in_array( $prev_id, array( T_OBJECT_OPERATOR, T_NULLSAFE_OBJECT_OPERATOR, T_DOUBLE_COLON, T_FUNCTION ), true ) ) {
+				continue;
+			}
+			$relative_php           = str_replace( '\\', '/', substr( $php_item->getPathname(), strlen( $plugin_dir ) + 1 ) );
+			$system_command_hits[] = $relative_php . ':' . $token[2] . ' ' . $token[1] . '()';
+		}
+	}
+	if ( array() !== $system_command_hits ) {
+		echo "     ❌ System-command calls found in the staged plugin:\n";
+		foreach ( $system_command_hits as $hit ) {
+			echo "        - {$hit}\n";
+		}
+		exit( 1 );
+	}
+
 	// After pruning matched files, sweep up any directory under vendor-prefixed
 	// that is now empty. CHILD_FIRST ordering means we already attempted to
 	// delete every matched directory; this pass catches directories that only
@@ -791,7 +892,6 @@ if ( is_file( $readme_path ) ) {
 $required_release_files = array(
 	'sscribe-export-site-pages.php',
 	'readme.txt',
-	'composer.json',
 	'vendor-prefixed/autoload.php',
 	'vendor-prefixed/phpoffice/phpword/COPYING.LESSER.txt',
 	'vendor-prefixed/tecnickcom/tcpdf/LICENSE.TXT',
@@ -1008,6 +1108,12 @@ echo "      remain byte-for-byte unchanged. Checkout metadata is preserved.\n";
 echo "    - vendor-prefixed/phpoffice/phpword/COPYING.LESSER renamed to\n";
 echo "      COPYING.LESSER.txt (WP.org plugin-check rejects the bare\n";
 echo "      .lesser extension as an unexpected file type).\n";
+echo "    - vendor-prefixed/tecnickcom/tc-lib-pdf-filter/src/Type/JbigTwo.php\n";
+echo "      replaced by a fail-closed stub: the upstream JBIG2Decode filter\n";
+echo "      runs the jbig2dec CLI via shell_exec()/proc_open() and SScribe\n";
+echo "      never parses existing PDFs. A tokenizer gate then fails the build\n";
+echo "      if any staged PHP file calls exec/shell_exec/system/passthru/\n";
+echo "      proc_open/popen/pcntl_exec.\n";
 echo "    - vendor-prefixed/phpoffice/phpword/src/PhpWord/Shared/PCLZip/\n";
 echo "      removed (PCLZip conflict with WordPress core PCLZip).\n";
 echo "    - vendor-prefixed/phpoffice/phpword/phpword.ini.dist removed\n";

@@ -4,7 +4,7 @@
  *
  * A single (PHP 8.4, latest-WP, SQLite) real-WP run is a smoke
  * test. The contract this test pins is a real MATRIX: PHP 8.2 +
- * 8.3 + 8.4 × WP latest + previous, plus the declared WP 6.1 /
+ * 8.3 + 8.4 × WP latest + previous, plus the declared WP 6.2 /
  * PHP 8.2 floor, fail-fast off, per-leg log
  * artifacts, with the install script honoring the version arg.
  *
@@ -95,9 +95,9 @@ final class SScribe_Real_WP_Matrix_Test extends TestCase {
 	public function test_matrix_includes_declared_wp61_php82_floor_leg(): void {
 		$source = (string) file_get_contents( self::plugin_root() . '/' . self::CI_PATH );
 		$this::assertMatchesRegularExpression(
-			"/include:[\\s\\S]{0,800}?php-version:\\s*['\"]8\\.2['\"][\\s\\S]{0,160}?wp-version:\\s*['\"]6\\.1['\"]/",
+			"/include:[\\s\\S]{0,800}?php-version:\\s*['\"]8\\.2['\"][\\s\\S]{0,160}?wp-version:\\s*['\"]6\\.2['\"]/",
 			$source,
-			'Real-WP matrix must explicitly exercise the declared WordPress 6.1 / PHP 8.2 minimum pair.'
+			'Real-WP matrix must explicitly exercise the declared WordPress 6.2 / PHP 8.2 minimum pair.'
 		);
 	}
 
@@ -204,9 +204,9 @@ final class SScribe_Real_WP_Matrix_Test extends TestCase {
 		$source = (string) file_get_contents( self::plugin_root() . '/' . self::CI_PATH );
 
 		$this::assertMatchesRegularExpression(
-			"/-\\s+php-version:\\s*['\"]8\\.2['\"][\\s\\S]{0,220}?wp-version:\\s*['\"]6\\.1['\"][\\s\\S]{0,220}?database:\\s*['\"]mysql['\"]/",
+			"/-\\s+php-version:\\s*['\"]8\\.2['\"][\\s\\S]{0,220}?wp-version:\\s*['\"]6\\.2['\"][\\s\\S]{0,220}?database:\\s*['\"]mysql['\"]/",
 			$source,
-			'The WordPress 6.1 / PHP 8.2 floor must use MySQL because maintained SQLite Database Integration releases require newer WordPress.'
+			'The WordPress 6.2 / PHP 8.2 floor must use MySQL because maintained SQLite Database Integration releases require newer WordPress.'
 		);
 	}
 

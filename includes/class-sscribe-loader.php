@@ -57,10 +57,8 @@ class SScribe_Loader {
 	 * Register a guarded AJAX action.
 	 *
 	 * Wraps the callback with `SScribe_AJAX_Guard::with_guard()` so the
-	 * `check_ajax_referer → current_user_can` triplet is enforced once,
-	 * centrally. Prevents the copy-paste drift that left
-	 * `ajax_refresh_nonce` (and likely future handlers) without a
-	 * nonce check.
+	 * `check_ajax_referer → current_user_can` pair is enforced once,
+	 * centrally, for every handler that carries a nonce.
 	 *
 	 * @param string $hook      WordPress action hook name.
 	 * @param object $component Component class instance.
@@ -133,6 +131,33 @@ class SScribe_Loader {
 			$nonce_arg
 		);
 		add_action( $hook, $handler, $priority, $accepted_args );
+	}
+
+	/**
+	 * Register an action whose component is resolved lazily.
+	 *
+	 * Used for the nonce-refresh endpoint, which cannot carry a nonce and
+	 * performs its own login, capability and rate-limit checks.
+	 *
+	 * @param string   $hook          WordPress action hook name.
+	 * @param callable $resolver      Callable returning the component object.
+	 * @param string   $callback      Callback method name.
+	 * @param int      $priority      Hook priority.
+	 * @param int      $accepted_args Number of accepted arguments.
+	 */
+	public function add_lazy_action( string $hook, callable $resolver, string $callback, int $priority = 10, int $accepted_args = 1 ): void {
+		add_action(
+			$hook,
+			static function ( ...$args ) use ( $resolver, $callback ): void {
+				$component = $resolver();
+				if ( ! is_object( $component ) || ! is_callable( array( $component, $callback ) ) ) {
+					throw new LogicException( 'SScribe lazy action resolver returned an invalid component.' );
+				}
+				$component->{$callback}( ...$args );
+			},
+			$priority,
+			$accepted_args
+		);
 	}
 
 	/**

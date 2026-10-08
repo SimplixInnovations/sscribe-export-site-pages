@@ -1379,7 +1379,7 @@
 			});
 		},
 		/**
-		 * Phase 8 helper: cleanly terminate the preflight phase on a
+		 * Cleanly terminate the preflight phase on a
 		 * server-side rejection or hard HTTP failure. Resets all
 		 * click-handler state so the user can retry without a page
 		 * reload. Safe to call from any of the preflight code paths.
@@ -1776,7 +1776,7 @@
 			});
 		},
 		/**
-		 * Phase 9 helper: cleanly terminate the start-export phase on a
+		 * Cleanly terminate the start-export phase on a
 		 * soft-fail or hard HTTP failure. Resets isPreparing/isProcessing,
 		 * backoff counters, busy UI, config-summary timers so the user
 		 * can immediately retry without a page reload.

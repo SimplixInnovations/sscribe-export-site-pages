@@ -1067,10 +1067,10 @@ jobs:
                 include:
                     # Explicit declared-minimum compatibility leg. Maintained
                     # SQLite Database Integration releases require newer
-                    # WordPress, so the published WP 6.1 + PHP 8.2 floor is
+                    # WordPress, so the published WP 6.2 + PHP 8.2 floor is
                     # exercised against a real MySQL service instead.
                     - php-version: '8.2'
-                      wp-version: '6.1'
+                      wp-version: '6.2'
                       database: 'mysql'
         steps:
             - name: Checkout code
