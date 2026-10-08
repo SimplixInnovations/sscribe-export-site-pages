@@ -371,6 +371,10 @@ class Batch_Loop_Collector_Stub {
 		unset( $batch );
 	}
 
+	public function set_fields_mode( string $mode ): void {
+		unset( $mode );
+	}
+
 	public function get_page_data( int $page_id, string $language = '' ): array {
 		unset( $language );
 		$this->page_data_calls[] = $page_id;

@@ -620,6 +620,8 @@ final class SScribe_Batch_Processor implements SScribe_Export_Pipeline_Interface
 		'sscribe_docx_template',
 		'sscribe_html_include_css',
 		'sscribe_html_responsive_images',
+		'sscribe_include_fields',
+		'sscribe_compliance_mode',
 		'sscribe_md_absolute_urls',
 		'sscribe_md_frontmatter_preset',
 		'sscribe_md_include_featured_image',

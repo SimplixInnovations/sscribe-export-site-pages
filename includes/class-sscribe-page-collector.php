@@ -956,6 +956,22 @@ class SScribe_Page_Collector {
 	}
 
 	/**
+	 * Custom field collection mode for the current run.
+	 *
+	 * @var string
+	 */
+	private string $fields_mode = SScribe_Custom_Fields::MODE_AUTO;
+
+	/**
+	 * Choose which custom fields get_page_data() attaches.
+	 *
+	 * @param string $mode One of the SScribe_Custom_Fields::MODE_* values.
+	 */
+	public function set_fields_mode( string $mode ): void {
+		$this->fields_mode = SScribe_Custom_Fields::normalize_mode( $mode );
+	}
+
+	/**
 	 * Get full page data by ID.
 	 *
 	 * Note: Uses a static guard to prevent nested the_content filter calls.
@@ -1159,6 +1175,7 @@ class SScribe_Page_Collector {
 			'language'            => $language,
 			'parent_id'           => $post_object->post_parent,
 			'seo'                 => $this->seo_reader->get_seo_data( $page_id ),
+			'fields'              => SScribe_Custom_Fields::collect( $page_id, $this->fields_mode ),
 		);
 
 		if ( self::PROVIDER_TRANSLATEPRESS === $this->get_multilingual_provider() ) {

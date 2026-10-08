@@ -61,6 +61,35 @@ final class SScribe_Page_Collector_Coverage_Test extends SScribe_WP_TestCase {
 	// Section 1 — pure-helper / cache-branch coverage
 	// -----------------------------------------------------------------
 
+	public function test_get_page_data_attaches_public_meta_only_in_all_mode(): void {
+		$page_id = (int) $this->factory()->post->create( array( 'post_type' => 'page', 'post_status' => 'publish', 'post_title' => 'Fields' ) );
+		update_post_meta( $page_id, 'event_date', '2026-10-09' );
+		add_post_meta( $page_id, 'speaker', 'Ann' );
+		add_post_meta( $page_id, 'speaker', 'Bob' );
+		update_post_meta( $page_id, '_private_note', 'hidden' );
+
+		$this->collector->set_fields_mode( 'all' );
+		$all = $this->collector->get_page_data( $page_id );
+		$this::assertIsArray( $all );
+		$by_key = array_column( $all['fields'], null, 'key' );
+		$this::assertSame( '2026-10-09', $by_key['event_date']['value'] );
+		$this::assertSame( array( 'Ann', 'Bob' ), $by_key['speaker']['value'] );
+		$this::assertArrayNotHasKey( 'private_note', $by_key );
+		$this::assertArrayNotHasKey( '_private_note', $by_key );
+
+		$this->collector->clear_page_caches();
+		$this->collector->set_fields_mode( 'none' );
+		$none = $this->collector->get_page_data( $page_id );
+		$this::assertIsArray( $none );
+		$this::assertSame( array(), $none['fields'] );
+
+		$this->collector->clear_page_caches();
+		$this->collector->set_fields_mode( 'auto' );
+		$auto = $this->collector->get_page_data( $page_id );
+		$this::assertIsArray( $auto );
+		$this::assertSame( array(), $auto['fields'], 'Plain meta is only read in all mode.' );
+	}
+
 	public function test_clear_page_caches_resets_all_internal_caches(): void {
 		// Drive clear_page_caches() to mark the cache_clear branch covered.
 		// The collector caches are private; clear_page_caches is the only
