@@ -390,7 +390,7 @@ class SScribe_Activator {
 		$wpdb->last_error = '';
 
 		$previous_suppression = $wpdb->suppress_errors( true );
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.PreparedSQL.NotPrepared -- Plugin-owned table identifier is restricted to [A-Za-z0-9_] above; zero-row structural probe only.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Identifier is restricted to [A-Za-z0-9_] above and comes from $wpdb->prefix; zero-row structural probe of a plugin-owned table.
 		$result = $wpdb->query( "SELECT * FROM `{$table}` WHERE 1 = 0" );
 		$last_error = trim( (string) $wpdb->last_error );
 		$available_columns = false !== $result ? array_map( 'strval', (array) $wpdb->get_col_info( 'name' ) ) : array();
@@ -442,7 +442,7 @@ class SScribe_Activator {
 
 		$wpdb->last_error    = '';
 		$previous_suppression = $wpdb->suppress_errors( true );
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.PreparedSQL.NotPrepared -- Plugin-owned table identifier is restricted to [A-Za-z0-9_] above; SHOW INDEX is structural introspection.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Identifier is restricted to [A-Za-z0-9_] above and comes from $wpdb->prefix; SHOW INDEX is structural introspection.
 		$rows       = $wpdb->get_results( "SHOW INDEX FROM `{$table}`" );
 		$last_error = trim( (string) $wpdb->last_error );
 		$wpdb->suppress_errors( (bool) $previous_suppression );
