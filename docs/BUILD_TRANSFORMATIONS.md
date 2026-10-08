@@ -222,6 +222,18 @@ would fail the build.
   the complete, unmodified upstream source is available from
   https://github.com/PHPOffice/PHPWord at the version pinned in
   `composer.lock`.
+- `vendor-prefixed/tecnickcom/tc-lib-pdf-filter/src/Type/JbigTwo.php` is
+  replaced in the dist by a fail-closed stub. The upstream LGPL-3.0 file
+  decodes JBIG2 streams by running the `jbig2dec` command-line tool through
+  `shell_exec()` and `proc_open()`. SScribe generates PDF documents and never
+  parses existing ones, so the decoder is unreachable; the stub keeps the
+  `Template::decode()` contract and throws the package's own exception.
+  The build then tokenizes every staged PHP file and fails if any calls
+  `exec`, `shell_exec`, `system`, `passthru`, `proc_open`, `popen`, or
+  `pcntl_exec`. This note is the LGPL section 2 change notice for that file;
+  the unmodified source is available from
+  https://github.com/tecnickcom/tc-lib-pdf-filter at the version recorded in
+  `vendor-prefixed/composer/installed.php`.
 - `vendor-prefixed/phpoffice/phpword/phpword.ini.dist` and
   `vendor-prefixed/phpoffice/phpword/phpmd.xml.dist` are removed.
   These are configuration samples never read by SScribe code.
