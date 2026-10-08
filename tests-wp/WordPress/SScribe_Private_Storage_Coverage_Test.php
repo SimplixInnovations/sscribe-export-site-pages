@@ -225,10 +225,8 @@ final class SScribe_Private_Storage_Coverage_Test extends SScribe_WP_TestCase {
 
 		$resolved = \SScribe_Private_Storage::get_export_dir();
 
-		// The filter returning true unlocks the path. The resolved
-		// path may still be rejected by is_outside_public_roots() or
-		// the wp-content-rooted check; either way, the filter
-		// callback at lines 366-371 ran.
+		// The filter returning true unlocks the path; either way the
+		// filter callback ran.
 		$this::assertNotFalse( $resolved, 'Filter callback must run; get_export_dir should not throw.' );
 	}
 

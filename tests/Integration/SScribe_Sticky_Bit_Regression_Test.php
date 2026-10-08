@@ -59,12 +59,6 @@ final class SScribe_Sticky_Bit_Regression_Test extends TestCase {
 		return (bool) $method->invoke( null, $base );
 	}
 
-	private static function invoke_is_outside_public_roots( string $path ): bool {
-		$method = ( new \ReflectionClass( \SScribe_Private_Storage::class ) )
-			->getMethod( 'is_outside_public_roots' );
-		return (bool) $method->invoke( null, $path );
-	}
-
 	// -- POSIX / shared-host branches --------------------------------
 
 	#[RunInSeparateProcess]
@@ -276,20 +270,18 @@ final class SScribe_Sticky_Bit_Regression_Test extends TestCase {
 		@rmdir( $tmp_root );
 	}
 
-	public function test_public_root_path_is_rejected(): void {
-		// ABSPATH is the public WordPress root; the private-storage
-		// resolver must refuse to use any path inside it because HTTP
-		// could fetch the artifacts. The is_outside_public_roots()
-		// guard returns false for any path that resolves inside
-		// ABSPATH / WP_CONTENT_DIR / DOCUMENT_ROOT.
-		$wp_content = defined( 'WP_CONTENT_DIR' ) ? WP_CONTENT_DIR : ABSPATH . 'wp-content';
-		$under_public = $wp_content . '/uploads/sscribe-phase39-leak';
-
-		$is_outside = self::invoke_is_outside_public_roots( $under_public );
-		$this::assertFalse(
-			$is_outside,
-			'Path inside wp-content must NOT be considered private.'
+	public function test_uploads_storage_path_is_guarded_against_web_access(): void {
+		$path = \SScribe_Private_Storage::get_export_dir();
+		$this::assertNotSame( '', $path );
+		foreach ( \SScribe_Security::GUARD_FILES as $guard ) {
+			$this::assertFileExists( $path . '/' . $guard, 'Storage inside uploads must carry every deny file.' );
+		}
+		$this::assertMatchesRegularExpression(
+			'#/sscribe-export-site-pages/[a-z0-9]{32}/#',
+			str_replace( '\\', '/', $path ),
+			'The per-site folder name must be an unguessable random key.'
 		);
+		\SScribe_Private_Storage::delete_owned_storage();
 	}
 
 	public function test_storage_path_filter_blocks_traversal_payloads(): void {

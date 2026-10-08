@@ -4,13 +4,21 @@ This reference documents integration points that are intentionally excluded from
 
 ## Private storage override
 
-SScribe uses a site-isolated directory below `get_temp_dir()` by default. Hosts that require a dedicated private volume may define `SSCRIBE_PRIVATE_STORAGE_DIR` in `wp-config.php` before WordPress loads the plugin:
+By default SScribe stores archives, working files, and logs in `wp_upload_dir()['basedir'] . '/sscribe-export-site-pages/{key}/sscribe-exports'`, where `{key}` is a random 32-character value generated once per site and kept in the non-autoloaded `sscribe_storage_key` option. The container and the storage folder receive `.htaccess`, `web.config`, and `index.php` deny files, managed folders are created owner-only, and archives are only served through the nonce-, capability-, owner-, and single-use-token-checked download endpoint. nginx does not read those files, so add:
+
+```nginx
+location ~* /uploads/(sites/[0-9]+/)?sscribe-export-site-pages/ { deny all; }
+```
+
+Hosts that require a dedicated private volume may replace the default by defining `SSCRIBE_PRIVATE_STORAGE_DIR` in `wp-config.php`:
 
 ```php
 define( 'SSCRIBE_PRIVATE_STORAGE_DIR', '/absolute/private/writable/path' );
 ```
 
-The path must already exist, be absolute, canonical, writable, free of symbolic links, and outside `ABSPATH`, `WP_CONTENT_DIR`, the uploads base directory, and the web server document root. SScribe creates only its own site-keyed descendants below this base.
+Alternatively, return one or more absolute base directories from the `sscribe_private_storage_base_candidates` filter (the constant wins when both are set). An override must already exist, be absolute, writable, not a symbolic link, and not world-writable without the sticky bit; a foreign-owned base can be accepted with the `sscribe_private_storage_allow_foreign_owner` filter. An unusable override fails closed instead of falling back to uploads. SScribe creates only its own key-named descendants below the chosen base.
+
+When storage cannot be created, the SScribe Export screen and the Plugins screen show a notice naming the folder to check. Files written by 2.0.0 to its earlier temporary-directory location are moved into the current folder once; completion is recorded in the `sscribe_storage_migrated_v2` option.
 
 ## Multilingual plugins
 

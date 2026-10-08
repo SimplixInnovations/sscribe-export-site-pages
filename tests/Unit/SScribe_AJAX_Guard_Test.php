@@ -118,10 +118,8 @@ final class SScribe_AJAX_Guard_Test extends TestCase {
 	}
 
 	public function test_post_integer_returns_default_when_value_is_bool(): void {
-		// Note: true coerces to '1' which is a valid integer — observed
-		// behaviour, documented here so a future change is intentional.
 		$_POST['n'] = true; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
-		$this::assertSame( 1, \SScribe_AJAX_Guard::post_integer( 'n', 5 ) );
+		$this::assertSame( 5, \SScribe_AJAX_Guard::post_integer( 'n', 5 ), 'A PHP boolean is not a request value; the default wins.' );
 	}
 
 	// ==================================================================
@@ -154,10 +152,8 @@ final class SScribe_AJAX_Guard_Test extends TestCase {
 	}
 
 	public function test_post_boolean_returns_default_for_bool_value(): void {
-		// Real bool false is rejected by the is_bool guard in the
-		// production code; the default is returned.
 		$_POST['flag'] = false; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
-		$this::assertFalse( \SScribe_AJAX_Guard::post_boolean( 'flag', true ) );
+		$this::assertTrue( \SScribe_AJAX_Guard::post_boolean( 'flag', true ), 'A PHP boolean is not a request value; the default wins.' );
 	}
 
 	// ==================================================================

@@ -38,13 +38,15 @@ final class SScribe_Language_Request {
 	 * validator can reject malformed input rather than receiving a coerced value.
 	 */
 	public static function normalize_current_request(): void {
-		$action = $_REQUEST['action'] ?? ( $_POST['action'] ?? null ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.MissingUnslash, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Boundary normalization occurs before the guarded nonce/capability handler.
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Boundary normalization occurs before the guarded nonce/capability handler.
+		$action = isset( $_REQUEST['action'] ) && is_string( $_REQUEST['action'] ) ? sanitize_key( wp_unslash( $_REQUEST['action'] ) ) : '';
 
-		if ( ! is_string( $action ) || ! in_array( $action, array( 'sscribe_get_export_preview', 'sscribe_start_export' ), true ) ) {
+		if ( ! in_array( $action, array( 'sscribe_get_export_preview', 'sscribe_start_export' ), true ) ) {
 			return;
 		}
 
-		$language = $_POST['language'] ?? null; // phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.MissingUnslash, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Boundary normalization occurs before the guarded nonce/capability handler.
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Boundary normalization occurs before the guarded nonce/capability handler.
+		$language = isset( $_POST['language'] ) && is_string( $_POST['language'] ) ? sanitize_text_field( wp_unslash( $_POST['language'] ) ) : '';
 		if ( '__all__' !== $language ) {
 			return;
 		}

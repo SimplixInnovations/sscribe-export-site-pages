@@ -23,6 +23,9 @@ global $wpdb;
 $sscribe_cleanup_site = static function (): void {
 	global $wpdb;
 
+	SScribe_Private_Storage::delete_owned_storage();
+	SScribe_Private_Storage::delete_legacy_storage();
+
 	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Cleanup operation during uninstall.
 	$wpdb->query(
 		$wpdb->prepare(
@@ -162,8 +165,8 @@ $sscribe_cleanup_site = static function (): void {
 	wp_unschedule_hook( 'sscribe_scheduler_tick' );
 	wp_unschedule_hook( 'sscribe_schedule_continue' );
 
-	SScribe_Private_Storage::delete_owned_storage();
-	SScribe_Private_Storage::delete_legacy_storage();
+	delete_option( SScribe_Private_Storage::STORAGE_KEY_OPTION );
+	delete_option( SScribe_Storage_Migration::COMPLETED_OPTION );
 };
 
 if ( is_multisite() ) {

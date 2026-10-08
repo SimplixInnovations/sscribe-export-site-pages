@@ -30,15 +30,20 @@ class SScribe_Private_Storage_Test extends TestCase {
 		parent::tearDown();
 	}
 
-	public function test_default_storage_is_outside_public_wordpress_paths(): void {
+	public function test_default_storage_is_a_keyed_folder_inside_uploads(): void {
 		$export_dir = \SScribe_Private_Storage::get_export_dir();
 		$upload_dir = wp_upload_dir();
+		$key        = \SScribe_Private_Storage::get_site_key( false );
 
 		$this->assertNotSame( '', $export_dir );
 		$this->assertDirectoryExists( $export_dir );
-		$this->assertFalse( $this->path_is_within( $export_dir, (string) $upload_dir['basedir'] ) );
+		$this->assertMatchesRegularExpression( '/^[a-z0-9]{32}$/', $key );
+		$this->assertTrue( $this->path_is_within( $export_dir, (string) realpath( (string) $upload_dir['basedir'] ) ) );
+		$this->assertStringEndsWith(
+			'/sscribe-export-site-pages/' . $key . '/sscribe-exports',
+			str_replace( '\\', '/', $export_dir )
+		);
 		$this->assertFalse( $this->path_is_within( $export_dir, ABSPATH ) );
-		$this->assertFalse( $this->path_is_within( $export_dir, WP_CONTENT_DIR ) );
 	}
 
 	public function test_legacy_public_artifacts_are_migrated_then_removed(): void {
@@ -120,12 +125,16 @@ class SScribe_Private_Storage_Test extends TestCase {
 
 	#[\PHPUnit\Framework\Attributes\RunInSeparateProcess]
 	#[\PHPUnit\Framework\Attributes\PreserveGlobalState( false )]
-	public function test_public_storage_override_is_rejected(): void {
-		$uploads = wp_upload_dir();
-		wp_mkdir_p( $uploads['basedir'] );
-		define( 'SSCRIBE_PRIVATE_STORAGE_DIR', $uploads['basedir'] );
+	public function test_storage_override_pointing_at_a_file_is_rejected(): void {
+		$file = sys_get_temp_dir() . '/sscribe-override-file-' . uniqid();
+		file_put_contents( $file, 'not a directory' );
+		define( 'SSCRIBE_PRIVATE_STORAGE_DIR', $file );
 
-		$this->assertSame( '', \SScribe_Private_Storage::get_export_dir() );
+		try {
+			$this->assertSame( '', \SScribe_Private_Storage::get_export_dir() );
+		} finally {
+			unlink( $file );
+		}
 	}
 
 	#[\PHPUnit\Framework\Attributes\RunInSeparateProcess]
@@ -133,7 +142,8 @@ class SScribe_Private_Storage_Test extends TestCase {
 	public function test_symlinked_private_root_cannot_delete_external_files(): void {
 		$base     = sys_get_temp_dir() . '/sscribe-private-base-' . uniqid();
 		$outside  = sys_get_temp_dir() . '/sscribe-private-outside-' . uniqid();
-		$site_key = 'site-1-' . substr( hash( 'sha256', str_replace( '\\', '/', rtrim( ABSPATH, '/\\' ) ) ), 0, 12 );
+		$site_key = str_repeat( 'b', 32 );
+		update_option( 'sscribe_storage_key', $site_key );
 		$root     = $base . '/sscribe-export-site-pages/' . $site_key . '/sscribe-exports';
 		$sentinel = $outside . '/must-survive.txt';
 		wp_mkdir_p( dirname( $root ) );
@@ -176,17 +186,23 @@ class SScribe_Private_Storage_Test extends TestCase {
 		}
 	}
 
-	public function test_storage_is_isolated_by_site_id(): void {
+	public function test_storage_is_isolated_by_the_per_site_key(): void {
+		$previous = get_option( 'sscribe_storage_key' );
+		update_option( 'sscribe_storage_key', str_repeat( 'c', 32 ) );
 		$site_one = \SScribe_Private_Storage::get_export_dir();
+		\SScribe_Private_Storage::delete_owned_storage();
+
 		$GLOBALS['sscribe_test_blog_id'] = 2;
+		update_option( 'sscribe_storage_key', str_repeat( 'd', 32 ) );
 		$site_two = \SScribe_Private_Storage::get_export_dir();
 
 		$this->assertNotSame( $site_one, $site_two );
-		$this->assertStringContainsString( 'site-1-', $site_one );
-		$this->assertStringContainsString( 'site-2-', $site_two );
+		$this->assertStringContainsString( str_repeat( 'c', 32 ), $site_one );
+		$this->assertStringContainsString( str_repeat( 'd', 32 ), $site_two );
 
 		\SScribe_Private_Storage::delete_owned_storage();
 		$GLOBALS['sscribe_test_blog_id'] = 1;
+		update_option( 'sscribe_storage_key', $previous );
 	}
 
 	public function test_private_permissions_are_owner_only_on_posix(): void {
@@ -431,7 +447,7 @@ class SScribe_Private_Storage_Test extends TestCase {
 		$filter = static function ( $candidates ) use ( $fallback ): array {
 			unset( $candidates );
 			return array(
-				WP_CONTENT_DIR,
+				sys_get_temp_dir() . '/sscribe-missing-candidate-' . uniqid(),
 				$fallback,
 			);
 		};

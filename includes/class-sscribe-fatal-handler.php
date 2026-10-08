@@ -141,12 +141,12 @@ final class SScribe_Fatal_Handler {
 			return false;
 		}
 
-		$action = $_REQUEST['action'] ?? null; // phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.MissingUnslash, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Read-only attribution at shutdown; authorization already occurred in the original request.
-		if ( ! is_string( $action ) ) {
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only attribution at shutdown; authorization already occurred in the original request.
+		$action = isset( $_REQUEST['action'] ) && is_string( $_REQUEST['action'] ) ? sanitize_key( wp_unslash( $_REQUEST['action'] ) ) : '';
+		if ( '' === $action ) {
 			return false;
 		}
 
-		$action = sanitize_key( wp_unslash( $action ) );
 		return str_starts_with( $action, 'sscribe_' );
 	}
 

@@ -1030,11 +1030,6 @@ class SScribe_Admin_Debug {
 			ob_end_clean();
 		}
 
-		if ( function_exists( 'ini_set' ) ) {
-			// phpcs:ignore WordPress.PHP.IniSet.Risky, Squiz.PHP.DiscouragedFunctions.Discouraged
-			@ini_set( 'zlib.output_compression', 'Off' );
-		}
-
 		$safe_filename = preg_replace( '/[\r\n"\x00]/', '', $filename );
 		$safe_filename = sanitize_file_name( $safe_filename );
 		if ( empty( $safe_filename ) ) {
@@ -1048,7 +1043,7 @@ class SScribe_Admin_Debug {
 		header( 'Pragma: no-cache' );
 		header( 'X-Content-Type-Options: nosniff' );
 
-		echo $content; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+		echo $content; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Output of wp_json_encode() sent as an application/json attachment with nosniff; HTML escaping would corrupt the file.
 		wp_die();
 	}
 

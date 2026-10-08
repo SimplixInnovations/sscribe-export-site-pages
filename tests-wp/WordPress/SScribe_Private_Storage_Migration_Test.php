@@ -155,25 +155,28 @@ final class SScribe_Private_Storage_Migration_Test extends SScribe_WP_TestCase {
 	}
 
 	/**
-	 * Setting the constant to a directory inside a web-served root
-	 * (the WordPress uploads tree) must be rejected — public roots are
-	 * exactly the failure mode that motivated the migration.
+	 * An explicit SSCRIBE_PRIVATE_STORAGE_DIR is an operator decision and is
+	 * honoured as given, including a folder inside the uploads tree, which
+	 * then receives the same deny files as the default location.
 	 */
-	public function test_get_export_dir_rejects_uploads_root_target(): void {
+	public function test_get_export_dir_honours_override_inside_uploads(): void {
 		$uploads     = wp_upload_dir();
-		$public_root = $uploads['basedir'] . '/sscribe-private-fail';
+		$public_root = $uploads['basedir'] . '/sscribe-private-override';
 		wp_mkdir_p( $public_root );
 
 		$this::define_storage_constant( $public_root );
+		if ( (string) \SSCRIBE_PRIVATE_STORAGE_DIR !== $public_root ) {
+			$this->markTestSkipped( 'SSCRIBE_PRIVATE_STORAGE_DIR is locked-in to a prior test value in this process.' );
+		}
 
 		$dir = \SScribe_Private_Storage::get_export_dir();
-		$this::assertSame(
-			'',
-			$dir,
-			'Resolver must reject a target inside the public uploads root.'
+		$this::assertNotSame( '', $dir );
+		$this::assertStringStartsWith(
+			str_replace( '\\', '/', (string) realpath( $public_root ) ) . '/',
+			str_replace( '\\', '/', $dir )
 		);
-
-		@rmdir( $public_root );
+		$this::assertFileExists( $dir . '/web.config' );
+		$this::assertSame( 'override', \SScribe_Private_Storage::get_storage_mode() );
 	}
 
 	/**

@@ -235,6 +235,9 @@ if ( ! function_exists( 'get_option' ) ) {
 if ( ! function_exists( 'update_option' ) ) {
 	function update_option( $option, $value, $autoload = null ): bool { return true; }
 }
+if ( ! function_exists( 'get_site_option' ) ) {
+	function get_site_option( $option, $default = false, $deprecated = true ) { return $default; }
+}
 if ( ! function_exists( 'add_option' ) ) {
 	function add_option( $option, $value = '', $deprecated = '', $autoload = 'yes' ): bool { return true; }
 }

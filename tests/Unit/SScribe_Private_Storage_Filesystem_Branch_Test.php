@@ -8,7 +8,6 @@
  *   - resolve_path_for_comparison() : 0-byte path, null-byte path,
  *                                     missing path with non-realpath ancestor,
  *                                     realpath success path
- *   - is_outside_public_roots()     : public-root false path
  *   - migrate_legacy_storage()      : existing legacy dir migration
  *   - delete_legacy_storage()       : existing legacy dir deletion
  *   - move_directory_contents()     : subdir migration + symlink rejection
@@ -102,11 +101,6 @@ final class SScribe_Private_Storage_Filesystem_Branch_Test extends TestCase {
 		// Path containing '..' must hit the dot-segment bail.
 		$result = $this->call( 'resolve_path_for_comparison', array( $this->tmp . '/../../escape/../here' ) );
 		$this::assertSame( '', $result );
-	}
-
-	public function test_is_outside_public_roots_returns_false_for_content_dir(): void {
-		$result = $this->call( 'is_outside_public_roots', array( WP_CONTENT_DIR . '/file.txt' ) );
-		$this::assertFalse( $result );
 	}
 
 	public function test_move_directory_contents_rejects_symlinks(): void {

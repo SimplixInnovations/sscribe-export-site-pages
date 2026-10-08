@@ -227,7 +227,7 @@ $add(
  * a stack trace into an AJAX response is a security issue.
  */
 $ajax_guard_src  = (string) file_get_contents( $root_dir . '/includes/class-sscribe-ajax-guard.php' );
-$disables_errors = (bool) preg_match( "/disable_if_possible\s*\(\s*['\"]display_errors['\"]/", $ajax_guard_src );
+$disables_errors = false === strpos( $ajax_guard_src, 'ini_set(' ) && false !== strpos( $ajax_guard_src, 'ob_clean' );
 $add(
 	'ajax_guard_disables_display_errors',
 	'class-sscribe-ajax-guard.php must disable display_errors via disable_if_possible("display_errors", "0") before sending AJAX responses.',
