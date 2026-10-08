@@ -409,7 +409,7 @@ function sscribe_install_wp_tests( array $argv ): void {
 
 			// Maintained SQLite Database Integration releases require WordPress 6.4+.
 			// Do not pin removed or unsupported historical plugin archives merely to
-			// keep the declared WordPress 6.1 floor green. Older supported WordPress
+			// keep the declared WordPress 6.2 floor green. Older supported WordPress
 			// versions are exercised against the real MySQL service in CI instead.
 			if ( version_compare( $wp_version, '6.4', '<' ) ) {
 				throw new RuntimeException( 'SQLite Database Integration requires WordPress 6.4 or newer; use MySQL for older supported WordPress versions.' );
