@@ -57,7 +57,7 @@ final class SScribe_Storage_Migration {
 			$moved_all = self::migrate_site_dir( $site_dir, $target ) && $moved_all;
 		}
 
-		update_option( self::COMPLETED_OPTION, gmdate( 'Y-m-d H:i:s' ), true );
+		update_option( self::COMPLETED_OPTION, gmdate( 'Y-m-d H:i:s' ), false );
 
 		return $moved_all;
 	}
@@ -140,30 +140,13 @@ final class SScribe_Storage_Migration {
 	}
 
 	/**
-	 * Return every base directory release 2.0.0 could have used.
+	 * Return the base directories an earlier install may have used: the
+	 * operator-configured overrides and the uploads directory.
 	 *
 	 * @return string[]
 	 */
 	private static function get_previous_bases(): array {
-		$candidates = SScribe_Private_Storage::get_override_bases();
-		if ( function_exists( 'get_temp_dir' ) ) {
-			$candidates[] = (string) get_temp_dir();
-		}
-		$candidates[] = sys_get_temp_dir();
-		$upload_tmp   = ini_get( 'upload_tmp_dir' );
-		if ( is_string( $upload_tmp ) ) {
-			$candidates[] = $upload_tmp;
-		}
-		foreach ( array( 'HOME', 'TMPDIR', 'TMP' ) as $env_name ) {
-			$env_value = getenv( $env_name );
-			if ( is_string( $env_value ) ) {
-				$candidates[] = $env_value;
-			}
-		}
-		$document_root = isset( $_SERVER['DOCUMENT_ROOT'] ) ? sanitize_text_field( wp_unslash( $_SERVER['DOCUMENT_ROOT'] ) ) : '';
-		if ( '' !== trim( $document_root, '/\\' ) ) {
-			$candidates[] = dirname( rtrim( $document_root, '/\\' ) );
-		}
+		$candidates   = SScribe_Private_Storage::get_override_bases();
 		$candidates[] = SScribe_Private_Storage::get_uploads_basedir();
 
 		$bases = array();

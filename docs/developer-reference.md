@@ -18,7 +18,7 @@ define( 'SSCRIBE_PRIVATE_STORAGE_DIR', '/absolute/private/writable/path' );
 
 Alternatively, return one or more absolute base directories from the `sscribe_private_storage_base_candidates` filter (the constant wins when both are set). An override must already exist, be absolute, writable, not a symbolic link, and not world-writable without the sticky bit; a foreign-owned base can be accepted with the `sscribe_private_storage_allow_foreign_owner` filter. An unusable override fails closed instead of falling back to uploads. SScribe creates only its own key-named descendants below the chosen base.
 
-When storage cannot be created, the SScribe Export screen and the Plugins screen show a notice naming the folder to check. Files written by 2.0.0 to its earlier temporary-directory location are moved into the current folder once; completion is recorded in the `sscribe_storage_migrated_v2` option.
+When storage cannot be created, the SScribe Export screen and the Plugins screen show a notice naming the folder to check. Files that an earlier install left under a configured override base or under the uploads directory are moved into the current folder once; completion is recorded in the `sscribe_storage_migrated_v2` option. The plugin never scans system temp, home, or document-root directories.
 
 ## Multilingual plugins
 

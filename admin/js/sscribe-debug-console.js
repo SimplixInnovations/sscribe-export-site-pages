@@ -647,7 +647,7 @@
 				);
 		},
 		/**
-		 * Phase 11 helper: single source of truth for whether any
+		 * Single source of truth for whether any
 		 * debug-log filter is active. Used by renderLogs to distinguish
 		 * the no_entries (no filter, log file empty) state from the
 		 * no_filter_matches (filter active, log file has entries but
@@ -676,7 +676,7 @@
 			);
 		},
 		/**
-		 * Phase 10 helper: roll back the debug_enabled checkbox and the
+		 * Roll back the debug_enabled checkbox and the
 		 * log_level select to the state captured at the moment the user
 		 * toggled them. Called from saveSettings on every terminal
 		 * outcome (server-side rejection or hard HTTP failure) so the

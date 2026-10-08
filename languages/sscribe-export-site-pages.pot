@@ -9,7 +9,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-10-08T02:52:53+00:00\n"
+"POT-Creation-Date: 2026-10-08T20:26:47+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.12.0\n"
 "X-Domain: sscribe-export-site-pages\n"
@@ -383,7 +383,7 @@ msgstr ""
 #: includes/class-sscribe-diagnostics.php:286
 #: includes/class-sscribe-diagnostics.php:287
 #: includes/class-sscribe-page-collector.php:1000
-#: includes/class-sscribe-page-collector.php:1087
+#: includes/class-sscribe-page-collector.php:1086
 #: includes/exporters/class-sscribe-markdown-exporter.php:277
 msgid "Unknown"
 msgstr ""
@@ -864,26 +864,26 @@ msgstr ""
 #: admin/partials/sscribe-admin-display.php:361
 #: admin/partials/sscribe-admin-display.php:594
 #: includes/class-sscribe-exporter.php:1790
-#: includes/class-sscribe-page-collector.php:1537
+#: includes/class-sscribe-page-collector.php:1536
 #: includes/exporters/class-sscribe-html-exporter.php:458
 msgid "Published"
 msgstr ""
 
 #: admin/class-sscribe-admin.php:483
 #: admin/partials/sscribe-admin-display.php:362
-#: includes/class-sscribe-page-collector.php:1538
+#: includes/class-sscribe-page-collector.php:1537
 msgid "Draft"
 msgstr ""
 
 #: admin/class-sscribe-admin.php:484
 #: admin/partials/sscribe-admin-display.php:363
-#: includes/class-sscribe-page-collector.php:1539
+#: includes/class-sscribe-page-collector.php:1538
 msgid "Private"
 msgstr ""
 
 #: admin/class-sscribe-admin.php:485
 #: admin/partials/sscribe-admin-display.php:364
-#: includes/class-sscribe-page-collector.php:1540
+#: includes/class-sscribe-page-collector.php:1539
 msgid "Scheduled"
 msgstr ""
 
@@ -1838,7 +1838,9 @@ msgid "More than %d readable pages are available. This export includes the first
 msgstr ""
 
 #. translators: %s: image alt text.
+#. translators: %s: image alternative text.
 #: includes/class-sscribe-content-parser.php:1218
+#: includes/class-sscribe-docx-content-renderer.php:1029
 #, php-format
 msgid "[Image: %s]"
 msgstr ""
@@ -2253,7 +2255,7 @@ msgstr ""
 msgid "[MISSING IMAGE] "
 msgstr ""
 
-#: includes/class-sscribe-docx-content-renderer.php:1108
+#: includes/class-sscribe-docx-content-renderer.php:1112
 msgid "IMAGE ASSET SOURCE URL:"
 msgstr ""
 
@@ -2973,7 +2975,7 @@ msgstr ""
 
 #. translators: %d: post ID.
 #: includes/class-sscribe-page-collector.php:994
-#: includes/class-sscribe-page-collector.php:1116
+#: includes/class-sscribe-page-collector.php:1115
 #, php-format
 msgid "Untitled Page %d"
 msgstr ""
@@ -2982,11 +2984,11 @@ msgstr ""
 msgid "[Password Protected Content]"
 msgstr ""
 
-#: includes/class-sscribe-page-collector.php:1136
+#: includes/class-sscribe-page-collector.php:1135
 msgid "[Draft - Not Published]"
 msgstr ""
 
-#: includes/class-sscribe-page-collector.php:1541
+#: includes/class-sscribe-page-collector.php:1540
 msgid "Pending Review"
 msgstr ""
 
@@ -2995,7 +2997,7 @@ msgid "SScribe stores export session records, export statistics, and security au
 msgstr ""
 
 #: includes/class-sscribe-privacy.php:68
-msgid "These records may include your user ID, a shortened hash derived from your IP address, browser user agent, request path, export status metadata, and timestamps. Generated export packages and debug logs are stored temporarily in private server-side storage, outside public web directories where the host allows it and otherwise in a hardened directory under uploads, and are automatically cleaned up after their retention window."
+msgid "These records may include your user ID, a shortened hash derived from your IP address, browser user agent, request path, export status metadata, and timestamps. Generated export packages and debug logs are stored temporarily in a protected, randomly named folder inside the uploads directory and are automatically cleaned up after their retention window."
 msgstr ""
 
 #: includes/class-sscribe-privacy.php:69
@@ -4006,7 +4008,7 @@ msgid "SScribe Export Site Pages cannot run on this WordPress version."
 msgstr ""
 
 #: sscribe-export-site-pages.php:59
-msgid "This plugin requires WordPress 6.1 or higher. Your installation is running"
+msgid "This plugin requires WordPress 6.2 or higher. Your installation is running"
 msgstr ""
 
 #: sscribe-export-site-pages.php:61
@@ -4028,7 +4030,7 @@ msgid "SScribe Export Site Pages could not finish loading."
 msgstr ""
 
 #. translators: %s: diagnostic reference code.
-#: sscribe-export-site-pages.php:186
+#: sscribe-export-site-pages.php:188
 #, php-format
 msgid "The plugin could not start. Check the server error log and include reference %s when requesting support."
 msgstr ""

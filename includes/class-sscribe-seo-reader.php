@@ -329,8 +329,7 @@ class SScribe_SEO_Reader {
 
 		$focus_keyword = get_post_meta( $page_id, '_aioseop_keywords', true );
 		if ( is_string( $focus_keyword ) && function_exists( 'is_serialized' ) && is_serialized( $focus_keyword, true ) ) {
-			// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.serialize_unserialize -- Legacy AIOSEO stores keyword arrays as serialized post meta; classes are explicitly forbidden.
-			$decoded = @unserialize( trim( $focus_keyword ), array( 'allowed_classes' => false ) );
+			$decoded = maybe_unserialize( trim( $focus_keyword ) );
 			if ( is_array( $decoded ) ) {
 				$focus_keyword = array_values(
 					array_filter(

@@ -3,7 +3,7 @@
  * Plugin Name:       SScribe Export Site Pages
  * Description:       Export WordPress pages to professional DOCX, PDF, HTML, or Markdown files with multilingual RTL support and secure ZIP download.
  * Version:           2.0.0
- * Requires at least: 6.1
+ * Requires at least: 6.2
  * Requires PHP:      8.2
  * Author:            Simplix Innovations
  * Author URI:        https://simplixi.com
@@ -49,14 +49,14 @@ if ( function_exists( 'get_bloginfo' ) ) {
 	global $wp_version;
 	$sscribe_wp_version = isset( $wp_version ) && is_scalar( $wp_version ) ? (string) $wp_version : '0.0';
 }
-if ( version_compare( $sscribe_wp_version, '6.1', '<' ) ) {
+if ( version_compare( $sscribe_wp_version, '6.2', '<' ) ) {
 	add_action(
 		'admin_notices',
 		function () use ( $sscribe_wp_version ) {
 			printf(
 				'<div class="notice notice-error is-dismissible"><p><strong>%1$s</strong></p><p>%2$s <code>%3$s</code></p><p>%4$s</p></div>',
 				esc_html__( 'SScribe Export Site Pages cannot run on this WordPress version.', 'sscribe-export-site-pages' ),
-				esc_html__( 'This plugin requires WordPress 6.1 or higher. Your installation is running', 'sscribe-export-site-pages' ),
+				esc_html__( 'This plugin requires WordPress 6.2 or higher. Your installation is running', 'sscribe-export-site-pages' ),
 				esc_html( $sscribe_wp_version ),
 				esc_html__( 'Update WordPress from Dashboard → Updates before activating this plugin.', 'sscribe-export-site-pages' )
 			);
@@ -132,10 +132,10 @@ add_action(
 		}
 
 		printf(
-			'<div class="notice notice-error is-dismissible"><p><strong>%1$s</strong> %2$s</p>%3$s</div>',
+			'<div class="notice notice-error is-dismissible"><p><strong>%1$s</strong> %2$s</p><p><small>%3$s</small></p></div>',
 			esc_html__( 'SScribe Export Site Pages could not finish loading.', 'sscribe-export-site-pages' ),
 			esc_html( $message ),
-			$time ? '<p><small>' . esc_html( $time ) . '</small></p>' : ''
+			esc_html( $time )
 		);
 	}
 );
@@ -160,10 +160,10 @@ add_action(
 			}
 
 			printf(
-				'<div class="notice notice-warning is-dismissible"><p><strong>%1$s</strong> %2$s</p>%3$s</div>',
+				'<div class="notice notice-warning is-dismissible"><p><strong>%1$s</strong> %2$s</p><p><small>%3$s</small></p></div>',
 				esc_html__( 'SScribe Export Site Pages:', 'sscribe-export-site-pages' ),
 				esc_html( $message ),
-				$time ? '<p><small>' . esc_html( $time ) . '</small></p>' : ''
+				esc_html( $time )
 			);
 		}
 	}
@@ -172,7 +172,9 @@ add_action(
 add_action(
 	'plugins_loaded',
 	static function () {
-		delete_transient( 'sscribe_boot_error' );
+		if ( is_admin() ) {
+			delete_transient( 'sscribe_boot_error' );
+		}
 
 		try {
 			( new SScribe() )->run();

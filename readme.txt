@@ -1,7 +1,7 @@
 === SScribe Export Site Pages ===
 Contributors: simplixinnovations
 Tags: export, docx, pdf, html, markdown
-Requires at least: 6.1
+Requires at least: 6.2
 Tested up to: 7.1
 Stable tag: 2.0.0
 Requires PHP: 8.2
@@ -36,7 +36,7 @@ SScribe turns WordPress pages into portable documents for content handovers, aud
 
 = Requirements =
 
-* WordPress 6.1 or newer
+* WordPress 6.2 or newer
 * PHP 8.2 or newer
 * PHP extensions: cURL, DOM, GD, XML, and ZIP
 * Session encryption: Sodium, or OpenSSL with AES-256-GCM support
@@ -108,6 +108,8 @@ The bundled PhpOffice/PhpWord library uses LGPL-3.0-only. Its notice is included
 
 The bundled TCPDF 7.0.11 and its Tecnick tc-lib runtime dependencies use LGPL-3.0-or-later. Its license notice and the required notices for all bundled dependencies remain alongside their source in the plugin package.
 
+The bundled PhpOffice/Math and PSR Container libraries, and the Phosphor icon subset in `assets/fonts/`, use the MIT license. The DejaVu fonts use the Bitstream Vera license. Each notice ships beside its files.
+
 Bundled LGPL-3.0 code is GPL-compatible under the GPLv3 option of SScribe's GPL-2.0-or-later license.
 
 == Development ==
@@ -138,7 +140,7 @@ Build transformations are documented in docs/BUILD_TRANSFORMATIONS.md.
 * Fixed PDFs with images, block tables in DOCX, code samples, Markdown captions, Arabic PDF links, the All status filter, and custom post type exports.
 * Fixed activation on managed hosting and containers, SQLite upgrades, and large-site caching.
 * Added responsive layouts, RTL keyboard support, and accessibility fixes in the admin screens.
-* Supports PHP 8.2 to 8.5 and WordPress 6.1 and later.
+* Supports PHP 8.2 to 8.5 and WordPress 6.2 and later.
 
 = 1.9.0 =
 * Rebuilt the WordPress admin screens and corrected export, history, accessibility, and download-flow defects.

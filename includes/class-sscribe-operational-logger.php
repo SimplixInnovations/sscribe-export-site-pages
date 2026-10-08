@@ -102,7 +102,7 @@ final class SScribe_Operational_Logger {
 	/**
 	 * Register the per-request reset hook on first call.
 	 *
-	 * Phase 20: register the SHUTDOWN flush as early as possible so a fatal
+	 * Register the SHUTDOWN flush as early as possible so a fatal
 	 * error occurring AFTER init still has a durable persistence path.
 	 * The init hook alone is not enough: if init
 	 * already passed before the first record, the buffer was never

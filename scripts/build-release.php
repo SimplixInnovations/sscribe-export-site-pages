@@ -103,7 +103,7 @@ $config = array(
 		//                      files. NEVER ship to WP.org.
 		//   - phpunit-wp.xml: real-WP testbench config. Dev-only.
 		//   - playwright.config.ts: E2E test config. Dev-only.
-		'.superpowers', 'phpunit-wp.xml', 'playwright.config.ts',
+		'.superpowers', 'phpunit-wp.xml', 'playwright.config.ts', 'composer.json', '*.mjs',
 		// Coverage output from `composer test:coverage:merge` lands at the repo
 		// root. It is gitignored but still on disk, and it embeds absolute local
 		// paths, so it must never reach the ZIP.
@@ -215,6 +215,33 @@ function sanitize_ai_artifacts( string $source ): string {
 		"\xE2\x80\x99" => "'",     // right single curly quote / apostrophe
 	);
 	return strtr( $source, $replacements );
+}
+
+/**
+ * Comment stripping leaves the indentation of removed comment lines behind.
+ * Collapse lines that contain only spaces or tabs so the shipped file has
+ * no whitespace-only lines.
+ */
+function strip_whitespace_only_lines( string $source ): string {
+	$out = preg_replace( '/^[ \t]+$/m', '', $source );
+	return null === $out ? $source : $out;
+}
+
+/**
+ * Normalize typographic punctuation inside PHP comment tokens only. String
+ * literals, heredocs and Unicode data tables are left byte-for-byte intact.
+ */
+function sanitize_php_comment_tokens( string $source ): string {
+	$tokens = token_get_all( $source );
+	$output = '';
+	foreach ( $tokens as $token ) {
+		if ( is_array( $token ) && in_array( $token[0], array( T_COMMENT, T_DOC_COMMENT ), true ) ) {
+			$output .= sanitize_ai_artifacts( $token[1] );
+			continue;
+		}
+		$output .= is_array( $token ) ? $token[1] : $token;
+	}
+	return $output;
 }
 
 function strip_css_comments( string $source ): string {
@@ -549,23 +576,30 @@ foreach ( $iterator as $file ) {
 		}
 		if ( $is_vendor_prefixed ) {
 			// Strauss is the intentional third-party source transformation.
-			// Preserve its generated vendor tree byte-for-byte here: SScribe's
-			// first-party comment/Unicode sanitizer must never rewrite upstream
-			// source or license notices after namespace isolation.
-			if ( ! copy( $file->getPathname(), $dest ) ) {
+			// Vendor code and notices are preserved byte-for-byte except for
+			// typographic punctuation inside PHP comment tokens, which is
+			// normalized to ASCII so the shipped ZIP carries none.
+			$ext = strtolower( pathinfo( $file->getPathname(), PATHINFO_EXTENSION ) );
+			if ( 'php' === $ext ) {
+				$src = file_get_contents( $file->getPathname() );
+				if ( false === $src ) {
+					throw new RuntimeException( 'Unable to read third-party vendor file: ' . $relative );
+				}
+				file_put_contents( $dest, sanitize_php_comment_tokens( $src ) );
+			} elseif ( ! copy( $file->getPathname(), $dest ) ) {
 				throw new RuntimeException( 'Unable to copy third-party vendor file: ' . $relative );
 			}
 		} elseif ( $config['strip_comments'] ) {
 			$ext = strtolower( pathinfo( $file->getPathname(), PATHINFO_EXTENSION ) );
 			if ( 'php' === $ext ) {
 				$src = file_get_contents( $file->getPathname() );
-				file_put_contents( $dest, sanitize_ai_artifacts( strip_php_comments( $src ) ) );
+				file_put_contents( $dest, strip_whitespace_only_lines( sanitize_ai_artifacts( strip_php_comments( $src ) ) ) );
 			} elseif ( 'css' === $ext ) {
 				$src = file_get_contents( $file->getPathname() );
-				file_put_contents( $dest, sanitize_ai_artifacts( strip_css_comments( $src ) ) );
+				file_put_contents( $dest, strip_whitespace_only_lines( sanitize_ai_artifacts( strip_css_comments( $src ) ) ) );
 			} elseif ( 'js' === $ext ) {
 				$src = file_get_contents( $file->getPathname() );
-				file_put_contents( $dest, sanitize_ai_artifacts( strip_js_comments( $src ) ) );
+				file_put_contents( $dest, strip_whitespace_only_lines( sanitize_ai_artifacts( strip_js_comments( $src ) ) ) );
 			} else {
 				// Only sanitize known text assets. Binary files (fonts,
 				// images, compiled translations, etc.) must be copied
@@ -632,6 +666,35 @@ if ( $config['strip_comments'] ) {
 }
 
 echo "  Pruning vendor development files...\n";
+// Hard gate: every staged first-party file must be tracked by git. Anything
+// dropped at the repository root by a tool or a scratch session would
+// otherwise ship silently. vendor-prefixed/ is generated and checked below.
+$tracked_output = array();
+exec( 'git -C ' . escapeshellarg( $root ) . ' ls-files -z', $tracked_output, $tracked_code );
+$tracked_paths = array_flip( array_filter( explode( "\0", implode( '', $tracked_output ) ) ) );
+if ( 0 !== $tracked_code || array() === $tracked_paths ) {
+	echo "     ❌ Unable to list git-tracked files for the untracked-file gate.\n";
+	exit( 1 );
+}
+$untracked_hits  = array();
+$staged_iterator = new RecursiveIteratorIterator(
+	new RecursiveDirectoryIterator( $plugin_dir, RecursiveDirectoryIterator::SKIP_DOTS )
+);
+foreach ( $staged_iterator as $staged_item ) {
+	$staged_relative = str_replace( '\\', '/', substr( $staged_item->getPathname(), strlen( $plugin_dir ) + 1 ) );
+	if ( str_starts_with( $staged_relative, 'vendor-prefixed/' ) || isset( $tracked_paths[ $staged_relative ] ) ) {
+		continue;
+	}
+	$untracked_hits[] = $staged_relative;
+}
+if ( array() !== $untracked_hits ) {
+	echo "     ❌ Untracked files reached the staged plugin (commit or exclude them):\n";
+	foreach ( $untracked_hits as $hit ) {
+		echo "        - {$hit}\n";
+	}
+	exit( 1 );
+}
+
 $vendor_dir = $plugin_dir . '/vendor-prefixed';
 if ( is_dir( $vendor_dir ) ) {
 	$prune_patterns = array(
@@ -757,6 +820,107 @@ if ( is_dir( $vendor_dir ) ) {
 		}
 	}
 
+	// tc-lib-pdf-filter's JBIG2Decode filter decodes streams by running the
+	// jbig2dec CLI through shell_exec()/proc_open(). SScribe generates PDFs
+	// and never parses existing ones, so the decoder is unreachable; ship a
+	// stub that keeps the upstream class contract and fails closed instead
+	// of a file carrying system-command calls.
+	$jbig2_filter = $vendor_dir . '/tecnickcom/tc-lib-pdf-filter/src/Type/JbigTwo.php';
+	if ( is_file( $jbig2_filter ) ) {
+		$jbig2_stub = <<<'PHP'
+<?php
+
+declare(strict_types=1);
+
+/**
+ * JbigTwo.php
+ *
+ * SScribe release build: the upstream filter decodes JBIG2 streams by
+ * running the jbig2dec command-line tool through PHP process functions.
+ * SScribe generates PDF documents and never parses existing
+ * ones, so this decoder is unreachable at runtime. The shipped class keeps
+ * the upstream contract and fails closed instead of invoking system
+ * commands. The unmodified file is available from
+ * https://github.com/tecnickcom/tc-lib-pdf-filter at the version recorded
+ * in vendor-prefixed/composer/installed.php.
+ *
+ * @category  Library
+ * @package   PdfFilter
+ * @author    Nicola Asuni <info@tecnick.com>
+ * @copyright 2011-2026 Nicola Asuni - Tecnick.com LTD
+ * @license   https://www.gnu.org/copyleft/lesser.html GNU-LGPL v3 (see LICENSE)
+ * @link      https://github.com/tecnickcom/tc-lib-pdf-filter
+ */
+
+namespace SScribeVendor\Com\Tecnick\Pdf\Filter\Type;
+
+use SScribeVendor\Com\Tecnick\Pdf\Filter\Exception as PPException;
+
+class JbigTwo implements Template
+{
+    public function decode(string $data, array $params = []): string
+    {
+        if ($data === '') {
+            return '';
+        }
+
+        throw new PPException('JBIG2Decode is not available in this build');
+    }
+}
+
+PHP;
+		if ( false === file_put_contents( $jbig2_filter, $jbig2_stub ) ) {
+			echo "     ❌ Unable to write the JBIG2Decode stub: {$jbig2_filter}\n";
+			exit( 1 );
+		}
+	}
+
+	// Hard gate: no PHP file in the staged plugin may call a system command.
+	// Tokenize instead of grepping so docblocks, strings, and methods named
+	// exec() or system() do not trip it.
+	$system_command_functions = array( 'exec', 'shell_exec', 'system', 'passthru', 'proc_open', 'popen', 'pcntl_exec' );
+	$system_command_hits      = array();
+	$system_command_iterator  = new RecursiveIteratorIterator(
+		new RecursiveDirectoryIterator( $plugin_dir, RecursiveDirectoryIterator::SKIP_DOTS )
+	);
+	foreach ( $system_command_iterator as $php_item ) {
+		if ( 'php' !== strtolower( pathinfo( $php_item->getBasename(), PATHINFO_EXTENSION ) ) ) {
+			continue;
+		}
+		$tokens = token_get_all( (string) file_get_contents( $php_item->getPathname() ) );
+		$count  = count( $tokens );
+		for ( $i = 0; $i < $count; $i++ ) {
+			$token = $tokens[ $i ];
+			if ( ! is_array( $token ) || T_STRING !== $token[0] || ! in_array( strtolower( $token[1] ), $system_command_functions, true ) ) {
+				continue;
+			}
+			$next = $i + 1;
+			while ( $next < $count && is_array( $tokens[ $next ] ) && T_WHITESPACE === $tokens[ $next ][0] ) {
+				$next++;
+			}
+			if ( $next >= $count || '(' !== $tokens[ $next ] ) {
+				continue;
+			}
+			$prev = $i - 1;
+			while ( $prev >= 0 && is_array( $tokens[ $prev ] ) && T_WHITESPACE === $tokens[ $prev ][0] ) {
+				$prev--;
+			}
+			$prev_id = $prev >= 0 && is_array( $tokens[ $prev ] ) ? $tokens[ $prev ][0] : null;
+			if ( in_array( $prev_id, array( T_OBJECT_OPERATOR, T_NULLSAFE_OBJECT_OPERATOR, T_DOUBLE_COLON, T_FUNCTION ), true ) ) {
+				continue;
+			}
+			$relative_php           = str_replace( '\\', '/', substr( $php_item->getPathname(), strlen( $plugin_dir ) + 1 ) );
+			$system_command_hits[] = $relative_php . ':' . $token[2] . ' ' . $token[1] . '()';
+		}
+	}
+	if ( array() !== $system_command_hits ) {
+		echo "     ❌ System-command calls found in the staged plugin:\n";
+		foreach ( $system_command_hits as $hit ) {
+			echo "        - {$hit}\n";
+		}
+		exit( 1 );
+	}
+
 	// After pruning matched files, sweep up any directory under vendor-prefixed
 	// that is now empty. CHILD_FIRST ordering means we already attempted to
 	// delete every matched directory; this pass catches directories that only
@@ -791,7 +955,6 @@ if ( is_file( $readme_path ) ) {
 $required_release_files = array(
 	'sscribe-export-site-pages.php',
 	'readme.txt',
-	'composer.json',
 	'vendor-prefixed/autoload.php',
 	'vendor-prefixed/phpoffice/phpword/COPYING.LESSER.txt',
 	'vendor-prefixed/tecnickcom/tcpdf/LICENSE.TXT',
@@ -1000,14 +1163,23 @@ echo "      images, compiled translations) are copied byte-for-byte.\n\n";
 
 echo "  Vendor-specific handling:\n";
 echo "    - vendor-prefixed/ files are copied byte-for-byte after Strauss\n";
-echo "      namespace isolation; first-party comment/Unicode sanitizers do\n";
-echo "      not rewrite third-party source or notices.\n";
+echo "      namespace isolation, except that typographic punctuation inside\n";
+echo "      PHP comment tokens is normalized to ASCII; string literals,\n";
+echo "      heredocs and data tables are never rewritten.\n";
+echo "    - First-party PHP/CSS/JS: lines left whitespace-only by comment\n";
+echo "      stripping are collapsed to empty lines.\n";
 echo "    - composer/installed.php: only our generated root record is\n";
 echo "      bound to plugin version and source SHA; dependency records\n";
 echo "      remain byte-for-byte unchanged. Checkout metadata is preserved.\n";
 echo "    - vendor-prefixed/phpoffice/phpword/COPYING.LESSER renamed to\n";
 echo "      COPYING.LESSER.txt (WP.org plugin-check rejects the bare\n";
 echo "      .lesser extension as an unexpected file type).\n";
+echo "    - vendor-prefixed/tecnickcom/tc-lib-pdf-filter/src/Type/JbigTwo.php\n";
+echo "      replaced by a fail-closed stub: the upstream JBIG2Decode filter\n";
+echo "      runs the jbig2dec CLI via shell_exec()/proc_open() and SScribe\n";
+echo "      never parses existing PDFs. A tokenizer gate then fails the build\n";
+echo "      if any staged PHP file calls exec/shell_exec/system/passthru/\n";
+echo "      proc_open/popen/pcntl_exec.\n";
 echo "    - vendor-prefixed/phpoffice/phpword/src/PhpWord/Shared/PCLZip/\n";
 echo "      removed (PCLZip conflict with WordPress core PCLZip).\n";
 echo "    - vendor-prefixed/phpoffice/phpword/phpword.ini.dist removed\n";

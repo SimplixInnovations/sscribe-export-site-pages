@@ -42,7 +42,7 @@ continue to work alongside wildcard rules such as `*.log`.
 
 ### Dev-only root files
 
-`phpunit-wp.xml`, `phpunit-coverage*.xml`, `playwright.config.ts`, `composer.lock`,
+`phpunit-wp.xml`, `phpunit-coverage*.xml`, `playwright.config.ts`, `composer.json`, `composer.lock`,
 `CONTRIBUTING.md`, `CHANGELOG.md`, `phpstan.neon`,
 `phpstan.neon.dist`, `phpstan-baseline.neon`, `phpstan-bootstrap.php`,
 `phpunit.xml`, `phpunit.xml.dist`, `phpcs.xml`, `.editorconfig`,
@@ -52,7 +52,10 @@ continue to work alongside wildcard rules such as `*.log`.
 `ruleset.xml`, `CREDITS.txt`, `.wp-env.json`, `verify_*.php`,
 `debug_*.php`, `*.py`, `*.log`, `*.tmp`, `*.bak`, `.DS_Store`,
 `Thumbs.db`, `desktop.ini`, `opencode.json`, `.opencode/`,
-`eslint.config.js`, `.stylelintrc.json`, `husky/`, `review-diff.patch`.
+`eslint.config.js`, `.stylelintrc.json`, `husky/`, `review-diff.patch`, `*.mjs`.
+
+The build also refuses to package any first-party file that git does not
+track, so stray files at the repository root cannot ship.
 
 ### Vendor-prefixed exclusions
 
@@ -137,6 +140,12 @@ including upstream references and relative install paths. The checkout's
 generated metadata is not modified. Missing metadata, an unexpected root
 package/layout, invalid identity or failed write aborts packaging.
 
+### Whitespace-only lines — `strip_whitespace_only_lines( $source )`
+
+After comment stripping, first-party PHP, CSS and JS lines that contain only
+spaces or tabs are collapsed to empty lines so the shipped files carry no
+whitespace-only lines.
+
 ### PHP — `strip_php_comments( $source )`
 
 Tokenizes the source via `token_get_all()` and walks the token
@@ -194,8 +203,11 @@ would fail the build.
 
 - Third-party package source and license files under `vendor-prefixed/` that
   survive exclusion/pruning are copied byte-for-byte from the post-prefix build
-  tree. SScribe does not comment-strip or Unicode-sanitize third-party source or
-  notices. Generated Composer initializer suffixes are normalized before build;
+  tree, with one exception: in PHP files, typographic punctuation (em-dash,
+  en-dash, ellipsis, curly quotes) inside `T_COMMENT` and `T_DOC_COMMENT`
+  tokens is replaced with its ASCII equivalent by
+  `sanitize_php_comment_tokens()`. Code, string literals, heredocs and
+  Unicode data tables are never rewritten, and comments are not removed. Generated Composer initializer suffixes are normalized before build;
   our generated root metadata record is normalized in staging. Both operations
   are documented above and leave third-party package source unchanged.
 - TCPDF and its transitive tc-lib packages' extensionless development metadata
@@ -222,6 +234,18 @@ would fail the build.
   the complete, unmodified upstream source is available from
   https://github.com/PHPOffice/PHPWord at the version pinned in
   `composer.lock`.
+- `vendor-prefixed/tecnickcom/tc-lib-pdf-filter/src/Type/JbigTwo.php` is
+  replaced in the dist by a fail-closed stub. The upstream LGPL-3.0 file
+  decodes JBIG2 streams by running the `jbig2dec` command-line tool through
+  `shell_exec()` and `proc_open()`. SScribe generates PDF documents and never
+  parses existing ones, so the decoder is unreachable; the stub keeps the
+  `Template::decode()` contract and throws the package's own exception.
+  The build then tokenizes every staged PHP file and fails if any calls
+  `exec`, `shell_exec`, `system`, `passthru`, `proc_open`, `popen`, or
+  `pcntl_exec`. This note is the LGPL section 2 change notice for that file;
+  the unmodified source is available from
+  https://github.com/tecnickcom/tc-lib-pdf-filter at the version recorded in
+  `vendor-prefixed/composer/installed.php`.
 - `vendor-prefixed/phpoffice/phpword/phpword.ini.dist` and
   `vendor-prefixed/phpoffice/phpword/phpmd.xml.dist` are removed.
   These are configuration samples never read by SScribe code.

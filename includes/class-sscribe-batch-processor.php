@@ -1441,6 +1441,13 @@ final class SScribe_Batch_Processor implements SScribe_Export_Pipeline_Interface
 	}
 
 	/**
+	 * AJAX: issue fresh nonces to a logged-in, capable user.
+	 */
+	public function ajax_refresh_nonce(): void {
+		$this->get_query_controller()->ajax_refresh_nonce();
+	}
+
+	/**
 	 * Get export preview via AJAX.
 	 */
 	public function ajax_get_export_preview(): void {
