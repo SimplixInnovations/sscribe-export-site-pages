@@ -18,7 +18,7 @@
  *      that ship files at the root or use a different slug.
  *   3. Required top-level files are present inside the plugin
  *      directory: mainfile (`sscribe-export-site-pages.php`),
- *      `readme.txt`, `license.txt`, `composer.json`, `uninstall.php`,
+ *      `readme.txt`, `license.txt`, `uninstall.php`,
  *      and `vendor-prefixed/autoload.php`.
  *   4. No dev-only paths leak in: `dev/`, `tests/`, `tests-wp/`,
  *      `tests-e2e/`, `scripts/`, `.github/`, `node_modules/`,
@@ -73,7 +73,6 @@ $required_root = array(
 	'sscribe-export-site-pages/sscribe-export-site-pages.php',
 	'sscribe-export-site-pages/readme.txt',
 	'sscribe-export-site-pages/license.txt',
-	'sscribe-export-site-pages/composer.json',
 	'sscribe-export-site-pages/uninstall.php',
 	'sscribe-export-site-pages/vendor-prefixed/autoload.php',
 );
