@@ -182,3 +182,6 @@ review-diff.patch
 review-*.diff
 review-*.patch
 *System.Management*
+
+# Scratch scripts left by local audit tools
+/pw-*.mjs
