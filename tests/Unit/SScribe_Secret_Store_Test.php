@@ -47,8 +47,9 @@ final class SScribe_Secret_Store_Test extends TestCase {
 
 	public function test_tampered_ciphertext_is_rejected(): void {
 		$sealed   = \SScribe_Secret_Store::seal( 'secret value' );
-		$last     = substr( $sealed, -1 );
-		$tampered = substr( $sealed, 0, -1 ) . ( 'A' === $last ? 'B' : 'A' );
+		$at       = strlen( $sealed ) - 8;
+		$current  = $sealed[ $at ];
+		$tampered = substr( $sealed, 0, $at ) . ( 'A' === $current ? 'B' : 'A' ) . substr( $sealed, $at + 1 );
 
 		$this->expectException( \RuntimeException::class );
 		\SScribe_Secret_Store::open( $tampered );
