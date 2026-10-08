@@ -845,6 +845,28 @@ final class SScribe_Exporter {
 				}
 
 				try {
+					$this->add_provenance_table( $content_section, $page_data );
+				} catch ( \Throwable $e ) {
+					$this->get_logger()->warning(
+						'Provenance table skipped',
+						array(
+							'page_id'   => $page_data['id'] ?? 0,
+							'exception' => get_class( $e ),
+						)
+					);
+				}
+				try {
+					$this->add_fields_table( $content_section, $page_data );
+				} catch ( \Throwable $e ) {
+					$this->get_logger()->warning(
+						'Fields table skipped',
+						array(
+							'page_id'   => $page_data['id'] ?? 0,
+							'exception' => get_class( $e ),
+						)
+					);
+				}
+				try {
 					$this->add_seo_section( $content_section, $page_data );
 				} catch ( \Throwable $e ) {
 					$this->get_logger()->warning(
@@ -1817,6 +1839,99 @@ final class SScribe_Exporter {
 			);
 		}
 
+		$section->addTextBreak( 1 );
+	}
+
+	/**
+	 * Add the custom fields table to the document.
+	 *
+	 * @param Section $section   Document section.
+	 * @param array   $page_data Page data.
+	 * @return void
+	 */
+	private function add_fields_table( Section $section, array $page_data ): void {
+		$this->add_rows_table(
+			$section,
+			__( 'Fields', 'sscribe-export-site-pages' ),
+			SScribe_Custom_Fields::rows( is_array( $page_data['fields'] ?? null ) ? $page_data['fields'] : array() )
+		);
+	}
+
+	/**
+	 * Add the provenance table written in compliance mode.
+	 *
+	 * @param Section $section   Document section.
+	 * @param array   $page_data Page data.
+	 * @return void
+	 */
+	private function add_provenance_table( Section $section, array $page_data ): void {
+		$this->add_rows_table(
+			$section,
+			__( 'Provenance', 'sscribe-export-site-pages' ),
+			SScribe_Compliance::provenance_rows( is_array( $page_data['provenance'] ?? null ) ? $page_data['provenance'] : array() )
+		);
+	}
+
+	/**
+	 * Add a titled label/value table.
+	 *
+	 * @param Section                                   $section Document section.
+	 * @param string                                    $title   Heading text.
+	 * @param list<array{label: string, value: string}> $rows    Rows to write.
+	 * @return void
+	 */
+	private function add_rows_table( Section $section, string $title, array $rows ): void {
+		if ( array() === $rows ) {
+			return;
+		}
+
+		$section->addText(
+			$this->safe_text( $title ),
+			$this->with_complex_script(
+				array(
+					'name'  => $this->font_name,
+					'size'  => 13,
+					'bold'  => true,
+					'color' => $this->colors['heading'],
+				)
+			),
+			$this->get_para_style()
+		);
+
+		$table_style = array(
+			'borderSize'  => 4,
+			'borderColor' => $this->colors['border'],
+			'cellMargin'  => 60,
+			'bidiVisual'  => $this->is_rtl,
+		);
+		$label_style = $this->with_complex_script(
+			array(
+				'name'  => $this->font_name,
+				'size'  => 10,
+				'bold'  => true,
+				'color' => $this->colors['heading'],
+			)
+		);
+		$value_style = $this->with_complex_script(
+			array(
+				'name'  => $this->font_name,
+				'size'  => 10,
+				'color' => $this->colors['body'],
+			)
+		);
+		$table       = $section->addTable( $table_style );
+		foreach ( $rows as $row ) {
+			$table->addRow();
+			$table->addCell( Converter::inchToTwip( 2 ), array( 'bgColor' => $this->colors['light_bg'] ) )->addText(
+				$this->safe_text( $row['label'] ),
+				$label_style,
+				$this->get_para_style()
+			);
+			$cell = $table->addCell( Converter::inchToTwip( 4.5 ) );
+			foreach ( explode( "\n", $row['value'] ) as $line ) {
+				$cell->addText( $this->safe_text( $line ), $value_style, $this->get_para_style() );
+			}
+		}
 		$section->addTextBreak( 1 );
 	}
 

@@ -4463,6 +4463,18 @@ body.rtl .sscribe-progress-bar-fill {
 	cursor: help;
 }
 
+.sscribe-badge.sscribe-badge-retained {
+	background: var(--ss-success-bg);
+	color: var(--ss-success);
+	border-color: var(--ss-success-border);
+	margin-top: var(--ss-space-1);
+	align-self: flex-start;
+}
+
+.sscribe-format-option-panel-shared {
+	border-style: dashed;
+}
+
 .sscribe-history-toolbar {
 	display: flex;
 	flex-wrap: wrap;

@@ -121,6 +121,36 @@ paragraph linking to their source, drops decorative inline SVG and icon-font
 glyphs, promotes lazy-loaded image sources over placeholder data URIs, and
 keeps whitespace inside `<pre>` blocks.
 
+### `sscribe_page_fields`
+
+Filters the custom fields attached to a page as `$page_data['fields']`.
+Parameters: `(array $fields, int $post_id, string $mode)`. Each field is
+`array( 'key', 'label', 'type', 'value', 'source' )` where `value` is a string
+or a list of strings and `source` is `acf`, `woocommerce` or `meta`. The mode
+comes from the format option `sscribe_include_fields` (admin select, or
+`wp sscribe export --fields=<mode>`): `auto` reads Advanced Custom Fields
+groups and WooCommerce product data when those plugins are active, `all` adds
+every public post meta key (keys starting with an underscore are never read),
+and `none` disables the section. Fields render as a table in HTML and PDF,
+a table after the page information in DOCX, and a `## Fields` table before
+the body in Markdown. `SScribe_Custom_Fields::collect()` and `::rows()` are
+the public entry points.
+
+### `sscribe_compliance_retention_days`
+
+Days a compliance-mode archive is kept before cleanup. Default: `365`,
+clamped to 1 to 3650. Compliance mode is the format option
+`sscribe_compliance_mode` (admin checkbox, or `wp sscribe export --compliance`).
+It adds a provenance block to every document (source URL, post id, content
+modification time, content SHA-256, export time, exporting user, site and
+exporter version), records the exporting user, environment and retention in
+`manifest.json` under `compliance`, writes a detached HMAC-SHA256 signature of
+`manifest.json` to `manifest.sig` using the per-site key in the non-autoloaded
+`sscribe_manifest_signing_key` option, and marks the archive retained so the
+cleanup job leaves it alone. `wp sscribe verify <zip>` recomputes every
+checksum and checks the signature; `SScribe_Compliance::verify_archive()` is
+the same check for PHP callers.
+
 ### `sscribe_html_export_show_seo`
 
 Show an "SEO Metadata" box in the body of HTML exports. Default: `false`. Parameters: `(bool $show, array $page_data)`. The meta description, canonical URL, and robots tags are always written to the HTML head.

@@ -55,6 +55,15 @@ final class SScribe_CLI_Command {
 	 * [--md-preset=<preset>]
 	 * : Markdown front matter layout: sscribe, hugo, jekyll, astro, obsidian or none.
 	 *
+	 * [--fields=<mode>]
+	 * : Custom fields to include: auto (ACF and WooCommerce when active), all (also public post meta) or none.
+	 * ---
+	 * default: auto
+	 * ---
+	 *
+	 * [--compliance]
+	 * : Compliance mode: provenance in every document, a signed manifest and one-year retention. Verify later with wp sscribe verify.
+	 *
 	 * [--modified-since=<date>]
 	 * : Only export posts modified after this date or Unix timestamp, for example 2026-10-01 or "-7 days".
 	 *
@@ -376,6 +385,59 @@ final class SScribe_CLI_Command {
 	}
 
 	/**
+	 * Verify an archive's checksums and, when present, its manifest signature.
+	 *
+	 * ## OPTIONS
+	 *
+	 * <zip>
+	 * : Path to an SScribe export ZIP.
+	 *
+	 * ## EXAMPLES
+	 *
+	 *     wp sscribe verify /path/to/export.zip
+	 *
+	 * @param array<int, string>   $args       Positional arguments.
+	 * @param array<string, mixed> $assoc_args Options.
+	 */
+	public function verify( array $args, array $assoc_args ): void {
+		unset( $assoc_args );
+		$zip_path = isset( $args[0] ) ? (string) $args[0] : '';
+		if ( '' === $zip_path ) {
+			self::fail( __( 'Give the path of the ZIP to verify.', 'sscribe-export-site-pages' ) );
+		}
+		$report = SScribe_Compliance::verify_archive( $zip_path );
+		if ( '' !== $report['error'] ) {
+			self::fail(
+				sprintf(
+					/* translators: %s: error code. */
+					__( 'The archive could not be verified. (%s)', 'sscribe-export-site-pages' ),
+					$report['error']
+				)
+			);
+		}
+		self::line(
+			sprintf(
+				/* translators: 1: number of files, 2: signature state. */
+				__( 'Files checked: %1$d. Signature: %2$s.', 'sscribe-export-site-pages' ),
+				$report['files'],
+				$report['signature']
+			)
+		);
+		foreach ( $report['missing'] as $missing ) {
+			/* translators: %s: file path inside the archive. */
+			self::line( sprintf( __( 'Missing: %s', 'sscribe-export-site-pages' ), $missing ) );
+		}
+		foreach ( $report['mismatched'] as $mismatched ) {
+			/* translators: %s: file path inside the archive. */
+			self::line( sprintf( __( 'Checksum mismatch: %s', 'sscribe-export-site-pages' ), $mismatched ) );
+		}
+		if ( ! $report['ok'] ) {
+			self::fail( __( 'Verification failed.', 'sscribe-export-site-pages' ) );
+		}
+		self::succeed( __( 'Archive verified.', 'sscribe-export-site-pages' ) );
+	}
+
+	/**
 	 * Turn command line options into an export job.
 	 *
 	 * Formats are passed through as given, so unknown ones reach the export
@@ -399,6 +461,8 @@ final class SScribe_CLI_Command {
 				'modified_since' => $assoc_args['modified-since'] ?? 0,
 				'format_options' => array_filter(
 					array(
+						'sscribe_include_fields'        => isset( $assoc_args['fields'] ) ? SScribe_Custom_Fields::normalize_mode( $assoc_args['fields'] ) : '',
+						'sscribe_compliance_mode'       => isset( $assoc_args['compliance'] ) && false !== $assoc_args['compliance'] ? '1' : '',
 						'sscribe_md_frontmatter_preset' => isset( $assoc_args['md-preset'] )
 							? SScribe_Markdown_Front_Matter::normalize_preset( $assoc_args['md-preset'] )
 							: '',

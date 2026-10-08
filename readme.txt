@@ -28,6 +28,8 @@ SScribe turns WordPress pages into portable documents for content handovers, aud
 * WPML, Polylang, and TranslatePress language selection
 * RTL output for Arabic, Farsi, Urdu, and other Arabic-script languages
 * SEO metadata from Yoast SEO, Rank Math, All in One SEO, SEOPress, and The SEO Framework
+* Custom fields from Advanced Custom Fields, WooCommerce products, and public post meta
+* Compliance mode with per-document provenance, a signed manifest, retention, and `wp sscribe verify`
 * Cover pages, headings, tables, lists, code blocks, and images
 * A manifest.json and INDEX.md in every archive with SHA-256 checksums, source URLs, and modified dates
 * Hardened private archive and log storage inside your uploads directory (not web-readable, served only through single-use download links)

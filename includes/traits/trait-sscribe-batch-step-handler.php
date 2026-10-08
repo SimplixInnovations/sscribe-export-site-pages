@@ -443,7 +443,11 @@ trait SScribe_Batch_Step_Handler {
 					}
 
 					$export_language = (string) ( $session['language'] ?? '' );
+					$this->collector->set_fields_mode( (string) ( $session['format_options']['sscribe_include_fields'] ?? SScribe_Custom_Fields::MODE_AUTO ) );
 					$page_data       = $this->collector->get_page_data( $page_id, $export_language );
+					if ( is_array( $page_data ) && SScribe_Compliance::is_enabled( (array) ( $session['format_options'] ?? array() ) ) ) {
+						$page_data['provenance'] = SScribe_Compliance::provenance( $page_id, (int) ( $session['user_id'] ?? get_current_user_id() ) );
+					}
 
 					if ( ! $page_data ) {
 						$error_msg = sprintf(

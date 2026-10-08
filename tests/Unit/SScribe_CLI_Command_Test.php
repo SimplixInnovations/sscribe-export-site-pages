@@ -27,6 +27,13 @@ final class SScribe_CLI_Command_Test extends TestCase {
 		$this::assertSame( array(), $job->format_options );
 	}
 
+	public function test_fields_and_compliance_flags_become_format_options(): void {
+		$job = \SScribe_CLI_Command::job_from_args( array( 'fields' => 'ALL', 'compliance' => true ) );
+
+		$this::assertSame( 'all', $job->format_options['sscribe_include_fields'] );
+		$this::assertSame( '1', $job->format_options['sscribe_compliance_mode'] );
+	}
+
 	public function test_comma_separated_formats_are_split(): void {
 		$job = \SScribe_CLI_Command::job_from_args( array( 'formats' => 'docx,markdown' ) );
 

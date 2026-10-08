@@ -188,9 +188,49 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 			$md = SScribe_Markdown_Front_Matter::render( $preset, $this->preset_fields( $page_data ) );
 		}
 
+		$md .= $this->fields_markdown( $page_data );
 		$md .= $this->html_to_markdown( $this->normalize_scalar( $page_data['content'] ?? '' ) );
+		$md .= $this->provenance_markdown( $page_data );
 
 		return $md;
+	}
+
+	/**
+	 * Provenance block written in compliance mode.
+	 *
+	 * @param array $page_data Page data.
+	 * @return string Table block or empty string.
+	 */
+	private function provenance_markdown( array $page_data ): string {
+		$rows = SScribe_Compliance::provenance_rows( is_array( $page_data['provenance'] ?? null ) ? $page_data['provenance'] : array() );
+		if ( array() === $rows ) {
+			return '';
+		}
+		$md = "\n\n## " . __( 'Provenance', 'sscribe-export-site-pages' ) . "\n\n| | |\n| --- | --- |\n";
+		foreach ( $rows as $row ) {
+			$md .= '| ' . str_replace( '|', '\\|', $row['label'] ) . ' | ' . str_replace( '|', '\\|', $row['value'] ) . " |\n";
+		}
+		return $md;
+	}
+
+	/**
+	 * Custom fields as a Markdown table.
+	 *
+	 * @param array $page_data Page data.
+	 * @return string Table block or empty string.
+	 */
+	private function fields_markdown( array $page_data ): string {
+		$rows = SScribe_Custom_Fields::rows( is_array( $page_data['fields'] ?? null ) ? $page_data['fields'] : array() );
+		if ( array() === $rows ) {
+			return '';
+		}
+		$escape = static fn( string $text ): string => str_replace( array( '|', "\n" ), array( '\\|', '<br>' ), wp_strip_all_tags( $text ) );
+		$md     = '## ' . __( 'Fields', 'sscribe-export-site-pages' ) . "\n\n";
+		$md    .= '| ' . __( 'Field', 'sscribe-export-site-pages' ) . ' | ' . __( 'Value', 'sscribe-export-site-pages' ) . " |\n| --- | --- |\n";
+		foreach ( $rows as $row ) {
+			$md .= '| ' . $escape( $row['label'] ) . ' | ' . $escape( $row['value'] ) . " |\n";
+		}
+		return $md . "\n";
 	}
 
 	/**
@@ -311,6 +351,21 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 			$canonical_url = $this->sanitize_url( $this->normalize_scalar( $seo['canonical_url'] ?? '' ) );
 			if ( '#' !== $canonical_url && '' !== $canonical_url ) {
 				$md .= 'canonical_url: "' . $this->escape_yaml_string( $canonical_url ) . "\"\n";
+			}
+		}
+
+		if ( is_array( $page_data['provenance'] ?? null ) ) {
+			$exported_utc = $this->normalize_scalar( $page_data['provenance']['exported_utc'] ?? '' );
+			$exported_by  = $this->normalize_scalar( $page_data['provenance']['exported_by'] ?? '' );
+			$content_hash = $this->normalize_scalar( $page_data['provenance']['content_sha256'] ?? '' );
+			if ( '' !== $exported_utc ) {
+				$md .= 'exported_utc: "' . $this->escape_yaml_string( $exported_utc ) . "\"\n";
+			}
+			if ( '' !== $exported_by ) {
+				$md .= 'exported_by: "' . $this->escape_yaml_string( $exported_by ) . "\"\n";
+			}
+			if ( '' !== $content_hash ) {
+				$md .= 'content_sha256: "' . $this->escape_yaml_string( $content_hash ) . "\"\n";
 			}
 		}
 

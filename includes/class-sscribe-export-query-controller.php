@@ -696,6 +696,10 @@ class SScribe_Export_Query_Controller {
 				'lang_code'      => isset( $data['lang_code'] ) && is_scalar( $data['lang_code'] ) ? sanitize_key( (string) $data['lang_code'] ) : '',
 				'lang_name'      => isset( $data['lang_name'] ) && is_scalar( $data['lang_name'] ) ? sanitize_text_field( (string) $data['lang_name'] ) : '',
 				'flag_url'       => isset( $data['flag_url'] ) && is_scalar( $data['flag_url'] ) ? esc_url_raw( (string) $data['flag_url'] ) : '',
+				'retain_until'   => isset( $data['retain_until'] ) && is_numeric( $data['retain_until'] ) ? (int) $data['retain_until'] : 0,
+				'retained_date'  => isset( $data['retain_until'] ) && is_numeric( $data['retain_until'] ) && (int) $data['retain_until'] > 0
+					? wp_date( $date_format, (int) $data['retain_until'] )
+					: '',
 			);
 		}
 

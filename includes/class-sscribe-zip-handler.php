@@ -115,12 +115,15 @@ class SScribe_Zip_Handler {
 	 * @param bool   $has_language  Whether language metadata is available.
 	 * @param array  $lang_metadata Language metadata array.
 	 * @param string $session_id    Session identifier for locking.
+	 * @param array  $compliance    Compliance context from SScribe_Compliance::context_from_session().
 	 * @return string|false ZIP file path or false on failure.
 	 * @throws \Throwable Re-thrown from the assembly try/catch when ZIP
 	 *                   creation fails after a successful open; the caller
 	 *                   is responsible for cleaning up the temp file.
 	 */
-	public function create_zip( string $source_dir, string $zip_name = '', array $formats = array( 'docx' ), bool $has_language = true, array $lang_metadata = array(), string $session_id = '' ): string|false {
+	public function create_zip( string $source_dir, string $zip_name = '', array $formats = array( 'docx' ), bool $has_language = true, array $lang_metadata = array(), string $session_id = '', array $compliance = array() ): string|false {
+		$compliance_enabled = ! empty( $compliance['enabled'] );
+		$compliance_user    = isset( $compliance['user_id'] ) && is_numeric( $compliance['user_id'] ) ? (int) $compliance['user_id'] : 0;
 		try {
 			$this->get_export_dir();
 		} catch ( \InvalidArgumentException $e ) {
@@ -361,15 +364,22 @@ class SScribe_Zip_Handler {
 						'languages'  => $has_language && ! empty( $lang_metadata['lang_code'] ) ? array( (string) $lang_metadata['lang_code'] ) : array(),
 					)
 				);
+				if ( $compliance_enabled ) {
+					$manifest['compliance'] = SScribe_Compliance::manifest_block( $compliance_user );
+				}
 				$source_by_entry = array();
 				foreach ( $zip_entries as $zip_entry ) {
 					$source_by_entry[ (string) $zip_entry['zip_path'] ] = $zip_entry['source_path'];
 				}
+				$manifest_json    = SScribe_Export_Manifest::to_json( $manifest );
 				$manifest_entries = array(
-					SScribe_Export_Manifest::JSON_ENTRY  => SScribe_Export_Manifest::to_json( $manifest ),
+					SScribe_Export_Manifest::JSON_ENTRY  => $manifest_json,
 					SScribe_Export_Manifest::INDEX_ENTRY => SScribe_Export_Manifest::render_index_markdown( $manifest ),
 					SScribe_Export_Manifest::LLMS_ENTRY  => SScribe_Export_Manifest::render_llms_txt( $manifest ),
 				);
+				if ( $compliance_enabled ) {
+					$manifest_entries[ SScribe_Compliance::SIGNATURE_ENTRY ] = SScribe_Compliance::sign( $manifest_json );
+				}
 				$llms_full        = SScribe_Export_Manifest::render_llms_full(
 					$manifest,
 					static function ( string $entry ) use ( $source_by_entry ): string {
@@ -509,6 +519,10 @@ class SScribe_Zip_Handler {
 				'dl_token'    => $this->generate_dl_token(),
 				'dl_token_at' => time(),
 			);
+			if ( $compliance_enabled ) {
+				$row['compliance']   = true;
+				$row['retain_until'] = time() + SScribe_Compliance::retention_days() * DAY_IN_SECONDS;
+			}
 
 			$row_option = 'sscribe_export_row_' . md5( $basename );
 			$row_saved  = update_option( $row_option, $row, false );

@@ -479,6 +479,27 @@ if ( ! function_exists( 'sscribe_humanize_export_filename' ) ) {
 				<div id="sscribe-format-options" class="sscribe-format-options sscribe-hidden">
 					<div class="sscribe-format-options-inner">
 
+						<div class="sscribe-format-option-panel sscribe-format-option-panel-shared">
+							<h3 class="sscribe-format-option-title">
+							<?php echo wp_kses_post( SScribe_Helpers::get_icon( 'list', 14 ) ); ?>
+								<?php esc_html_e( 'Content Fields', 'sscribe-export-site-pages' ); ?>
+							</h3>
+							<div class="sscribe-format-option-grid">
+								<label class="sscribe-format-option-field">
+									<span class="sscribe-format-option-label"><?php esc_html_e( 'Custom fields in every format', 'sscribe-export-site-pages' ); ?></span>
+									<select name="sscribe_include_fields" id="sscribe-include-fields">
+										<?php foreach ( SScribe_Custom_Fields::labels() as $sscribe_fields_mode => $sscribe_fields_label ) : ?>
+											<option value="<?php echo esc_attr( $sscribe_fields_mode ); ?>"><?php echo esc_html( $sscribe_fields_label ); ?></option>
+										<?php endforeach; ?>
+									</select>
+								</label>
+								<label class="sscribe-format-option-field sscribe-format-option-checkbox">
+									<input type="checkbox" name="sscribe_compliance_mode" id="sscribe-compliance-mode" value="1">
+									<span><?php esc_html_e( 'Compliance mode: provenance in every document, signed manifest, one-year retention', 'sscribe-export-site-pages' ); ?></span>
+								</label>
+							</div>
+						</div>
+
 						<div class="sscribe-format-option-panel" data-format="pdf" hidden>
 							<h3 class="sscribe-format-option-title">
 							<?php echo wp_kses_post( SScribe_Helpers::get_icon( 'file-pdf', 14 ) ); ?>

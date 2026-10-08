@@ -344,11 +344,13 @@ class SScribe_HTML_Exporter implements SScribe_Exporter_Interface {
 	<main class="content">
 		' . $this->get_featured_image_html( $page_data ) . '
 		' . $this->get_meta_html( $page_data ) . '
+		' . $this->get_fields_html( $page_data ) . '
 		' . ( $show_seo ? $this->get_seo_html( $page_data ) : '' ) . '
 		' . $filtered_content . '
 	</main>
 
 	<footer>
+		' . $this->get_provenance_html( $page_data ) . '
 		<p><small>' . esc_html(
 			sprintf(
 				/* translators: %1$s: site name, %2$s: date and time */
@@ -485,6 +487,42 @@ class SScribe_HTML_Exporter implements SScribe_Exporter_Interface {
 		}
 
 		return '<dl class="meta">' . implode( '', $rows ) . '</dl>';
+	}
+
+	/**
+	 * Provenance block written in compliance mode.
+	 *
+	 * @param array $page_data Page data.
+	 * @return string Definition list or empty string.
+	 */
+	private function get_provenance_html( array $page_data ): string {
+		$rows = SScribe_Compliance::provenance_rows( is_array( $page_data['provenance'] ?? null ) ? $page_data['provenance'] : array() );
+		if ( array() === $rows ) {
+			return '';
+		}
+		$html = '<section class="provenance"><h2>' . esc_html__( 'Provenance', 'sscribe-export-site-pages' ) . '</h2><dl class="meta">';
+		foreach ( $rows as $row ) {
+			$html .= '<dt>' . esc_html( $row['label'] ) . '</dt><dd>' . esc_html( $row['value'] ) . '</dd>';
+		}
+		return $html . '</dl></section>';
+	}
+
+	/**
+	 * Custom fields table for the page.
+	 *
+	 * @param array $page_data Page data.
+	 * @return string Table HTML or empty string.
+	 */
+	private function get_fields_html( array $page_data ): string {
+		$rows = SScribe_Custom_Fields::rows( is_array( $page_data['fields'] ?? null ) ? $page_data['fields'] : array() );
+		if ( array() === $rows ) {
+			return '';
+		}
+		$html = '<section class="fields"><h2>' . esc_html__( 'Fields', 'sscribe-export-site-pages' ) . '</h2><table><tbody>';
+		foreach ( $rows as $row ) {
+			$html .= '<tr><th scope="row">' . esc_html( $row['label'] ) . '</th><td>' . nl2br( esc_html( $row['value'] ) ) . '</td></tr>';
+		}
+		return $html . '</tbody></table></section>';
 	}
 
 	/**

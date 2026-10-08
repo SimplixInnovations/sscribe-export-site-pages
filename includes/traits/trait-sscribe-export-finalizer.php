@@ -359,7 +359,7 @@ trait SScribe_Export_Finalizer {
 				);
 			}
 
-			$zip_path = $this->zip_handler->create_zip( $session['temp_dir'], $zip_name, $formats, $has_language, $lang_metadata, $session_id );
+			$zip_path = $this->zip_handler->create_zip( $session['temp_dir'], $zip_name, $formats, $has_language, $lang_metadata, $session_id, SScribe_Compliance::context_from_session( $session ) );
 
 			if ( ! $zip_path ) {
 				$this->logger->debug(

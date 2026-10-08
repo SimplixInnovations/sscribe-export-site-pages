@@ -102,6 +102,54 @@ class SScribe_Zip_Handler_Manifest_Test extends TestCase {
 		wp_delete_file( $zip_path );
 	}
 
+	public function test_compliance_mode_signs_the_manifest_and_retains_the_archive(): void {
+		$source_dir = $this->handler->create_temp_dir();
+		wp_mkdir_p( $source_dir . '/EN' );
+		file_put_contents( $source_dir . '/EN/P001-Hello.html', '<p>hello</p>' );
+		SScribe_Export_Manifest::record(
+			$source_dir,
+			array( 'file' => 'EN/P001-Hello.html', 'format' => 'html', 'lang' => 'en', 'post_id' => 12, 'post_type' => 'page', 'title' => 'Hello', 'url' => 'https://example.test/hello/', 'modified' => '2026-10-01T00:00:00Z' )
+		);
+
+		$zip_path = $this->handler->create_zip( $source_dir, 'compliance-zip', array( 'html' ), true, array(), 'sess-compliance', array( 'enabled' => true, 'user_id' => 7 ) );
+		$this->assertIsString( $zip_path );
+
+		$manifest_json = $this->read_entry( $zip_path, SScribe_Export_Manifest::JSON_ENTRY );
+		$manifest      = json_decode( $manifest_json, true );
+		$this->assertTrue( $manifest['compliance']['enabled'] );
+		$this->assertSame( 7, $manifest['compliance']['exported_by']['id'] );
+		$this->assertSame( 'HMAC-SHA256', $manifest['compliance']['signature']['algorithm'] );
+
+		$signature = $this->read_entry( $zip_path, \SScribe_Compliance::SIGNATURE_ENTRY );
+		$this->assertStringStartsWith( \SScribe_Compliance::SIGNATURE_FORMAT, $signature );
+		$this->assertTrue( \SScribe_Compliance::verify_signature( $manifest_json, $signature )['valid'] );
+
+		$report = \SScribe_Compliance::verify_archive( $zip_path );
+		$this->assertTrue( $report['ok'], wp_json_encode( $report ) );
+		$this->assertSame( 'valid', $report['signature'] );
+		$this->assertSame( 1, $report['files'] );
+
+		$row = get_option( 'sscribe_export_row_' . md5( basename( $zip_path ) ) );
+		$this->assertTrue( $row['compliance'] );
+		$this->assertGreaterThan( time() + 300 * DAY_IN_SECONDS, $row['retain_until'] );
+	}
+
+	public function test_without_compliance_mode_no_signature_is_written(): void {
+		$source_dir = $this->handler->create_temp_dir();
+		wp_mkdir_p( $source_dir . '/EN' );
+		file_put_contents( $source_dir . '/EN/P001-Hello.html', '<p>hello</p>' );
+
+		$zip_path = $this->handler->create_zip( $source_dir, 'plain-zip', array( 'html' ), true, array(), 'sess-plain' );
+		$this->assertIsString( $zip_path );
+
+		$zip = new ZipArchive();
+		$this->assertTrue( $zip->open( $zip_path ) );
+		$this->assertFalse( $zip->locateName( \SScribe_Compliance::SIGNATURE_ENTRY ) );
+		$zip->close();
+		$this->assertArrayNotHasKey( 'compliance', json_decode( $this->read_entry( $zip_path, SScribe_Export_Manifest::JSON_ENTRY ), true ) );
+		$this->assertSame( 'absent', \SScribe_Compliance::verify_archive( $zip_path )['signature'] );
+	}
+
 	public function test_create_zip_still_writes_manifest_when_no_sidecar_exists(): void {
 		$source_dir = $this->handler->create_temp_dir();
 		wp_mkdir_p( $source_dir . '/EN' );

@@ -1031,7 +1031,7 @@
 			const $wrapper = $('#sscribe-format-options');
 			const $panels = $wrapper.find('.sscribe-format-option-panel');
 			let anyVisible = false;
-			$panels.each(function () {
+			$panels.not('.sscribe-format-option-panel-shared').each(function () {
 				const $panel = $(this);
 				const matches = $panel.attr('data-format') === format;
 				if (matches) {
@@ -1039,6 +1039,14 @@
 					void $panel[0].offsetWidth;
 					$panel.removeAttr('hidden').addClass('sscribe-format-option-revealed');
 					anyVisible = true;
+				} else {
+					$panel.attr('hidden', 'hidden').removeClass('sscribe-format-option-revealed');
+				}
+			});
+			$panels.filter('.sscribe-format-option-panel-shared').each(function () {
+				const $panel = $(this);
+				if (anyVisible) {
+					$panel.removeAttr('hidden').addClass('sscribe-format-option-revealed');
 				} else {
 					$panel.attr('hidden', 'hidden').removeClass('sscribe-format-option-revealed');
 				}
@@ -2612,6 +2620,14 @@
 					' : ' +
 					this.escapeHtml(exp.size_formatted || exp.size || '') +
 					'</span>';
+				if (exp.retained_date) {
+					html +=
+						'<span class="sscribe-badge sscribe-badge-retained">' +
+						this.escapeHtml(
+							(strings.retained_until || 'Retained until %s').replace('%s', exp.retained_date)
+						) +
+						'</span>';
+				}
 				html += '</div></div></td>';
 				html += '<td class="sscribe-history-cell-actions"><div class="sscribe-history-actions">';
 				if (downloadUrl) {

@@ -363,6 +363,8 @@ class SScribe_Admin {
 				'log_seconds_suffix'     => __( 's', 'sscribe-export-site-pages' ),
 				'packaging'              => __( 'Packaging files into ZIP archive...', 'sscribe-export-site-pages' ),
 				'download_tooltip'       => __( 'Download this export', 'sscribe-export-site-pages' ),
+				/* translators: %s: date. */
+				'retained_until'         => __( 'Retained until %s', 'sscribe-export-site-pages' ),
 				'log_tooltip'            => __( 'View export log', 'sscribe-export-site-pages' ),
 				'delete_tooltip'         => __( 'Delete this export', 'sscribe-export-site-pages' ),
 				'support_title'          => __( 'Support Information', 'sscribe-export-site-pages' ),
