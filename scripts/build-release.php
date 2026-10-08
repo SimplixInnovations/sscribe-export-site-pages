@@ -103,7 +103,7 @@ $config = array(
 		//                      files. NEVER ship to WP.org.
 		//   - phpunit-wp.xml: real-WP testbench config. Dev-only.
 		//   - playwright.config.ts: E2E test config. Dev-only.
-		'.superpowers', 'phpunit-wp.xml', 'playwright.config.ts',
+		'.superpowers', 'phpunit-wp.xml', 'playwright.config.ts', 'composer.json',
 		// Coverage output from `composer test:coverage:merge` lands at the repo
 		// root. It is gitignored but still on disk, and it embeds absolute local
 		// paths, so it must never reach the ZIP.
@@ -892,7 +892,6 @@ if ( is_file( $readme_path ) ) {
 $required_release_files = array(
 	'sscribe-export-site-pages.php',
 	'readme.txt',
-	'composer.json',
 	'vendor-prefixed/autoload.php',
 	'vendor-prefixed/phpoffice/phpword/COPYING.LESSER.txt',
 	'vendor-prefixed/tecnickcom/tcpdf/LICENSE.TXT',

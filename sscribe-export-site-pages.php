@@ -132,10 +132,10 @@ add_action(
 		}
 
 		printf(
-			'<div class="notice notice-error is-dismissible"><p><strong>%1$s</strong> %2$s</p>%3$s</div>',
+			'<div class="notice notice-error is-dismissible"><p><strong>%1$s</strong> %2$s</p><p><small>%3$s</small></p></div>',
 			esc_html__( 'SScribe Export Site Pages could not finish loading.', 'sscribe-export-site-pages' ),
 			esc_html( $message ),
-			$time ? '<p><small>' . esc_html( $time ) . '</small></p>' : ''
+			esc_html( $time )
 		);
 	}
 );
@@ -160,10 +160,10 @@ add_action(
 			}
 
 			printf(
-				'<div class="notice notice-warning is-dismissible"><p><strong>%1$s</strong> %2$s</p>%3$s</div>',
+				'<div class="notice notice-warning is-dismissible"><p><strong>%1$s</strong> %2$s</p><p><small>%3$s</small></p></div>',
 				esc_html__( 'SScribe Export Site Pages:', 'sscribe-export-site-pages' ),
 				esc_html( $message ),
-				$time ? '<p><small>' . esc_html( $time ) . '</small></p>' : ''
+				esc_html( $time )
 			);
 		}
 	}
@@ -172,7 +172,9 @@ add_action(
 add_action(
 	'plugins_loaded',
 	static function () {
-		delete_transient( 'sscribe_boot_error' );
+		if ( is_admin() ) {
+			delete_transient( 'sscribe_boot_error' );
+		}
 
 		try {
 			( new SScribe() )->run();

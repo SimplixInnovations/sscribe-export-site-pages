@@ -107,6 +107,8 @@ The bundled PhpOffice/PhpWord library uses LGPL-3.0-only. Its notice is included
 
 The bundled TCPDF 7.0.11 and its Tecnick tc-lib runtime dependencies use LGPL-3.0-or-later. Its license notice and the required notices for all bundled dependencies remain alongside their source in the plugin package.
 
+The bundled PhpOffice/Math and PSR Container libraries, and the Phosphor icon subset in `assets/fonts/`, use the MIT license. The DejaVu fonts use the Bitstream Vera license. Each notice ships beside its files.
+
 Bundled LGPL-3.0 code is GPL-compatible under the GPLv3 option of SScribe's GPL-2.0-or-later license.
 
 == Development ==

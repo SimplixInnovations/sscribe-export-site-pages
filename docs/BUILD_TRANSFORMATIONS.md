@@ -42,7 +42,7 @@ continue to work alongside wildcard rules such as `*.log`.
 
 ### Dev-only root files
 
-`phpunit-wp.xml`, `phpunit-coverage*.xml`, `playwright.config.ts`, `composer.lock`,
+`phpunit-wp.xml`, `phpunit-coverage*.xml`, `playwright.config.ts`, `composer.json`, `composer.lock`,
 `CONTRIBUTING.md`, `CHANGELOG.md`, `phpstan.neon`,
 `phpstan.neon.dist`, `phpstan-baseline.neon`, `phpstan-bootstrap.php`,
 `phpunit.xml`, `phpunit.xml.dist`, `phpcs.xml`, `.editorconfig`,

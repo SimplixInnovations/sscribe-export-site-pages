@@ -156,6 +156,27 @@ final class SScribe_AJAX_Endpoints_Test extends SScribe_WP_Ajax_TestCase {
 		$this::assertFalse( (bool) $data['has_active'], 'Fresh admin must not have an active export session.' );
 	}
 
+	public function test_refresh_nonce_issues_fresh_tokens_without_a_nonce(): void {
+		$this->_setRole( 'administrator' );
+		unset( $_POST['nonce'] );
+
+		list( $success, $data, $raw ) = $this->dispatch_ajax( 'sscribe_refresh_nonce' );
+
+		$this::assertTrue( $success, "sscribe_refresh_nonce must succeed for a logged-in admin. Raw: {$raw}" );
+		$this::assertArrayHasKey( 'nonce', $data );
+		$this::assertArrayHasKey( 'download_nonce', $data );
+		$this::assertSame( 1, wp_verify_nonce( (string) $data['nonce'], 'sscribe_export_nonce' ) );
+		$this::assertSame( 1, wp_verify_nonce( (string) $data['download_nonce'], 'sscribe_download' ) );
+	}
+
+	public function test_refresh_nonce_rejects_users_without_capability(): void {
+		$this->_setRole( 'subscriber' );
+
+		list( $success, $data, $raw ) = $this->dispatch_ajax( 'sscribe_refresh_nonce' );
+
+		$this::assertFalse( $success, "sscribe_refresh_nonce must fail for a subscriber. Raw: {$raw}" );
+	}
+
 	public function test_preflight_check_succeeds_with_default_formats(): void {
 		$this->_setRole( 'administrator' );
 		$_POST['nonce']   = wp_create_nonce( 'sscribe_export_nonce' );
