@@ -979,8 +979,9 @@ if ( ! function_exists( 'sscribe_humanize_export_filename' ) ) {
 								if ( ! $sscribe_time_fmt ) {
 									$sscribe_time_fmt = 'H:i';
 								}
+								$sscribe_retain_ts = isset( $sscribe_export['retain_until'] ) ? (int) $sscribe_export['retain_until'] : 0;
 								$sscribe_expiry_ts = isset( $sscribe_export['time'] ) ? (int) $sscribe_export['time'] + ( 72 * HOUR_IN_SECONDS ) : 0;
-								$sscribe_human     = $sscribe_expiry_ts > 0 ? human_time_diff( time(), $sscribe_expiry_ts ) : '';
+								$sscribe_human     = $sscribe_retain_ts <= 0 && $sscribe_expiry_ts > 0 ? human_time_diff( time(), $sscribe_expiry_ts ) : '';
 								?>
 								<tr class="sscribe-history-row" data-filename="<?php echo esc_attr( $sscribe_export['filename'] ); ?>" aria-rowindex="<?php echo (int) ( $sscribe_export_row_index + 1 ); ?>">
 									<td class="sscribe-history-cell-check">
@@ -1020,6 +1021,14 @@ if ( ! function_exists( 'sscribe_humanize_export_filename' ) ) {
 													</span>
 													<?php endif; ?>
 												</span>
+												<?php if ( $sscribe_retain_ts > 0 ) : ?>
+													<span class="sscribe-badge sscribe-badge-retained">
+														<?php
+														/* translators: %s: date. */
+														echo esc_html( sprintf( __( 'Retained until %s', 'sscribe-export-site-pages' ), wp_date( $sscribe_date_fmt, $sscribe_retain_ts ) ) );
+														?>
+													</span>
+												<?php endif; ?>
 											</div>
 										</div>
 									</td>

@@ -822,6 +822,7 @@ class SScribe_Admin {
 				'lang_code' => $lang_code,
 				'flag_url'  => $flag_url,
 				'lang_name' => $lang_name,
+				'retain_until' => isset( $data['retain_until'] ) && is_numeric( $data['retain_until'] ) ? (int) $data['retain_until'] : 0,
 			);
 
 			if ( count( $recent_exports ) >= 10 ) {
