@@ -57,7 +57,7 @@ final class SScribe_Storage_Migration {
 			$moved_all = self::migrate_site_dir( $site_dir, $target ) && $moved_all;
 		}
 
-		update_option( self::COMPLETED_OPTION, gmdate( 'Y-m-d H:i:s' ), true );
+		update_option( self::COMPLETED_OPTION, gmdate( 'Y-m-d H:i:s' ), false );
 
 		return $moved_all;
 	}

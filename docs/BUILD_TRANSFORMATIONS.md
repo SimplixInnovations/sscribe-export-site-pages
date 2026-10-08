@@ -137,6 +137,12 @@ including upstream references and relative install paths. The checkout's
 generated metadata is not modified. Missing metadata, an unexpected root
 package/layout, invalid identity or failed write aborts packaging.
 
+### Whitespace-only lines — `strip_whitespace_only_lines( $source )`
+
+After comment stripping, first-party PHP, CSS and JS lines that contain only
+spaces or tabs are collapsed to empty lines so the shipped files carry no
+whitespace-only lines.
+
 ### PHP — `strip_php_comments( $source )`
 
 Tokenizes the source via `token_get_all()` and walks the token
@@ -194,8 +200,11 @@ would fail the build.
 
 - Third-party package source and license files under `vendor-prefixed/` that
   survive exclusion/pruning are copied byte-for-byte from the post-prefix build
-  tree. SScribe does not comment-strip or Unicode-sanitize third-party source or
-  notices. Generated Composer initializer suffixes are normalized before build;
+  tree, with one exception: in PHP files, typographic punctuation (em-dash,
+  en-dash, ellipsis, curly quotes) inside `T_COMMENT` and `T_DOC_COMMENT`
+  tokens is replaced with its ASCII equivalent by
+  `sanitize_php_comment_tokens()`. Code, string literals, heredocs and
+  Unicode data tables are never rewritten, and comments are not removed. Generated Composer initializer suffixes are normalized before build;
   our generated root metadata record is normalized in staging. Both operations
   are documented above and leave third-party package source unchanged.
 - TCPDF and its transitive tc-lib packages' extensionless development metadata

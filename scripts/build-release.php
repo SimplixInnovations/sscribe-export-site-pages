@@ -217,6 +217,33 @@ function sanitize_ai_artifacts( string $source ): string {
 	return strtr( $source, $replacements );
 }
 
+/**
+ * Comment stripping leaves the indentation of removed comment lines behind.
+ * Collapse lines that contain only spaces or tabs so the shipped file has
+ * no whitespace-only lines.
+ */
+function strip_whitespace_only_lines( string $source ): string {
+	$out = preg_replace( '/^[ \t]+$/m', '', $source );
+	return null === $out ? $source : $out;
+}
+
+/**
+ * Normalize typographic punctuation inside PHP comment tokens only. String
+ * literals, heredocs and Unicode data tables are left byte-for-byte intact.
+ */
+function sanitize_php_comment_tokens( string $source ): string {
+	$tokens = token_get_all( $source );
+	$output = '';
+	foreach ( $tokens as $token ) {
+		if ( is_array( $token ) && in_array( $token[0], array( T_COMMENT, T_DOC_COMMENT ), true ) ) {
+			$output .= sanitize_ai_artifacts( $token[1] );
+			continue;
+		}
+		$output .= is_array( $token ) ? $token[1] : $token;
+	}
+	return $output;
+}
+
 function strip_css_comments( string $source ): string {
 	$out = preg_replace( '/\/\*[\s\S]*?\*\//', '', $source );
 	if ( null === $out ) {
@@ -549,23 +576,30 @@ foreach ( $iterator as $file ) {
 		}
 		if ( $is_vendor_prefixed ) {
 			// Strauss is the intentional third-party source transformation.
-			// Preserve its generated vendor tree byte-for-byte here: SScribe's
-			// first-party comment/Unicode sanitizer must never rewrite upstream
-			// source or license notices after namespace isolation.
-			if ( ! copy( $file->getPathname(), $dest ) ) {
+			// Vendor code and notices are preserved byte-for-byte except for
+			// typographic punctuation inside PHP comment tokens, which is
+			// normalized to ASCII so the shipped ZIP carries none.
+			$ext = strtolower( pathinfo( $file->getPathname(), PATHINFO_EXTENSION ) );
+			if ( 'php' === $ext ) {
+				$src = file_get_contents( $file->getPathname() );
+				if ( false === $src ) {
+					throw new RuntimeException( 'Unable to read third-party vendor file: ' . $relative );
+				}
+				file_put_contents( $dest, sanitize_php_comment_tokens( $src ) );
+			} elseif ( ! copy( $file->getPathname(), $dest ) ) {
 				throw new RuntimeException( 'Unable to copy third-party vendor file: ' . $relative );
 			}
 		} elseif ( $config['strip_comments'] ) {
 			$ext = strtolower( pathinfo( $file->getPathname(), PATHINFO_EXTENSION ) );
 			if ( 'php' === $ext ) {
 				$src = file_get_contents( $file->getPathname() );
-				file_put_contents( $dest, sanitize_ai_artifacts( strip_php_comments( $src ) ) );
+				file_put_contents( $dest, strip_whitespace_only_lines( sanitize_ai_artifacts( strip_php_comments( $src ) ) ) );
 			} elseif ( 'css' === $ext ) {
 				$src = file_get_contents( $file->getPathname() );
-				file_put_contents( $dest, sanitize_ai_artifacts( strip_css_comments( $src ) ) );
+				file_put_contents( $dest, strip_whitespace_only_lines( sanitize_ai_artifacts( strip_css_comments( $src ) ) ) );
 			} elseif ( 'js' === $ext ) {
 				$src = file_get_contents( $file->getPathname() );
-				file_put_contents( $dest, sanitize_ai_artifacts( strip_js_comments( $src ) ) );
+				file_put_contents( $dest, strip_whitespace_only_lines( sanitize_ai_artifacts( strip_js_comments( $src ) ) ) );
 			} else {
 				// Only sanitize known text assets. Binary files (fonts,
 				// images, compiled translations, etc.) must be copied
@@ -1100,8 +1134,11 @@ echo "      images, compiled translations) are copied byte-for-byte.\n\n";
 
 echo "  Vendor-specific handling:\n";
 echo "    - vendor-prefixed/ files are copied byte-for-byte after Strauss\n";
-echo "      namespace isolation; first-party comment/Unicode sanitizers do\n";
-echo "      not rewrite third-party source or notices.\n";
+echo "      namespace isolation, except that typographic punctuation inside\n";
+echo "      PHP comment tokens is normalized to ASCII; string literals,\n";
+echo "      heredocs and data tables are never rewritten.\n";
+echo "    - First-party PHP/CSS/JS: lines left whitespace-only by comment\n";
+echo "      stripping are collapsed to empty lines.\n";
 echo "    - composer/installed.php: only our generated root record is\n";
 echo "      bound to plugin version and source SHA; dependency records\n";
 echo "      remain byte-for-byte unchanged. Checkout metadata is preserved.\n";
