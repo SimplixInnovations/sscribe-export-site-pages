@@ -773,8 +773,8 @@ declare(strict_types=1);
  * JbigTwo.php
  *
  * SScribe release build: the upstream filter decodes JBIG2 streams by
- * running the jbig2dec command-line tool through shell_exec() and
- * proc_open(). SScribe generates PDF documents and never parses existing
+ * running the jbig2dec command-line tool through PHP process functions.
+ * SScribe generates PDF documents and never parses existing
  * ones, so this decoder is unreachable at runtime. The shipped class keeps
  * the upstream contract and fails closed instead of invoking system
  * commands. The unmodified file is available from
