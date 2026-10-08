@@ -77,6 +77,7 @@ $required_root = array(
 	'sscribe-export-site-pages/vendor-prefixed/autoload.php',
 );
 $forbidden_substrings = array(
+	'.mjs',
 	'/dev/',
 	'/tests/',
 	'/tests-wp/',

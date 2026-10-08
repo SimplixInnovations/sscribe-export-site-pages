@@ -52,7 +52,10 @@ continue to work alongside wildcard rules such as `*.log`.
 `ruleset.xml`, `CREDITS.txt`, `.wp-env.json`, `verify_*.php`,
 `debug_*.php`, `*.py`, `*.log`, `*.tmp`, `*.bak`, `.DS_Store`,
 `Thumbs.db`, `desktop.ini`, `opencode.json`, `.opencode/`,
-`eslint.config.js`, `.stylelintrc.json`, `husky/`, `review-diff.patch`.
+`eslint.config.js`, `.stylelintrc.json`, `husky/`, `review-diff.patch`, `*.mjs`.
+
+The build also refuses to package any first-party file that git does not
+track, so stray files at the repository root cannot ship.
 
 ### Vendor-prefixed exclusions
 

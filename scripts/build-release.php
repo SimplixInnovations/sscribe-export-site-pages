@@ -103,7 +103,7 @@ $config = array(
 		//                      files. NEVER ship to WP.org.
 		//   - phpunit-wp.xml: real-WP testbench config. Dev-only.
 		//   - playwright.config.ts: E2E test config. Dev-only.
-		'.superpowers', 'phpunit-wp.xml', 'playwright.config.ts', 'composer.json',
+		'.superpowers', 'phpunit-wp.xml', 'playwright.config.ts', 'composer.json', '*.mjs',
 		// Coverage output from `composer test:coverage:merge` lands at the repo
 		// root. It is gitignored but still on disk, and it embeds absolute local
 		// paths, so it must never reach the ZIP.
@@ -666,6 +666,35 @@ if ( $config['strip_comments'] ) {
 }
 
 echo "  Pruning vendor development files...\n";
+// Hard gate: every staged first-party file must be tracked by git. Anything
+// dropped at the repository root by a tool or a scratch session would
+// otherwise ship silently. vendor-prefixed/ is generated and checked below.
+$tracked_output = array();
+exec( 'git -C ' . escapeshellarg( $root ) . ' ls-files -z', $tracked_output, $tracked_code );
+$tracked_paths = array_flip( array_filter( explode( "\0", implode( '', $tracked_output ) ) ) );
+if ( 0 !== $tracked_code || array() === $tracked_paths ) {
+	echo "     ❌ Unable to list git-tracked files for the untracked-file gate.\n";
+	exit( 1 );
+}
+$untracked_hits  = array();
+$staged_iterator = new RecursiveIteratorIterator(
+	new RecursiveDirectoryIterator( $plugin_dir, RecursiveDirectoryIterator::SKIP_DOTS )
+);
+foreach ( $staged_iterator as $staged_item ) {
+	$staged_relative = str_replace( '\\', '/', substr( $staged_item->getPathname(), strlen( $plugin_dir ) + 1 ) );
+	if ( str_starts_with( $staged_relative, 'vendor-prefixed/' ) || isset( $tracked_paths[ $staged_relative ] ) ) {
+		continue;
+	}
+	$untracked_hits[] = $staged_relative;
+}
+if ( array() !== $untracked_hits ) {
+	echo "     ❌ Untracked files reached the staged plugin (commit or exclude them):\n";
+	foreach ( $untracked_hits as $hit ) {
+		echo "        - {$hit}\n";
+	}
+	exit( 1 );
+}
+
 $vendor_dir = $plugin_dir . '/vendor-prefixed';
 if ( is_dir( $vendor_dir ) ) {
 	$prune_patterns = array(
