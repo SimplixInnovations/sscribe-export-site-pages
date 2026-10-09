@@ -208,5 +208,7 @@ final class SScribe_Admin_Schedules_Test extends TestCase {
 		$s3 = $payload['meta']['destinations'][ array_search( 's3', $ids, true ) ];
 		$this::assertSame( 'password', $s3['fields']['secret_key']['type'] );
 		$this::assertArrayHasKey( 'all', $payload['meta']['fields_modes'] );
+		$this::assertContains( 'page', array_column( $payload['meta']['post_types'], 'slug' ), 'Post types are keyed by slug, not list index.' );
+		$this::assertNotContains( '0', array_column( $payload['meta']['post_types'], 'slug' ) );
 	}
 }

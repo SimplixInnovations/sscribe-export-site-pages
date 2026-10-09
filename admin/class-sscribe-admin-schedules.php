@@ -231,9 +231,14 @@ class SScribe_Admin_Schedules {
 			);
 		}
 		$post_types = array();
-		foreach ( $collector->get_selectable_post_types() as $slug => $label ) {
+		foreach ( $collector->get_selectable_post_types() as $slug ) {
+			$slug   = (string) $slug;
+			$object = function_exists( 'get_post_type_object' ) ? get_post_type_object( $slug ) : null;
+			$label  = is_object( $object ) && isset( $object->labels->singular_name ) && is_string( $object->labels->singular_name )
+				? $object->labels->singular_name
+				: ucfirst( $slug );
 			$post_types[] = array(
-				'slug'  => (string) $slug,
+				'slug'  => $slug,
 				'label' => $label,
 			);
 		}
