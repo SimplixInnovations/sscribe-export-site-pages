@@ -233,6 +233,25 @@ Scheduled hook that removes stale sessions and durable page queues.
 
 Scheduled hook that removes expired audit-trail rows.
 
+## Scheduled exports
+
+Administrators (`manage_options`) manage schedules from the Schedules tab of
+the SScribe Export screen or with `wp sscribe schedule`. A schedule stores the
+same job an interactive export would run (post type, status, language,
+formats, custom-field mode, compliance mode, DOCX template, Markdown preset),
+a frequency (`hourly`, `daily`, `weekly`, `monthly` with hour, weekday or day
+of month in the site timezone), optional incremental runs, a retention period
+for its archives, failure email, and up to five destinations (`directory` or
+`s3`). Runs execute through WP-Cron as the administrator who created the
+schedule; long runs continue across cron ticks. Password-type destination
+settings are sealed with `SScribe_Secret_Store` before storage and returned
+to the browser masked; leaving a masked field untouched keeps the stored
+secret. The tab talks to `wp_ajax_sscribe_schedules_list`,
+`sscribe_schedule_save`, `sscribe_schedule_delete`, `sscribe_schedule_toggle`
+and `sscribe_schedule_run`, each requiring the export nonce, `manage_options`
+and a rate-limit token. `SScribe_Admin_Schedules::schedule_from_input()` is the
+validation entry point.
+
 ## Markdown front matter presets
 
 The Markdown exporter reads the format option `sscribe_md_frontmatter_preset`

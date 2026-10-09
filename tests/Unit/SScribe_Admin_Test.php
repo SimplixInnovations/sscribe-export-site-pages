@@ -126,13 +126,19 @@ class SScribe_Admin_Test extends TestCase {
 		$sscribe_test_current_user_can = true;
 		$admin->enqueue_admin_assets( 'toplevel_page_sscribe-export' );
 
-		$this->assertCount( 3, $sscribe_test_styles );
-		$this->assertCount( 2, $sscribe_test_scripts );
+		$this->assertCount( 4, $sscribe_test_styles );
+		$this->assertCount( 3, $sscribe_test_scripts );
 		$this->assertContains( 'wp-i18n', $sscribe_test_scripts[1]['deps'] );
+		$this->assertContains( 'wp-i18n', $sscribe_test_scripts[2]['deps'] );
 		$this->assertSame(
 			array(
 				array(
 					'handle' => 'sscribe-debug-console',
+					'domain' => 'sscribe-export-site-pages',
+					'path'   => SSCRIBE_PLUGIN_DIR . 'languages',
+				),
+				array(
+					'handle' => 'sscribe-schedules',
 					'domain' => 'sscribe-export-site-pages',
 					'path'   => SSCRIBE_PLUGIN_DIR . 'languages',
 				),

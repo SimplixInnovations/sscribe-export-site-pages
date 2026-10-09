@@ -47,6 +47,11 @@ action without updating this doc fails the
 | `wp_ajax_sscribe_get_support_info`           | `ajax_get_support_info`       | `sscribe_health`   | `sscribe_health_nonce`| `health_read`     | `success{info}`        |
 | `wp_ajax_sscribe_check_active_session`       | `ajax_check_active_session`   | `sscribe_export`   | `sscribe_batch`       | `status_read`     | `success{session}`     |
 | `wp_ajax_sscribe_refresh_nonce`              | `ajax_refresh_nonce`          | `sscribe_export` or `sscribe_health` | — (nonce mint: deliberately unauthenticated by nonce because it exists to replace an expired one) | `export_read` | `success{nonce,download_nonce,health_nonce}` |
+| `wp_ajax_sscribe_schedules_list`             | `ajax_list`                   | `manage_options`   | `sscribe_schedules`   | `export_read`     | `success{schedules,meta}` |
+| `wp_ajax_sscribe_schedule_save`              | `ajax_save`                   | `manage_options`   | `sscribe_schedules`   | `export_write`    | `success{schedule}`    |
+| `wp_ajax_sscribe_schedule_delete`            | `ajax_delete`                 | `manage_options`   | `sscribe_schedules`   | `export_write`    | `success{}`            |
+| `wp_ajax_sscribe_schedule_toggle`            | `ajax_toggle`                 | `manage_options`   | `sscribe_schedules`   | `export_write`    | `success{schedule}`    |
+| `wp_ajax_sscribe_schedule_run`               | `ajax_run`                    | `manage_options`   | `sscribe_schedules`   | `export_write`    | `success{filename,pages}` |
 | `wp_ajax_sscribe_debug_save_settings`        | `ajax_debug_save_settings`    | `manage_options`   | `sscribe_debug`       | `debug_write`     | `success{}`            |
 | `wp_ajax_sscribe_debug_fetch_logs`           | `ajax_debug_fetch_logs`       | `manage_options`   | `sscribe_debug`       | `debug_read`      | `success{logs}`        |
 | `wp_ajax_sscribe_debug_clear_logs`           | `ajax_debug_clear_logs`       | `manage_options`   | `sscribe_debug`       | `debug_write`     | `success{}`            |

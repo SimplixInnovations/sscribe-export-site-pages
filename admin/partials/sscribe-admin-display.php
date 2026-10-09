@@ -195,6 +195,14 @@ if ( ! function_exists( 'sscribe_humanize_export_filename' ) ) {
 				?>
 				<?php esc_html_e( 'History', 'sscribe-export-site-pages' ); ?>
 			</button>
+			<?php if ( ! empty( $sscribe_can_manage_schedules ) ) : ?>
+			<button type="button" class="sscribe-tab-btn" id="sscribe-tab-btn-schedules" data-tab="schedules" role="tab" aria-selected="false" aria-controls="sscribe-tab-schedules">
+				<?php
+				echo wp_kses_post( SScribe_Helpers::get_icon( 'refresh-cw', 16 ) );
+				?>
+				<?php esc_html_e( 'Schedules', 'sscribe-export-site-pages' ); ?>
+			</button>
+			<?php endif; ?>
 			<?php if ( $sscribe_can_view_health ) : ?>
 			<button type="button" class="sscribe-tab-btn" id="sscribe-tab-btn-support" data-tab="support" role="tab" aria-selected="false" aria-controls="sscribe-tab-support">
 				<?php
@@ -900,6 +908,28 @@ if ( ! function_exists( 'sscribe_humanize_export_filename' ) ) {
 		</div>
 
 		</div>
+
+		<?php if ( ! empty( $sscribe_can_manage_schedules ) ) : ?>
+		<div class="sscribe-tab-content" id="sscribe-tab-schedules" role="tabpanel" aria-labelledby="sscribe-tab-btn-schedules" aria-hidden="true" tabindex="-1" hidden>
+			<section class="sscribe-panel">
+				<div class="sscribe-panel-header">
+					<div class="sscribe-panel-title">
+						<?php echo wp_kses_post( SScribe_Helpers::get_icon( 'refresh-cw', 20, 'sscribe-icon-img' ) ); ?>
+						<h2><?php esc_html_e( 'Scheduled Exports', 'sscribe-export-site-pages' ); ?></h2>
+					</div>
+					<div class="sscribe-panel-actions">
+						<button type="button" class="sscribe-button sscribe-button-primary" id="sscribe-schedule-add"><?php esc_html_e( 'Add schedule', 'sscribe-export-site-pages' ); ?></button>
+					</div>
+				</div>
+				<p class="sscribe-panel-copy"><?php esc_html_e( 'Run exports on a schedule through WP-Cron, keep only what changed, and deliver archives to a directory or an S3 bucket. Each schedule runs as the administrator who created it.', 'sscribe-export-site-pages' ); ?></p>
+				<div id="sscribe-schedules-notice" class="sscribe-schedules-notice" role="status" aria-live="polite" hidden></div>
+				<div id="sscribe-schedule-form-host" hidden></div>
+				<div id="sscribe-schedules-list" class="sscribe-schedules-list" aria-busy="true">
+					<p class="sscribe-schedules-loading"><?php esc_html_e( 'Loading schedules…', 'sscribe-export-site-pages' ); ?></p>
+				</div>
+			</section>
+		</div>
+		<?php endif; ?>
 
 		<div class="sscribe-tab-content" id="sscribe-tab-history" role="tabpanel" aria-labelledby="sscribe-tab-btn-history" aria-hidden="true" tabindex="-1" hidden>
 				<section class="sscribe-panel">

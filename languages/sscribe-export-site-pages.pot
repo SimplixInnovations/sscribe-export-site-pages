@@ -9,7 +9,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-10-08T21:18:06+00:00\n"
+"POT-Creation-Date: 2026-10-09T02:49:21+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.12.0\n"
 "X-Domain: sscribe-export-site-pages\n"
@@ -36,10 +36,12 @@ msgid "https://simplixi.com"
 msgstr ""
 
 #: admin/class-sscribe-admin-debug.php:149
+#: admin/class-sscribe-admin-schedules.php:410
 msgid "Invalid security token."
 msgstr ""
 
 #: admin/class-sscribe-admin-debug.php:155
+#: admin/class-sscribe-admin-schedules.php:414
 #: includes/class-sscribe-export-query-controller.php:802
 msgid "Insufficient permissions."
 msgstr ""
@@ -135,249 +137,331 @@ msgstr ""
 msgid "File deleted."
 msgstr ""
 
+#: admin/class-sscribe-admin-schedules.php:76
+msgid "The schedule could not be read."
+msgstr ""
+
+#. translators: %d: Maximum number of schedules.
+#: admin/class-sscribe-admin-schedules.php:86
+#: includes/cli/class-sscribe-cli-schedule-command.php:132
+#, php-format
+msgid "There can be at most %d schedules. Delete one first."
+msgstr ""
+
+#: admin/class-sscribe-admin-schedules.php:107
+#: admin/class-sscribe-admin-schedules.php:156
+#: includes/class-sscribe-scheduler.php:255
+#: includes/cli/class-sscribe-cli-schedule-command.php:145
+#: includes/cli/class-sscribe-cli-schedule-command.php:447
+msgid "The schedule could not be saved."
+msgstr ""
+
+#: admin/class-sscribe-admin-schedules.php:115
+msgid "Schedule added."
+msgstr ""
+
+#: admin/class-sscribe-admin-schedules.php:116
+msgid "Schedule updated."
+msgstr ""
+
+#: admin/class-sscribe-admin-schedules.php:130
+#: admin/class-sscribe-admin-schedules.php:146
+#: admin/class-sscribe-admin-schedules.php:182
+msgid "No schedule with that id."
+msgstr ""
+
+#: admin/class-sscribe-admin-schedules.php:133
+#: includes/cli/class-sscribe-cli-schedule-command.php:276
+msgid "Schedule deleted."
+msgstr ""
+
+#: admin/class-sscribe-admin-schedules.php:166
+msgid "Schedule enabled."
+msgstr ""
+
+#: admin/class-sscribe-admin-schedules.php:167
+msgid "Schedule paused."
+msgstr ""
+
+#: admin/class-sscribe-admin-schedules.php:199
+#: includes/class-sscribe-scheduler.php:723
+#: includes/cli/class-sscribe-cli-command.php:658
+#: includes/cli/class-sscribe-cli-schedule-command.php:233
+msgid "The export failed."
+msgstr ""
+
+#: admin/class-sscribe-admin-schedules.php:206
+#: includes/cli/class-sscribe-cli-schedule-command.php:242
+msgid "Nothing changed since the last run; no archive was made."
+msgstr ""
+
+#. translators: 1: ZIP filename, 2: Number of pages exported.
+#: admin/class-sscribe-admin-schedules.php:209
+#: includes/cli/class-sscribe-cli-schedule-command.php:249
+#, php-format
+msgid "Export complete: %1$s (%2$d pages)."
+msgstr ""
+
+#: admin/class-sscribe-admin-schedules.php:299
+#: includes/cli/class-sscribe-cli-schedule-command.php:124
+msgid "The owner is not allowed to export."
+msgstr ""
+
+#: admin/class-sscribe-admin-schedules.php:419
+#: includes/traits/trait-sscribe-batch-step-handler.php:50
+#: includes/traits/trait-sscribe-export-outcome-emitter.php:38
+msgid "Too many requests. Please wait a moment."
+msgstr ""
+
 #. translators: %s: configured private storage folder.
-#: admin/class-sscribe-admin.php:95
+#: admin/class-sscribe-admin.php:104
 #, php-format
 msgid "Exports are disabled because private storage could not be created in %s. Check that the folder configured with SSCRIBE_PRIVATE_STORAGE_DIR exists and is writable by the web server."
 msgstr ""
 
 #. translators: %s: uploads folder path.
-#: admin/class-sscribe-admin.php:100
+#: admin/class-sscribe-admin.php:109
 #, php-format
 msgid "Exports are disabled because private storage could not be created in %s. Check permissions on your uploads directory."
 msgstr ""
 
-#: admin/class-sscribe-admin.php:106
+#: admin/class-sscribe-admin.php:115
 #: sscribe-export-site-pages.php:98
 #: sscribe-export-site-pages.php:164
 msgid "SScribe Export Site Pages:"
 msgstr ""
 
-#: admin/class-sscribe-admin.php:116
-#: admin/class-sscribe-admin.php:117
+#: admin/class-sscribe-admin.php:125
+#: admin/class-sscribe-admin.php:126
 #: admin/partials/sscribe-admin-display.php:134
 msgid "SScribe Export"
 msgstr ""
 
-#: admin/class-sscribe-admin.php:314
+#: admin/class-sscribe-admin.php:338
 msgid "Starting export..."
 msgstr ""
 
-#: admin/class-sscribe-admin.php:315
+#: admin/class-sscribe-admin.php:339
 msgid "Processing..."
 msgstr ""
 
-#: admin/class-sscribe-admin.php:316
+#: admin/class-sscribe-admin.php:340
 msgid "Export complete!"
 msgstr ""
 
-#: admin/class-sscribe-admin.php:317
+#: admin/class-sscribe-admin.php:341
 msgid "An error occurred. Please try again."
 msgstr ""
 
-#: admin/class-sscribe-admin.php:318
+#: admin/class-sscribe-admin.php:342
 msgid "An export is running. Use Cancel Export to stop it before closing."
 msgstr ""
 
-#: admin/class-sscribe-admin.php:319
-#: admin/partials/sscribe-admin-display.php:846
+#: admin/class-sscribe-admin.php:343
+#: admin/partials/sscribe-admin-display.php:854
 msgid "Download ZIP"
 msgstr ""
 
-#: admin/class-sscribe-admin.php:320
+#: admin/class-sscribe-admin.php:344
 msgid "Generating documents..."
 msgstr ""
 
-#: admin/class-sscribe-admin.php:321
+#: admin/class-sscribe-admin.php:345
 msgid "Start exporting pages?"
 msgstr ""
 
-#: admin/class-sscribe-admin.php:322
+#: admin/class-sscribe-admin.php:346
 msgid "Delete this export file?"
 msgstr ""
 
-#: admin/class-sscribe-admin.php:323
+#: admin/class-sscribe-admin.php:347
 msgid "This file will be automatically deleted in 72 hours for security."
 msgstr ""
 
-#: admin/class-sscribe-admin.php:324
-#: admin/class-sscribe-admin.php:408
-#: admin/partials/sscribe-admin-display.php:796
+#: admin/class-sscribe-admin.php:348
+#: admin/class-sscribe-admin.php:432
+#: admin/partials/sscribe-admin-display.php:804
 msgid "Cancel Export"
 msgstr ""
 
-#: admin/class-sscribe-admin.php:325
+#: admin/class-sscribe-admin.php:349
 msgid "Cancelling..."
 msgstr ""
 
-#: admin/class-sscribe-admin.php:326
-#: admin/partials/sscribe-admin-display.php:1165
+#: admin/class-sscribe-admin.php:350
+#: admin/partials/sscribe-admin-display.php:1195
 msgid "Loading log..."
 msgstr ""
 
-#: admin/class-sscribe-admin.php:327
+#: admin/class-sscribe-admin.php:351
 msgid "Log not found."
 msgstr ""
 
-#: admin/class-sscribe-admin.php:328
+#: admin/class-sscribe-admin.php:352
 msgid "Failed to load log."
 msgstr ""
 
-#: admin/class-sscribe-admin.php:329
+#: admin/class-sscribe-admin.php:353
 msgid "Failed to delete export."
 msgstr ""
 
-#: admin/class-sscribe-admin.php:330
+#: admin/class-sscribe-admin.php:354
 #: includes/class-sscribe-batch-file-handler.php:300
 msgid "Export deleted."
 msgstr ""
 
-#: admin/class-sscribe-admin.php:331
+#: admin/class-sscribe-admin.php:355
 msgid "Your recent export packages will appear here."
 msgstr ""
 
-#: admin/class-sscribe-admin.php:332
-#: admin/partials/sscribe-admin-display.php:963
+#: admin/class-sscribe-admin.php:356
+#: admin/partials/sscribe-admin-display.php:993
 msgid "Recent export packages"
 msgstr ""
 
-#: admin/class-sscribe-admin.php:333
-#: admin/partials/sscribe-admin-display.php:966
+#: admin/class-sscribe-admin.php:357
+#: admin/partials/sscribe-admin-display.php:996
 msgid "Select"
 msgstr ""
 
-#: admin/class-sscribe-admin.php:334
-#: admin/class-sscribe-admin.php:411
+#: admin/class-sscribe-admin.php:358
+#: admin/class-sscribe-admin.php:435
 #: admin/partials/sscribe-admin-display.php:190
-#: admin/partials/sscribe-admin-display.php:967
+#: admin/partials/sscribe-admin-display.php:997
 #: admin/js/sscribe-debug-console.js:1509
 #: admin/js/sscribe-debug-console.js:1678
 msgid "Export"
 msgstr ""
 
-#: admin/class-sscribe-admin.php:335
-#: admin/partials/sscribe-admin-display.php:968
+#: admin/class-sscribe-admin.php:359
+#: admin/partials/sscribe-admin-display.php:998
+#: admin/js/sscribe-schedules.js:187
 msgid "Actions"
 msgstr ""
 
 #. translators: %s: export filename
-#: admin/class-sscribe-admin.php:337
-#: admin/partials/sscribe-admin-display.php:989
+#: admin/class-sscribe-admin.php:361
+#: admin/partials/sscribe-admin-display.php:1019
 #, php-format
 msgid "Select export %s"
 msgstr ""
 
-#: admin/class-sscribe-admin.php:338
-#: admin/partials/sscribe-admin-display.php:947
-#: admin/partials/sscribe-admin-display.php:1038
+#: admin/class-sscribe-admin.php:362
+#: admin/partials/sscribe-admin-display.php:977
+#: admin/partials/sscribe-admin-display.php:1068
 msgid "Download"
 msgstr ""
 
-#: admin/class-sscribe-admin.php:339
-#: admin/partials/sscribe-admin-display.php:1042
+#: admin/class-sscribe-admin.php:363
+#: admin/partials/sscribe-admin-display.php:1072
 msgid "Log"
 msgstr ""
 
-#: admin/class-sscribe-admin.php:340
-#: admin/class-sscribe-admin.php:412
-#: admin/partials/sscribe-admin-display.php:950
-#: admin/partials/sscribe-admin-display.php:1045
+#: admin/class-sscribe-admin.php:364
+#: admin/class-sscribe-admin.php:436
+#: admin/partials/sscribe-admin-display.php:980
+#: admin/partials/sscribe-admin-display.php:1075
 #: admin/js/sscribe-debug-console.js:1510
 #: admin/js/sscribe-debug-console.js:1717
 #: admin/js/sscribe-debug-console.js:1732
 #: admin/js/sscribe-debug-console.js:1751
 #: admin/js/sscribe-debug-console.js:1781
+#: admin/js/sscribe-schedules.js:278
+#: admin/js/sscribe-schedules.js:311
 msgid "Delete"
 msgstr ""
 
-#: admin/class-sscribe-admin.php:341
-#: admin/class-sscribe-admin.php:422
+#: admin/class-sscribe-admin.php:365
+#: admin/class-sscribe-admin.php:446
 msgid "Estimated time:"
 msgstr ""
 
-#: admin/class-sscribe-admin.php:342
+#: admin/class-sscribe-admin.php:366
 msgid "minutes"
 msgstr ""
 
-#: admin/class-sscribe-admin.php:343
+#: admin/class-sscribe-admin.php:367
 msgid "minute"
 msgstr ""
 
-#: admin/class-sscribe-admin.php:344
+#: admin/class-sscribe-admin.php:368
 msgid "seconds"
 msgstr ""
 
-#: admin/class-sscribe-admin.php:345
+#: admin/class-sscribe-admin.php:369
 msgid "sec remaining"
 msgstr ""
 
 #. translators: %1$d: minutes, %2$d: seconds
-#: admin/class-sscribe-admin.php:347
+#: admin/class-sscribe-admin.php:371
 #, php-format
 msgid "%1$d min %2$d sec remaining"
 msgstr ""
 
-#: admin/class-sscribe-admin.php:348
+#: admin/class-sscribe-admin.php:372
 msgid "h"
 msgstr ""
 
-#: admin/class-sscribe-admin.php:349
+#: admin/class-sscribe-admin.php:373
 msgid "m"
 msgstr ""
 
-#: admin/class-sscribe-admin.php:350
+#: admin/class-sscribe-admin.php:374
 msgid "Total:"
 msgstr ""
 
-#: admin/class-sscribe-admin.php:351
+#: admin/class-sscribe-admin.php:375
 msgid "pages"
 msgstr ""
 
-#: admin/class-sscribe-admin.php:352
-#: admin/partials/sscribe-admin-display.php:391
-#: admin/partials/sscribe-admin-display.php:650
+#: admin/class-sscribe-admin.php:376
+#: admin/partials/sscribe-admin-display.php:399
+#: admin/partials/sscribe-admin-display.php:658
 msgid "page"
 msgid_plural "pages"
 msgstr[0] ""
 msgstr[1] ""
 
-#: admin/class-sscribe-admin.php:353
+#: admin/class-sscribe-admin.php:377
 msgid "Success:"
 msgstr ""
 
-#: admin/class-sscribe-admin.php:354
+#: admin/class-sscribe-admin.php:378
 msgid "Failed:"
 msgstr ""
 
-#: admin/class-sscribe-admin.php:355
+#: admin/class-sscribe-admin.php:379
 msgid "Page Details"
 msgstr ""
 
-#: admin/class-sscribe-admin.php:356
+#: admin/class-sscribe-admin.php:380
 msgid "ID"
 msgstr ""
 
-#: admin/class-sscribe-admin.php:357
+#: admin/class-sscribe-admin.php:381
 msgid "Title"
 msgstr ""
 
-#: admin/class-sscribe-admin.php:358
+#: admin/class-sscribe-admin.php:382
 #: includes/class-sscribe-privacy.php:181
 #: includes/class-sscribe-privacy.php:233
+#: admin/js/sscribe-schedules.js:184
+#: admin/js/sscribe-schedules.js:454
 msgid "Status"
 msgstr ""
 
-#: admin/class-sscribe-admin.php:359
+#: admin/class-sscribe-admin.php:383
 msgid "Time"
 msgstr ""
 
-#: admin/class-sscribe-admin.php:360
-#: admin/partials/sscribe-admin-display.php:827
+#: admin/class-sscribe-admin.php:384
+#: admin/partials/sscribe-admin-display.php:835
 #: includes/class-sscribe-privacy.php:197
+#: admin/js/sscribe-schedules.js:473
 msgid "Formats"
 msgstr ""
 
-#: admin/class-sscribe-admin.php:361
+#: admin/class-sscribe-admin.php:385
 #: includes/class-sscribe-diagnostics.php:284
 #: includes/class-sscribe-diagnostics.php:285
 #: includes/class-sscribe-diagnostics.php:286
@@ -388,582 +472,583 @@ msgstr ""
 msgid "Unknown"
 msgstr ""
 
-#: admin/class-sscribe-admin.php:362
+#: admin/class-sscribe-admin.php:386
 msgid "Errors"
 msgstr ""
 
-#: admin/class-sscribe-admin.php:363
+#: admin/class-sscribe-admin.php:387
 msgid "s"
 msgstr ""
 
-#: admin/class-sscribe-admin.php:364
+#: admin/class-sscribe-admin.php:388
 #: includes/traits/trait-sscribe-batch-step-handler.php:905
 msgid "Packaging files into ZIP archive..."
 msgstr ""
 
-#: admin/class-sscribe-admin.php:365
-#: admin/partials/sscribe-admin-display.php:1037
+#: admin/class-sscribe-admin.php:389
+#: admin/partials/sscribe-admin-display.php:1067
 msgid "Download this export"
 msgstr ""
 
 #. translators: %s: date.
-#: admin/class-sscribe-admin.php:367
-#: admin/partials/sscribe-admin-display.php:1028
+#: admin/class-sscribe-admin.php:391
+#: admin/partials/sscribe-admin-display.php:1058
 #, php-format
 msgid "Retained until %s"
 msgstr ""
 
 #. translators: %s: export filename
-#: admin/class-sscribe-admin.php:368
-#: admin/partials/sscribe-admin-display.php:1041
+#: admin/class-sscribe-admin.php:392
+#: admin/partials/sscribe-admin-display.php:1071
 msgid "View export log"
 msgstr ""
 
-#: admin/class-sscribe-admin.php:369
-#: admin/partials/sscribe-admin-display.php:1044
+#: admin/class-sscribe-admin.php:393
+#: admin/partials/sscribe-admin-display.php:1074
 msgid "Delete this export"
 msgstr ""
 
-#: admin/class-sscribe-admin.php:370
+#: admin/class-sscribe-admin.php:394
 msgid "Support Information"
 msgstr ""
 
-#: admin/class-sscribe-admin.php:371
+#: admin/class-sscribe-admin.php:395
 msgid "Your WordPress user role does not have the required capability (sscribe_export). Please contact your site administrator to grant export permissions, or log in with an Administrator account."
 msgstr ""
 
-#: admin/class-sscribe-admin.php:372
+#: admin/class-sscribe-admin.php:396
 msgid "The export session was lost : this typically happens when the PHP session or database connection timed out. Click \"Try Again\" to start a fresh export. If this keeps happening, ask your hosting provider to increase the PHP max_execution_time (recommended: 120s or higher)."
 msgstr ""
 
-#: admin/class-sscribe-admin.php:373
+#: admin/class-sscribe-admin.php:397
 msgid "The encrypted export session data could not be verified. Clear the session and start a new export. If this repeats, check database health and available storage."
 msgstr ""
 
-#: admin/class-sscribe-admin.php:374
+#: admin/class-sscribe-admin.php:398
 msgid "You have exceeded the request rate limit. Please wait about 1 minute and then try again."
 msgstr ""
 
-#: admin/class-sscribe-admin.php:375
+#: admin/class-sscribe-admin.php:399
 msgid "No pages match the selected language and status combination. Go back and verify your selection. If using WPML or Polylang, ensure the selected language has pages assigned to it."
 msgstr ""
 
-#: admin/class-sscribe-admin.php:376
+#: admin/class-sscribe-admin.php:400
 msgid "The server could not create the ZIP archive. Verify that private temporary storage is writable, sufficient disk space is available, and the PHP ZIP extension is installed."
 msgstr ""
 
-#: admin/class-sscribe-admin.php:377
+#: admin/class-sscribe-admin.php:401
 msgid "The server took too long to respond. This usually happens with large pages or slow server hardware. The plugin processes pages individually and will resume from where it left off. If this keeps happening, ask your hosting provider to increase max_execution_time to at least 120 seconds."
 msgstr ""
 
-#: admin/class-sscribe-admin.php:378
+#: admin/class-sscribe-admin.php:402
 msgid "The server ran out of PHP memory during export. Ask your hosting provider to increase the WordPress memory limit (WP_MEMORY_LIMIT) to at least 256M. You can also try exporting fewer pages at a time by selecting a specific language."
 msgstr ""
 
-#: admin/class-sscribe-admin.php:379
+#: admin/class-sscribe-admin.php:403
 msgid "The connection to your server was interrupted. Check your internet connection and try again. If you are behind a proxy or CDN (e.g., Cloudflare), ensure AJAX requests are not being blocked or cached."
 msgstr ""
 
-#: admin/class-sscribe-admin.php:380
+#: admin/class-sscribe-admin.php:404
 msgid "The selected language code is not recognized by your multilingual plugin. Go back to step 1 and select a valid language. If you recently changed your language settings, refresh this page first."
 msgstr ""
 
-#: admin/class-sscribe-admin.php:381
+#: admin/class-sscribe-admin.php:405
 msgid "A previous export session is still active. Click \"Try Again\" to force-clear it and start fresh."
 msgstr ""
 
-#: admin/class-sscribe-admin.php:382
+#: admin/class-sscribe-admin.php:406
 msgid "Your server encountered an internal error (HTTP 500). Check your server's PHP error log for details. Common causes: a conflicting plugin, PHP memory limit too low, or a corrupted .htaccess file."
 msgstr ""
 
-#: admin/class-sscribe-admin.php:383
+#: admin/class-sscribe-admin.php:407
 msgid "The server rejected the request (HTTP 403 Forbidden). This is usually caused by a security plugin (e.g., Wordfence, Sucuri, iThemes Security) or server-level firewall blocking AJAX requests. Whitelist the SScribe AJAX actions in your security plugin settings."
 msgstr ""
 
-#: admin/class-sscribe-admin.php:384
+#: admin/class-sscribe-admin.php:408
 msgid "Click \"Try Again\" to retry the export. If the problem continues: refresh the page, check your browser's developer console (F12), or contact your hosting provider to review PHP error logs."
 msgstr ""
 
-#: admin/class-sscribe-admin.php:385
+#: admin/class-sscribe-admin.php:409
 msgid "Connection lost : the server did not respond. Please check your internet connection and try again."
 msgstr ""
 
-#: admin/class-sscribe-admin.php:386
+#: admin/class-sscribe-admin.php:410
 msgid "Access denied (HTTP 403). A security plugin or firewall may be blocking this request."
 msgstr ""
 
-#: admin/class-sscribe-admin.php:387
+#: admin/class-sscribe-admin.php:411
 msgid "Internal server error (HTTP 500). The server encountered a problem : check your PHP error log for details."
 msgstr ""
 
-#: admin/class-sscribe-admin.php:388
+#: admin/class-sscribe-admin.php:412
 msgid "Bad gateway (HTTP 502). Your server or reverse proxy (Nginx/Cloudflare) is unavailable. Please wait a moment and try again."
 msgstr ""
 
-#: admin/class-sscribe-admin.php:389
+#: admin/class-sscribe-admin.php:413
 msgid "Service unavailable (HTTP 503). Your server is temporarily overloaded or under maintenance. Please wait a moment and try again."
 msgstr ""
 
-#: admin/class-sscribe-admin.php:390
+#: admin/class-sscribe-admin.php:414
 msgid "Gateway timeout (HTTP 504). The request took too long to process. Ask your hosting provider to increase the PHP max_execution_time."
 msgstr ""
 
-#: admin/class-sscribe-admin.php:391
+#: admin/class-sscribe-admin.php:415
 msgid "Request timed out : the server took too long to respond. This may happen with large exports. Please try again."
 msgstr ""
 
 #. translators: %d: HTTP status code
-#: admin/class-sscribe-admin.php:393
+#: admin/class-sscribe-admin.php:417
 #, php-format
 msgid "A network error occurred (HTTP %d). Please check your connection and try again."
 msgstr ""
 
-#: admin/class-sscribe-admin.php:394
+#: admin/class-sscribe-admin.php:418
 msgid "Loading support information..."
 msgstr ""
 
-#: admin/class-sscribe-admin.php:395
+#: admin/class-sscribe-admin.php:419
 msgid "Unable to load support information right now."
 msgstr ""
 
-#: admin/class-sscribe-admin.php:396
+#: admin/class-sscribe-admin.php:420
 msgid "Copy failed. Try selecting the text manually."
 msgstr ""
 
-#: admin/class-sscribe-admin.php:397
+#: admin/class-sscribe-admin.php:421
 msgid "Copy support info"
 msgstr ""
 
-#: admin/class-sscribe-admin.php:398
+#: admin/class-sscribe-admin.php:422
 msgid "Support information copied."
 msgstr ""
 
-#: admin/class-sscribe-admin.php:399
+#: admin/class-sscribe-admin.php:423
 msgid "Refresh"
 msgstr ""
 
-#: admin/class-sscribe-admin.php:400
-#: admin/partials/sscribe-admin-display.php:835
+#: admin/class-sscribe-admin.php:424
+#: admin/partials/sscribe-admin-display.php:843
 msgid "Generated"
 msgstr ""
 
-#: admin/class-sscribe-admin.php:401
+#: admin/class-sscribe-admin.php:425
 msgid "Debug mode may expose extra detail intended for administrators only."
 msgstr ""
 
-#: admin/class-sscribe-admin.php:402
-#: admin/class-sscribe-admin.php:803
+#: admin/class-sscribe-admin.php:426
+#: admin/class-sscribe-admin.php:828
 #: includes/class-sscribe-export-query-controller.php:602
 #: includes/class-sscribe-exporter.php:1438
 msgid "All Languages"
 msgstr ""
 
-#: admin/class-sscribe-admin.php:403
-#: admin/partials/sscribe-admin-display.php:632
+#: admin/class-sscribe-admin.php:427
+#: admin/partials/sscribe-admin-display.php:640
 msgid "All formats"
 msgstr ""
 
-#: admin/class-sscribe-admin.php:404
+#: admin/class-sscribe-admin.php:428
 msgid "Export Readiness Check"
 msgstr ""
 
-#: admin/class-sscribe-admin.php:405
+#: admin/class-sscribe-admin.php:429
 msgid "Critical Issues"
 msgstr ""
 
-#: admin/class-sscribe-admin.php:406
+#: admin/class-sscribe-admin.php:430
 msgid "Recommendations"
 msgstr ""
 
-#: admin/class-sscribe-admin.php:407
+#: admin/class-sscribe-admin.php:431
 msgid "Continue Anyway"
 msgstr ""
 
-#: admin/class-sscribe-admin.php:409
-#: admin/partials/sscribe-admin-display.php:243
-#: admin/partials/sscribe-admin-display.php:730
-#: admin/partials/sscribe-admin-display.php:1169
+#: admin/class-sscribe-admin.php:433
+#: admin/partials/sscribe-admin-display.php:251
+#: admin/partials/sscribe-admin-display.php:738
+#: admin/partials/sscribe-admin-display.php:1199
 msgid "Close"
 msgstr ""
 
-#: admin/class-sscribe-admin.php:410
+#: admin/class-sscribe-admin.php:434
 #: admin/js/sscribe-debug-console.js:1508
 msgid "View"
 msgstr ""
 
-#: admin/class-sscribe-admin.php:413
+#: admin/class-sscribe-admin.php:437
 #: admin/js/sscribe-debug-console.js:1511
 msgid "View rotated log"
 msgstr ""
 
-#: admin/class-sscribe-admin.php:414
+#: admin/class-sscribe-admin.php:438
 #: admin/js/sscribe-debug-console.js:1512
 msgid "Export rotated log"
 msgstr ""
 
-#: admin/class-sscribe-admin.php:415
+#: admin/class-sscribe-admin.php:439
 #: admin/js/sscribe-debug-console.js:1513
 msgid "Delete rotated log"
 msgstr ""
 
-#: admin/class-sscribe-admin.php:416
-#: admin/partials/sscribe-admin-display.php:725
+#: admin/class-sscribe-admin.php:440
+#: admin/partials/sscribe-admin-display.php:733
 msgid "Generating preview..."
 msgstr ""
 
-#: admin/class-sscribe-admin.php:417
+#: admin/class-sscribe-admin.php:441
 msgid "Preview is generated from the first page and may differ from the final export."
 msgstr ""
 
-#: admin/class-sscribe-admin.php:418
+#: admin/class-sscribe-admin.php:442
 msgid "Total pages:"
 msgstr ""
 
-#: admin/class-sscribe-admin.php:419
+#: admin/class-sscribe-admin.php:443
 msgid "Format:"
 msgstr ""
 
-#: admin/class-sscribe-admin.php:420
+#: admin/class-sscribe-admin.php:444
 msgid "Language:"
 msgstr ""
 
-#: admin/class-sscribe-admin.php:421
+#: admin/class-sscribe-admin.php:445
 msgid "Status:"
 msgstr ""
 
-#: admin/class-sscribe-admin.php:423
+#: admin/class-sscribe-admin.php:447
 msgid "Est. file size:"
 msgstr ""
 
-#: admin/class-sscribe-admin.php:424
+#: admin/class-sscribe-admin.php:448
 msgid "Sample:"
 msgstr ""
 
-#: admin/class-sscribe-admin.php:425
+#: admin/class-sscribe-admin.php:449
 msgid "Only the first few pages are shown in the preview."
 msgstr ""
 
-#: admin/class-sscribe-admin.php:426
+#: admin/class-sscribe-admin.php:450
 msgid "See Preview for adaptive estimate"
 msgstr ""
 
-#: admin/class-sscribe-admin.php:427
+#: admin/class-sscribe-admin.php:451
 msgid "Loading page counts..."
 msgstr ""
 
-#: admin/class-sscribe-admin.php:428
+#: admin/class-sscribe-admin.php:452
 msgid "Diagnostics"
 msgstr ""
 
-#: admin/class-sscribe-admin.php:429
+#: admin/class-sscribe-admin.php:453
 msgid "Technical details"
 msgstr ""
 
-#: admin/class-sscribe-admin.php:430
-#: admin/partials/sscribe-admin-display.php:888
+#: admin/class-sscribe-admin.php:454
+#: admin/partials/sscribe-admin-display.php:896
 msgid "Show technical details"
 msgstr ""
 
-#: admin/class-sscribe-admin.php:431
+#: admin/class-sscribe-admin.php:455
 msgid "Hide technical details"
 msgstr ""
 
-#: admin/class-sscribe-admin.php:432
+#: admin/class-sscribe-admin.php:456
 #: includes/class-sscribe-error.php:608
 msgid "Steps to fix:"
 msgstr ""
 
-#: admin/class-sscribe-admin.php:433
+#: admin/class-sscribe-admin.php:457
 msgid "Export progress:"
 msgstr ""
 
-#: admin/class-sscribe-admin.php:434
+#: admin/class-sscribe-admin.php:458
 #: includes/class-sscribe-export-format.php:33
 msgid "Word Document (DOCX)"
 msgstr ""
 
-#: admin/class-sscribe-admin.php:435
+#: admin/class-sscribe-admin.php:459
 #: includes/class-sscribe-export-format.php:34
 msgid "PDF Document"
 msgstr ""
 
-#: admin/class-sscribe-admin.php:436
+#: admin/class-sscribe-admin.php:460
 #: includes/class-sscribe-export-format.php:35
 msgid "HTML Page"
 msgstr ""
 
-#: admin/class-sscribe-admin.php:437
-#: admin/partials/sscribe-admin-display.php:452
+#: admin/class-sscribe-admin.php:461
+#: admin/partials/sscribe-admin-display.php:460
 #: includes/class-sscribe-export-format.php:36
 msgid "Markdown"
 msgstr ""
 
-#: admin/class-sscribe-admin.php:438
+#: admin/class-sscribe-admin.php:462
 msgid "Failed to clear the export session after multiple attempts. Please refresh the page and try again."
 msgstr ""
 
-#: admin/class-sscribe-admin.php:439
+#: admin/class-sscribe-admin.php:463
 #: includes/traits/trait-sscribe-session-ajax.php:158
 msgid "Export cancelled."
 msgstr ""
 
-#: admin/class-sscribe-admin.php:440
+#: admin/class-sscribe-admin.php:464
 msgid "An export is in progress. Cancel it to start a new one."
 msgstr ""
 
-#: admin/class-sscribe-admin.php:441
+#: admin/class-sscribe-admin.php:465
 msgid "Export complete! You can start a new export now."
 msgstr ""
 
-#: admin/class-sscribe-admin.php:442
+#: admin/class-sscribe-admin.php:466
 msgid "Click again"
 msgstr ""
 
-#: admin/class-sscribe-admin.php:443
-#: admin/partials/sscribe-admin-display.php:943
+#: admin/class-sscribe-admin.php:467
+#: admin/partials/sscribe-admin-display.php:973
 msgid "selected"
 msgstr ""
 
-#: admin/class-sscribe-admin.php:444
+#: admin/class-sscribe-admin.php:468
 msgid "Calculating..."
 msgstr ""
 
-#: admin/class-sscribe-admin.php:445
+#: admin/class-sscribe-admin.php:469
 msgid "Dismiss notification"
 msgstr ""
 
-#: admin/class-sscribe-admin.php:446
+#: admin/class-sscribe-admin.php:470
 msgid "Failed to generate preview."
 msgstr ""
 
-#: admin/class-sscribe-admin.php:447
+#: admin/class-sscribe-admin.php:471
 msgid "Download unavailable."
 msgstr ""
 
 #. translators: %d: Number of problems.
-#: admin/class-sscribe-admin.php:449
+#: admin/class-sscribe-admin.php:473
 #, php-format
 msgid "%d problem during this export"
 msgstr ""
 
 #. translators: %d: Number of problems.
-#: admin/class-sscribe-admin.php:451
+#: admin/class-sscribe-admin.php:475
 #, php-format
 msgid "%d problems during this export"
 msgstr ""
 
 #. translators: %d: Number of problems not listed.
-#: admin/class-sscribe-admin.php:453
+#: admin/class-sscribe-admin.php:477
 #, php-format
 msgid "...and %d more"
 msgstr ""
 
 #. translators: %1$d: current page number, %2$d: total pages
-#: admin/class-sscribe-admin.php:455
+#: admin/class-sscribe-admin.php:479
 #, php-format
 msgid "Processing %1$d of %2$d pages"
 msgstr ""
 
-#: admin/class-sscribe-admin.php:456
+#: admin/class-sscribe-admin.php:480
 msgid "Could not confirm cancellation : the server may still be processing. Reload the page before starting a new export."
 msgstr ""
 
-#: admin/class-sscribe-admin.php:458
+#: admin/class-sscribe-admin.php:482
 msgid "Delete all selected exports? This cannot be undone."
 msgstr ""
 
-#: admin/class-sscribe-admin.php:459
+#: admin/class-sscribe-admin.php:483
 msgid "Delete selected"
 msgstr ""
 
-#: admin/class-sscribe-admin.php:460
+#: admin/class-sscribe-admin.php:484
 msgid "Delete selected exports?"
 msgstr ""
 
-#: admin/class-sscribe-admin.php:461
+#: admin/class-sscribe-admin.php:485
 msgid "All selected exports will be permanently removed from the server. ZIP files in your downloads folder will not be affected."
 msgstr ""
 
-#: admin/class-sscribe-admin.php:462
+#: admin/class-sscribe-admin.php:486
 msgid "Bulk delete cancelled."
 msgstr ""
 
-#: admin/class-sscribe-admin.php:463
+#: admin/class-sscribe-admin.php:487
 msgid "Deleting selected exports..."
 msgstr ""
 
 #. translators: 1: count, 2: pluralized "export"/"exports"
-#: admin/class-sscribe-admin.php:465
+#: admin/class-sscribe-admin.php:489
 #, php-format
 msgid "Delete %1$d %2$s"
 msgstr ""
 
 #. translators: 1: count, 2: pluralized "export"/"exports"
-#: admin/class-sscribe-admin.php:467
+#: admin/class-sscribe-admin.php:491
 #, php-format
 msgid "Delete %1$d %2$s?"
 msgstr ""
 
-#: admin/class-sscribe-admin.php:468
+#: admin/class-sscribe-admin.php:492
 #: admin/js/sscribe-debug-console.js:1025
 msgid "Retry"
 msgstr ""
 
-#: admin/class-sscribe-admin.php:469
+#: admin/class-sscribe-admin.php:493
 msgid "Cancel this export?"
 msgstr ""
 
-#: admin/class-sscribe-admin.php:470
+#: admin/class-sscribe-admin.php:494
 msgid "Cancel the current export? Partial progress will be discarded."
 msgstr ""
 
-#: admin/class-sscribe-admin.php:471
+#: admin/class-sscribe-admin.php:495
 msgid "Cancellation aborted."
 msgstr ""
 
-#: admin/class-sscribe-admin.php:472
+#: admin/class-sscribe-admin.php:496
 msgid "Preparing your export..."
 msgstr ""
 
-#: admin/class-sscribe-admin.php:473
+#: admin/class-sscribe-admin.php:497
 msgid "Select a post status"
 msgstr ""
 
-#: admin/class-sscribe-admin.php:474
+#: admin/class-sscribe-admin.php:498
 msgid "Select a format"
 msgstr ""
 
-#: admin/class-sscribe-admin.php:475
+#: admin/class-sscribe-admin.php:499
 msgid "Select a post type"
 msgstr ""
 
-#: admin/class-sscribe-admin.php:476
+#: admin/class-sscribe-admin.php:500
 msgid "Select a language"
 msgstr ""
 
-#: admin/class-sscribe-admin.php:477
+#: admin/class-sscribe-admin.php:501
 msgid "No diagnostic data available."
 msgstr ""
 
-#: admin/class-sscribe-admin.php:478
+#: admin/class-sscribe-admin.php:502
 msgid "Click again within 3s to confirm"
 msgstr ""
 
-#: admin/class-sscribe-admin.php:480
-#: admin/class-sscribe-admin.php:542
-#: admin/partials/sscribe-admin-display.php:610
-#: admin/partials/sscribe-admin-display.php:823
+#: admin/class-sscribe-admin.php:504
+#: admin/class-sscribe-admin.php:566
+#: admin/partials/sscribe-admin-display.php:618
+#: admin/partials/sscribe-admin-display.php:831
 msgid "Pages"
 msgstr ""
 
-#: admin/class-sscribe-admin.php:481
-#: admin/class-sscribe-admin.php:545
+#: admin/class-sscribe-admin.php:505
+#: admin/class-sscribe-admin.php:569
 msgid "Posts"
 msgstr ""
 
-#: admin/class-sscribe-admin.php:482
-#: admin/class-sscribe-admin.php:511
-#: admin/class-sscribe-admin.php:622
+#: admin/class-sscribe-admin.php:506
+#: admin/class-sscribe-admin.php:535
+#: admin/class-sscribe-admin.php:646
 msgid "All types"
 msgstr ""
 
-#: admin/class-sscribe-admin.php:484
-#: admin/partials/sscribe-admin-display.php:361
-#: admin/partials/sscribe-admin-display.php:615
+#: admin/class-sscribe-admin.php:508
+#: admin/partials/sscribe-admin-display.php:369
+#: admin/partials/sscribe-admin-display.php:623
 #: includes/class-sscribe-exporter.php:1812
 #: includes/class-sscribe-page-collector.php:1553
 #: includes/exporters/class-sscribe-html-exporter.php:460
 msgid "Published"
 msgstr ""
 
-#: admin/class-sscribe-admin.php:485
-#: admin/partials/sscribe-admin-display.php:362
+#: admin/class-sscribe-admin.php:509
+#: admin/partials/sscribe-admin-display.php:370
 #: includes/class-sscribe-page-collector.php:1554
 msgid "Draft"
 msgstr ""
 
-#: admin/class-sscribe-admin.php:486
-#: admin/partials/sscribe-admin-display.php:363
+#: admin/class-sscribe-admin.php:510
+#: admin/partials/sscribe-admin-display.php:371
 #: includes/class-sscribe-page-collector.php:1555
 msgid "Private"
 msgstr ""
 
-#: admin/class-sscribe-admin.php:487
-#: admin/partials/sscribe-admin-display.php:364
+#: admin/class-sscribe-admin.php:511
+#: admin/partials/sscribe-admin-display.php:372
 #: includes/class-sscribe-page-collector.php:1556
+#: admin/js/sscribe-schedules.js:164
 msgid "Scheduled"
 msgstr ""
 
-#: admin/class-sscribe-admin.php:488
-#: admin/partials/sscribe-admin-display.php:365
+#: admin/class-sscribe-admin.php:512
+#: admin/partials/sscribe-admin-display.php:373
 msgid "Pending"
 msgstr ""
 
-#: admin/class-sscribe-admin.php:489
-#: admin/partials/sscribe-admin-display.php:321
-#: admin/partials/sscribe-admin-display.php:366
+#: admin/class-sscribe-admin.php:513
+#: admin/partials/sscribe-admin-display.php:329
+#: admin/partials/sscribe-admin-display.php:374
 msgid "All"
 msgstr ""
 
 #. translators: 1: page count, 2: "pages" label
-#: admin/class-sscribe-admin.php:492
+#: admin/class-sscribe-admin.php:516
 #, php-format
 msgid "%1$d %2$s ready for export"
 msgstr ""
 
-#: admin/class-sscribe-admin.php:493
+#: admin/class-sscribe-admin.php:517
 msgid "No pages match selected options. Export button is disabled."
 msgstr ""
 
 #. translators: 1: prefix (e.g. "Export progress:"), 2: percentage
-#: admin/class-sscribe-admin.php:495
+#: admin/class-sscribe-admin.php:519
 #, php-format
 msgid "%1$s %2$d%%"
 msgstr ""
 
-#: admin/class-sscribe-admin.php:860
+#: admin/class-sscribe-admin.php:885
 msgid "A multilingual plugin is active but no languages are configured."
 msgstr ""
 
-#: admin/class-sscribe-admin.php:861
+#: admin/class-sscribe-admin.php:886
 msgid "Add at least one secondary language in your multilingual plugin settings before exporting to produce a multilingual package."
 msgstr ""
 
-#: admin/class-sscribe-admin.php:870
+#: admin/class-sscribe-admin.php:895
 msgid "No published pages are available to export."
 msgstr ""
 
-#: admin/class-sscribe-admin.php:871
+#: admin/class-sscribe-admin.php:896
 msgid "Publish at least one page, or expand the post-type filter on the left to include drafts and private posts."
 msgstr ""
 
-#: admin/class-sscribe-admin.php:880
+#: admin/class-sscribe-admin.php:905
 msgid "The exports directory could not be created."
 msgstr ""
 
-#: admin/class-sscribe-admin.php:881
+#: admin/class-sscribe-admin.php:906
 msgid "Check that private temporary storage is writable, then refresh this page."
 msgstr ""
 
 #. translators: %s: current PHP memory_limit (e.g. "128M")
-#: admin/class-sscribe-admin.php:890
+#: admin/class-sscribe-admin.php:915
 #, php-format
 msgid "PHP memory limit is %s; large exports may run out of memory."
 msgstr ""
 
-#: admin/class-sscribe-admin.php:898
+#: admin/class-sscribe-admin.php:923
 msgid "Ask your host to raise memory_limit to at least 256M for sites with hundreds of pages or images."
 msgstr ""
 
-#: admin/class-sscribe-admin.php:907
+#: admin/class-sscribe-admin.php:932
 msgid "WP_DEBUG is enabled on this site."
 msgstr ""
 
-#: admin/class-sscribe-admin.php:908
+#: admin/class-sscribe-admin.php:933
 msgid "Keep WP_DEBUG disabled on production sites except while actively troubleshooting."
 msgstr ""
 
-#: admin/class-sscribe-admin.php:1042
+#: admin/class-sscribe-admin.php:1067
 msgid "Export Pages"
 msgstr ""
 
@@ -1204,502 +1289,525 @@ msgid "History"
 msgstr ""
 
 #: admin/partials/sscribe-admin-display.php:203
-msgid "Support"
+msgid "Schedules"
 msgstr ""
 
 #: admin/partials/sscribe-admin-display.php:211
+msgid "Support"
+msgstr ""
+
+#: admin/partials/sscribe-admin-display.php:219
 msgid "Debug"
 msgstr ""
 
-#: admin/partials/sscribe-admin-display.php:226
+#: admin/partials/sscribe-admin-display.php:234
 msgid "Design your export package"
 msgstr ""
 
-#: admin/partials/sscribe-admin-display.php:227
+#: admin/partials/sscribe-admin-display.php:235
 msgid "Choose what to export, pick your formats, and generate a private downloadable archive. Packages auto-delete after 72 hours."
 msgstr ""
 
-#: admin/partials/sscribe-admin-display.php:231
-#: admin/partials/sscribe-admin-display.php:240
+#: admin/partials/sscribe-admin-display.php:239
+#: admin/partials/sscribe-admin-display.php:248
 msgid "New Export"
 msgstr ""
 
-#: admin/partials/sscribe-admin-display.php:241
+#: admin/partials/sscribe-admin-display.php:249
 msgid "Pick what to export, choose formats, then generate your package."
 msgstr ""
 
-#: admin/partials/sscribe-admin-display.php:254
+#: admin/partials/sscribe-admin-display.php:262
 msgid "Content Type"
 msgstr ""
 
-#: admin/partials/sscribe-admin-display.php:306
+#: admin/partials/sscribe-admin-display.php:314
+#: admin/js/sscribe-schedules.js:463
 msgid "Language"
 msgstr ""
 
-#: admin/partials/sscribe-admin-display.php:357
+#: admin/partials/sscribe-admin-display.php:365
 msgid "Content Status"
 msgstr ""
 
-#: admin/partials/sscribe-admin-display.php:417
+#: admin/partials/sscribe-admin-display.php:425
 msgid "Export Format"
 msgstr ""
 
-#: admin/partials/sscribe-admin-display.php:428
+#: admin/partials/sscribe-admin-display.php:436
 msgid "All Formats"
 msgstr ""
 
-#: admin/partials/sscribe-admin-display.php:429
+#: admin/partials/sscribe-admin-display.php:437
 msgid "DOCX + PDF + HTML + MD"
 msgstr ""
 
-#: admin/partials/sscribe-admin-display.php:437
+#: admin/partials/sscribe-admin-display.php:445
 msgid "DOCX"
 msgstr ""
 
-#: admin/partials/sscribe-admin-display.php:439
+#: admin/partials/sscribe-admin-display.php:447
 msgid "Editable Word document"
 msgstr ""
 
-#: admin/partials/sscribe-admin-display.php:442
+#: admin/partials/sscribe-admin-display.php:450
 msgid "PDF"
 msgstr ""
 
-#: admin/partials/sscribe-admin-display.php:444
+#: admin/partials/sscribe-admin-display.php:452
 msgid "Print-ready document"
 msgstr ""
 
-#: admin/partials/sscribe-admin-display.php:447
+#: admin/partials/sscribe-admin-display.php:455
 msgid "HTML"
 msgstr ""
 
-#: admin/partials/sscribe-admin-display.php:449
+#: admin/partials/sscribe-admin-display.php:457
 msgid "Single-page HTML file"
 msgstr ""
 
-#: admin/partials/sscribe-admin-display.php:454
+#: admin/partials/sscribe-admin-display.php:462
 msgid "Plain text export"
 msgstr ""
 
-#: admin/partials/sscribe-admin-display.php:485
+#: admin/partials/sscribe-admin-display.php:493
 msgid "Content Fields"
 msgstr ""
 
-#: admin/partials/sscribe-admin-display.php:489
+#: admin/partials/sscribe-admin-display.php:497
 msgid "Custom fields in every format"
 msgstr ""
 
-#: admin/partials/sscribe-admin-display.php:498
+#: admin/partials/sscribe-admin-display.php:506
 msgid "Compliance mode: provenance in every document, signed manifest, one-year retention"
 msgstr ""
 
-#: admin/partials/sscribe-admin-display.php:506
+#: admin/partials/sscribe-admin-display.php:514
 msgid "PDF Options"
 msgstr ""
 
-#: admin/partials/sscribe-admin-display.php:510
+#: admin/partials/sscribe-admin-display.php:518
 msgid "Page size"
 msgstr ""
 
-#: admin/partials/sscribe-admin-display.php:512
+#: admin/partials/sscribe-admin-display.php:520
 msgid "A4 (210 × 297 mm)"
 msgstr ""
 
-#: admin/partials/sscribe-admin-display.php:513
+#: admin/partials/sscribe-admin-display.php:521
 msgid "Letter (8.5 × 11 in)"
 msgstr ""
 
-#: admin/partials/sscribe-admin-display.php:514
+#: admin/partials/sscribe-admin-display.php:522
 msgid "Legal (8.5 × 14 in)"
 msgstr ""
 
-#: admin/partials/sscribe-admin-display.php:515
+#: admin/partials/sscribe-admin-display.php:523
 msgid "A3 (297 × 420 mm)"
 msgstr ""
 
-#: admin/partials/sscribe-admin-display.php:520
-#: admin/partials/sscribe-admin-display.php:545
+#: admin/partials/sscribe-admin-display.php:528
+#: admin/partials/sscribe-admin-display.php:553
 msgid "Embed images"
 msgstr ""
 
-#: admin/partials/sscribe-admin-display.php:524
+#: admin/partials/sscribe-admin-display.php:532
 msgid "Include page numbers"
 msgstr ""
 
-#: admin/partials/sscribe-admin-display.php:532
+#: admin/partials/sscribe-admin-display.php:540
 msgid "DOCX Options"
 msgstr ""
 
-#: admin/partials/sscribe-admin-display.php:536
+#: admin/partials/sscribe-admin-display.php:544
 msgid "Template"
 msgstr ""
 
-#: admin/partials/sscribe-admin-display.php:538
+#: admin/partials/sscribe-admin-display.php:546
 msgid "Default (with cover & TOC)"
 msgstr ""
 
-#: admin/partials/sscribe-admin-display.php:539
+#: admin/partials/sscribe-admin-display.php:547
 msgid "Minimal (body only)"
 msgstr ""
 
-#: admin/partials/sscribe-admin-display.php:540
+#: admin/partials/sscribe-admin-display.php:548
 msgid "Translation (text only, no images or layout)"
 msgstr ""
 
-#: admin/partials/sscribe-admin-display.php:549
+#: admin/partials/sscribe-admin-display.php:557
 msgid "Include table of contents"
 msgstr ""
 
-#: admin/partials/sscribe-admin-display.php:557
+#: admin/partials/sscribe-admin-display.php:565
 msgid "Markdown Options"
 msgstr ""
 
-#: admin/partials/sscribe-admin-display.php:562
+#: admin/partials/sscribe-admin-display.php:570
 msgid "Include YAML frontmatter"
 msgstr ""
 
-#: admin/partials/sscribe-admin-display.php:565
+#: admin/partials/sscribe-admin-display.php:573
 msgid "Front matter layout"
 msgstr ""
 
-#: admin/partials/sscribe-admin-display.php:574
+#: admin/partials/sscribe-admin-display.php:582
 msgid "Include featured image"
 msgstr ""
 
-#: admin/partials/sscribe-admin-display.php:578
+#: admin/partials/sscribe-admin-display.php:586
 msgid "Use absolute image URLs"
 msgstr ""
 
-#: admin/partials/sscribe-admin-display.php:586
+#: admin/partials/sscribe-admin-display.php:594
 msgid "HTML Options"
 msgstr ""
 
-#: admin/partials/sscribe-admin-display.php:591
+#: admin/partials/sscribe-admin-display.php:599
 msgid "Inline CSS styles"
 msgstr ""
 
-#: admin/partials/sscribe-admin-display.php:595
+#: admin/partials/sscribe-admin-display.php:603
 msgid "Responsive image markup"
 msgstr ""
 
-#: admin/partials/sscribe-admin-display.php:606
+#: admin/partials/sscribe-admin-display.php:614
 msgid "Export Summary"
 msgstr ""
 
-#: admin/partials/sscribe-admin-display.php:609
+#: admin/partials/sscribe-admin-display.php:617
 msgid "Selected export configuration"
 msgstr ""
 
-#: admin/partials/sscribe-admin-display.php:629
+#: admin/partials/sscribe-admin-display.php:637
+#: admin/js/sscribe-schedules.js:465
 msgid "All languages"
 msgstr ""
 
 #. translators: %d: page count.
-#: admin/partials/sscribe-admin-display.php:649
+#: admin/partials/sscribe-admin-display.php:657
 #, php-format
 msgid "%d page selected"
 msgid_plural "%d pages selected"
 msgstr[0] ""
 msgstr[1] ""
 
-#: admin/partials/sscribe-admin-display.php:655
+#: admin/partials/sscribe-admin-display.php:663
 msgid "Estimated time not yet available. Run Preview to compute."
 msgstr ""
 
-#: admin/partials/sscribe-admin-display.php:655
+#: admin/partials/sscribe-admin-display.php:663
 msgid "Run Preview for ETA"
 msgstr ""
 
-#: admin/partials/sscribe-admin-display.php:660
+#: admin/partials/sscribe-admin-display.php:668
 msgid "Auto-download when complete"
 msgstr ""
 
-#: admin/partials/sscribe-admin-display.php:667
+#: admin/partials/sscribe-admin-display.php:675
 msgid "Pre-export advisories"
 msgstr ""
 
-#: admin/partials/sscribe-admin-display.php:684
+#: admin/partials/sscribe-admin-display.php:692
 msgid "Dismiss this advisory"
 msgstr ""
 
-#: admin/partials/sscribe-admin-display.php:694
+#: admin/partials/sscribe-admin-display.php:702
 msgid "Ctrl+Shift+P (Cmd+Shift+P on Mac)"
 msgstr ""
 
-#: admin/partials/sscribe-admin-display.php:695
+#: admin/partials/sscribe-admin-display.php:703
 msgid "Preview"
 msgstr ""
 
-#: admin/partials/sscribe-admin-display.php:697
+#: admin/partials/sscribe-admin-display.php:705
 msgid "Preview what your export will look like before generating"
 msgstr ""
 
-#: admin/partials/sscribe-admin-display.php:698
+#: admin/partials/sscribe-admin-display.php:706
 msgid "Ctrl+Shift+E (Cmd+Shift+E on Mac)"
 msgstr ""
 
-#: admin/partials/sscribe-admin-display.php:699
+#: admin/partials/sscribe-admin-display.php:707
 msgid "Generate Package"
 msgstr ""
 
-#: admin/partials/sscribe-admin-display.php:701
+#: admin/partials/sscribe-admin-display.php:709
 msgid "Start the export process for selected pages and format"
 msgstr ""
 
-#: admin/partials/sscribe-admin-display.php:706
+#: admin/partials/sscribe-admin-display.php:714
 msgid "JavaScript is required for export functionality. Please enable JavaScript in your browser."
 msgstr ""
 
-#: admin/partials/sscribe-admin-display.php:716
+#: admin/partials/sscribe-admin-display.php:724
 msgid "Export Readiness"
 msgstr ""
 
-#: admin/partials/sscribe-admin-display.php:718
+#: admin/partials/sscribe-admin-display.php:726
 msgid "Close preview"
 msgstr ""
 
-#: admin/partials/sscribe-admin-display.php:733
+#: admin/partials/sscribe-admin-display.php:741
 msgid "Start Export"
 msgstr ""
 
-#: admin/partials/sscribe-admin-display.php:736
+#: admin/partials/sscribe-admin-display.php:744
 msgid "Export readiness preview showing selected configuration and expected output"
 msgstr ""
 
-#: admin/partials/sscribe-admin-display.php:748
+#: admin/partials/sscribe-admin-display.php:756
 msgid "Export phases"
 msgstr ""
 
-#: admin/partials/sscribe-admin-display.php:751
+#: admin/partials/sscribe-admin-display.php:759
 msgid "Reading pages"
 msgstr ""
 
-#: admin/partials/sscribe-admin-display.php:752
-#: admin/partials/sscribe-admin-display.php:761
-#: admin/partials/sscribe-admin-display.php:770
+#: admin/partials/sscribe-admin-display.php:760
+#: admin/partials/sscribe-admin-display.php:769
+#: admin/partials/sscribe-admin-display.php:778
 msgid "Completed"
 msgstr ""
 
-#: admin/partials/sscribe-admin-display.php:760
+#: admin/partials/sscribe-admin-display.php:768
 msgid "Generating files"
 msgstr ""
 
-#: admin/partials/sscribe-admin-display.php:769
+#: admin/partials/sscribe-admin-display.php:777
 msgid "Packaging ZIP"
 msgstr ""
 
-#: admin/partials/sscribe-admin-display.php:777
+#: admin/partials/sscribe-admin-display.php:785
 msgid "Reading pages from WordPress..."
 msgstr ""
 
-#: admin/partials/sscribe-admin-display.php:787
+#: admin/partials/sscribe-admin-display.php:795
 msgid "Starting..."
 msgstr ""
 
-#: admin/partials/sscribe-admin-display.php:799
+#: admin/partials/sscribe-admin-display.php:807
 msgid "Stop the current export process and discard progress"
 msgstr ""
 
-#: admin/partials/sscribe-admin-display.php:816
+#: admin/partials/sscribe-admin-display.php:824
 msgid "Your package is ready"
 msgstr ""
 
-#: admin/partials/sscribe-admin-display.php:819
+#: admin/partials/sscribe-admin-display.php:827
 msgid "All selected pages have been packaged into a ZIP archive. The file is also available in the History tab for the next 72 hours."
 msgstr ""
 
-#: admin/partials/sscribe-admin-display.php:831
+#: admin/partials/sscribe-admin-display.php:839
 msgid "File size"
 msgstr ""
 
-#: admin/partials/sscribe-admin-display.php:842
+#: admin/partials/sscribe-admin-display.php:850
 msgid "The ZIP contains everything else. The History tab lists these problems with steps to fix them."
 msgstr ""
 
-#: admin/partials/sscribe-admin-display.php:848
+#: admin/partials/sscribe-admin-display.php:856
 msgid "Download the exported ZIP file to your computer"
 msgstr ""
 
-#: admin/partials/sscribe-admin-display.php:851
+#: admin/partials/sscribe-admin-display.php:859
 msgid "View in History"
 msgstr ""
 
-#: admin/partials/sscribe-admin-display.php:853
+#: admin/partials/sscribe-admin-display.php:861
 msgid "Open the History tab to see this and past exports"
 msgstr ""
 
-#: admin/partials/sscribe-admin-display.php:855
+#: admin/partials/sscribe-admin-display.php:863
 msgid "Start New Export"
 msgstr ""
 
-#: admin/partials/sscribe-admin-display.php:857
+#: admin/partials/sscribe-admin-display.php:865
 msgid "Clear current export and start a new one"
 msgstr ""
 
-#: admin/partials/sscribe-admin-display.php:872
+#: admin/partials/sscribe-admin-display.php:880
 msgid "Export failed"
 msgstr ""
 
-#: admin/partials/sscribe-admin-display.php:881
+#: admin/partials/sscribe-admin-display.php:889
 msgid "Try Again"
 msgstr ""
 
-#: admin/partials/sscribe-admin-display.php:884
+#: admin/partials/sscribe-admin-display.php:892
 msgid "Change Configuration"
 msgstr ""
 
-#: admin/partials/sscribe-admin-display.php:890
+#: admin/partials/sscribe-admin-display.php:898
 msgid "Attempt the export again"
 msgstr ""
 
-#: admin/partials/sscribe-admin-display.php:893
+#: admin/partials/sscribe-admin-display.php:901
 msgid "Technical error details"
 msgstr ""
 
-#: admin/partials/sscribe-admin-display.php:911
-msgid "Recent Exports"
+#: admin/partials/sscribe-admin-display.php:918
+msgid "Scheduled Exports"
 msgstr ""
 
-#: admin/partials/sscribe-admin-display.php:914
-msgid "Files are auto-deleted 72 hours after creation to keep private storage clean."
-msgstr ""
-
-#: admin/partials/sscribe-admin-display.php:914
-msgid "Auto-deletes in 72 hours"
-msgstr ""
-
-#: admin/partials/sscribe-admin-display.php:920
-msgid "Filter exports"
+#: admin/partials/sscribe-admin-display.php:921
+msgid "Add schedule"
 msgstr ""
 
 #: admin/partials/sscribe-admin-display.php:924
-msgid "Filter by name or size..."
+msgid "Run exports on a schedule through WP-Cron, keep only what changed, and deliver archives to a directory or an S3 bucket. Each schedule runs as the administrator who created it."
 msgstr ""
 
-#: admin/partials/sscribe-admin-display.php:925
-msgid "Clear filter"
-msgstr ""
-
-#: admin/partials/sscribe-admin-display.php:933
-msgid "Tip: select multiple files to bulk download or delete."
-msgstr ""
-
-#: admin/partials/sscribe-admin-display.php:939
-msgid "Select all visible exports"
+#: admin/partials/sscribe-admin-display.php:928
+msgid "Loading schedules…"
 msgstr ""
 
 #: admin/partials/sscribe-admin-display.php:941
+msgid "Recent Exports"
+msgstr ""
+
+#: admin/partials/sscribe-admin-display.php:944
+msgid "Files are auto-deleted 72 hours after creation to keep private storage clean."
+msgstr ""
+
+#: admin/partials/sscribe-admin-display.php:944
+msgid "Auto-deletes in 72 hours"
+msgstr ""
+
+#: admin/partials/sscribe-admin-display.php:950
+msgid "Filter exports"
+msgstr ""
+
+#: admin/partials/sscribe-admin-display.php:954
+msgid "Filter by name or size..."
+msgstr ""
+
+#: admin/partials/sscribe-admin-display.php:955
+msgid "Clear filter"
+msgstr ""
+
+#: admin/partials/sscribe-admin-display.php:963
+msgid "Tip: select multiple files to bulk download or delete."
+msgstr ""
+
+#: admin/partials/sscribe-admin-display.php:969
+msgid "Select all visible exports"
+msgstr ""
+
+#: admin/partials/sscribe-admin-display.php:971
 msgid "Select all"
 msgstr ""
 
-#: admin/partials/sscribe-admin-display.php:946
+#: admin/partials/sscribe-admin-display.php:976
 msgid "Download selected exports"
 msgstr ""
 
-#: admin/partials/sscribe-admin-display.php:949
+#: admin/partials/sscribe-admin-display.php:979
 msgid "Delete selected exports"
 msgstr ""
 
-#: admin/partials/sscribe-admin-display.php:1016
+#: admin/partials/sscribe-admin-display.php:1046
 msgid "Time until this file is auto-deleted"
 msgstr ""
 
 #. translators: %s: human time difference
-#: admin/partials/sscribe-admin-display.php:1019
+#: admin/partials/sscribe-admin-display.php:1049
 #, php-format
 msgid "expires in %s"
 msgstr ""
 
 #. translators: %s: export filename
-#: admin/partials/sscribe-admin-display.php:1041
+#: admin/partials/sscribe-admin-display.php:1071
 #, php-format
 msgid "View export log for %s"
 msgstr ""
 
 #. translators: %d: number of additional exports
-#: admin/partials/sscribe-admin-display.php:1058
+#: admin/partials/sscribe-admin-display.php:1088
 #, php-format
 msgid "%d more export available in your archive."
 msgid_plural "%d more exports available in your archive."
 msgstr[0] ""
 msgstr[1] ""
 
-#: admin/partials/sscribe-admin-display.php:1070
+#: admin/partials/sscribe-admin-display.php:1100
 msgid "No exports yet"
 msgstr ""
 
-#: admin/partials/sscribe-admin-display.php:1071
+#: admin/partials/sscribe-admin-display.php:1101
 msgid "Your generated packages will appear here. They auto-delete 72 hours after creation."
 msgstr ""
 
-#: admin/partials/sscribe-admin-display.php:1073
+#: admin/partials/sscribe-admin-display.php:1103
 msgid "Export your first package"
 msgstr ""
 
-#: admin/partials/sscribe-admin-display.php:1089
+#: admin/partials/sscribe-admin-display.php:1119
 msgid "System Diagnostics"
 msgstr ""
 
-#: admin/partials/sscribe-admin-display.php:1091
+#: admin/partials/sscribe-admin-display.php:1121
 msgid "Generate a redacted environment snapshot. Share this securely with Simplix Innovations support to help us diagnose and resolve issues faster. The snapshot never includes passwords, license keys, or private post content."
 msgstr ""
 
-#: admin/partials/sscribe-admin-display.php:1095
+#: admin/partials/sscribe-admin-display.php:1125
 msgid "Copy to Clipboard"
 msgstr ""
 
-#: admin/partials/sscribe-admin-display.php:1099
+#: admin/partials/sscribe-admin-display.php:1129
 msgid "Refresh Data"
 msgstr ""
 
-#: admin/partials/sscribe-admin-display.php:1109
+#: admin/partials/sscribe-admin-display.php:1139
 msgid "System snapshot"
 msgstr ""
 
-#: admin/partials/sscribe-admin-display.php:1110
+#: admin/partials/sscribe-admin-display.php:1140
 msgid "Redacted environment report"
 msgstr ""
 
-#: admin/partials/sscribe-admin-display.php:1113
+#: admin/partials/sscribe-admin-display.php:1143
 msgid "Support information text"
 msgstr ""
 
-#: admin/partials/sscribe-admin-display.php:1114
+#: admin/partials/sscribe-admin-display.php:1144
 msgid "The redacted environment snapshot loads automatically. Use Refresh Data to regenerate it, then copy it to share with support."
 msgstr ""
 
-#: admin/partials/sscribe-admin-display.php:1131
+#: admin/partials/sscribe-admin-display.php:1161
 msgid "No snapshot loaded yet"
 msgstr ""
 
-#: admin/partials/sscribe-admin-display.php:1132
+#: admin/partials/sscribe-admin-display.php:1162
 msgid "The snapshot is generated locally on demand and never includes passwords, license keys, or private content."
 msgstr ""
 
-#: admin/partials/sscribe-admin-display.php:1156
+#: admin/partials/sscribe-admin-display.php:1186
 msgid "Export Log"
 msgstr ""
 
-#: admin/partials/sscribe-admin-display.php:1158
+#: admin/partials/sscribe-admin-display.php:1188
 msgid "Close modal"
 msgstr ""
 
-#: admin/partials/sscribe-admin-display.php:1171
+#: admin/partials/sscribe-admin-display.php:1201
 msgid "Export log details showing processing information for this export"
 msgstr ""
 
-#: admin/partials/sscribe-admin-display.php:1184
+#: admin/partials/sscribe-admin-display.php:1214
 msgid "Confirm action"
 msgstr ""
 
-#: admin/partials/sscribe-admin-display.php:1185
+#: admin/partials/sscribe-admin-display.php:1215
 msgid "Are you sure?"
 msgstr ""
 
-#: admin/partials/sscribe-admin-display.php:1191
+#: admin/partials/sscribe-admin-display.php:1221
+#: admin/js/sscribe-schedules.js:550
 msgid "Cancel"
 msgstr ""
 
-#: admin/partials/sscribe-admin-display.php:1194
+#: admin/partials/sscribe-admin-display.php:1224
 msgid "Proceed"
 msgstr ""
 
@@ -2002,7 +2110,8 @@ msgstr ""
 
 #. translators: %d: Maximum number of destinations.
 #: includes/class-sscribe-destination-settings.php:52
-#, php-format
+#: admin/js/sscribe-schedules.js:574
+#, php-format,js-format
 msgid "A schedule can have at most %d destinations."
 msgstr ""
 
@@ -2048,6 +2157,7 @@ msgid "Plugin"
 msgstr ""
 
 #: includes/class-sscribe-diagnostics.php:210
+#: admin/js/sscribe-schedules.js:527
 msgid "Enabled"
 msgstr ""
 
@@ -3350,6 +3460,7 @@ msgid "The schedule label can be at most %d characters long."
 msgstr ""
 
 #: includes/class-sscribe-schedule.php:531
+#: admin/js/sscribe-schedules.js:723
 msgid "Choose at least one format."
 msgstr ""
 
@@ -3400,12 +3511,6 @@ msgstr ""
 msgid "The export did not start a session."
 msgstr ""
 
-#: includes/class-sscribe-scheduler.php:255
-#: includes/cli/class-sscribe-cli-schedule-command.php:145
-#: includes/cli/class-sscribe-cli-schedule-command.php:447
-msgid "The schedule could not be saved."
-msgstr ""
-
 #: includes/class-sscribe-scheduler.php:285
 msgid "The next part of the export could not be queued."
 msgstr ""
@@ -3434,12 +3539,6 @@ msgstr ""
 
 #: includes/class-sscribe-scheduler.php:639
 msgid "The schedule owner is no longer allowed to export."
-msgstr ""
-
-#: includes/class-sscribe-scheduler.php:723
-#: includes/cli/class-sscribe-cli-command.php:658
-#: includes/cli/class-sscribe-cli-schedule-command.php:233
-msgid "The export failed."
 msgstr ""
 
 #. translators: %s: missing dependency class list.
@@ -3577,38 +3676,14 @@ msgstr ""
 msgid "Name an owner who exists: --owner=<login|id>, or run the command with --user=<login>."
 msgstr ""
 
-#: includes/cli/class-sscribe-cli-schedule-command.php:124
-msgid "The owner is not allowed to export."
-msgstr ""
-
-#. translators: %d: Maximum number of schedules.
-#: includes/cli/class-sscribe-cli-schedule-command.php:132
-#, php-format
-msgid "There can be at most %d schedules. Delete one first."
-msgstr ""
-
 #. translators: 1: Schedule id, 2: Date and time of the first run.
 #: includes/cli/class-sscribe-cli-schedule-command.php:157
 #, php-format
 msgid "Schedule %1$s added. First run: %2$s"
 msgstr ""
 
-#: includes/cli/class-sscribe-cli-schedule-command.php:242
-msgid "Nothing changed since the last run; no archive was made."
-msgstr ""
-
-#. translators: 1: ZIP filename, 2: Number of pages exported.
-#: includes/cli/class-sscribe-cli-schedule-command.php:249
-#, php-format
-msgid "Export complete: %1$s (%2$d pages)."
-msgstr ""
-
 #: includes/cli/class-sscribe-cli-schedule-command.php:273
 msgid "No schedule with that id could be deleted."
-msgstr ""
-
-#: includes/cli/class-sscribe-cli-schedule-command.php:276
-msgid "Schedule deleted."
 msgstr ""
 
 #. translators: %s: Date and time of the next run.
@@ -3897,11 +3972,6 @@ msgstr ""
 #: includes/exporters/class-sscribe-pdf-exporter.php:439
 #, php-format
 msgid "PDF export aborted : only %1$s free of %2$s PHP memory limit. Try exporting to DOCX instead, or increase the memory_limit."
-msgstr ""
-
-#: includes/traits/trait-sscribe-batch-step-handler.php:50
-#: includes/traits/trait-sscribe-export-outcome-emitter.php:38
-msgid "Too many requests. Please wait a moment."
 msgstr ""
 
 #: includes/traits/trait-sscribe-batch-step-handler.php:101
@@ -4472,4 +4542,226 @@ msgstr ""
 #: admin/js/sscribe-debug-console.js:1892
 #, js-format
 msgid "Toggle context for: %s"
+msgstr ""
+
+#: admin/js/sscribe-schedules.js:78
+msgid "The request failed. Please try again."
+msgstr ""
+
+#: admin/js/sscribe-schedules.js:104
+msgid "Every hour"
+msgstr ""
+
+#: admin/js/sscribe-schedules.js:106
+#, js-format
+msgid "Daily at %s"
+msgstr ""
+
+#: admin/js/sscribe-schedules.js:109
+#, js-format
+msgid "Weekly on %1$s at %2$s"
+msgstr ""
+
+#: admin/js/sscribe-schedules.js:115
+#, js-format
+msgid "Monthly on day %1$d at %2$s"
+msgstr ""
+
+#: admin/js/sscribe-schedules.js:126
+msgid "Sunday"
+msgstr ""
+
+#: admin/js/sscribe-schedules.js:127
+msgid "Monday"
+msgstr ""
+
+#: admin/js/sscribe-schedules.js:128
+msgid "Tuesday"
+msgstr ""
+
+#: admin/js/sscribe-schedules.js:129
+msgid "Wednesday"
+msgstr ""
+
+#: admin/js/sscribe-schedules.js:130
+msgid "Thursday"
+msgstr ""
+
+#: admin/js/sscribe-schedules.js:131
+msgid "Friday"
+msgstr ""
+
+#: admin/js/sscribe-schedules.js:132
+msgid "Saturday"
+msgstr ""
+
+#: admin/js/sscribe-schedules.js:141
+msgid "Running"
+msgstr ""
+
+#: admin/js/sscribe-schedules.js:146
+msgid "Paused"
+msgstr ""
+
+#: admin/js/sscribe-schedules.js:151
+msgid "Last run failed"
+msgstr ""
+
+#: admin/js/sscribe-schedules.js:158
+msgid "Last run succeeded"
+msgstr ""
+
+#: admin/js/sscribe-schedules.js:175
+msgid "No schedules yet. Add one to export on a timer."
+msgstr ""
+
+#: admin/js/sscribe-schedules.js:182
+msgid "Schedule"
+msgstr ""
+
+#: admin/js/sscribe-schedules.js:183
+msgid "When"
+msgstr ""
+
+#: admin/js/sscribe-schedules.js:207
+msgid "changed pages only"
+msgstr ""
+
+#: admin/js/sscribe-schedules.js:214
+#, js-format
+msgid "%d destination"
+msgid_plural "%d destinations"
+msgstr[0] ""
+msgstr[1] ""
+
+#: admin/js/sscribe-schedules.js:226
+#, js-format
+msgid "runs as %s"
+msgstr ""
+
+#: admin/js/sscribe-schedules.js:233
+#, js-format
+msgid "Next: %s"
+msgstr ""
+
+#: admin/js/sscribe-schedules.js:239
+#, js-format
+msgid "Last: %s"
+msgstr ""
+
+#: admin/js/sscribe-schedules.js:256
+msgid "Run now"
+msgstr ""
+
+#: admin/js/sscribe-schedules.js:264
+msgid "Pause"
+msgstr ""
+
+#: admin/js/sscribe-schedules.js:265
+msgid "Enable"
+msgstr ""
+
+#: admin/js/sscribe-schedules.js:272
+msgid "Edit"
+msgstr ""
+
+#: admin/js/sscribe-schedules.js:306
+msgid "Click again to delete"
+msgstr ""
+
+#: admin/js/sscribe-schedules.js:323
+msgid "Running…"
+msgstr ""
+
+#: admin/js/sscribe-schedules.js:335
+msgid "Done."
+msgstr ""
+
+#: admin/js/sscribe-schedules.js:393
+msgid "Edit schedule"
+msgstr ""
+
+#: admin/js/sscribe-schedules.js:394
+msgid "New schedule"
+msgstr ""
+
+#: admin/js/sscribe-schedules.js:400
+msgid "Name"
+msgstr ""
+
+#: admin/js/sscribe-schedules.js:406
+msgid "Frequency"
+msgstr ""
+
+#: admin/js/sscribe-schedules.js:418
+#, js-format
+msgid "Hour (%s)"
+msgstr ""
+
+#: admin/js/sscribe-schedules.js:426
+msgid "Weekday"
+msgstr ""
+
+#: admin/js/sscribe-schedules.js:438
+msgid "Day of month"
+msgstr ""
+
+#: admin/js/sscribe-schedules.js:446
+msgid "Content type"
+msgstr ""
+
+#: admin/js/sscribe-schedules.js:488
+msgid "Custom fields"
+msgstr ""
+
+#: admin/js/sscribe-schedules.js:496
+msgid "Keep archives for (days)"
+msgstr ""
+
+#: admin/js/sscribe-schedules.js:500
+msgid "0 keeps the default 3 days"
+msgstr ""
+
+#: admin/js/sscribe-schedules.js:507
+msgid "Only pages changed since the last run"
+msgstr ""
+
+#: admin/js/sscribe-schedules.js:514
+msgid "Compliance mode (provenance, signed manifest, one-year retention)"
+msgstr ""
+
+#: admin/js/sscribe-schedules.js:521
+msgid "Email me when a run fails"
+msgstr ""
+
+#: admin/js/sscribe-schedules.js:533
+msgid "Deliver to"
+msgstr ""
+
+#: admin/js/sscribe-schedules.js:537
+msgid "Add destination"
+msgstr ""
+
+#: admin/js/sscribe-schedules.js:544
+msgid "Save changes"
+msgstr ""
+
+#: admin/js/sscribe-schedules.js:545
+msgid "Create schedule"
+msgstr ""
+
+#: admin/js/sscribe-schedules.js:591
+msgid "Type"
+msgstr ""
+
+#: admin/js/sscribe-schedules.js:599
+msgid "Remove"
+msgstr ""
+
+#: admin/js/sscribe-schedules.js:638
+msgid "Stored, leave blank to keep"
+msgstr ""
+
+#: admin/js/sscribe-schedules.js:719
+msgid "Give the schedule a name."
 msgstr ""

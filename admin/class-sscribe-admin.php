@@ -47,6 +47,13 @@ class SScribe_Admin {
 	private SScribe_Admin_Debug $debug;
 
 	/**
+	 * Schedules tab handlers.
+	 *
+	 * @var SScribe_Admin_Schedules
+	 */
+	private SScribe_Admin_Schedules $schedules;
+
+	/**
 	 * Initialize the admin interface.
 	 *
 	 * @param SScribe_Page_Collector|null $collector   Page collector.
@@ -62,9 +69,11 @@ class SScribe_Admin {
 		$this->seo_reader  = $seo_reader ?? new SScribe_SEO_Reader();
 		$this->zip_handler = $zip_handler ?? new SScribe_Zip_Handler();
 
-		$this->debug = new SScribe_Admin_Debug();
+		$this->debug     = new SScribe_Admin_Debug();
+		$this->schedules = new SScribe_Admin_Schedules();
 
 		$this->debug->register_hooks();
+		$this->schedules->register_hooks();
 
 		add_action( 'admin_notices', array( $this, 'render_storage_notice' ) );
 	}
@@ -257,6 +266,21 @@ class SScribe_Admin {
 				true
 			);
 			wp_set_script_translations( 'sscribe-debug-console', 'sscribe-export-site-pages', SSCRIBE_PLUGIN_DIR . 'languages' );
+
+			wp_enqueue_style(
+				'sscribe-schedules',
+				SSCRIBE_PLUGIN_URL . 'admin/css/sscribe-schedules.css',
+				array( 'sscribe-admin' ),
+				file_exists( SSCRIBE_PLUGIN_DIR . 'admin/css/sscribe-schedules.css' ) ? (string) filemtime( SSCRIBE_PLUGIN_DIR . 'admin/css/sscribe-schedules.css' ) : SSCRIBE_VERSION
+			);
+			wp_enqueue_script(
+				'sscribe-schedules',
+				SSCRIBE_PLUGIN_URL . 'admin/js/sscribe-schedules.js',
+				array( 'jquery', 'sscribe-admin', 'wp-i18n' ),
+				file_exists( SSCRIBE_PLUGIN_DIR . 'admin/js/sscribe-schedules.js' ) ? (string) filemtime( SSCRIBE_PLUGIN_DIR . 'admin/js/sscribe-schedules.js' ) : SSCRIBE_VERSION,
+				true
+			);
+			wp_set_script_translations( 'sscribe-schedules', 'sscribe-export-site-pages', SSCRIBE_PLUGIN_DIR . 'languages' );
 		}
 
 		add_action( 'admin_print_footer_scripts', array( $this, 'print_localized_data' ), 0 );
@@ -691,6 +715,7 @@ class SScribe_Admin {
 
 		$sscribe_is_debug             = current_user_can( 'manage_options' );
 		$sscribe_can_view_health      = current_user_can( SScribe_Capabilities::get_health_required() );
+		$sscribe_can_manage_schedules = SScribe_Admin_Schedules::current_user_can_manage();
 		$sscribe_debug_logging_active = $sscribe_is_debug && ( SSCRIBE_DEBUG || SScribe_Settings::is_debug_enabled() );
 
 		if ( $sscribe_debug_logging_active ) {

@@ -30,6 +30,7 @@ SScribe turns WordPress pages into portable documents for content handovers, aud
 * SEO metadata from Yoast SEO, Rank Math, All in One SEO, SEOPress, and The SEO Framework
 * Custom fields from Advanced Custom Fields, WooCommerce products, and public post meta
 * Compliance mode with per-document provenance, a signed manifest, retention, and `wp sscribe verify`
+* Scheduled exports through WP-Cron with incremental runs and delivery to a directory or S3-compatible storage
 * Cover pages, headings, tables, lists, code blocks, and images
 * A manifest.json and INDEX.md in every archive with SHA-256 checksums, source URLs, and modified dates
 * Hardened private archive and log storage inside your uploads directory (not web-readable, served only through single-use download links)
