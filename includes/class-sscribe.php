@@ -269,6 +269,10 @@ class SScribe {
 		$debug = new SScribe_Admin_Debug();
 		$debug->register_hooks();
 
+		// Schedule management runs on admin-ajax, where the admin screen
+		// class is never constructed.
+		( new SScribe_Admin_Schedules() )->register_hooks();
+
 		$batch_resolver = static function () use ( $container ): SScribe_Batch_Processor {
 			$service = $container->get( SScribe_Batch_Processor::class );
 			if ( ! $service instanceof SScribe_Batch_Processor ) {

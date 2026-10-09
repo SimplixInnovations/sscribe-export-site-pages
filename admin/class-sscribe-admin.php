@@ -47,13 +47,6 @@ class SScribe_Admin {
 	private SScribe_Admin_Debug $debug;
 
 	/**
-	 * Schedules tab handlers.
-	 *
-	 * @var SScribe_Admin_Schedules
-	 */
-	private SScribe_Admin_Schedules $schedules;
-
-	/**
 	 * Initialize the admin interface.
 	 *
 	 * @param SScribe_Page_Collector|null $collector   Page collector.
@@ -69,11 +62,9 @@ class SScribe_Admin {
 		$this->seo_reader  = $seo_reader ?? new SScribe_SEO_Reader();
 		$this->zip_handler = $zip_handler ?? new SScribe_Zip_Handler();
 
-		$this->debug     = new SScribe_Admin_Debug();
-		$this->schedules = new SScribe_Admin_Schedules();
+		$this->debug = new SScribe_Admin_Debug();
 
 		$this->debug->register_hooks();
-		$this->schedules->register_hooks();
 
 		add_action( 'admin_notices', array( $this, 'render_storage_notice' ) );
 	}
